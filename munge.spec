@@ -5,7 +5,7 @@
 
 Name:           munge
 Version:        0.5.10
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
@@ -190,6 +190,9 @@ exit 0
 
 
 %changelog
+* Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.5.10-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
 * Sun Feb 27 2011 Steve Traylen <steve.traylen@cern.ch> - 0.5.10-1
 - Upstream to 0.5.10
 - Add _isa tags to all build requires.
