@@ -1,8 +1,3 @@
-
-%if  0%{?el5}
-%define _initddir %{_sysconfdir}/rc.d/init.d
-%endif
-
 Name:           munge
 Version:        0.5.10
 Release:        3%{?dist}
@@ -14,20 +9,19 @@ URL:            http://munge.googlecode.com/
 Source0:        http://munge.googlecode.com/files/munge-%{version}.tar.bz2
 Source1:        create-munge-key
 Source2:        munge.logrotate
-# Check the key exists in the init.d script rather than failing 
-Patch1:         check-key-exists.patch
-# Run as munge rather than deamon.
-Patch2:         runas-munge-user.patch
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source3:        munged.service
+Source4:        munged-tmpfiles.conf
 
+BuildRequires:  systemd-units
 BuildRequires:  zlib-devel%{?_isa} bzip2-devel%{?_isa} openssl-devel%{?_isa}
 Requires:       munge-libs%{?_isa} = %{version}-%{release}
 
-Requires(post):   chkconfig
 Requires(pre):    shadow-utils
-Requires(preun):  chkconfig, initscripts
-Requires(postun): initscripts
 
+Requires(post):   systemd-units
+Requires(post):   systemd-sysv
+Requires(preun):  systemd-units
+Requires(postun): systemd-units
 
 %description
 MUNGE (MUNGE Uid 'N' Gid Emporium) is an authentication service for creating 
@@ -58,9 +52,10 @@ Runtime libraries for using MUNGE.
 
 %prep
 %setup -q
-%patch1 -p1
-%patch2 -p1
-
+cp -p %{SOURCE1} create-munge-key
+cp -p %{SOURCE2} munge.logrotate
+cp -p %{SOURCE3} munged.service
+cp -p %{SOURCE4} munged-tmpfiles.conf
 
 %build
 %configure  --disable-static
@@ -75,16 +70,19 @@ make %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 
-# mv init.d script form /etc/init.d to %{_initddir}
-mkdir -p $RPM_BUILD_ROOT/%{_initddir}
-mv  $RPM_BUILD_ROOT/%{_sysconfdir}/init.d/munge $RPM_BUILD_ROOT/%{_initddir}/munge
-#  
-chmod 644 $RPM_BUILD_ROOT/%{_sysconfdir}/sysconfig/munge
+# Install extra files.
+install -p -D -m 644 munged.service $RPM_BUILD_ROOT/%{_unitdir}/munged.service
+install -p -D -m 644 munged-tmpfiles.conf $RPM_BUILD_ROOT/%{_sysconfdir}/tmpfiles.d/munged.conf
+install -p -m 755 create-munge-key $RPM_BUILD_ROOT/%{_sbindir}/create-munge-key
+install -p -D -m 644 munge.logrotate $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d/munge
+
+# rm unneeded files.
+rm $RPM_BUILD_ROOT/%{_sysconfdir}/sysconfig/munge
+rm $RPM_BUILD_ROOT/%{_sysconfdir}/init.d/munge
+
 # Exclude .la files 
 rm $RPM_BUILD_ROOT/%{_libdir}/libmunge.la
 
-install -p -m 755 %{SOURCE1} $RPM_BUILD_ROOT/%{_sbindir}/create-munge-key
-install -p -D -m 644 %{SOURCE2} $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d/munge
 
 # Fix a few permissions
 chmod 700 $RPM_BUILD_ROOT%{_var}/lib/munge $RPM_BUILD_ROOT%{_var}/log/munge
@@ -93,26 +91,23 @@ chmod 700 $RPM_BUILD_ROOT%{_sysconfdir}/munge
 # Create and empty key file and pid file to be marked as a ghost file below.
 # i.e it is not actually included in the rpm, only the record 
 # of it is.
-# Can't be done on .el5.
-%if ! 0%{?el5}
-touch $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/%{name}.key
-chmod 400 $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/%{name}.key
-touch $RPM_BUILD_ROOT%{_var}/run/%{name}/%{name}d.pid
-%endif
+touch $RPM_BUILD_ROOT%{_var}/run/munge/munged.pid
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %postun 
-if [ "$1" -ge "1" ] ; then
-    /sbin/service munge condrestart >/dev/null 2>&1 || :
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+   # Package upgrade, not uninstall
+   /bin/systemctl try-restart munged.service >/dev/null 2>&1 || :
 fi
 
-
 %preun
-if [ $1 = 0 ]; then
-    /sbin/service munge stop > /dev/null 2>&1 || :
-    /sbin/chkconfig --del munge || :
+if [ $1 -eq 0 ] ; then
+   # Package removal, not upgrade
+   /bin/systemctl --no-reload disable munged.service > /dev/null 2>&1 || :
+   /bin/systemctl stop munged.service > /dev/null 2>&1 || :
 fi
 
 %pre
@@ -124,14 +119,23 @@ exit 0
 
 
 %post
-/sbin/chkconfig --add munge || :
+if [ $1 -eq 1 ] ; then 
+   # Initial installation 
+   /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+
+%triggerun -- munge < 0.5.10-3
+# Save the current service runlevel info
+/usr/bin/systemd-sysv-convert --save munge >/dev/null 2>&1 ||:
+
+# Run these because the SysV package being removed won't do them
+/sbin/chkconfig --del munge >/dev/null 2>&1 || :
+/bin/systemctl try-restart munged.service >/dev/null 2>&1 || :
 
 %post   libs -p /sbin/ldconfig
 %postun libs -p /sbin/ldconfig
 
 %files
-%defattr(-,root,root,-)
-%{_initddir}/munge
 %{_bindir}/munge
 %{_bindir}/remunge
 %{_bindir}/unmunge
@@ -142,20 +146,15 @@ exit 0
 %{_mandir}/man1/unmunge.1.gz
 %{_mandir}/man7/munge.7.gz
 %{_mandir}/man8/munged.8.gz
+%{_unitdir}/munged.service
 
-%if ! 0%{?el5}
-%attr(-,munge,munge) %ghost %dir  %{_var}/run/munge
-%endif
 %attr(0700,munge,munge) %dir  %{_var}/log/munge
 %attr(0700,munge,munge) %dir %{_sysconfdir}/munge
-%if ! 0%{?el5}
-%attr(0400,munge,munge) %ghost %{_sysconfdir}/%{name}/%{name}.key
-%attr(-,munge,munge)    %ghost %{_var}/run/%{name}/%{name}d.pid
-%endif
-
+%attr(0755,munge,munge) %ghost %dir  %{_var}/run/munge
+%attr(0644,munge,munge)    %ghost %{_var}/run/munge/munged.pid
 %attr(0700,munge,munge) %dir  %{_var}/lib/munge
 
-%config(noreplace) %{_sysconfdir}/sysconfig/munge
+%config(noreplace) %{_sysconfdir}/tmpfiles.d/munged.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/munge
 
 %doc AUTHORS BUGS ChangeLog    
@@ -163,13 +162,11 @@ exit 0
 %doc doc
 
 %files libs
-%defattr(-,root,root,-)
 %{_libdir}/libmunge.so.2
 %{_libdir}/libmunge.so.2.0.0
 %doc COPYING
 
 %files devel
-%defattr(-,root,root,-)
 %{_includedir}/munge.h
 %{_libdir}/libmunge.so
 %{_mandir}/man3/munge.3.gz
@@ -192,6 +189,7 @@ exit 0
 %changelog
 * Sun Feb 5 2012 Steve Traylen <steve.traylen@cern.ch> - 0.5.10-3
 - Remove EPEL4 support since EOL.
+- Change to systemd.
 
 * Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.5.10-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
