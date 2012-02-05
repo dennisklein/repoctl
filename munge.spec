@@ -1,11 +1,11 @@
 
-%if  0%{?el4}%{?el5}
+%if  0%{?el5}
 %define _initddir %{_sysconfdir}/rc.d/init.d
 %endif
 
 Name:           munge
 Version:        0.5.10
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
@@ -93,8 +93,8 @@ chmod 700 $RPM_BUILD_ROOT%{_sysconfdir}/munge
 # Create and empty key file and pid file to be marked as a ghost file below.
 # i.e it is not actually included in the rpm, only the record 
 # of it is.
-# Can't be done on .el4 or .el5.
-%if ! 0%{?el4}%{?el5}
+# Can't be done on .el5.
+%if ! 0%{?el5}
 touch $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/%{name}.key
 chmod 400 $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/%{name}.key
 touch $RPM_BUILD_ROOT%{_var}/run/%{name}/%{name}d.pid
@@ -143,12 +143,12 @@ exit 0
 %{_mandir}/man7/munge.7.gz
 %{_mandir}/man8/munged.8.gz
 
-%if ! 0%{?el4}%{?el5}
+%if ! 0%{?el5}
 %attr(-,munge,munge) %ghost %dir  %{_var}/run/munge
 %endif
 %attr(0700,munge,munge) %dir  %{_var}/log/munge
 %attr(0700,munge,munge) %dir %{_sysconfdir}/munge
-%if ! 0%{?el4}%{?el5}
+%if ! 0%{?el5}
 %attr(0400,munge,munge) %ghost %{_sysconfdir}/%{name}/%{name}.key
 %attr(-,munge,munge)    %ghost %{_var}/run/%{name}/%{name}d.pid
 %endif
@@ -190,6 +190,9 @@ exit 0
 
 
 %changelog
+* Sun Feb 5 2012 Steve Traylen <steve.traylen@cern.ch> - 0.5.10-3
+- Remove EPEL4 support since EOL.
+
 * Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.5.10-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
 
