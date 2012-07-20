@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.10
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
@@ -187,6 +187,9 @@ fi
 
 
 %changelog
+* Fri Jul 20 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.5.10-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
+
 * Sun Feb 5 2012 Steve Traylen <steve.traylen@cern.ch> - 0.5.10-3
 - Remove EPEL4 support since EOL.
 - Change to systemd.
