@@ -33,7 +33,7 @@ without the use of root privileges, reserved ports, or platform-specific
 methods.
 
 %package devel
-Summary:        Development files for uid * gid authentication acrosss a host cluster
+Summary:        Development files for uid * gid authentication across a host cluster
 Group:          Applications/System
 Requires:       munge-libs%{?_isa} = %{version}-%{release}
 
@@ -41,7 +41,7 @@ Requires:       munge-libs%{?_isa} = %{version}-%{release}
 Header files for developing using MUNGE.
 
 %package libs
-Summary:        Runtime libs for uid * gid authentication acrosss a host cluster
+Summary:        Runtime libs for uid * gid authentication across a host cluster
 Group:          Applications/System
 
 %description libs
@@ -164,6 +164,9 @@ exit 0
 
 
 %changelog
+* Mon Jun 02 2014 Nils Philippsen <nils@redhat.com>
+- fix typo
+
 * Fri Aug 30 2013 Steve Traylen <steve.traylen@cern.ch> - 0.5.11-1
 - Upstream 0.5.11
 - Use upstream's systemd files.
