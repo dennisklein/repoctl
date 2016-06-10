@@ -1,5 +1,5 @@
 Name:           pmix
-Version:        1.1.3
+Version:        1.1.4
 Release:        1%{?dist}
 Summary:        Exascale version of PMI
 
@@ -73,6 +73,9 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 
 %changelog
+* Fri Jun 10 2016 Orion Poplawski <orion@cora.nwra.com> - 1.1.4-1
+- Update to 1.1.4
+
 * Tue Mar 8 2016 Orion Poplawski <orion@cora.nwra.com> - 1.1.3-1
 - Update to 1.1.3
 
