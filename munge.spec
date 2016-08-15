@@ -5,7 +5,7 @@ Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
 License:        GPLv3+
-URL:            http://munge.googlecode.com/
+URL:            https://dun.github.io/munge/
 Source0:        https://github.com/dun/munge/releases/download/munge-%{version}/munge-%{version}.tar.xz
 Source1:        create-munge-key
 Source2:        munge.logrotate
@@ -168,6 +168,7 @@ exit 0
 %changelog
 * Mon Aug 15 2016 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-2
 - Include COPYING.LESSER also.
+- Correct URL homepage
 
 * Mon Aug 15 2016 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-1
 - Upstream 0.5.12
