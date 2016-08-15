@@ -1,12 +1,12 @@
 Name:           munge
-Version:        0.5.11
-Release:        5%{?dist}
+Version:        0.5.12
+Release:        1%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
-License:        GPLv2+
+License:        GPLv3+
 URL:            http://munge.googlecode.com/
-Source0:        http://munge.googlecode.com/files/munge-%{version}.tar.bz2
+Source0:        https://github.com/dun/munge/releases/download/munge-%{version}/munge-%{version}.tar.xz
 Source1:        create-munge-key
 Source2:        munge.logrotate
 
@@ -36,6 +36,7 @@ methods.
 Summary:        Development files for uid * gid authentication across a host cluster
 Group:          Applications/System
 Requires:       munge-libs%{?_isa} = %{version}-%{release}
+License:        GPLv3+ and LGPv3+
 
 %description devel
 Header files for developing using MUNGE.
@@ -43,6 +44,7 @@ Header files for developing using MUNGE.
 %package libs
 Summary:        Runtime libs for uid * gid authentication across a host cluster
 Group:          Applications/System
+License:        GPLv3+ and LGPv3+
 
 %description libs
 Runtime libraries for using MUNGE.
@@ -164,6 +166,10 @@ exit 0
 
 
 %changelog
+* Mon Aug 15 2016 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-1
+- Upstream 0.5.12
+- License now GPLv3+ and also LGPLv3+ for libs.
+
 * Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.11-5
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
 
