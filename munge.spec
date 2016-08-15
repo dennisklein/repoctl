@@ -1,10 +1,11 @@
 Name:           munge
 Version:        0.5.12
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
-License:        GPLv3+
+# The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
+License:        GPLv3+ and LGPLv3+
 URL:            https://dun.github.io/munge/
 Source0:        https://github.com/dun/munge/releases/download/munge-%{version}/munge-%{version}.tar.xz
 Source1:        create-munge-key
@@ -36,7 +37,6 @@ methods.
 Summary:        Development files for uid * gid authentication across a host cluster
 Group:          Applications/System
 Requires:       munge-libs%{?_isa} = %{version}-%{release}
-License:        GPLv3+ and LGPv3+
 
 %description devel
 Header files for developing using MUNGE.
@@ -44,7 +44,6 @@ Header files for developing using MUNGE.
 %package libs
 Summary:        Runtime libs for uid * gid authentication across a host cluster
 Group:          Applications/System
-License:        GPLv3+ and LGPv3+
 
 %description libs
 Runtime libraries for using MUNGE.
@@ -166,6 +165,9 @@ exit 0
 
 
 %changelog
+* Mon Aug 15 2016 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-3
+- Correct Licesing strings.
+
 * Mon Aug 15 2016 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-2
 - Include COPYING.LESSER also.
 - Correct URL homepage
