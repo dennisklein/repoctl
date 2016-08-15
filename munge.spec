@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.12
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
@@ -142,7 +142,7 @@ exit 0
 %files libs
 %{_libdir}/libmunge.so.2
 %{_libdir}/libmunge.so.2.0.0
-%doc COPYING
+%doc COPYING COPYING.LESSER
 
 %files devel
 %{_includedir}/munge.h
@@ -166,6 +166,9 @@ exit 0
 
 
 %changelog
+* Mon Aug 15 2016 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-2
+- Include COPYING.LESSER also.
+
 * Mon Aug 15 2016 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-1
 - Upstream 0.5.12
 - License now GPLv3+ and also LGPLv3+ for libs.
