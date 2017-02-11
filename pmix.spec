@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        1.1.5
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Exascale version of PMI
 
 License:        BSD
@@ -73,6 +73,9 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 
 %changelog
+* Sat Feb 11 2017 Fedora Release Engineering <releng@fedoraproject.org> - 1.1.5-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
+
 * Wed Sep 7 2016 Orion Poplawski <orion@cora.nwra.com> - 1.1.5-1
 - Update to 1.1.5
 
