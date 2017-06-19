@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.12
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
@@ -12,7 +12,7 @@ Source1:        create-munge-key
 Source2:        munge.logrotate
 
 BuildRequires:  systemd-units
-BuildRequires:  zlib-devel bzip2-devel openssl-devel
+BuildRequires:  zlib-devel bzip2-devel libgcrypt-devel
 Requires:       munge-libs = %{version}-%{release}
 
 Requires(pre):    shadow-utils
@@ -55,7 +55,7 @@ cp -p %{SOURCE1} create-munge-key
 cp -p %{SOURCE2} munge.logrotate
 
 %build
-%configure  --disable-static
+%configure  --disable-static --with-crypto-lib=libgcrypt
 # Get rid of some rpaths for /usr/sbin
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
@@ -165,6 +165,9 @@ exit 0
 
 
 %changelog
+* Mon Jun 19 2017 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-5
+- Use libgcrypt rather than openssl.
+
 * Fri Feb 10 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.12-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
 
