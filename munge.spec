@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.12
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
@@ -165,6 +165,9 @@ exit 0
 
 
 %changelog
+* Wed Jul 26 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.12-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
+
 * Mon Jun 19 2017 Steve Traylen <steve.traylen@cern.ch> - 0.5.12-5
 - Use libgcrypt rather than openssl.
 
