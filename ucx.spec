@@ -1,0 +1,106 @@
+%{!?configure_options: %global configure_options %{nil}}
+%{!?_pkgdocdir: %global _pkgdocdir %{_docdir}/%{name}}
+%{!?make_build: %define make_build %{__make} %{?_smp_mflags}}
+%{!?make_install: %define make_install %{__make} install DESTDIR=%{?buildroot}}
+
+Name: ucx
+Version: 1.2.2
+Release: 1%{?dist}
+Summary: A communication library implementing high-performance messaging
+Group: System Environment/Libraries
+
+License: BSD
+URL: http://www.openucx.org
+Source: https://github.com/openucx/%{name}/releases/download/v1.2.2/ucx-1.2.2.tar.gz
+
+BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+
+# UCX currently supports only the following architectures
+ExclusiveArch: aarch64 ppc64le x86_64
+
+BuildRequires: numactl-devel libibverbs-devel
+BuildRequires: gcc
+
+Provides: bundled(sglib) = 1.0.4
+# UCX doesn’t use glibc’s malloc because it is modifying ptmalloc library
+# to notify UCX about memory map/unmap events
+Provides: bundled(ptmalloc) = 2.8.6
+
+%description
+UCX stands for Unified Communication X. It requires either RDMA-capable device
+(InfiniBand, RoCE, etc), Cray Gemini or Aries, for inter-node communication.
+Future versions will support also TCP for inter-node, to lift that hardware
+dependency.
+In addition, the library can be used for intra-node communication by leveraging
+the following shared memory mechanisms: posix, sysv, cma, knem, xpmem.
+
+%package devel
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Summary: Header files required to develop with UCX
+Group: Development/Libraries
+
+# UCX ships both static and dynamic libs to support different use-cases like
+# performance benefits.
+%package static
+Requires: %{name}-devel = %{version}-%{release}
+Summary: Static libraries required to develop with UCX
+Group: Development/Libraries
+
+%description devel
+Provides header files and examples for developing with UCX.
+
+%description static
+Provides static libraries required for development with UCX.
+
+%prep
+%setup -q
+
+%build
+%configure --disable-optimizations \
+           --disable-logging \
+           --disable-debug \
+           --disable-assertions \
+           --disable-params-check \
+           --docdir=%{_pkgdocdir} \
+           CXXFLAGS="%{optflags} -fno-exceptions" \
+           %{?configure_options}
+%make_build V=1
+
+%install
+%make_install
+rm -f %{buildroot}%{_libdir}/*.la
+
+%files
+%{_libdir}/lib*.so.*
+%{_bindir}/uc*
+%{_pkgdocdir}
+%exclude %{_pkgdocdir}/examples
+%if "%{?_licensedir}" != ""
+%license LICENSE
+%exclude %{_pkgdocdir}/LICENSE
+%endif
+
+%files devel
+%{_includedir}/uc*
+%{_libdir}/lib*.so
+%{_libdir}/pkgconfig/ucx.pc
+%{_pkgdocdir}/examples
+
+%files static
+%{_libdir}/lib*.a
+
+%post -p /sbin/ldconfig
+%postun -p /sbin/ldconfig
+
+%changelog
+* Thu Nov 11 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.2-1
+- Spec file: changes to get approval on Fedora review
+
+* Thu Oct 12 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.1-1
+- Spec file: new Source link, set default BuildRoot
+
+* Mon Aug 21 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.1-1
+- Spec file now complies with Fedora guidelines
+
+* Mon Jul 3 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.0-1
+- Fedora package created

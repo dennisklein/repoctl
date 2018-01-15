@@ -1,3 +1,0 @@
-# ucx
-
-The ucx package
