@@ -5,7 +5,7 @@
 
 Name: ucx
 Version: 1.2.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: A communication library implementing high-performance messaging
 Group: System Environment/Libraries
 
@@ -93,6 +93,9 @@ rm -f %{buildroot}%{_libdir}/*.la
 %postun -p /sbin/ldconfig
 
 %changelog
+* Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1.2.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
 * Thu Nov 11 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.2-1
 - Spec file: changes to get approval on Fedora review
 
