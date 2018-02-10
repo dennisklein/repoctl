@@ -1,16 +1,25 @@
 Name:           pmix
-Version:        1.2.2
-Release:        4%{?dist}
-Summary:        Exascale version of PMI
-
+Version:        2.1.0
+Release:        1%{?dist}
+Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
-URL:            https://www.open-mpi.org/projects/pmix/
-Source0:        https://raw.githubusercontent.com/pmix/tarballs/master/pmix-%{version}.tar.bz2
+URL:            https://pmix.github.io/pmix/
+Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 
-BuildRequires:  cyrus-sasl-devel
-BuildRequires:  hwloc-devel
+BuildRequires:  autoconf
+BuildRequires:  automake
+BuildRequires:  environment(modules)
+BuildRequires:  flex
+BuildRequires:  gcc
 BuildRequires:  libevent-devel
-BuildRequires:  munge-devel
+BuildRequires:  libtool
+BuildRequires:  perl-interpreter
+BuildRequires:  pkgconf
+BuildRequires:  pkgconfig(hwloc)
+BuildRequires:  pkgconfig(munge)
+
+Provides:       pmi
+Requires:       environment(modules)
 
 %description
 The Process Management Interface (PMI) has been used for quite some time as
@@ -31,48 +40,139 @@ restrictions that impact scalability, and (b) provide a reference
 implementation of the PMI-server that demonstrates the desired level of
 scalability.
 
-
 %package        devel
 Summary:        Development files for %{name}
 Requires:       %{name}%{?_isa} = %{version}-%{release}
-
 %description    devel
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
-
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}
 
+echo touching lexer sources to recompile them ...
+find src -name \*.l -print -exec touch --no-create {} \;
 
 %build
-%configure --disable-static --disable-silent-rules --with-sasl
-make %{?_smp_mflags}
+%{_builddir}/%{name}-%{version}/autogen.pl
+%configure \
+    --prefix=%{_prefix} \
+    --sysconfdir=%{_sysconfdir}/%{name} \
+    --disable-static \
+    --disable-silent-rules \
+    --enable-shared \
+    --enable-pmi-backward-compatibility \
+    --with-munge
 
+%make_build V=1
+
+%check
+%{__make} check
 
 %install
 %make_install
-find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
+# remove libtool archives
+find %{buildroot} -name '*.la' | xargs rm -f
 
-%post -p /sbin/ldconfig
+# move libpmi/libpmi2 for environment module usage
+install -d -m 0755 %{buildroot}%{_libdir}/%{name}/lib
+mv %{buildroot}%{_libdir}/libpmi.so* %{buildroot}%{_libdir}/%{name}/lib
+mv %{buildroot}%{_libdir}/libpmi2.so* %{buildroot}%{_libdir}/%{name}/lib
 
-%postun -p /sbin/ldconfig
+# move man pages to build root
+install -d -m 0755 %{buildroot}%{_mandir}/man3
+install -d -m 0755 %{buildroot}%{_mandir}/man7
+mv man/man3/*.3 %{buildroot}%{_mandir}/man3/
+mv man/man7/*.7 %{buildroot}%{_mandir}/man7/
 
+# install pmi/pmix environment module file
+install -d -m 0755 %{buildroot}%{_modulesdir}/pmi
+cat >%{buildroot}%{_modulesdir}/pmi/%{name}-%{_arch} <<EOF
+#%%Module 1.0
+#
+#  pmi/pmix module for use with 'environment-modules' package:
+#
+conflict         pmi
+prepend-path     LD_LIBRARY_PATH    %{_libdir}/%{name}/lib
+prepend-path     PKG_CONFIG_PATH    %{_libdir}/%{name}/lib/pkgconfig
+EOF
+
+# install pkgconfig file pmix.pc
+install -d -m 0755 %{buildroot}%{_libdir}/pkgconfig
+cat >%{buildroot}%{_libdir}/pkgconfig/%{name}.pc <<EOF
+includedir=%{_includedir}
+libdir=%{_libdir}
+
+Name: %{name}
+Version: %{version}
+Description: PMI Exascale (PMIx) library
+Cflags: -I\${includedir}
+Libs: -L\${libdir} -lpmix
+EOF
+
+# install pkgconfig file pmi.pc for environment module usage
+install -d -m 0755 %{buildroot}%{_libdir}/%{name}/lib/pkgconfig
+cat >%{buildroot}%{_libdir}/%{name}/lib/pkgconfig/pmi.pc <<EOF
+includedir=%{_includedir}
+libdir=%{_libdir}/%{name}/lib
+
+Name: pmi
+Version: %{version}
+Description: (PMIx) PMI compatibility library
+Cflags: -I\${includedir}
+Libs: -L\${libdir} -lpmi
+EOF
+
+# install pkgconfig file pmi2.pc for environment module usage
+install -d -m 0755 %{buildroot}%{_libdir}/%{name}/lib/pkgconfig
+cat >%{buildroot}%{_libdir}/%{name}/lib/pkgconfig/pmi2.pc <<EOF
+includedir=%{_includedir}
+libdir=%{_libdir}/%{name}/lib
+
+Name: pmi2
+Version: %{version}
+Description: (PMIx) PMI2 compatibility library
+Cflags: -I\${includedir}
+Libs: -L\${libdir} -lpmi2
+EOF
+
+%ldconfig_scriptlets
+%ldconfig_scriptlets -n devel
 
 %files
 %license LICENSE
 %doc README
-%{_libdir}/*.so.2*
-%{_datadir}/pmix/
+%dir %{_datadir}/%{name}
+%dir %{_libdir}/%{name}
+%dir %{_libdir}/%{name}/lib
+%dir %{_modulesdir}/pmi
+%dir %{_sysconfdir}/%{name}
+%config(noreplace) %{_sysconfdir}/%{name}/*.conf
+%{_datadir}/%{name}/*.txt
+%{_libdir}/libpmix.so.*
+%{_libdir}/%{name}/*.so
+%{_libdir}/%{name}/lib/*.so.*
+%{_modulesdir}/pmi/*
 
 %files devel
-%{_includedir}/*
-%{_libdir}/*.so
+%{_datadir}/%{name}/*.supp
+%{_includedir}/*.h
+%{_libdir}/libpmix.so
+%{_libdir}/%{name}/lib/*.so
+%{_libdir}/%{name}/lib/pkgconfig/*.pc
+%{_libdir}/pkgconfig/*.pc
 %{_mandir}/man[37]/*
 
-
 %changelog
+* Sat Feb 10 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-1
+- Update to 2.1.0.
+- Added enviromnent module for pmi/pmix.
+- Added pkgconfig files for pmix/pmi/pmi2.
+- Ensure lexer sources are rebuilt.
+- Removed obsolete sasl support.
+- Use new ldconfig_scriplets macro.
+
 * Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1.2.2-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
 
