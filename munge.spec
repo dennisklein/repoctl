@@ -89,9 +89,6 @@ chmod 700 %{buildroot}%{_sysconfdir}/munge
 # of it is.
 touch %{buildroot}%{_var}/run/munge/munged.pid
 
-%clean
-rm -rf %{buildroot}
-
 %postun 
 %systemd_postun_with_restart munge.service
 
