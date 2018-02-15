@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        2.1.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -165,13 +165,16 @@ EOF
 %{_mandir}/man[37]/*
 
 %changelog
+* Thu Feb 15 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-2
+- Rebuild for libevent soname bump
+
 * Sat Feb 10 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-1
-- Update to 2.1.0.
-- Added enviromnent module for pmi/pmix.
-- Added pkgconfig files for pmix/pmi/pmi2.
-- Ensure lexer sources are rebuilt.
-- Removed obsolete sasl support.
-- Use new ldconfig_scriplets macro.
+- Update to 2.1.0
+- Added enviromnent module for pmi/pmix
+- Added pkgconfig files for pmix/pmi/pmi2
+- Ensure lexer sources are rebuilt
+- Removed obsolete sasl support
+- Use new ldconfig_scriplets macro
 
 * Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1.2.2-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
