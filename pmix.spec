@@ -1,10 +1,13 @@
 Name:           pmix
 Version:        2.1.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
 Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+
+# Remove configure check for C++ since requires only C
+Patch0:         pmix_remove_cxx_lang.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -49,6 +52,7 @@ developing applications that use %{name}.
 
 %prep
 %setup -q -n %{name}-%{version}
+%patch0 -p1
 
 echo touching lexer sources to recompile them ...
 find src -name \*.l -print -exec touch --no-create {} \;
@@ -165,6 +169,9 @@ EOF
 %{_mandir}/man[37]/*
 
 %changelog
+* Sun Feb 18 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-3
+- Add patch to remove unneeded check for C++
+
 * Thu Feb 15 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-2
 - Rebuild for libevent soname bump
 
