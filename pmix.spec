@@ -1,6 +1,6 @@
 Name:           pmix
-Version:        2.1.0
-Release:        3%{?dist}
+Version:        2.1.1
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -142,7 +142,7 @@ Libs: -L\${libdir} -lpmi2
 EOF
 
 %ldconfig_scriptlets
-%ldconfig_scriptlets -n devel
+%ldconfig_scriptlets devel
 
 %files
 %license LICENSE
@@ -169,6 +169,9 @@ EOF
 %{_mandir}/man[37]/*
 
 %changelog
+* Fri Mar 16 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.1-1
+- Update to 2.1.1
+
 * Sun Feb 18 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-3
 - Add patch to remove unneeded check for C++
 
