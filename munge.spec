@@ -1,6 +1,6 @@
 Name:           munge
-Version:        0.5.12
-Release:        9%{?dist}
+Version:        0.5.13
+Release:        1%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 Group:          Applications/System
@@ -162,6 +162,9 @@ exit 0
 
 
 %changelog
+* Thu May 17 2018 Steve Traylen <steve.traylen@cern.ch> - 0.5.13-1
+- Escape macros in %%changelog
+
 * Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.5.12-9
 - Escape macros in %%changelog
 
