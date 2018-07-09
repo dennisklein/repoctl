@@ -11,6 +11,7 @@ Source0:        https://github.com/dun/munge/releases/download/munge-%{version}/
 Source1:        create-munge-key
 Source2:        munge.logrotate
 
+BuildRequires:  gcc
 BuildRequires:  systemd-units
 BuildRequires:  zlib-devel bzip2-devel libgcrypt-devel
 Requires:       munge-libs = %{version}-%{release}
