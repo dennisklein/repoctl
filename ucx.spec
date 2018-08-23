@@ -1,17 +1,14 @@
 %{!?configure_options: %global configure_options %{nil}}
-%{!?_pkgdocdir: %global _pkgdocdir %{_docdir}/%{name}}
-%{!?make_build: %define make_build %{__make} %{?_smp_mflags}}
-%{!?make_install: %define make_install %{__make} install DESTDIR=%{?buildroot}}
 
 Name: ucx
-Version: 1.2.2
-Release: 3%{?dist}
-Summary: A communication library implementing high-performance messaging
+Version: 1.3.1
+Release: 1%{?dist}
+Summary: UCX is a communication library implementing high-performance messaging
 Group: System Environment/Libraries
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.2.2/ucx-1.2.2.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.3.1/ucx-1.3.1.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -19,12 +16,7 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 ExclusiveArch: aarch64 ppc64le x86_64
 
 BuildRequires: numactl-devel libibverbs-devel
-BuildRequires: gcc
-
-Provides: bundled(sglib) = 1.0.4
-# UCX doesn’t use glibc’s malloc because it is modifying ptmalloc library
-# to notify UCX about memory map/unmap events
-Provides: bundled(ptmalloc) = 2.8.6
+BuildRequires: automake autoconf libtool gcc-c++
 
 %description
 UCX stands for Unified Communication X. It requires either RDMA-capable device
@@ -32,15 +24,13 @@ UCX stands for Unified Communication X. It requires either RDMA-capable device
 Future versions will support also TCP for inter-node, to lift that hardware
 dependency.
 In addition, the library can be used for intra-node communication by leveraging
-the following shared memory mechanisms: posix, sysv, cma, knem, xpmem.
+the following shared memory mechanisms: posix. sysv, cma, knem, xpmem.
 
 %package devel
 Requires: %{name}%{?_isa} = %{version}-%{release}
 Summary: Header files required to develop with UCX
 Group: Development/Libraries
 
-# UCX ships both static and dynamic libs to support different use-cases like
-# performance benefits.
 %package static
 Requires: %{name}-devel = %{version}-%{release}
 Summary: Static libraries required to develop with UCX
@@ -61,30 +51,28 @@ Provides static libraries required for development with UCX.
            --disable-debug \
            --disable-assertions \
            --disable-params-check \
-           --docdir=%{_pkgdocdir} \
            CXXFLAGS="%{optflags} -fno-exceptions" \
            %{?configure_options}
-%make_build V=1
+make %{?_smp_mflags} V=1
 
 %install
-%make_install
+make DESTDIR=%{buildroot} install
 rm -f %{buildroot}%{_libdir}/*.la
 
 %files
 %{_libdir}/lib*.so.*
 %{_bindir}/uc*
-%{_pkgdocdir}
-%exclude %{_pkgdocdir}/examples
-%if "%{?_licensedir}" != ""
+%{_datadir}/ucx
+%exclude %{_datadir}/ucx/examples
+%doc README AUTHORS NEWS
+%{!?_licensedir:%global license %%doc}
 %license LICENSE
-%exclude %{_pkgdocdir}/LICENSE
-%endif
 
 %files devel
 %{_includedir}/uc*
 %{_libdir}/lib*.so
 %{_libdir}/pkgconfig/ucx.pc
-%{_pkgdocdir}/examples
+%{_datadir}/ucx/examples
 
 %files static
 %{_libdir}/lib*.a
@@ -93,20 +81,13 @@ rm -f %{buildroot}%{_libdir}/*.la
 %postun -p /sbin/ldconfig
 
 %changelog
-* Sat Jul 14 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1.2.2-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
-
-* Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1.2.2-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
-
-* Thu Nov 11 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.2-1
-- Spec file: changes to get approval on Fedora review
-
-* Thu Oct 12 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.1-1
-- Spec file: new Source link, set default BuildRoot
-
+* Mon Aug 20 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.1-1
+- See NEWS for details
+* Thu Aug 16 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
+- Explicitly set gcc-c++ as requirements
+* Wed Mar 7 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
+- See NEWS for details
 * Mon Aug 21 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.1-1
 - Spec file now complies with Fedora guidelines
-
 * Mon Jul 3 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.0-1
 - Fedora package created
