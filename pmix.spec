@@ -1,6 +1,6 @@
 Name:           pmix
-Version:        2.1.1
-Release:        2%{?dist}
+Version:        2.1.4
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -169,8 +169,8 @@ EOF
 %{_mandir}/man[37]/*
 
 %changelog
-* Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 2.1.1-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+* Mon Oct 1 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.4-1
+- Update to 2.1.4
 
 * Fri Mar 16 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.1-1
 - Update to 2.1.1
