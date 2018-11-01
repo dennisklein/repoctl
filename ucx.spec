@@ -1,14 +1,14 @@
 %{!?configure_options: %global configure_options %{nil}}
 
 Name: ucx
-Version: 1.3.1
+Version: 1.4.0
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 Group: System Environment/Libraries
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.3.1/ucx-1.3.1.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.4.0/ucx-1.4.0.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -51,7 +51,6 @@ Provides static libraries required for development with UCX.
            --disable-debug \
            --disable-assertions \
            --disable-params-check \
-           CXXFLAGS="%{optflags} -fno-exceptions" \
            %{?configure_options}
 make %{?_smp_mflags} V=1
 
@@ -81,8 +80,6 @@ rm -f %{buildroot}%{_libdir}/*.la
 %postun -p /sbin/ldconfig
 
 %changelog
-* Mon Aug 20 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.1-1
-- See NEWS for details
 * Thu Aug 16 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
 - Explicitly set gcc-c++ as requirements
 * Wed Mar 7 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
