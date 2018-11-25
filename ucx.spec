@@ -8,9 +8,7 @@ Group: System Environment/Libraries
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.4.0/ucx-1.4.0.tar.gz
-
-BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64
@@ -64,7 +62,6 @@ rm -f %{buildroot}%{_libdir}/*.la
 %{_datadir}/ucx
 %exclude %{_datadir}/ucx/examples
 %doc README AUTHORS NEWS
-%{!?_licensedir:%global license %%doc}
 %license LICENSE
 
 %files devel
@@ -80,11 +77,20 @@ rm -f %{buildroot}%{_libdir}/*.la
 %postun -p /sbin/ldconfig
 
 %changelog
+* Thu Nov 1 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.4.0-1
+- Update to 1.4.0
+
+* Mon Aug 20 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.1-1
+- See NEWS for details
+
 * Thu Aug 16 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
 - Explicitly set gcc-c++ as requirements
+
 * Wed Mar 7 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
 - See NEWS for details
+
 * Mon Aug 21 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.1-1
 - Spec file now complies with Fedora guidelines
+
 * Mon Jul 3 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.0-1
 - Fedora package created
