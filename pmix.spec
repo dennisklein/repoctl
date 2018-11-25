@@ -1,5 +1,5 @@
 Name:           pmix
-Version:        2.1.4
+Version:        3.0.2
 Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
@@ -17,7 +17,6 @@ BuildRequires:  gcc
 BuildRequires:  libevent-devel
 BuildRequires:  libtool
 BuildRequires:  perl-interpreter
-BuildRequires:  pkgconf
 BuildRequires:  pkgconfig(hwloc)
 BuildRequires:  pkgconfig(munge)
 
@@ -49,6 +48,16 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 %description    devel
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
+
+%package        tools
+Summary:        Tools for %{name}
+%description    tools
+The %{name}-tools package contains for use with PMIx-based RMs and language-
+based starters (e.g., mpirun).
+
+* pinfo - show MCA params, build info, etc.
+* pps - get list of active nspaces, retrieve status of jobs/nodes/procs
+* pevent - inject an event into the system
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -154,7 +163,7 @@ EOF
 %dir %{_sysconfdir}/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/*.conf
 %{_datadir}/%{name}/*.txt
-%{_libdir}/libpmix.so.*
+%{_libdir}/libpmix.so.2*
 %{_libdir}/%{name}/*.so
 %{_libdir}/%{name}/lib/*.so.*
 %{_modulesdir}/pmi/*
@@ -168,7 +177,13 @@ EOF
 %{_libdir}/pkgconfig/*.pc
 %{_mandir}/man[37]/*
 
+%files tools
+%{_bindir}/*
+
 %changelog
+* Sun Nov 25 2018 Orion Poplawski <orion@nwra.com> - 3.0.2-1
+- Update to 3.0.2
+
 * Mon Oct 1 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.4-1
 - Update to 2.1.4
 
