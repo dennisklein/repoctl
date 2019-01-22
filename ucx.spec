@@ -73,8 +73,7 @@ rm -f %{buildroot}%{_libdir}/*.la
 %files static
 %{_libdir}/lib*.a
 
-%post -p /sbin/ldconfig
-%postun -p /sbin/ldconfig
+%ldconfig_scriptlets
 
 %changelog
 * Thu Nov 1 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.4.0-1
