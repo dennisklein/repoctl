@@ -107,8 +107,7 @@ exit 0
 %post
 %systemd_post munge.service
 
-%post   libs -p /sbin/ldconfig
-%postun libs -p /sbin/ldconfig
+%ldconfig_scriptlets   libs
 
 %files
 %{_bindir}/munge
