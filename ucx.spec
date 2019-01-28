@@ -4,7 +4,6 @@ Name: ucx
 Version: 1.4.0
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
-Group: System Environment/Libraries
 
 License: BSD
 URL: http://www.openucx.org
@@ -27,12 +26,10 @@ the following shared memory mechanisms: posix. sysv, cma, knem, xpmem.
 %package devel
 Requires: %{name}%{?_isa} = %{version}-%{release}
 Summary: Header files required to develop with UCX
-Group: Development/Libraries
 
 %package static
 Requires: %{name}-devel = %{version}-%{release}
 Summary: Static libraries required to develop with UCX
-Group: Development/Libraries
 
 %description devel
 Provides header files and examples for developing with UCX.
