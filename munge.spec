@@ -3,7 +3,6 @@ Version:        0.5.13
 Release:        2%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
-Group:          Applications/System
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
 License:        GPLv3+ and LGPLv3+
 URL:            https://dun.github.io/munge/
@@ -36,7 +35,6 @@ methods.
 
 %package devel
 Summary:        Development files for uid * gid authentication across a host cluster
-Group:          Applications/System
 Requires:       munge-libs%{?_isa} = %{version}-%{release}
 
 %description devel
@@ -44,7 +42,6 @@ Header files for developing using MUNGE.
 
 %package libs
 Summary:        Runtime libs for uid * gid authentication across a host cluster
-Group:          Applications/System
 
 %description libs
 Runtime libraries for using MUNGE.
