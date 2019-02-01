@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.13
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -159,6 +159,9 @@ exit 0
 
 
 %changelog
+* Fri Feb 01 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.13-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
+
 * Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.13-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
 
