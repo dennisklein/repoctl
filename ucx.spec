@@ -2,7 +2,7 @@
 
 Name: ucx
 Version: 1.4.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
@@ -73,6 +73,9 @@ rm -f %{buildroot}%{_libdir}/*.la
 %ldconfig_scriptlets
 
 %changelog
+* Sun Feb 03 2019 Fedora Release Engineering <releng@fedoraproject.org> - 1.4.0-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
+
 * Thu Nov 1 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.4.0-1
 - Update to 1.4.0
 
