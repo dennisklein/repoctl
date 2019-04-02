@@ -1,13 +1,15 @@
 %{!?configure_options: %global configure_options %{nil}}
 
 Name: ucx
-Version: 1.4.0
-Release: 2%{?dist}
+Version: 1.5.1
+Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.5.1/ucx-1.5.1.tar.gz
+
+BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64
@@ -16,12 +18,14 @@ BuildRequires: numactl-devel libibverbs-devel
 BuildRequires: automake autoconf libtool gcc-c++
 
 %description
-UCX stands for Unified Communication X. It requires either RDMA-capable device
-(InfiniBand, RoCE, etc), Cray Gemini or Aries, for inter-node communication.
-Future versions will support also TCP for inter-node, to lift that hardware
-dependency.
-In addition, the library can be used for intra-node communication by leveraging
-the following shared memory mechanisms: posix. sysv, cma, knem, xpmem.
+UCX stands for Unified Communication X. UCX provides an optimized communication
+layer for Message Passing (MPI), PGAS/OpenSHMEM libraries and RPC/data-centric
+applications. UCX utilizes high-speed networks, such as RDMA (InfiniBand, RoCE,
+etc), Cray Gemini or Aries, for inter-node communication. If no such network is
+available, TCP is used instead. UCX supports efficient transfer of data in
+either main memory (RAM) or GPU memory (through CUDA and ROCm libraries).
+In addition, UCX provides efficient intra-node communication, by leveraging the
+following shared memory mechanisms: posix, sysv, cma, knem, and xpmem.
 
 %package devel
 Requires: %{name}%{?_isa} = %{version}-%{release}
@@ -59,6 +63,7 @@ rm -f %{buildroot}%{_libdir}/*.la
 %{_datadir}/ucx
 %exclude %{_datadir}/ucx/examples
 %doc README AUTHORS NEWS
+%{!?_licensedir:%global license %%doc}
 %license LICENSE
 
 %files devel
@@ -70,26 +75,25 @@ rm -f %{buildroot}%{_libdir}/*.la
 %files static
 %{_libdir}/lib*.a
 
-%ldconfig_scriptlets
+%post -p /sbin/ldconfig
+%postun -p /sbin/ldconfig
 
 %changelog
-* Sun Feb 03 2019 Fedora Release Engineering <releng@fedoraproject.org> - 1.4.0-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
-
-* Thu Nov 1 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.4.0-1
-- Update to 1.4.0
-
+* Sat Mar 23 2019 Yossi Itigin <yosefe@mellanox.com> 1.5.1-1
+- Bump version to 1.5.1
+- See NEWS for details
+* Tue Nov 6 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.5.0-1
+- Bump version to 1.5.0
+- See NEWS for details
+* Tue Oct 30 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.4.0-1
+- See NEWS for details
 * Mon Aug 20 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.1-1
 - See NEWS for details
-
 * Thu Aug 16 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
 - Explicitly set gcc-c++ as requirements
-
 * Wed Mar 7 2018 Andrey Maslennikov <andreyma@mellanox.com> 1.3.0-1
 - See NEWS for details
-
 * Mon Aug 21 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.1-1
 - Spec file now complies with Fedora guidelines
-
 * Mon Jul 3 2017 Andrey Maslennikov <andreyma@mellanox.com> 1.2.0-1
 - Fedora package created
