@@ -32,7 +32,7 @@ Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
 
-# We can't use %{name} here because of _cc_name_suffix
+# We can't use %%{name} here because of _cc_name_suffix
 Source0:		https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}.tar.bz2
 Source1:		openmpi.module.in
 Source2:		openmpi.pth.py2
