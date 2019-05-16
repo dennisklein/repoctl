@@ -21,7 +21,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		2%{?dist}
+Release:		3%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -32,6 +32,8 @@ Source1:		openmpi.module.in
 Source2:		openmpi.pth.py2
 Source3:		openmpi.pth.py3
 Source4:		macros.openmpi
+# Fix for UCX usage with BTL/UCT
+Patch0:                 https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/6668.patch
 
 BuildRequires:		gcc-c++
 BuildRequires:		gcc-gfortran
@@ -156,7 +158,7 @@ OpenMPI support for Python 3.
 
 
 %prep
-%setup -q -n openmpi-%{version}
+%autosetup -p1 -n openmpi-%{version}
 
 %build
 ./configure --prefix=%{_libdir}/%{name} \
@@ -337,6 +339,9 @@ make check
 
 
 %changelog
+* Wed May 15 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-3
+- Add upstream patch to fix issue with UCX usage in BTL/UCT
+
 * Tue May  7 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-2
 - Add a guard for python3 version (#1705296)
 - Add requires on python(abi) to python packages
