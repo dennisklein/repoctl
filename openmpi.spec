@@ -21,7 +21,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		3%{?dist}
+Release:		4%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -34,6 +34,8 @@ Source3:		openmpi.pth.py3
 Source4:		macros.openmpi
 # Fix for UCX usage with BTL/UCT
 Patch0:                 https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/6668.patch
+# OSC/UCX: use correct rkey for atomic_fadd in rget/rput
+Patch1:                 https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/6594.patch
 
 BuildRequires:		gcc-c++
 BuildRequires:		gcc-gfortran
@@ -339,6 +341,9 @@ make check
 
 
 %changelog
+* Wed May 15 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-4
+- Add upstream patch OSC/UCX: use correct rkey for atomic_fadd in rget/rput
+
 * Wed May 15 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-3
 - Add upstream patch to fix issue with UCX usage in BTL/UCT
 
