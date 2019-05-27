@@ -21,7 +21,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		4%{?dist}
+Release:		5%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -72,9 +72,10 @@ BuildRequires:          infinipath-psm-devel
 BuildRequires:          libpsm2-devel
 %endif
 BuildRequires:		torque-devel
-%ifarch aarch64 ppc64le x86_64
-BuildRequires:		ucx-devel
-%endif
+# UCX appears to be leading to a segfault
+#ifarch aarch64 ppc64le x86_64
+#BuildRequires:		ucx-devel
+#endif
 BuildRequires:		zlib-devel
 %if !0%{?el7}
 BuildRequires:		rpm-mpi-hooks
@@ -341,6 +342,9 @@ make check
 
 
 %changelog
+* Mon May 27 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-5
+- Drop UCX support for now
+
 * Wed May 15 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-4
 - Add upstream patch OSC/UCX: use correct rkey for atomic_fadd in rget/rput
 
