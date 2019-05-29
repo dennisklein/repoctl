@@ -19,6 +19,13 @@
 
 %global macrosdir %(d=%{_rpmconfigdir}/macros.d; [ -d $d ] || d=%{_sysconfdir}/rpm; echo $d)
 
+# UCX appears to be leading to a segfault
+#ifarch aarch64 ppc64le x86_64
+#bcond_without ucx
+#else
+%bcond_with ucx
+#endif
+
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
 Release:		5%{?dist}
@@ -72,10 +79,9 @@ BuildRequires:          infinipath-psm-devel
 BuildRequires:          libpsm2-devel
 %endif
 BuildRequires:		torque-devel
-# UCX appears to be leading to a segfault
-#ifarch aarch64 ppc64le x86_64
-#BuildRequires:		ucx-devel
-#endif
+%if %{with ucx}
+BuildRequires:		ucx-devel
+%endif
 BuildRequires:		zlib-devel
 %if !0%{?el7}
 BuildRequires:		rpm-mpi-hooks
@@ -259,7 +265,7 @@ make check
 %{_libdir}/%{name}/bin/mpi[er]*
 %{_libdir}/%{name}/bin/ompi*
 %{_libdir}/%{name}/bin/orte[-dr_]*
-%ifarch aarch64 ppc64le x86_64
+%if %{with ucx}
 %{_libdir}/%{name}/bin/oshmem_info
 %{_libdir}/%{name}/bin/oshrun
 %{_libdir}/%{name}/bin/shmemrun
@@ -273,7 +279,7 @@ make check
 %{_mandir}/%{namearch}/man1/mpi[er]*
 %{_mandir}/%{namearch}/man1/ompi*
 %{_mandir}/%{namearch}/man1/orte[-dr_]*
-%ifarch aarch64 ppc64le x86_64
+%if %{with ucx}
 %{_mandir}/%{namearch}/man1/oshmem_info*
 %{_mandir}/%{namearch}/man1/oshrun*
 %{_mandir}/%{namearch}/man1/shmemrun*
@@ -298,11 +304,11 @@ make check
 %{_libdir}/%{name}/bin/mpi[cCf]*
 %{_libdir}/%{name}/bin/opal_*
 %{_libdir}/%{name}/bin/orte[cCf]*
-%ifarch aarch64 ppc64le x86_64
+%if %{with ucx}
 %{_libdir}/%{name}/bin/osh[cCf]*
 %endif
 %{_libdir}/%{name}/bin/profile2mat.pl
-%ifarch aarch64 ppc64le x86_64
+%if %{with ucx}
 %{_libdir}/%{name}/bin/shmem[cCf]*
 %endif
 %{_includedir}/%{namearch}/*
@@ -312,7 +318,7 @@ make check
 %{_libdir}/%{name}/lib/pkgconfig/
 %{_libdir}/pkgconfig/*.pc
 %{_mandir}/%{namearch}/man1/mpi[cCf]*
-%ifarch aarch64 ppc64le x86_64
+%if %{with ucx}
 %{_mandir}/%{namearch}/man1/osh[cCf]*
 %{_mandir}/%{namearch}/man1/shmem[cCf]*
 %endif
