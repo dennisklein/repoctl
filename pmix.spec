@@ -1,6 +1,6 @@
 Name:           pmix
-Version:        3.0.2
-Release:        2%{?dist}
+Version:        3.1.2
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -80,7 +80,7 @@ find src -name \*.l -print -exec touch --no-create {} \;
 %make_build V=1
 
 %check
-%{__make} check
+make check
 
 %install
 %make_install
@@ -92,12 +92,6 @@ find %{buildroot} -name '*.la' | xargs rm -f
 install -d -m 0755 %{buildroot}%{_libdir}/%{name}/lib
 mv %{buildroot}%{_libdir}/libpmi.so* %{buildroot}%{_libdir}/%{name}/lib
 mv %{buildroot}%{_libdir}/libpmi2.so* %{buildroot}%{_libdir}/%{name}/lib
-
-# move man pages to build root
-install -d -m 0755 %{buildroot}%{_mandir}/man3
-install -d -m 0755 %{buildroot}%{_mandir}/man7
-mv man/man3/*.3 %{buildroot}%{_mandir}/man3/
-mv man/man7/*.7 %{buildroot}%{_mandir}/man7/
 
 # install pmi/pmix environment module file
 install -d -m 0755 %{buildroot}%{_modulesdir}/pmi
@@ -163,6 +157,7 @@ EOF
 %dir %{_sysconfdir}/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/*.conf
 %{_datadir}/%{name}/*.txt
+%{_libdir}/libmca_common_dstore.so.1*
 %{_libdir}/libpmix.so.2*
 %{_libdir}/%{name}/*.so
 %{_libdir}/%{name}/lib/*.so.*
@@ -171,16 +166,20 @@ EOF
 %files devel
 %{_datadir}/%{name}/*.supp
 %{_includedir}/*.h
+%{_libdir}/libmca_common_dstore.so
 %{_libdir}/libpmix.so
 %{_libdir}/%{name}/lib/*.so
 %{_libdir}/%{name}/lib/pkgconfig/*.pc
 %{_libdir}/pkgconfig/*.pc
-%{_mandir}/man[37]/*
 
 %files tools
 %{_bindir}/*
 
 %changelog
+* Wed Jun 19 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.2-1
+- Update to 3.1.2
+- Replace __make with make
+
 * Sat Feb 02 2019 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.2-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
