@@ -80,7 +80,7 @@ find src -name \*.l -print -exec touch --no-create {} \;
 %make_build V=1
 
 %check
-make check
+%make_build check
 
 %install
 %make_install
