@@ -1,13 +1,13 @@
 %{!?configure_options: %global configure_options %{nil}}
 
 Name: ucx
-Version: 1.5.1
+Version: 1.5.2
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.5.1/ucx-1.5.1.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.5.2/ucx-1.5.2.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -79,6 +79,9 @@ rm -f %{buildroot}%{_libdir}/*.la
 %postun -p /sbin/ldconfig
 
 %changelog
+* Tue Jun 04 2019 Yossi Itigin <yosefe@mellanox.com> 1.5.2-1
+- Bump version to 1.5.2
+- See NEWS for details
 * Sat Mar 23 2019 Yossi Itigin <yosefe@mellanox.com> 1.5.1-1
 - Bump version to 1.5.1
 - See NEWS for details
