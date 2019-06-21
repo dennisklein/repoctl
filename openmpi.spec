@@ -19,12 +19,11 @@
 
 %global macrosdir %(d=%{_rpmconfigdir}/macros.d; [ -d $d ] || d=%{_sysconfdir}/rpm; echo $d)
 
-# UCX appears to be leading to a segfault
-#ifarch aarch64 ppc64le x86_64
-#bcond_without ucx
-#else
+%ifarch aarch64 ppc64le x86_64
+%bcond_without ucx
+%else
 %bcond_with ucx
-#endif
+%endif
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
@@ -350,6 +349,7 @@ make check
 %changelog
 * Fri Jun 21 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-6
 - Rebuild for libfabric 1.8
+- Re-enable UCX, hopefully issue fixed in 1.5.2
 
 * Mon May 27 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-5
 - Drop UCX support for now
