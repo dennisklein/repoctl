@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        3.1.2
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -11,7 +11,6 @@ Patch0:         pmix_remove_cxx_lang.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
-BuildRequires:  environment(modules)
 BuildRequires:  flex
 BuildRequires:  gcc
 BuildRequires:  libevent-devel
@@ -19,9 +18,6 @@ BuildRequires:  libtool
 BuildRequires:  perl-interpreter
 BuildRequires:  pkgconfig(hwloc)
 BuildRequires:  pkgconfig(munge)
-
-Provides:       pmi
-Requires:       environment(modules)
 
 %description
 The Process Management Interface (PMI) has been used for quite some time as
@@ -77,7 +73,7 @@ find src -name \*.l -print -exec touch --no-create {} \;
     --enable-pmi-backward-compatibility \
     --with-munge
 
-%make_build V=1
+%make_build
 
 %check
 %make_build check
@@ -87,23 +83,6 @@ find src -name \*.l -print -exec touch --no-create {} \;
 
 # remove libtool archives
 find %{buildroot} -name '*.la' | xargs rm -f
-
-# move libpmi/libpmi2 for environment module usage
-install -d -m 0755 %{buildroot}%{_libdir}/%{name}/lib
-mv %{buildroot}%{_libdir}/libpmi.so* %{buildroot}%{_libdir}/%{name}/lib
-mv %{buildroot}%{_libdir}/libpmi2.so* %{buildroot}%{_libdir}/%{name}/lib
-
-# install pmi/pmix environment module file
-install -d -m 0755 %{buildroot}%{_modulesdir}/pmi
-cat >%{buildroot}%{_modulesdir}/pmi/%{name}-%{_arch} <<EOF
-#%%Module 1.0
-#
-#  pmi/pmix module for use with 'environment-modules' package:
-#
-conflict         pmi
-prepend-path     LD_LIBRARY_PATH    %{_libdir}/%{name}/lib
-prepend-path     PKG_CONFIG_PATH    %{_libdir}/%{name}/lib/pkgconfig
-EOF
 
 # install pkgconfig file pmix.pc
 install -d -m 0755 %{buildroot}%{_libdir}/pkgconfig
@@ -118,11 +97,11 @@ Cflags: -I\${includedir}
 Libs: -L\${libdir} -lpmix
 EOF
 
-# install pkgconfig file pmi.pc for environment module usage
-install -d -m 0755 %{buildroot}%{_libdir}/%{name}/lib/pkgconfig
-cat >%{buildroot}%{_libdir}/%{name}/lib/pkgconfig/pmi.pc <<EOF
+# install pkgconfig file pmi.pc
+install -d -m 0755 %{buildroot}%{_libdir}/pkgconfig
+cat >%{buildroot}%{_libdir}/pkgconfig/pmi.pc <<EOF
 includedir=%{_includedir}
-libdir=%{_libdir}/%{name}/lib
+libdir=%{_libdir}
 
 Name: pmi
 Version: %{version}
@@ -131,11 +110,11 @@ Cflags: -I\${includedir}
 Libs: -L\${libdir} -lpmi
 EOF
 
-# install pkgconfig file pmi2.pc for environment module usage
-install -d -m 0755 %{buildroot}%{_libdir}/%{name}/lib/pkgconfig
-cat >%{buildroot}%{_libdir}/%{name}/lib/pkgconfig/pmi2.pc <<EOF
+# install pkgconfig file pmi2.pc
+install -d -m 0755 %{buildroot}%{_libdir}/pkgconfig
+cat >%{buildroot}%{_libdir}/pkgconfig/pmi2.pc <<EOF
 includedir=%{_includedir}
-libdir=%{_libdir}/%{name}/lib
+libdir=%{_libdir}
 
 Name: pmi2
 Version: %{version}
@@ -152,30 +131,32 @@ EOF
 %doc README
 %dir %{_datadir}/%{name}
 %dir %{_libdir}/%{name}
-%dir %{_libdir}/%{name}/lib
-%dir %{_modulesdir}/pmi
 %dir %{_sysconfdir}/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/*.conf
 %{_datadir}/%{name}/*.txt
 %{_libdir}/libmca_common_dstore.so.1*
 %{_libdir}/libpmix.so.2*
+%{_libdir}/libpmi.so.1*
+%{_libdir}/libpmi2.so.1*
 %{_libdir}/%{name}/*.so
-%{_libdir}/%{name}/lib/*.so.*
-%{_modulesdir}/pmi/*
 
 %files devel
 %{_datadir}/%{name}/*.supp
 %{_includedir}/*.h
 %{_libdir}/libmca_common_dstore.so
 %{_libdir}/libpmix.so
-%{_libdir}/%{name}/lib/*.so
-%{_libdir}/%{name}/lib/pkgconfig/*.pc
+%{_libdir}/libpmi.so
+%{_libdir}/libpmi2.so
 %{_libdir}/pkgconfig/*.pc
 
 %files tools
 %{_bindir}/*
 
 %changelog
+* Tue Jul 2 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.2-2
+- Install libpmi/pmi2 backward-compatible libraries normally,
+- not as a pmi environment module
+
 * Wed Jun 19 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.2-1
 - Update to 3.1.2
 - Replace __make with make
