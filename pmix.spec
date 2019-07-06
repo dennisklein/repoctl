@@ -1,6 +1,6 @@
 Name:           pmix
-Version:        3.1.2
-Release:        2%{?dist}
+Version:        3.1.3
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -153,6 +153,9 @@ EOF
 %{_bindir}/*
 
 %changelog
+* Fri Jul 5 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.3-1
+- Update to 3.1.3
+
 * Tue Jul 2 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.2-2
 - Install libpmi/pmi2 backward-compatible libraries normally,
 - not as a pmi environment module
