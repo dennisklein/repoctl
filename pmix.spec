@@ -8,6 +8,9 @@ Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{
 
 # Remove configure check for C++ since requires only C
 Patch0:         pmix_remove_cxx_lang.patch
+# Fix pointer casts/derefs in test suite
+Patch1:         pmix_pointer_casts_1.patch
+Patch2:         pmix_pointer_casts_2.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -58,6 +61,8 @@ based starters (e.g., mpirun).
 %prep
 %setup -q -n %{name}-%{version}
 %patch0 -p1
+%patch1 -p1
+%patch2 -p1
 
 echo touching lexer sources to recompile them ...
 find src -name \*.l -print -exec touch --no-create {} \;
@@ -153,7 +158,7 @@ EOF
 %{_bindir}/*
 
 %changelog
-* Fri Jul 5 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.3-1
+* Sat Jul 13 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.3-1
 - Update to 3.1.3
 
 * Tue Jul 2 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.2-2
