@@ -1,16 +1,12 @@
+%global name_version %{name}-%{version}rc1
+
 Name:           pmix
-Version:        3.1.3
-Release:        1%{?dist}
+Version:        3.1.4
+Release:        0.1.rc1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
-Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
-
-# Remove configure check for C++ since requires only C
-Patch0:         pmix_remove_cxx_lang.patch
-# Fix pointer casts/derefs in test suite
-Patch1:         pmix_pointer_casts_1.patch
-Patch2:         pmix_pointer_casts_2.patch
+Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name_version}.tar.bz2
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -59,16 +55,13 @@ based starters (e.g., mpirun).
 * pevent - inject an event into the system
 
 %prep
-%setup -q -n %{name}-%{version}
-%patch0 -p1
-%patch1 -p1
-%patch2 -p1
+%setup -q -n %{name_version}
 
 echo touching lexer sources to recompile them ...
 find src -name \*.l -print -exec touch --no-create {} \;
 
 %build
-%{_builddir}/%{name}-%{version}/autogen.pl
+%{_builddir}/%{name_version}/autogen.pl
 %configure \
     --prefix=%{_prefix} \
     --sysconfdir=%{_sysconfdir}/%{name} \
@@ -158,6 +151,9 @@ EOF
 %{_bindir}/*
 
 %changelog
+* Fri Jul 19 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.1.rc1
+- Update to 3.1.4rc1
+
 * Sat Jul 13 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.3-1
 - Update to 3.1.3
 
