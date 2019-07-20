@@ -1,8 +1,8 @@
-%global name_version %{name}-%{version}rc1
+%global name_version %{name}-%{version}rc2
 
 Name:           pmix
 Version:        3.1.4
-Release:        0.1.rc1%{?dist}
+Release:        0.2.rc2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -151,6 +151,9 @@ EOF
 %{_bindir}/*
 
 %changelog
+* Sat Jul 20 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.2.rc2
+- Update to 3.1.4rc2
+
 * Fri Jul 19 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.1.rc1
 - Update to 3.1.4rc1
 
