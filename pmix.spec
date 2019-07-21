@@ -2,7 +2,7 @@
 
 Name:           pmix
 Version:        3.1.4
-Release:        0.2.rc2%{?dist}
+Release:        0.3.rc2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -12,11 +12,11 @@ BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  flex
 BuildRequires:  gcc
+BuildRequires:  hwloc-devel
 BuildRequires:  libevent-devel
 BuildRequires:  libtool
+BuildRequires:  munge-devel
 BuildRequires:  perl-interpreter
-BuildRequires:  pkgconfig(hwloc)
-BuildRequires:  pkgconfig(munge)
 
 %description
 The Process Management Interface (PMI) has been used for quite some time as
@@ -44,8 +44,25 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
+%package        pmi
+Summary:        The %{name} implementation of libpmi and libpmi2
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+Conflicts:      slurm-pmi
+%description    pmi
+The %{name}-pmi package contains the %{name} implementation of
+the libpmi and libpmi2 backward-compatibility libraries.
+
+%package        pmi-devel
+Summary:        Development files for %{name}-pmi
+Requires:       %{name}-pmi%{?_isa} = %{version}-%{release}
+Conflicts:      slurm-pmi-devel
+%description    pmi-devel
+The %{name}-pmi-devel package contains the development files for
+the libpmi and libpmi2 backward-compatibility libraries.
+
 %package        tools
 Summary:        Tools for %{name}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 %description    tools
 The %{name}-tools package contains for use with PMIx-based RMs and language-
 based starters (e.g., mpirun).
@@ -82,45 +99,6 @@ find src -name \*.l -print -exec touch --no-create {} \;
 # remove libtool archives
 find %{buildroot} -name '*.la' | xargs rm -f
 
-# install pkgconfig file pmix.pc
-install -d -m 0755 %{buildroot}%{_libdir}/pkgconfig
-cat >%{buildroot}%{_libdir}/pkgconfig/%{name}.pc <<EOF
-includedir=%{_includedir}
-libdir=%{_libdir}
-
-Name: %{name}
-Version: %{version}
-Description: PMI Exascale (PMIx) library
-Cflags: -I\${includedir}
-Libs: -L\${libdir} -lpmix
-EOF
-
-# install pkgconfig file pmi.pc
-install -d -m 0755 %{buildroot}%{_libdir}/pkgconfig
-cat >%{buildroot}%{_libdir}/pkgconfig/pmi.pc <<EOF
-includedir=%{_includedir}
-libdir=%{_libdir}
-
-Name: pmi
-Version: %{version}
-Description: (PMIx) PMI compatibility library
-Cflags: -I\${includedir}
-Libs: -L\${libdir} -lpmi
-EOF
-
-# install pkgconfig file pmi2.pc
-install -d -m 0755 %{buildroot}%{_libdir}/pkgconfig
-cat >%{buildroot}%{_libdir}/pkgconfig/pmi2.pc <<EOF
-includedir=%{_includedir}
-libdir=%{_libdir}
-
-Name: pmi2
-Version: %{version}
-Description: (PMIx) PMI2 compatibility library
-Cflags: -I\${includedir}
-Libs: -L\${libdir} -lpmi2
-EOF
-
 %ldconfig_scriptlets
 %ldconfig_scriptlets devel
 
@@ -134,23 +112,32 @@ EOF
 %{_datadir}/%{name}/*.txt
 %{_libdir}/libmca_common_dstore.so.1*
 %{_libdir}/libpmix.so.2*
-%{_libdir}/libpmi.so.1*
-%{_libdir}/libpmi2.so.1*
 %{_libdir}/%{name}/*.so
 
 %files devel
 %{_datadir}/%{name}/*.supp
-%{_includedir}/*.h
+%{_includedir}/pmix*.h
 %{_libdir}/libmca_common_dstore.so
 %{_libdir}/libpmix.so
+
+%files pmi
+%{_libdir}/libpmi.so.1*
+%{_libdir}/libpmi2.so.1*
+
+%files pmi-devel
+%{_includedir}/{pmi,pmi2}.h
 %{_libdir}/libpmi.so
 %{_libdir}/libpmi2.so
-%{_libdir}/pkgconfig/*.pc
 
 %files tools
 %{_bindir}/*
 
 %changelog
+* Sun Jul 21 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.3.rc2
+- Create pmix-pmi and pmix-pmi-devel subpackages for pmi/pmi2 libs
+- Remove rpm-generated pkgconfig files until upstream provides them
+- Do not pull dependencies with pkgconfig unless package uses it
+
 * Sat Jul 20 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.2.rc2
 - Update to 3.1.4rc2
 
