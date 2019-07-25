@@ -27,7 +27,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		6%{?dist}
+Release:		7%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -347,6 +347,9 @@ make check
 
 
 %changelog
+* Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.1-7
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
 * Fri Jun 21 2019 Orion Poplawski <orion@nwra.com> - 4.0.1-6
 - Rebuild for libfabric 1.8
 - Re-enable UCX, hopefully issue fixed in 1.5.2
