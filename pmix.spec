@@ -2,7 +2,7 @@
 
 Name:           pmix
 Version:        3.1.4
-Release:        0.3.rc2%{?dist}
+Release:        0.4.rc2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -133,6 +133,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Fri Jul 26 2019 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.4-0.4.rc2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
 * Sun Jul 21 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.3.rc2
 - Create pmix-pmi and pmix-pmi-devel subpackages for pmi/pmi2 libs
 - Remove rpm-generated pkgconfig files until upstream provides them
