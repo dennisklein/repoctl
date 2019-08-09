@@ -27,7 +27,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		7%{?dist}
+Release:		8%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -77,7 +77,6 @@ BuildRequires:		python%{python3_pkgversion}-devel
 BuildRequires:          infinipath-psm-devel
 BuildRequires:          libpsm2-devel
 %endif
-BuildRequires:		torque-devel
 %if %{with ucx}
 BuildRequires:		ucx-devel
 %endif
@@ -347,6 +346,9 @@ make check
 
 
 %changelog
+* Fri Aug 9 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.1-8
+- Remove torque support (torque retired: bug #1676147)
+
 * Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.1-7
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
