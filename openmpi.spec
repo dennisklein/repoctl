@@ -27,7 +27,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		8%{?dist}
+Release:		9%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -346,6 +346,9 @@ make check
 
 
 %changelog
+* Sun Aug 18 2019 Miro Hrončok <mhroncok@redhat.com> - 4.0.1-9
+- Rebuilt for Python 3.8
+
 * Fri Aug 9 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.1-8
 - Remove torque support (torque retired: bug #1676147)
 
