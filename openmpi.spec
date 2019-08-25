@@ -27,7 +27,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		9%{?dist}
+Release:		10%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -346,6 +346,9 @@ make check
 
 
 %changelog
+* Sun Aug 25 2019 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 4.0.1-10
+- Rebuilt for hwloc-2.0
+
 * Sun Aug 18 2019 Miro Hrončok <mhroncok@redhat.com> - 4.0.1-9
 - Rebuilt for Python 3.8
 
