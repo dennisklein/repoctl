@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        3.1.4
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.github.io/pmix/
@@ -131,6 +131,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Sun Aug 25 2019 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 3.1.4-2
+- Rebuilt for hwloc-2.0
+
 * Fri Aug 9 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-1
 - Update to 3.1.4
 
