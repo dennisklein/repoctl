@@ -26,22 +26,18 @@
 %endif
 
 Name:			openmpi%{?_cc_name_suffix}
-Version:		4.0.1
-Release:		11%{?dist}
+Version:		4.0.2
+Release:		0.1.rc1%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
-Source0:		https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}.tar.bz2
+Source0:		https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}rc1.tar.bz2
 Source1:		openmpi.module.in
 Source2:		openmpi.pth.py2
 Source3:		openmpi.pth.py3
 Source4:		macros.openmpi
-# Fix for UCX usage with BTL/UCT
-Patch0:                 https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/6668.patch
-# OSC/UCX: use correct rkey for atomic_fadd in rget/rput
-Patch1:                 https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/6594.patch
 
 BuildRequires:		gcc-c++
 BuildRequires:		gcc-gfortran
@@ -165,7 +161,7 @@ OpenMPI support for Python 3.
 
 
 %prep
-%autosetup -p1 -n openmpi-%{version}
+%autosetup -p1 -n openmpi-%{version}rc1
 
 %build
 ./configure --prefix=%{_libdir}/%{name} \
@@ -346,6 +342,10 @@ make check
 
 
 %changelog
+* Thu Aug 29 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.1.rc1
+- Update to 4.0.2rc1
+- Closes bug #1746564
+
 * Thu Aug 29 2019 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 4.0.1-11
 - Fix MANPATH so normal modules can still be loaded (#1564899)
 
