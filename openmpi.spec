@@ -27,7 +27,7 @@
 
 Name:			openmpi%{?_cc_name_suffix}
 Version:		4.0.1
-Release:		10%{?dist}
+Release:		11%{?dist}
 Summary:		Open Message Passing Interface
 License:		BSD and MIT and Romio
 URL:			http://www.open-mpi.org/
@@ -346,6 +346,9 @@ make check
 
 
 %changelog
+* Thu Aug 29 2019 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 4.0.1-11
+- Fix MANPATH so normal modules can still be loaded (#1564899)
+
 * Sun Aug 25 2019 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 4.0.1-10
 - Rebuilt for hwloc-2.0
 
