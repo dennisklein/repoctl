@@ -1,0 +1,46 @@
+From fbbacc1303f02b4c955975911b82e8755ea0721c Mon Sep 17 00:00:00 2001
+From: Harumi Kuno <harumi.kuno@hpe.com>
+Date: Tue, 30 Jul 2019 06:32:27 -0700
+Subject: [PATCH] Fix mmap infinite recurse in memory patcher
+
+This commit fixes issue #6853 by removing
+MacOS/Darwin-specific logic from intercept_mmap.
+
+Signed-off-by: Harumi Kuno <harumi.kuno@hpe.com>
+---
+ opal/mca/memory/patcher/configure.m4               | 4 ----
+ opal/mca/memory/patcher/memory_patcher_component.c | 5 -----
+ 2 files changed, 9 deletions(-)
+
+diff --git a/opal/mca/memory/patcher/configure.m4 b/opal/mca/memory/patcher/configure.m4
+index 6881ec69366..0c5d8553259 100644
+--- a/opal/mca/memory/patcher/configure.m4
++++ b/opal/mca/memory/patcher/configure.m4
+@@ -40,10 +40,6 @@ AC_DEFUN([MCA_opal_memory_patcher_CONFIG],[
+ 
+     AC_CHECK_HEADERS([linux/mman.h sys/syscall.h])
+ 
+-    AC_CHECK_DECLS([__mmap], [], [], [#include <sys/mman.h>])
+-
+-    AC_CHECK_FUNCS([__mmap])
+-
+     AC_CHECK_DECLS([__syscall], [], [], [#include <sys/syscall.h>])
+ 
+     AC_CHECK_FUNCS([__syscall])
+diff --git a/opal/mca/memory/patcher/memory_patcher_component.c b/opal/mca/memory/patcher/memory_patcher_component.c
+index 5db3a6016f8..687d430fa36 100644
+--- a/opal/mca/memory/patcher/memory_patcher_component.c
++++ b/opal/mca/memory/patcher/memory_patcher_component.c
+@@ -125,12 +125,7 @@ static void *_intercept_mmap(void *start, size_t length, int prot, int flags, in
+     }
+ 
+     if (!original_mmap) {
+-#ifdef HAVE___MMAP
+-        /* the darwin syscall returns an int not a long so call the underlying __mmap function */
+-        result = __mmap (start, length, prot, flags, fd, offset);
+-#else
+         result = (void*)(intptr_t) memory_patcher_syscall(SYS_mmap, start, length, prot, flags, fd, offset);
+-#endif
+     } else {
+         result = original_mmap (start, length, prot, flags, fd, offset);
+     }
