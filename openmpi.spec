@@ -6,7 +6,12 @@
 # so uncomment and define to use
 #global opt_cflags
 %global opt_cxx g++
+%ifarch aarch64
+# TEMP: hack for F32 aarch64 until they fix gcc PIC flags
+%global opt_cxxflags -fPIC
+%else
 #global opt_cxxflags
+%endif
 %global opt_f77 gfortran
 #global opt_fflags
 %global opt_fc gfortran
