@@ -7,7 +7,7 @@
 #global opt_cflags
 %global opt_cxx g++
 %ifarch aarch64
-# TEMP: hack for F32 aarch64 until they fix gcc PIC flags
+# TEMP: hack for aarch64
 %global opt_cxxflags -fPIC
 %else
 #global opt_cxxflags
@@ -355,7 +355,7 @@ make check
 
 %changelog
 * Fri Aug 30 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.2.rc1
-- Apply upstream PR 6946 to avoid linking private glibc symbol __mmap
+- Apply upstream PR 6946 to avoid linking to __mmap
 - Add build deps to run upstream autogen.pl
 - Remove embedded tabs in the spec
 
