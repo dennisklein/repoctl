@@ -6,12 +6,7 @@
 # so uncomment and define to use
 #global opt_cflags
 %global opt_cxx g++
-%ifarch aarch64
-# TEMP: hack for aarch64
-%global opt_cxxflags -fPIC
-%else
 #global opt_cxxflags
-%endif
 %global opt_f77 gfortran
 #global opt_fflags
 %global opt_fc gfortran
@@ -32,7 +27,7 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.2
-Release:         0.2.rc1%{?dist}
+Release:         0.3.rc1%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -43,7 +38,7 @@ Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
-# Upstream PR 6946 to avoid linking private glibc symbol __mmap
+# Upstream PR 6946 to avoid linking to __mmap
 Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/6946.patch
 
 BuildRequires:   autoconf
@@ -354,6 +349,9 @@ make check
 
 
 %changelog
+* Fri Sep 6 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.3.rc1
+- Rebuild for annobin update to correct aarch64 build (bug #1748529)
+
 * Fri Aug 30 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.2.rc1
 - Apply upstream PR 6946 to avoid linking to __mmap
 - Add build deps to run upstream autogen.pl
