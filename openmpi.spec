@@ -27,19 +27,17 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.2
-Release:         0.3.rc1%{?dist}
+Release:         0.4.rc2%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
-Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}rc1.tar.bz2
+Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}rc2.tar.bz2
 Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
-# Upstream PR 6946 to avoid linking to __mmap
-Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/6946.patch
 
 BuildRequires:   autoconf
 BuildRequires:   automake
@@ -167,7 +165,7 @@ OpenMPI support for Python 3.
 
 
 %prep
-%autosetup -p1 -n openmpi-%{version}rc1
+%autosetup -p1 -n openmpi-%{version}rc2
 
 %build
 ./autogen.pl --force
@@ -177,9 +175,7 @@ OpenMPI support for Python 3.
 	--sysconfdir=%{_sysconfdir}/%{namearch} \
 	--disable-silent-rules \
 	--enable-builtin-atomics \
-%ifnarch %{power64}
 	--enable-mpi-cxx \
-%endif
 	--enable-mpi-java \
 	--enable-mpi1-compatibility \
 	--with-sge \
@@ -349,6 +345,10 @@ make check
 
 
 %changelog
+* Sat Sep 14 2019 Orion Poplawski <orion@nwra.com> - 4.0.2-0.4.rc2
+- Update to 4.0.2rc2
+- Re-enable C++ bindings on power64
+
 * Fri Sep 6 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.3.rc1
 - Rebuild for annobin update to correct aarch64 build (bug #1748529)
 
