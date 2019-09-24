@@ -15,13 +15,13 @@
 %bcond_with    xpmem
 
 Name: ucx
-Version: 1.6.0
+Version: 1.6.1
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.6.0/ucx-1.6.0.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.6.1/ucx-1.6.1.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -271,6 +271,8 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Sat Jul 20 2019 Yossi Itigin <yosefe@mellanox.com> 1.6.1-1
+- Bump version to 1.6.1
 * Thu Jan 24 2019 Yossi Itigin <yosefe@mellanox.com> 1.6.0-1
 - Add cma, knem, and xpmem sub-packages
 * Tue Nov 20 2018 Yossi Itigin <yosefe@mellanox.com> 1.6.0-1
