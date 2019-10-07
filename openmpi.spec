@@ -27,23 +27,20 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.2
-Release:         0.4.rc2%{?dist}
+Release:         1%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
-Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}rc2.tar.bz2
+Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}.tar.bz2
 Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
 
-BuildRequires:   autoconf
-BuildRequires:   automake
 BuildRequires:   gcc-c++
 BuildRequires:   gcc-gfortran
-BuildRequires:   libtool
 BuildRequires:   valgrind-devel
 %ifnarch %{arm}
 BuildRequires:   opensm-devel > 3.3.0
@@ -165,10 +162,9 @@ OpenMPI support for Python 3.
 
 
 %prep
-%autosetup -p1 -n openmpi-%{version}rc2
+%autosetup -p1 -n openmpi-%{version}
 
 %build
-./autogen.pl --force
 ./configure --prefix=%{_libdir}/%{name} \
 	--mandir=%{_mandir}/%{namearch} \
 	--includedir=%{_includedir}/%{namearch} \
@@ -345,19 +341,22 @@ make check
 
 
 %changelog
+* Mon Oct 7 2019 Philip Kovacs <pkfed@fedoraproject.org> - 4.0.2-1
+- Update to 4.0.2
+
 * Sat Sep 14 2019 Orion Poplawski <orion@nwra.com> - 4.0.2-0.4.rc2
 - Update to 4.0.2rc2
 - Re-enable C++ bindings on power64
 
-* Fri Sep 6 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.3.rc1
+* Fri Sep 6 2019 Philip Kovacs <pkfed@fedoraproject.org> - 4.0.2-0.3.rc1
 - Rebuild for annobin update to correct aarch64 build (bug #1748529)
 
-* Fri Aug 30 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.2.rc1
+* Fri Aug 30 2019 Philip Kovacs <pkfed@fedoraproject.org> - 4.0.2-0.2.rc1
 - Apply upstream PR 6946 to avoid linking to __mmap
 - Add build deps to run upstream autogen.pl
 - Remove embedded tabs in the spec
 
-* Thu Aug 29 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.2-0.1.rc1
+* Thu Aug 29 2019 Philip Kovacs <pkfed@fedoraproject.org> - 4.0.2-0.1.rc1
 - Update to 4.0.2rc1
 - Closes bug #1746564
 
@@ -370,7 +369,7 @@ make check
 * Sun Aug 18 2019 Miro Hrončok <mhroncok@redhat.com> - 4.0.1-9
 - Rebuilt for Python 3.8
 
-* Fri Aug 9 2019 Philip Kovacs <pkdevel@yahoo.com> - 4.0.1-8
+* Fri Aug 9 2019 Philip Kovacs <pkfed@fedoraproject.org> - 4.0.1-8
 - Remove torque support (torque retired: bug #1676147)
 
 * Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.1-7
