@@ -33,7 +33,7 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.2
-Release:         2%{?dist}
+Release:         3%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -44,6 +44,9 @@ Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
+
+# fcoll/two_phase: fix error in calculating aggregators in 32bit mode
+Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/7126.patch
 
 BuildRequires:   gcc-c++
 BuildRequires:   gcc-gfortran
@@ -356,6 +359,9 @@ make check
 
 
 %changelog
+* Sun Nov 24 2019 Orion Poplawski <orion@nwra.com> - 4.0.2-3
+- Add upstream fix for error in calculating aggregators in 32bit mode
+
 * Fri Nov 15 2019 Orion Poplawski <orion@nwra.com> - 4.0.2-2
 - Drop python2 for Fedora 32+ (bz#1773125)
 
