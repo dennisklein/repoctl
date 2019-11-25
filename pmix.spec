@@ -3,7 +3,7 @@ Version:        3.1.4
 Release:        2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
-URL:            https://pmix.github.io/pmix/
+URL:            https://pmix.org/
 Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 
 BuildRequires:  autoconf
