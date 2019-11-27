@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.13
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -12,7 +12,7 @@ Source2:        munge.logrotate
 
 BuildRequires:  gcc
 BuildRequires:  systemd-units
-BuildRequires:  zlib-devel bzip2-devel libgcrypt-devel
+BuildRequires:  zlib-devel bzip2-devel openssl-devel
 Requires:       munge-libs = %{version}-%{release}
 
 Requires(pre):    shadow-utils
@@ -53,7 +53,7 @@ cp -p %{SOURCE1} create-munge-key
 cp -p %{SOURCE2} munge.logrotate
 
 %build
-%configure  --disable-static --with-crypto-lib=libgcrypt
+%configure  --disable-static --with-crypto-lib=openssl
 # Get rid of some rpaths for /usr/sbin
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
@@ -159,6 +159,9 @@ exit 0
 
 
 %changelog
+* Wed Nov 27 2019 Gerd Pokorra <gp@zimt.uni-siegen.de> - 0.5.13-5
+- built with OpenSSL (not libgcrypt)
+
 * Thu Jul 25 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.13-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
