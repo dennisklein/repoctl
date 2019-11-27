@@ -128,6 +128,7 @@ exit 0
 %config(noreplace) %{_tmpfilesdir}/munge.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/munge
 
+%license COPYING COPYING.LESSER
 %doc AUTHORS
 %doc JARGON META NEWS QUICKSTART README 
 %doc doc
@@ -135,7 +136,6 @@ exit 0
 %files libs
 %{_libdir}/libmunge.so.2
 %{_libdir}/libmunge.so.2.0.0
-%doc COPYING COPYING.LESSER
 
 %files devel
 %{_includedir}/munge.h
