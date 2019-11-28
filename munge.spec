@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.13
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -14,6 +14,7 @@ BuildRequires:  gcc
 BuildRequires:  systemd-units
 BuildRequires:  zlib-devel bzip2-devel openssl-devel
 Requires:       munge-libs = %{version}-%{release}
+Requires:       logrotate
 
 Requires(pre):    shadow-utils
 
@@ -54,6 +55,7 @@ cp -p %{SOURCE2} munge.logrotate
 
 %build
 %configure  --disable-static --with-crypto-lib=openssl
+echo "d /run/munge 0755 munge munge -" > src/etc/munge.tmpfiles.conf.in
 # Get rid of some rpaths for /usr/sbin
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
@@ -86,6 +88,7 @@ chmod 700 %{buildroot}%{_sysconfdir}/munge
 # i.e it is not actually included in the rpm, only the record 
 # of it is.
 touch %{buildroot}%{_var}/run/munge/munged.pid
+mv %{buildroot}%{_var}/run %{buildroot}
 
 %postun 
 %systemd_postun_with_restart munge.service
@@ -96,7 +99,7 @@ touch %{buildroot}%{_var}/run/munge/munged.pid
 %pre
 getent group munge >/dev/null || groupadd -r munge
 getent passwd munge >/dev/null || \
-useradd -r -g munge -d %{_var}/run/munge -s /sbin/nologin \
+useradd -r -g munge -d /run/munge -s /sbin/nologin \
   -c "Runs Uid 'N' Gid Emporium" munge
 exit 0
 
@@ -120,10 +123,10 @@ exit 0
 %{_unitdir}/munge.service
 
 %attr(0700,munge,munge) %dir  %{_var}/log/munge
-%attr(0700,munge,munge) %dir %{_sysconfdir}/munge
-%attr(0755,munge,munge) %dir  %{_var}/run/munge/
-%attr(0644,munge,munge)    %ghost %{_var}/run/munge/munged.pid
 %attr(0700,munge,munge) %dir  %{_var}/lib/munge
+%attr(0700,munge,munge) %dir %{_sysconfdir}/munge
+%attr(0755,munge,munge) %dir   /run/munge/
+%attr(0644,munge,munge) %ghost /run/munge/munged.pid
 
 %config(noreplace) %{_tmpfilesdir}/munge.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/munge
@@ -159,6 +162,11 @@ exit 0
 
 
 %changelog
+* Thu Nov 28 2019 Gerd Pokorra <gp@zimt.uni-siegen.de> - 0.5.13-6
+- updating line in /usr/lib/tmpfiles.d/munge.conf: /var/run/munge → /run/munge
+- add license tag
+- add requires logrotate
+
 * Wed Nov 27 2019 Gerd Pokorra <gp@zimt.uni-siegen.de> - 0.5.13-5
 - built with OpenSSL (not libgcrypt)
 
