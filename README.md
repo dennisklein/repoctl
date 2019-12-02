@@ -2,7 +2,7 @@
 
 The munge package.
 
-MUNGE (MUNGE Uid 'N' Gid Emporium) is an authentication service for creating and validating credentials.
+MUNGE (**M**UNGE **U**id '**N**' **G**id **E**mporium) is an authentication service for creating and validating credentials.
 
 Bevor starting the service as the first time a secret key has to been created.
 
