@@ -32,22 +32,21 @@
 %endif
 
 Name:            openmpi%{?_cc_name_suffix}
-Version:         4.0.3
-Release:         0.1.201911280241%{?dist}
+Version:         4.0.2
+Release:         3%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
-#Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}.tar.bz2
-Source0:         https://download.open-mpi.org/nightly/open-mpi/v4.0.x/openmpi-v4.0.x-201911280241-d4dd837.tar.bz2
+Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}.tar.bz2
 Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
 
 # fcoll/two_phase: fix error in calculating aggregators in 32bit mode
-#Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/7126.patch
+Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/7126.patch
 
 BuildRequires:   gcc-c++
 BuildRequires:   gcc-gfortran
@@ -173,7 +172,7 @@ OpenMPI support for Python 3.
 
 
 %prep
-%autosetup -p1 -n openmpi-v4.0.x-201911280241-d4dd837
+%autosetup -p1 -n openmpi-%{version}
 
 %build
 ./configure --prefix=%{_libdir}/%{name} \
