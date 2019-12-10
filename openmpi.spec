@@ -31,9 +31,17 @@
 %bcond_with ucx
 %endif
 
+# ARM 32-bit is not supported by rdma
+# https://bugzilla.redhat.com/show_bug.cgi?id=1780584
+%ifarch %{arm}
+%bcond_with rdma
+%else
+%bcond_without rdma
+%endif
+
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.2
-Release:         3%{?dist}
+Release:         4%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -51,10 +59,10 @@ Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull
 BuildRequires:   gcc-c++
 BuildRequires:   gcc-gfortran
 BuildRequires:   valgrind-devel
-%ifnarch %{arm}
+%if %{with rdma}
 BuildRequires:   opensm-devel > 3.3.0
-%endif
 BuildRequires:   rdma-core-devel
+%endif
 # Doesn't compile:
 # vt_dyn.cc:958:28: error: 'class BPatch_basicBlockLoop' has no member named 'getLoopHead'
 #                      loop->getLoopHead()->getStartAddress(), loop_stmts );
@@ -302,7 +310,9 @@ make check
 %dir %{_libdir}/%{name}/share/openmpi
 %{_libdir}/%{name}/share/openmpi/amca-param-sets
 %{_libdir}/%{name}/share/openmpi/help*.txt
+%if %{with rdma}
 %{_libdir}/%{name}/share/openmpi/mca-btl-openib-device-params.ini
+%endif
 %if 0%{?el7}
 %{_libdir}/%{name}/share/pmix/
 %endif
@@ -359,6 +369,9 @@ make check
 
 
 %changelog
+* Tue Dec 10 2019 Dominik Mierzejewski <rpm@greysector.net> - 4.0.2-4
+- disable rdma on ARM 32-bit (bz#1780584)
+
 * Sun Nov 24 2019 Orion Poplawski <orion@nwra.com> - 4.0.2-3
 - Add upstream fix for error in calculating aggregators in 32bit mode
 
