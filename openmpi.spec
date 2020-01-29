@@ -41,7 +41,7 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.2
-Release:         4%{?dist}
+Release:         5%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -369,6 +369,9 @@ make check
 
 
 %changelog
+* Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.2-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
 * Tue Dec 10 2019 Dominik Mierzejewski <rpm@greysector.net> - 4.0.2-4
 - disable rdma on ARM 32-bit (bz#1780584)
 
