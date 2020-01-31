@@ -16,7 +16,7 @@
 
 Name: ucx
 Version: 1.6.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
@@ -271,6 +271,9 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Fri Jan 31 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.6.1-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
 * Sat Jul 20 2019 Yossi Itigin <yosefe@mellanox.com> 1.6.1-1
 - Bump version to 1.6.1
 * Thu Jan 24 2019 Yossi Itigin <yosefe@mellanox.com> 1.6.0-1
