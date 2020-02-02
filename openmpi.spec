@@ -40,8 +40,8 @@
 %endif
 
 Name:            openmpi%{?_cc_name_suffix}
-Version:         4.0.2
-Release:         5%{?dist}
+Version:         4.0.3rc3
+Release:         1%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -52,9 +52,6 @@ Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
-
-# fcoll/two_phase: fix error in calculating aggregators in 32bit mode
-Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/7126.patch
 
 BuildRequires:   gcc-c++
 BuildRequires:   gcc-gfortran
@@ -369,6 +366,9 @@ make check
 
 
 %changelog
+* Sat Feb 1 2020 Orion Poplawski <orion@nwra.com> - 4.0.3rc3-1
+- Update to 4.0.3rc3
+
 * Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.2-5
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
 
