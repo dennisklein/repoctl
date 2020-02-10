@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.13
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -9,19 +9,18 @@ URL:            https://dun.github.io/munge/
 Source0:        https://github.com/dun/munge/releases/download/munge-%{version}/munge-%{version}.tar.xz
 Source1:        create-munge-key
 Source2:        munge.logrotate
+Source3:        munge.sysusers
 
 BuildRequires:  gcc
-BuildRequires:  systemd-units
+BuildRequires:  systemd-rpm-macros
 BuildRequires:  zlib-devel bzip2-devel openssl-devel
 Requires:       munge-libs = %{version}-%{release}
 Requires:       logrotate
 
 Requires(pre):    shadow-utils
 
-Requires(post):   systemd
-Requires(preun):  systemd
-Requires(postun): systemd
-
+%systemd_requires
+%{?sysusers_requires_compat}
 
 %description
 MUNGE (MUNGE Uid 'N' Gid Emporium) is an authentication service for creating 
@@ -63,13 +62,13 @@ make %{?_smp_mflags}
 
 
 %install
-
-rm -rf %{buildroot}
-make install DESTDIR=%{buildroot}
+%make_install
 
 # Install extra files.
 install -p -m 755 create-munge-key %{buildroot}/%{_sbindir}/create-munge-key
 install -p -D -m 644 munge.logrotate %{buildroot}/%{_sysconfdir}/logrotate.d/munge
+
+install -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysusersdir}/munge.conf
 
 # rm unneeded files.
 rm %{buildroot}/%{_sysconfdir}/sysconfig/munge
@@ -90,22 +89,17 @@ chmod 700 %{buildroot}%{_sysconfdir}/munge
 touch %{buildroot}%{_var}/run/munge/munged.pid
 mv %{buildroot}%{_var}/run %{buildroot}
 
-%postun 
-%systemd_postun_with_restart munge.service
+%pre
+%sysusers_create_compat %{SOURCE3}
 
 %preun
 %systemd_preun munge.service
 
-%pre
-getent group munge >/dev/null || groupadd -r munge
-getent passwd munge >/dev/null || \
-useradd -r -g munge -d /run/munge -s /sbin/nologin \
-  -c "Runs Uid 'N' Gid Emporium" munge
-exit 0
-
-
 %post
 %systemd_post munge.service
+
+%postun
+%systemd_postun_with_restart munge.service
 
 %ldconfig_scriptlets   libs
 
@@ -128,7 +122,8 @@ exit 0
 %attr(0755,munge,munge) %dir   /run/munge/
 %attr(0644,munge,munge) %ghost /run/munge/munged.pid
 
-%config(noreplace) %{_tmpfilesdir}/munge.conf
+%{_tmpfilesdir}/munge.conf
+%{_sysusersdir}/munge.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/munge
 
 %license COPYING COPYING.LESSER
@@ -162,6 +157,10 @@ exit 0
 
 
 %changelog
+* Mon Feb 10 2020 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 0.5.13-8
+- Provide a sysusers.d file to get user() and group() provides
+  (see https://fedoraproject.org/wiki/Changes/Adopting_sysusers.d_format).
+
 * Wed Jan 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.13-7
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
 
