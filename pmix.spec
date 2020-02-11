@@ -1,10 +1,12 @@
+%global name_version %{name}-%{version}rc2
+
 Name:           pmix
-Version:        3.1.4
-Release:        3%{?dist}
+Version:        3.1.5
+Release:        0.2.rc2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
-Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name_version}.tar.bz2
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -70,13 +72,13 @@ based starters (e.g., mpirun).
 * pevent - inject an event into the system
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{name_version}
 
 echo touching lexer sources to recompile them ...
 find src -name \*.l -print -exec touch --no-create {} \;
 
 %build
-%{_builddir}/%{name}-%{version}/autogen.pl
+%{_builddir}/%{name_version}/autogen.pl
 %configure \
     --prefix=%{_prefix} \
     --sysconfdir=%{_sysconfdir}/%{name} \
@@ -131,37 +133,40 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Mon Feb 10 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-0.2.rc2
+- Update to 3.1.5rc2
+
 * Thu Jan 30 2020 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.4-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
 
 * Sun Aug 25 2019 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 3.1.4-2
 - Rebuilt for hwloc-2.0
 
-* Fri Aug 9 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-1
+* Fri Aug 9 2019 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.4-1
 - Update to 3.1.4
 
 * Fri Jul 26 2019 Fedora Release Engineering <releng@fedoraproject.org> - 3.1.4-0.4.rc2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
-* Sun Jul 21 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.3.rc2
+* Sun Jul 21 2019 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.4-0.3.rc2
 - Create pmix-pmi and pmix-pmi-devel subpackages for pmi/pmi2 libs
 - Remove rpm-generated pkgconfig files until upstream provides them
 - Do not pull dependencies with pkgconfig unless package uses it
 
-* Sat Jul 20 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.2.rc2
+* Sat Jul 20 2019 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.4-0.2.rc2
 - Update to 3.1.4rc2
 
-* Fri Jul 19 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.4-0.1.rc1
+* Fri Jul 19 2019 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.4-0.1.rc1
 - Update to 3.1.4rc1
 
-* Sat Jul 13 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.3-1
+* Sat Jul 13 2019 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.3-1
 - Update to 3.1.3
 
-* Tue Jul 2 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.2-2
+* Tue Jul 2 2019 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.2-2
 - Install libpmi/pmi2 backward-compatible libraries normally,
 - not as a pmi environment module
 
-* Wed Jun 19 2019 Philip Kovacs <pkdevel@yahoo.com> - 3.1.2-1
+* Wed Jun 19 2019 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.2-1
 - Update to 3.1.2
 - Replace __make with make
 
@@ -171,19 +176,19 @@ find %{buildroot} -name '*.la' | xargs rm -f
 * Sun Nov 25 2018 Orion Poplawski <orion@nwra.com> - 3.0.2-1
 - Update to 3.0.2
 
-* Mon Oct 1 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.4-1
+* Mon Oct 1 2018 Philip Kovacs <pkfed@fedoraproject.org> - 2.1.4-1
 - Update to 2.1.4
 
-* Fri Mar 16 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.1-1
+* Fri Mar 16 2018 Philip Kovacs <pkfed@fedoraproject.org> - 2.1.1-1
 - Update to 2.1.1
 
-* Sun Feb 18 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-3
+* Sun Feb 18 2018 Philip Kovacs <pkfed@fedoraproject.org> - 2.1.0-3
 - Add patch to remove unneeded check for C++
 
-* Thu Feb 15 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-2
+* Thu Feb 15 2018 Philip Kovacs <pkfed@fedoraproject.org> - 2.1.0-2
 - Rebuild for libevent soname bump
 
-* Sat Feb 10 2018 Philip Kovacs <pkdevel@yahoo.com> - 2.1.0-1
+* Sat Feb 10 2018 Philip Kovacs <pkfed@fedoraproject.org> - 2.1.0-1
 - Update to 2.1.0
 - Added enviromnent module for pmi/pmix
 - Added pkgconfig files for pmix/pmi/pmi2
