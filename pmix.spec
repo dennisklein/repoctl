@@ -1,8 +1,8 @@
-%global name_version %{name}-%{version}rc3
+%global name_version %{name}-%{version}rc4
 
 Name:           pmix
 Version:        3.1.5
-Release:        0.3.rc3%{?dist}
+Release:        0.4.rc4%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -133,6 +133,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Thu Feb 20 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-0.4.rc4
+- Update to 3.1.5rc4
+
 * Wed Feb 12 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-0.3.rc3
 - Update to 3.1.5rc3
 
