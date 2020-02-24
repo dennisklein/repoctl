@@ -1,12 +1,10 @@
-%global name_version %{name}-%{version}rc4
-
 Name:           pmix
 Version:        3.1.5
-Release:        0.4.rc4%{?dist}
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
-Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name_version}.tar.bz2
+Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -72,13 +70,13 @@ based starters (e.g., mpirun).
 * pevent - inject an event into the system
 
 %prep
-%setup -q -n %{name_version}
+%setup -q -n %{name}-%{version}
 
 echo touching lexer sources to recompile them ...
 find src -name \*.l -print -exec touch --no-create {} \;
 
 %build
-%{_builddir}/%{name_version}/autogen.pl
+%{_builddir}/%{name}-%{version}/autogen.pl
 %configure \
     --prefix=%{_prefix} \
     --sysconfdir=%{_sysconfdir}/%{name} \
@@ -133,6 +131,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Mon Feb 24 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-1
+- Update to 3.1.5
+
 * Thu Feb 20 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-0.4.rc4
 - Update to 3.1.5rc4
 
