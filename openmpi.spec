@@ -40,7 +40,7 @@
 %endif
 
 Name:            openmpi%{?_cc_name_suffix}
-Version:         4.0.3rc3
+Version:         4.0.3rc4
 Release:         1%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
@@ -366,6 +366,9 @@ make check
 
 
 %changelog
+* Sun Mar 01 2020 Orion Poplawski <orion@nwra.com> - 4.0.3rc4-1
+- Update to 4.0.3rc4
+
 * Sat Feb 1 2020 Orion Poplawski <orion@nwra.com> - 4.0.3rc3-1
 - Update to 4.0.3rc3
 
