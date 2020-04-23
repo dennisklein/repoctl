@@ -61,7 +61,7 @@ BuildRequires: xpmem-devel
 %endif
 %if %{with java}
 BuildRequires: maven
-BuildRequires: jdk >= 1.8.0
+BuildRequires: java-latest-openjdk >= 8.0
 %endif
 
 %description
