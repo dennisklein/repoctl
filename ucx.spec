@@ -13,22 +13,28 @@
 %bcond_with    rocm
 %bcond_with    ugni
 %bcond_with    xpmem
+%bcond_without java
 
 Name: ucx
-Version: 1.6.1
-Release: 2%{?dist}
+Version: 1.8.0
+Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.6.1/ucx-1.6.1.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.8.0/ucx-1.8.0.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64
 
-BuildRequires: automake autoconf libtool gcc-c++ numactl-devel
+BuildRequires: automake autoconf libtool gcc-c++
+%if "%{_vendor}" == "suse"
+BuildRequires: libnuma-devel
+%else
+BuildRequires: numactl-devel
+%endif
 %if %{with cma}
 BuildRequires: glibc-devel >= 2.15
 %endif
@@ -53,6 +59,9 @@ BuildRequires: hsa-rocr-dev
 %if %{with xpmem}
 BuildRequires: xpmem-devel
 %endif
+%if %{with java}
+BuildRequires: maven
+%endif
 
 %description
 UCX stands for Unified Communication X. UCX provides an optimized communication
@@ -63,6 +72,11 @@ available, TCP is used instead. UCX supports efficient transfer of data in
 either main memory (RAM) or GPU memory (through CUDA and ROCm libraries).
 In addition, UCX provides efficient intra-node communication, by leveraging the
 following shared memory mechanisms: posix, sysv, cma, knem, and xpmem.
+This package was built from '' branch, commit c30b7da.
+
+%if "%{_vendor}" == "suse"
+%debug_package
+%endif
 
 %package devel
 Requires: %{name}%{?_isa} = %{version}-%{release}
@@ -92,6 +106,7 @@ Provides header files and examples for developing with UCX.
            %_with_arg rocm rocm \
            %_with_arg xpmem xpmem \
            %_with_arg ugni ugni \
+           %_with_arg java java \
            %{?configure_options}
 make %{?_smp_mflags} V=1
 
@@ -269,13 +284,23 @@ process to map the memory of another process into its virtual address space.
 %{_libdir}/ucx/libuct_xpmem.so.*
 %endif
 
+%if %{with java}
+%package java
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Summary: UCX Java bindings
+
+%description java
+Provides java bindings for UCX.
+
+%files java
+%{_libdir}/jucx-*.jar
+%endif
 
 %changelog
-* Fri Jan 31 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.6.1-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
-
-* Sat Jul 20 2019 Yossi Itigin <yosefe@mellanox.com> 1.6.1-1
-- Bump version to 1.6.1
+* Sun Sep 22 2019 Yossi Itigin <yosefe@mellanox.com> 1.8.0-1
+- Bump version to 1.8.0
+* Sun Mar 24 2019 Yossi Itigin <yosefe@mellanox.com> 1.7.0-1
+- Bump version to 1.7.0
 * Thu Jan 24 2019 Yossi Itigin <yosefe@mellanox.com> 1.6.0-1
 - Add cma, knem, and xpmem sub-packages
 * Tue Nov 20 2018 Yossi Itigin <yosefe@mellanox.com> 1.6.0-1
