@@ -40,15 +40,15 @@
 %endif
 
 Name:            openmpi%{?_cc_name_suffix}
-Version:         4.0.3x
-Release:         1%{?dist}
+Version:         4.0.4
+Release:         0.1.rc1%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
 #Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}.tar.bz2
-Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-4.0.3.tar.bz2
+Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-4.0.4rc1.tar.bz2
 Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
@@ -178,7 +178,7 @@ OpenMPI support for Python 3.
 
 
 %prep
-%autosetup -p1 -n openmpi-4.0.3
+%autosetup -p1 -n openmpi-4.0.4rc1
 
 %build
 ./configure --prefix=%{_libdir}/%{name} \
@@ -367,6 +367,9 @@ make check
 
 
 %changelog
+* Sun May 10 2020 Orion Poplawski <orion@nwra.com> - 4.0.4-0.1.rc1
+- Update to 4.0.4 rc1
+
 * Thu Mar 05 2020 Orion Poplawski <orion@nwra.com> - 4.0.3x-1
 - Update to 4.0.3 (use x to avoid epoch)
 
