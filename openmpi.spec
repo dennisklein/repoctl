@@ -41,7 +41,7 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.4
-Release:         0.2.rc1%{?dist}
+Release:         0.3.rc1%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -367,6 +367,9 @@ make check
 
 
 %changelog
+* Mon May 25 2020 Miro Hrončok <mhroncok@redhat.com> - 4.0.4-0.3.rc1
+- Rebuilt for Python 3.9
+
 * Sun May 24 2020 Orion Poplawski <orion@nwra.com> - 4.0.4-0.2.rc1
 - Set OMPI_MCA_rmaps_base_oversubscribe=1 in %%_openmpi_load (bz#1839571)
 
