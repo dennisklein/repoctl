@@ -19,7 +19,7 @@
 
 %global macrosdir %(d=%{_rpmconfigdir}/macros.d; [ -d $d ] || d=%{_sysconfdir}/rpm; echo $d)
 
-%if 0%{?fedora} >= 32
+%if 0%{?fedora} >= 32 || 0%{?rhel} >= 8
 %bcond_with python2
 %else
 %bcond_without python2
@@ -135,11 +135,7 @@ Contains development headers and libraries for openmpi.
 %package java
 Summary:    Java library
 Requires:   %{name} = %{version}-%{release}
-%if 0%{?fedora} >= 20 || 0%{?rhel} >= 7
 Requires:   java-headless
-%else
-Requires:   java
-%endif
 
 %description java
 Java library.
