@@ -13,21 +13,24 @@
 %bcond_with    rocm
 %bcond_with    ugni
 %bcond_with    xpmem
-%bcond_without java
 
 Name: ucx
-Version: 1.8.0
+Version: 1.8.1
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.8.0/ucx-1.8.0.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.8.1/ucx-1.8.1.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64
+
+%if %{defined extra_deps}
+Requires: %{?extra_deps}
+%endif
 
 BuildRequires: automake autoconf libtool gcc-c++
 %if "%{_vendor}" == "suse"
@@ -59,10 +62,6 @@ BuildRequires: hsa-rocr-dev
 %if %{with xpmem}
 BuildRequires: xpmem-devel
 %endif
-%if %{with java}
-BuildRequires: maven
-BuildRequires: java-1.8.0-openjdk-devel
-%endif
 
 %description
 UCX stands for Unified Communication X. UCX provides an optimized communication
@@ -73,7 +72,7 @@ available, TCP is used instead. UCX supports efficient transfer of data in
 either main memory (RAM) or GPU memory (through CUDA and ROCm libraries).
 In addition, UCX provides efficient intra-node communication, by leveraging the
 following shared memory mechanisms: posix, sysv, cma, knem, and xpmem.
-This package was built from '' branch, commit c30b7da.
+This package was built from '' branch, commit 6b29558.
 
 %if "%{_vendor}" == "suse"
 %debug_package
@@ -97,6 +96,8 @@ Provides header files and examples for developing with UCX.
            --disable-debug \
            --disable-assertions \
            --disable-params-check \
+           --enable-examples \
+           --without-java \
            %_enable_arg cma cma \
            %_with_arg cuda cuda \
            %_with_arg gdrcopy gdrcopy \
@@ -107,7 +108,6 @@ Provides header files and examples for developing with UCX.
            %_with_arg rocm rocm \
            %_with_arg xpmem xpmem \
            %_with_arg ugni ugni \
-           %_with_arg java java \
            %{?configure_options}
 make %{?_smp_mflags} V=1
 
@@ -285,19 +285,10 @@ process to map the memory of another process into its virtual address space.
 %{_libdir}/ucx/libuct_xpmem.so.*
 %endif
 
-%if %{with java}
-%package java
-Requires: %{name}%{?_isa} = %{version}-%{release}
-Summary: UCX Java bindings
-
-%description java
-Provides java bindings for UCX.
-
-%files java
-%{_libdir}/jucx-*.jar
-%endif
 
 %changelog
+* Wed Jul 1 2020 Yossi Itigin <yosefe@mellanox.com> 1.8.1-1
+- Bump version to 1.8.1
 * Sun Sep 22 2019 Yossi Itigin <yosefe@mellanox.com> 1.8.0-1
 - Bump version to 1.8.0
 * Sun Mar 24 2019 Yossi Itigin <yosefe@mellanox.com> 1.7.0-1
