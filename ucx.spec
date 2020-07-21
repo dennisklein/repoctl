@@ -16,12 +16,13 @@
 
 Name: ucx
 Version: 1.8.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
 Source: https://github.com/openucx/%{name}/releases/download/v1.8.1/ucx-1.8.1.tar.gz
+Patch:  ucx-config.patch
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -87,6 +88,7 @@ Provides header files and examples for developing with UCX.
 
 %prep
 %setup -q
+%patch -p1
 
 %build
 %define _with_arg()   %{expand:%%{?with_%{1}:--with-%{2}}%%{!?with_%{1}:--without-%{2}}}
@@ -287,6 +289,9 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Mon Jul 20 2020 Jeff Law <law@redhat.com> 1.8.1-2
+- Fix broken configure files compromised by LTO
+
 * Wed Jul 1 2020 Yossi Itigin <yosefe@mellanox.com> 1.8.1-1
 - Bump version to 1.8.1
 * Sun Sep 22 2019 Yossi Itigin <yosefe@mellanox.com> 1.8.0-1
