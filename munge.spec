@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.13
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -157,6 +157,9 @@ mv %{buildroot}%{_var}/run %{buildroot}
 
 
 %changelog
+* Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.13-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
 * Mon Feb 10 2020 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 0.5.13-8
 - Provide a sysusers.d file to get user() and group() provides
   (see https://fedoraproject.org/wiki/Changes/Adopting_sysusers.d_format).
