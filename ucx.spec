@@ -16,7 +16,7 @@
 
 Name: ucx
 Version: 1.8.1
-Release: 2%{?dist}
+Release: 3%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
@@ -289,6 +289,9 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Wed Jul 29 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.8.1-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
 * Mon Jul 20 2020 Jeff Law <law@redhat.com> 1.8.1-2
 - Fix broken configure files compromised by LTO
 
