@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        3.1.5
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -15,8 +15,6 @@ BuildRequires:  libevent-devel
 BuildRequires:  libtool
 BuildRequires:  munge-devel
 BuildRequires:  perl-interpreter
-
-ExcludeArch:    armv7hl
 
 %description
 The Process Management Interface (PMI) has been used for quite some time as
@@ -91,7 +89,9 @@ find src -name \*.l -print -exec touch --no-create {} \;
 %make_build
 
 %check
+%ifnarch armv7hl
 %make_build check
+%endif
 
 %install
 %make_install
@@ -133,6 +133,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Thu Aug 6 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-5
+- Restore armv7hl without post-build checks
+
 * Tue Aug 4 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-4
 - Exclude armv7hl
 
