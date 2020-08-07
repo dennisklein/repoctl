@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        3.1.5
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -72,8 +72,12 @@ based starters (e.g., mpirun).
 %prep
 %setup -q -n %{name}-%{version}
 
-echo touching lexer sources to recompile them ...
+# touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
+
+# give tests more time to complete
+find test -name run_tests\*.pl\* -exec \
+sed -i 's/preserve-status -k 35 30/preserve-status -k 305 300/' {} \;
 
 %build
 %{_builddir}/%{name}-%{version}/autogen.pl
@@ -89,9 +93,7 @@ find src -name \*.l -print -exec touch --no-create {} \;
 %make_build
 
 %check
-%ifnarch armv7hl
 %make_build check
-%endif
 
 %install
 %make_install
@@ -133,6 +135,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Fri Aug 7 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-6
+- Give post-build checks more time to complete
+
 * Thu Aug 6 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-5
 - Restore armv7hl without post-build checks
 
