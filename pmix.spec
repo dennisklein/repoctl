@@ -1,10 +1,12 @@
+%global name_version %{name}-%{version}rc1
+
 Name:           pmix
-Version:        3.1.5
-Release:        6%{?dist}
+Version:        3.1.6
+Release:        0.1.rc1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
-Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name_version}.tar.bz2
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -70,17 +72,13 @@ based starters (e.g., mpirun).
 * pevent - inject an event into the system
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{name_version}
 
 # touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
 
-# give tests more time to complete
-find test -name run_tests\*.pl\* -exec \
-sed -i 's/preserve-status -k 35 30/preserve-status -k 305 300/' {} \;
-
 %build
-%{_builddir}/%{name}-%{version}/autogen.pl
+%{_builddir}/%{name_version}/autogen.pl
 %configure \
     --prefix=%{_prefix} \
     --sysconfdir=%{_sysconfdir}/%{name} \
@@ -135,6 +133,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Mon Aug 10 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.6.0.1.rc1
+* Update to 3.1.6rc1
+
 * Fri Aug 7 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.5-6
 - Give post-build checks more time to complete
 
