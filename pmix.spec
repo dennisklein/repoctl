@@ -133,7 +133,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
-* Mon Sep 15 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.6.0.2.rc1
+* Tue Sep 15 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.6.0.2.rc1
 * Bump for libevent changes
 
 * Mon Aug 10 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.6.0.1.rc1
