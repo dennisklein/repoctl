@@ -41,7 +41,7 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.0.5
-Release:         1%{?dist}
+Release:         2%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -362,6 +362,9 @@ make check
 
 
 %changelog
+* Wed Sep 23 2020 Orion Poplawski <orion@nwra.com> - 4.0.5-2
+- Rebuild for libevent 2.1.12
+
 * Wed Sep 02 2020 Orion Poplawski <orion@nwra.com> - 4.0.5-1
 - Update to 4.0.5
 
