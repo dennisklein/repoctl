@@ -1,6 +1,6 @@
 Name:           munge
 Version:        0.5.13
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -19,7 +19,7 @@ Requires:       logrotate
 
 Requires(pre):    shadow-utils
 
-%systemd_requires
+%{?systemd_requires}
 %{?sysusers_requires_compat}
 
 %description
@@ -58,7 +58,7 @@ echo "d /run/munge 0755 munge munge -" > src/etc/munge.tmpfiles.conf.in
 # Get rid of some rpaths for /usr/sbin
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
-make %{?_smp_mflags} 
+%make_build
 
 
 %install
@@ -73,7 +73,7 @@ install -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysusersdir}/munge.conf
 # rm unneeded files.
 rm %{buildroot}/%{_sysconfdir}/sysconfig/munge
 # 
-rm %{buildroot}/%{_initddir}/munge
+rm %{buildroot}/%{_sysconfdir}/init.d/munge
 
 # Exclude .la files 
 rm %{buildroot}/%{_libdir}/libmunge.la
@@ -157,6 +157,9 @@ mv %{buildroot}%{_var}/run %{buildroot}
 
 
 %changelog
+* Tue Sep 29 2020 Ankur Sinha <ankursinha AT fedoraproject DOT org> - 0.5.13-10
+- Fix spec + build
+
 * Tue Jul 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.13-9
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
 
