@@ -23,6 +23,9 @@ License: BSD
 URL: http://www.openucx.org
 Source: https://github.com/openucx/%{name}/releases/download/v1.8.1/ucx-1.8.1.tar.gz
 Patch:  ucx-config.patch
+# This avoids a false positive from gcc-11 by making the problematic
+# pointer volatile rather than disabling the warning completely
+Patch1:  %{name}-gcc11.patch
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -89,11 +92,9 @@ Provides header files and examples for developing with UCX.
 %prep
 %setup -q
 %patch -p1
+%patch1 -p1
 
 %build
-# gcc-11 emits a diagnostic for some fishy casting.  The code is probably OK.
-# Disable the diagnostic for now
-export CFLAGS="$RPM_OPT_FLAGS -Wno-array-bounds"
 %define _with_arg()   %{expand:%%{?with_%{1}:--with-%{2}}%%{!?with_%{1}:--without-%{2}}}
 %define _enable_arg() %{expand:%%{?with_%{1}:--enable-%{2}}%%{!?with_%{1}:--disable-%{2}}}
 %configure --disable-optimizations \
@@ -292,6 +293,9 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Fri Oct 30 2020 Jeff Law <law@redhat.com> 1.8.1-5
+- Adjust workaround for gcc-11 diagnostic to narrow its scope
+
 * Thu Oct 29 2020 Jeff Law <law@redhat.com> 1.8.1-4
 - Disable -Warray-bounds diagnostics for gcc-11
 

@@ -1,0 +1,13 @@
+diff --git a/src/ucs/datastruct/mpool.inl b/src/ucs/datastruct/mpool.inl
+index d06e2f9..6b32406 100644
+--- a/src/ucs/datastruct/mpool.inl
++++ b/src/ucs/datastruct/mpool.inl
+@@ -71,7 +71,7 @@ static inline ucs_mpool_t *ucs_mpool_obj_owner(void *obj)
+ 
+ static inline void ucs_mpool_put_inline(void *obj)
+ {
+-    ucs_mpool_elem_t *elem;
++    ucs_mpool_elem_t * volatile elem;
+     ucs_mpool_t *mp;
+ 
+     elem = ucs_mpool_obj_to_elem(obj);
