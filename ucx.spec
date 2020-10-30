@@ -16,7 +16,7 @@
 
 Name: ucx
 Version: 1.8.1
-Release: 4%{?dist}
+Release: 5%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
