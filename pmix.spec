@@ -1,8 +1,8 @@
 %global name_version %{name}-%{version}rc1
 
 Name:           pmix
-Version:        3.1.6
-Release:        0.2.rc1%{?dist}
+Version:        3.2.1
+Release:        0.1.rc1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -16,6 +16,7 @@ BuildRequires:  hwloc-devel
 BuildRequires:  libevent-devel
 BuildRequires:  libtool
 BuildRequires:  munge-devel
+BuildRequires:  pandoc
 BuildRequires:  perl-interpreter
 
 %description
@@ -119,6 +120,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_includedir}/pmix*.h
 %{_libdir}/libmca_common_dstore.so
 %{_libdir}/libpmix.so
+%{_libdir}/pkgconfig/*.pc
 
 %files pmi
 %{_libdir}/libpmi.so.1*
@@ -133,6 +135,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Fri Oct 30 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.2.1.0.1.rc1
+* Update to 3.2.1rc1
+
 * Tue Sep 15 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.1.6.0.2.rc1
 * Bump for libevent changes
 
