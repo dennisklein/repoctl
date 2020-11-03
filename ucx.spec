@@ -15,13 +15,13 @@
 %bcond_with    xpmem
 
 Name: ucx
-Version: 1.8.1
-Release: 5%{?dist}
+Version: 1.9.0
+Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.8.1/ucx-1.8.1.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
 Patch:  ucx-config.patch
 # This avoids a false positive from gcc-11 by making the problematic
 # pointer volatile rather than disabling the warning completely
@@ -293,6 +293,9 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Mon Nov  2 2020 Orion Poplawski <orion@nwra.com> - 1.9.0-1
+- Update to 1.9.0
+
 * Fri Oct 30 2020 Jeff Law <law@redhat.com> 1.8.1-5
 - Adjust workaround for gcc-11 diagnostic to narrow its scope
 
