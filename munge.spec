@@ -1,21 +1,31 @@
+%bcond_without check
+
 Name:           munge
-Version:        0.5.13
-Release:        10%{?dist}
+Version:        0.5.14
+Release:        1%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
 License:        GPLv3+ and LGPLv3+
 URL:            https://dun.github.io/munge/
 Source0:        https://github.com/dun/munge/releases/download/munge-%{version}/munge-%{version}.tar.xz
-Source1:        create-munge-key
-Source2:        munge.logrotate
+Source1:        https://github.com/dun/munge/releases/download/%{name}-%{version}/%{name}-%{version}.tar.xz.asc
+Source2:        https://github.com/dun.gpg
 Source3:        munge.sysusers
+Source4:        README.md
 
 BuildRequires:  gcc
+BuildRequires:  gnupg2
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  zlib-devel bzip2-devel openssl-devel
 Requires:       munge-libs = %{version}-%{release}
 Requires:       logrotate
+
+%if %{with check}
+BuildRequires:  procps-ng
+BuildRequires:  util-linux
+%endif
+
 
 Requires(pre):    shadow-utils
 
@@ -48,13 +58,12 @@ Runtime libraries for using MUNGE.
 
 
 %prep
-%setup -q
-cp -p %{SOURCE1} create-munge-key
-cp -p %{SOURCE2} munge.logrotate
+%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
+%autosetup
+cp "%{SOURCE4}"  README-Fedora.md
 
 %build
-%configure  --disable-static --with-crypto-lib=openssl
-echo "d /run/munge 0755 munge munge -" > src/etc/munge.tmpfiles.conf.in
+%configure  --disable-static --with-crypto-lib=openssl --runstatedir="%{_rundir}" --with-systemdunitdir="%{_unitdir}"  --with-sysconfigdir="%{_sysconfdir}/sysconfig/" --with-logrotateddir="%{_sysconfdir}/logrotate.d/"
 # Get rid of some rpaths for /usr/sbin
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
@@ -65,14 +74,11 @@ sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 %make_install
 
 # Install extra files.
-install -p -m 755 create-munge-key %{buildroot}/%{_sbindir}/create-munge-key
-install -p -D -m 644 munge.logrotate %{buildroot}/%{_sysconfdir}/logrotate.d/munge
-
 install -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysusersdir}/munge.conf
+# Not installed by make
+install -p -D -m 0644 src/etc/munge.tmpfiles.conf  %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
 # rm unneeded files.
-rm %{buildroot}/%{_sysconfdir}/sysconfig/munge
-rm %{buildroot}/%{_sysconfdir}/init.d/munge
 # Exclude .la files
 rm %{buildroot}/%{_libdir}/libmunge.la
 
@@ -84,8 +90,15 @@ chmod 700 %{buildroot}%{_sysconfdir}/munge
 # Create and empty key file and pid file to be marked as a ghost file below.
 # i.e it is not actually included in the rpm, only the record
 # of it is.
-touch %{buildroot}%{_var}/run/munge/munged.pid
-mv %{buildroot}%{_var}/run %{buildroot}
+touch %{buildroot}%{_rundir}/munge/munged.pid
+
+%check
+%if %{with check}
+%make_build check \
+    LD_LIBRARY_PATH=%{buildroot}%{_libdir} \
+    MUNGE_ROOT=/tmp/munge-$$ VERBOSE=t verbose=t
+%endif
+
 
 %pre
 %sysusers_create_compat %{SOURCE3}
@@ -106,12 +119,13 @@ mv %{buildroot}%{_var}/run %{buildroot}
 %{_bindir}/remunge
 %{_bindir}/unmunge
 %{_sbindir}/munged
-%{_sbindir}/create-munge-key
+%{_sbindir}/mungekey
 %{_mandir}/man1/munge.1.gz
 %{_mandir}/man1/remunge.1.gz
 %{_mandir}/man1/unmunge.1.gz
 %{_mandir}/man7/munge.7.gz
 %{_mandir}/man8/munged.8.gz
+%{_mandir}/man8/mungekey.8.gz
 %{_unitdir}/munge.service
 
 %attr(0700,munge,munge) %dir  %{_var}/log/munge
@@ -123,10 +137,12 @@ mv %{buildroot}%{_var}/run %{buildroot}
 %{_tmpfilesdir}/munge.conf
 %{_sysusersdir}/munge.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/munge
+%config(noreplace) %{_sysconfdir}/sysconfig/munge
 
 %license COPYING COPYING.LESSER
+%doc README-Fedora.md
 %doc AUTHORS
-%doc JARGON META NEWS QUICKSTART README
+%doc JARGON NEWS QUICKSTART README
 %doc doc
 
 %files libs
@@ -155,6 +171,13 @@ mv %{buildroot}%{_var}/run %{buildroot}
 
 
 %changelog
+* Tue Nov 17 2020 Ankur Sinha <ankursinha AT fedoraproject DOT org> - 0.5.14-1
+- Update to latest release
+- Remove unneeded files
+- Update Readme.
+- Enable gpgverify
+- Enable tests
+
 * Tue Sep 29 2020 Ankur Sinha <ankursinha AT fedoraproject DOT org> - 0.5.13-10
 - Fix spec + build
 
