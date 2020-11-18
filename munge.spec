@@ -75,8 +75,6 @@ sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 
 # Install extra files.
 install -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysusersdir}/munge.conf
-# Not installed by make
-install -p -D -m 0644 src/etc/munge.tmpfiles.conf  %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
 # rm unneeded files.
 # Exclude .la files
@@ -90,6 +88,7 @@ chmod 700 %{buildroot}%{_sysconfdir}/munge
 # Create and empty key file and pid file to be marked as a ghost file below.
 # i.e it is not actually included in the rpm, only the record
 # of it is.
+mkdir -p %{buildroot}%{_rundir}/munge
 touch %{buildroot}%{_rundir}/munge/munged.pid
 
 %check
@@ -134,7 +133,6 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 %attr(0755,munge,munge) %dir   /run/munge/
 %attr(0644,munge,munge) %ghost /run/munge/munged.pid
 
-%{_tmpfilesdir}/munge.conf
 %{_sysusersdir}/munge.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/munge
 %config(noreplace) %{_sysconfdir}/sysconfig/munge
@@ -171,6 +169,11 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 
 
 %changelog
+* Wed Nov 18 2020 Ankur Sinha <ankursinha AT fedoraproject DOT org> - 0.5.14-1
+- remove tmpfiles.d
+- make %%_rundir,
+- improve readme
+
 * Tue Nov 17 2020 Ankur Sinha <ankursinha AT fedoraproject DOT org> - 0.5.14-1
 - Update to latest release
 - Remove unneeded files
