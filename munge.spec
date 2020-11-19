@@ -130,7 +130,7 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 %attr(0700,munge,munge) %dir  %{_var}/log/munge
 %attr(0700,munge,munge) %dir  %{_var}/lib/munge
 %attr(0700,munge,munge) %dir %{_sysconfdir}/munge
-%attr(0755,munge,munge) %dir   /run/munge/
+%attr(0755,munge,munge) %ghost %dir  /run/munge/
 %attr(0644,munge,munge) %ghost /run/munge/munged.pid
 
 %{_sysusersdir}/munge.conf
@@ -173,6 +173,7 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 - remove tmpfiles.d
 - make %%_rundir,
 - improve readme
+- Mark /run/munge as ghost also
 
 * Tue Nov 17 2020 Ankur Sinha <ankursinha AT fedoraproject DOT org> - 0.5.14-1
 - Update to latest release
