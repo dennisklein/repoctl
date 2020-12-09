@@ -1,5 +1,5 @@
 Name:           pmix
-Version:        3.2.1
+Version:        3.2.2
 Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
@@ -14,7 +14,6 @@ BuildRequires:  hwloc-devel
 BuildRequires:  libevent-devel
 BuildRequires:  libtool
 BuildRequires:  munge-devel
-BuildRequires:  pandoc
 BuildRequires:  perl-interpreter
 
 %description
@@ -133,6 +132,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Wed Dec 9 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.2.2-1
+* Update to 3.2.2
+
 * Fri Nov 13 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.2.1-1
 * Update to 3.2.1
 
