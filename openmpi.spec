@@ -53,6 +53,7 @@ Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
 
+BuildRequires: make
 BuildRequires:   gcc-c++
 BuildRequires:   gcc-gfortran
 BuildRequires:   valgrind-devel
