@@ -14,6 +14,7 @@ Source2:        https://github.com/dun.gpg
 Source3:        munge.sysusers
 Source4:        README.md
 
+BuildRequires: make
 BuildRequires:  gcc
 BuildRequires:  gnupg2
 BuildRequires:  systemd-rpm-macros
