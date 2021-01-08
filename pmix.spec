@@ -6,6 +6,7 @@ License:        BSD
 URL:            https://pmix.org/
 Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 
+BuildRequires: make
 BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  flex
