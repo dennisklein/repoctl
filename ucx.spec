@@ -36,6 +36,7 @@ ExclusiveArch: aarch64 ppc64le x86_64
 Requires: %{?extra_deps}
 %endif
 
+BuildRequires: make
 BuildRequires: automake autoconf libtool gcc-c++
 %if "%{_vendor}" == "suse"
 BuildRequires: libnuma-devel
