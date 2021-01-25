@@ -1,17 +1,3 @@
-%global _hardened_build 1
-# We only compile with gcc, but other people may want other compilers.
-# Set the compiler here.
-%global opt_cc gcc
-# Optional CFLAGS to use with the specific compiler...gcc doesn't need any,
-# so uncomment and define to use
-#global opt_cflags
-%global opt_cxx g++
-#global opt_cxxflags
-%global opt_f77 gfortran
-#global opt_fflags
-%global opt_fc gfortran
-#global opt_fcflags
-
 # Optional name suffix to use...we leave it off when compiling with gcc, but
 # for other compiled versions to install side by side, it will need a
 # suffix in order to keep the names from conflicting.
@@ -41,7 +27,7 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.1.0
-Release:         1%{?dist}
+Release:         2%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -177,6 +163,7 @@ OpenMPI support for Python 3.
 %autosetup -p1
 
 %build
+%set_build_flags
 ./configure --prefix=%{_libdir}/%{name} \
 	--mandir=%{_mandir}/%{namearch} \
 	--includedir=%{_includedir}/%{namearch} \
@@ -194,12 +181,6 @@ OpenMPI support for Python 3.
 	--with-libevent=external \
 	--with-pmix=external \
 %endif
-	CC=%{opt_cc} CXX=%{opt_cxx} \
-	LDFLAGS='%{__global_ldflags}' \
-	CFLAGS="%{?opt_cflags} %{!?opt_cflags:$RPM_OPT_FLAGS}" \
-	CXXFLAGS="%{?opt_cxxflags} %{!?opt_cxxflags:$RPM_OPT_FLAGS}" \
-	FC=%{opt_fc} FCFLAGS="%{?opt_fcflags} %{!?opt_fcflags:$RPM_OPT_FLAGS}"
-#        --with-contrib-vt-flags='CXXFLAGS="-I%{_includedir}/dyninst -L%{_libdir}/dyninst"' \
 
 %make_build V=1
 
@@ -364,6 +345,10 @@ make check
 
 
 %changelog
+* Sun Jan 24 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-2
+- Use set_build_flags macro
+- Drop old opt_ macros
+
 * Sun Jan 24 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-1
 - Update to 4.1.0
 
