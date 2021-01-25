@@ -40,14 +40,14 @@
 %endif
 
 Name:            openmpi%{?_cc_name_suffix}
-Version:         4.0.5
-Release:         2%{?dist}
+Version:         4.1.0
+Release:         1%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
-Source0:         https://www.open-mpi.org/software/ompi/v4.0/downloads/openmpi-%{version}.tar.bz2
+Source0:         https://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-%{version}.tar.bz2
 Source1:         openmpi.module.in
 Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
@@ -282,6 +282,7 @@ make check
 %{_libdir}/%{name}/bin/shmemrun
 %endif
 %{_libdir}/%{name}/lib/*.so.40*
+%{_libdir}/%{name}/lib/libmca_common_ofi.so.10*
 %{_libdir}/%{name}/lib/libmca*.so.41*
 %{_libdir}/%{name}/lib/libmca*.so.50*
 %if 0%{?el7}
@@ -363,6 +364,9 @@ make check
 
 
 %changelog
+* Sun Jan 24 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-1
+- Update to 4.1.0
+
 * Wed Sep 23 2020 Orion Poplawski <orion@nwra.com> - 4.0.5-2
 - Rebuild for libevent 2.1.12
 
