@@ -27,7 +27,7 @@
 
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.1.0
-Release:         2%{?dist}
+Release:         3%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -345,6 +345,9 @@ make check
 
 
 %changelog
+* Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 4.1.0-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
 * Sun Jan 24 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-2
 - Use set_build_flags macro
 - Drop old opt_ macros
