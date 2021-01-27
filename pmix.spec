@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        3.2.2
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -133,6 +133,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
 * Wed Dec 9 2020 Philip Kovacs <pkfed@fedoraproject.org> - 3.2.2-1
 * Update to 3.2.2
 
