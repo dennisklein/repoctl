@@ -25,9 +25,13 @@
 %bcond_without rdma
 %endif
 
+# Run autogen - needed for some patches
+# For Patch0
+%bcond_without autogen
+
 Name:            openmpi%{?_cc_name_suffix}
 Version:         4.1.0
-Release:         3%{?dist}
+Release:         4%{?dist}
 Summary:         Open Message Passing Interface
 License:         BSD and MIT and Romio
 URL:             http://www.open-mpi.org/
@@ -39,9 +43,17 @@ Source2:         openmpi.pth.py2
 Source3:         openmpi.pth.py3
 Source4:         macros.openmpi
 
+# Fix AVX library linkage
+Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/8322.patch
+
 BuildRequires: make
 BuildRequires:   gcc-c++
 BuildRequires:   gcc-gfortran
+%if %{with autogen}
+BuildRequires:   libtool
+BuildRequires:   perl(Data::Dumper)
+BuildRequires:   perl(File::Find)
+%endif
 BuildRequires:   valgrind-devel
 %if %{with rdma}
 BuildRequires:   opensm-devel > 3.3.0
@@ -161,6 +173,10 @@ OpenMPI support for Python 3.
 
 %prep
 %autosetup -p1
+%if %{with autogen}
+./autogen.pl --force
+%endif
+
 
 %build
 %set_build_flags
@@ -345,6 +361,9 @@ make check
 
 
 %changelog
+* Thu Jan 28 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-4
+- Add upstream patch to fix AVX library linkage
+
 * Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 4.1.0-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
 
