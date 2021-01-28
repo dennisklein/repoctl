@@ -31,7 +31,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        4.1.0
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -44,7 +44,9 @@ Source3:        openmpi.pth.py3
 Source4:        macros.openmpi
 
 # Fix AVX library linkage
-Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/8322.patch
+Patch0:         https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/8322.patch
+# Fix generalized requests (mpi4py test failure)
+Patch1:         https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/8348.patch
 
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
@@ -361,6 +363,9 @@ make check
 
 
 %changelog
+* Thu Jan 28 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-5
+- Add upstream patch for generalized requests
+
 * Thu Jan 28 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-4
 - Add upstream patch to fix AVX library linkage
 

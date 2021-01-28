@@ -1,0 +1,25 @@
+From 838568da9fce85b4555b0e0cbd899c8e8ef75696 Mon Sep 17 00:00:00 2001
+From: George Bosilca <bosilca@icl.utk.edu>
+Date: Wed, 6 Jan 2021 13:30:40 -0500
+Subject: [PATCH] A started generalized request should be marked as pending.
+
+Fixes #8340
+
+Signed-off-by: George Bosilca <bosilca@icl.utk.edu>
+(cherry picked from commit 434a2515f8aab11f505b2fca0b3d8cc41e24cef2)
+---
+ ompi/request/grequest.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/ompi/request/grequest.c b/ompi/request/grequest.c
+index c895b4232b6..02affd642aa 100644
+--- a/ompi/request/grequest.c
++++ b/ompi/request/grequest.c
+@@ -163,6 +163,7 @@ int ompi_grequest_start(
+     greq->greq_free.c_free = gfree_fn;
+     greq->greq_cancel.c_cancel = gcancel_fn;
+     greq->greq_base.req_status = ompi_status_empty;
++    greq->greq_base.req_complete = REQUEST_PENDING;
+ 
+     *request = &greq->greq_base;
+     return OMPI_SUCCESS;
