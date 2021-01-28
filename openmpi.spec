@@ -29,79 +29,79 @@
 # For Patch0
 %bcond_without autogen
 
-Name:            openmpi%{?_cc_name_suffix}
-Version:         4.1.0
-Release:         4%{?dist}
-Summary:         Open Message Passing Interface
-License:         BSD and MIT and Romio
-URL:             http://www.open-mpi.org/
+Name:           openmpi%{?_cc_name_suffix}
+Version:        4.1.0
+Release:        4%{?dist}
+Summary:        Open Message Passing Interface
+License:        BSD and MIT and Romio
+URL:            http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
-Source0:         https://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-%{version}.tar.bz2
-Source1:         openmpi.module.in
-Source2:         openmpi.pth.py2
-Source3:         openmpi.pth.py3
-Source4:         macros.openmpi
+Source0:        https://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-%{version}.tar.bz2
+Source1:        openmpi.module.in
+Source2:        openmpi.pth.py2
+Source3:        openmpi.pth.py3
+Source4:        macros.openmpi
 
 # Fix AVX library linkage
 Patch0:          https://patch-diff.githubusercontent.com/raw/open-mpi/ompi/pull/8322.patch
 
-BuildRequires: make
-BuildRequires:   gcc-c++
-BuildRequires:   gcc-gfortran
+BuildRequires:  gcc-c++
+BuildRequires:  gcc-gfortran
+BuildRequires:  make
 %if %{with autogen}
-BuildRequires:   libtool
-BuildRequires:   perl(Data::Dumper)
-BuildRequires:   perl(File::Find)
+BuildRequires:  libtool
+BuildRequires:  perl(Data::Dumper)
+BuildRequires:  perl(File::Find)
 %endif
-BuildRequires:   valgrind-devel
+BuildRequires:  valgrind-devel
 %if %{with rdma}
-BuildRequires:   opensm-devel > 3.3.0
-BuildRequires:   rdma-core-devel
+BuildRequires:  opensm-devel > 3.3.0
+BuildRequires:  rdma-core-devel
 %endif
 # Doesn't compile:
 # vt_dyn.cc:958:28: error: 'class BPatch_basicBlockLoop' has no member named 'getLoopHead'
 #                      loop->getLoopHead()->getStartAddress(), loop_stmts );
-#BuildRequires:   dyninst-devel
-BuildRequires:   hwloc-devel
+#BuildRequires:  dyninst-devel
+BuildRequires:  hwloc-devel
 # So configure can find lstopo
-BuildRequires:   hwloc-gui
-BuildRequires:   java-devel
+BuildRequires:  hwloc-gui
+BuildRequires:  java-devel
 # Old libevent causes issues
 %if !0%{?el7}
-BuildRequires:   libevent-devel
+BuildRequires:  libevent-devel
 %endif
-BuildRequires:   libfabric-devel
+BuildRequires:  libfabric-devel
 %ifnarch s390 s390x
-BuildRequires:   papi-devel
+BuildRequires:  papi-devel
 %endif
-BuildRequires:   orangefs-devel
-BuildRequires:   perl-generators
-BuildRequires:   perl-interpreter
-BuildRequires:   perl(Getopt::Long)
-BuildRequires:   pmix-devel
-BuildRequires:   python%{python3_pkgversion}-devel
+BuildRequires:  orangefs-devel
+BuildRequires:  perl-generators
+BuildRequires:  perl-interpreter
+BuildRequires:  perl(Getopt::Long)
+BuildRequires:  pmix-devel
+BuildRequires:  python%{python3_pkgversion}-devel
 %ifarch x86_64
-BuildRequires:   infinipath-psm-devel
-BuildRequires:   libpsm2-devel
+BuildRequires:  infinipath-psm-devel
+BuildRequires:  libpsm2-devel
 %endif
 %if %{with ucx}
-BuildRequires:   ucx-devel
+BuildRequires:  ucx-devel
 %endif
-BuildRequires:   zlib-devel
+BuildRequires:  zlib-devel
 %if !0%{?el7}
-BuildRequires:   rpm-mpi-hooks
+BuildRequires:  rpm-mpi-hooks
 %endif
 
-Provides:        mpi
+Provides:       mpi
 %if 0%{?rhel}
 # Need this for /etc/profile.d/modules.sh
-Requires:        environment-modules
+Requires:       environment-modules
 %endif
-Requires:        environment(modules)
+Requires:       environment(modules)
 # openmpi currently requires ssh to run
 # https://svn.open-mpi.org/trac/ompi/ticket/4228
-Requires:        openssh-clients
+Requires:       openssh-clients
 
 # Private openmpi libraries
 %global __provides_exclude_from %{_libdir}/openmpi/lib/(lib(mca|ompi|open-(pal|rte|trace))|openmpi/).*.so
@@ -132,17 +132,17 @@ Requires:	(python(abi) = %{python3_version} if python3)
 Contains development headers and libraries for openmpi.
 
 %package java
-Summary:    Java library
-Requires:   %{name} = %{version}-%{release}
-Requires:   java-headless
+Summary:        Java library
+Requires:       %{name} = %{version}-%{release}
+Requires:       java-headless
 
 %description java
 Java library.
 
 %package java-devel
-Summary:    Java development files for openmpi
-Requires:   %{name}-java = %{version}-%{release}
-Requires:   java-devel
+Summary:        Java development files for openmpi
+Requires:       %{name}-java = %{version}-%{release}
+Requires:       java-devel
 
 %description java-devel
 Contains development wrapper for compiling Java with openmpi.
@@ -153,19 +153,19 @@ Contains development wrapper for compiling Java with openmpi.
 
 %if %{with python2}
 %package -n python2-openmpi
-Summary:    OpenMPI support for Python 2
-BuildRequires: python2-devel
-Requires:   %{name} = %{version}-%{release}
-Requires:   python(abi) = %{python2_version}
+Summary:        OpenMPI support for Python 2
+BuildRequires:  python2-devel
+Requires:       %{name} = %{version}-%{release}
+Requires:       python(abi) = %{python2_version}
 
 %description -n python2-openmpi
 OpenMPI support for Python 2.
 %endif
 
 %package -n python%{python3_pkgversion}-openmpi
-Summary:    OpenMPI support for Python 3
-Requires:   %{name} = %{version}-%{release}
-Requires:   python(abi) = %{python3_version}
+Summary:        OpenMPI support for Python 3
+Requires:       %{name} = %{version}-%{release}
+Requires:       python(abi) = %{python3_version}
 
 %description -n python%{python3_pkgversion}-openmpi
 OpenMPI support for Python 3.
