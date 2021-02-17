@@ -1,12 +1,11 @@
 Name:           pmix
-Version:        3.2.2
-Release:        2%{?dist}
+Version:        3.2.3
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
 Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 
-BuildRequires: make
 BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  flex
@@ -14,6 +13,7 @@ BuildRequires:  gcc
 BuildRequires:  hwloc-devel
 BuildRequires:  libevent-devel
 BuildRequires:  libtool
+BuildRequires:  make
 BuildRequires:  munge-devel
 BuildRequires:  perl-interpreter
 
@@ -133,6 +133,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Tue Feb 16 2021 Philip Kovacs <pkfed@fedoraproject.org> - 3.2.3-1
+* Update to 3.2.3
+
 * Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.2-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
 
