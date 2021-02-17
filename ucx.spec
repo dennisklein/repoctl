@@ -25,7 +25,7 @@ Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{v
 Patch:  ucx-config.patch
 # This avoids a false positive from gcc-11 by making the problematic
 # pointer volatile rather than disabling the warning completely
-# Patch1:  %{name}-gcc11.patch
+Patch1:  %{name}-gcc11.patch
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -93,7 +93,7 @@ Provides header files and examples for developing with UCX.
 %prep
 %setup -q
 %patch -p1
-# %patch1 -p1
+%patch1 -p1
 
 %build
 %define _with_arg()   %{expand:%%{?with_%{1}:--with-%{2}}%%{!?with_%{1}:--without-%{2}}}
