@@ -21,13 +21,11 @@ Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v%{version}-rc3/ucx-%{version}.tar.gz
 Patch:  ucx-config.patch
-# This avoids a false positive from gcc-11 by making the problematic
-# pointer volatile rather than disabling the warning completely
-Patch1:  %{name}-gcc11.patch
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+Prefix: %{_prefix}
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64
@@ -69,15 +67,15 @@ BuildRequires: xpmem-devel
 %endif
 
 %description
-UCX stands for Unified Communication X. UCX provides an optimized communication
-layer for Message Passing (MPI), PGAS/OpenSHMEM libraries and RPC/data-centric
+UCX is an optimized communication framework for high-performance distributed
 applications. UCX utilizes high-speed networks, such as RDMA (InfiniBand, RoCE,
 etc), Cray Gemini or Aries, for inter-node communication. If no such network is
 available, TCP is used instead. UCX supports efficient transfer of data in
-either main memory (RAM) or GPU memory (through CUDA and ROCm libraries).
-In addition, UCX provides efficient intra-node communication, by leveraging the
+either main memory (RAM) or GPU memory (through CUDA and ROCm libraries). In
+addition, UCX provides efficient intra-node communication, by leveraging the
 following shared memory mechanisms: posix, sysv, cma, knem, and xpmem.
-This package was built from '' branch, commit 6b29558.
+The acronym UCX stands for "Unified Communication X".
+This package was built from '' branch, commit c334359.
 
 %if "%{_vendor}" == "suse"
 %debug_package
@@ -93,7 +91,6 @@ Provides header files and examples for developing with UCX.
 %prep
 %setup -q
 %patch -p1
-%patch1 -p1
 
 %build
 %define _with_arg()   %{expand:%%{?with_%{1}:--with-%{2}}%%{!?with_%{1}:--without-%{2}}}
@@ -129,6 +126,7 @@ rm -f %{buildroot}%{_libdir}/ucx/lib*.a
 %files
 %{_libdir}/lib*.so.*
 %{_bindir}/uc*
+%{_bindir}/io_demo
 %{_datadir}/ucx
 %exclude %{_datadir}/ucx/examples
 %doc README AUTHORS NEWS
