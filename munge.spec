@@ -2,7 +2,7 @@
 
 Name:           munge
 Version:        0.5.14
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -170,6 +170,10 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 
 
 %changelog
+* Tue Mar 02 2021 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 0.5.14-3
+- Rebuilt for updated systemd-rpm-macros
+  See https://pagure.io/fesco/issue/2583.
+
 * Tue Jan 26 2021 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.14-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
 
