@@ -16,12 +16,12 @@
 
 Name: ucx
 Version: 1.10.0
-Release: 0.1.rc3%{?dist}
+Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v%{version}-rc3/ucx-%{version}-rc3.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
 Patch:  ucx-config.patch
 
 # UCX currently supports only the following architectures
