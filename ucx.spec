@@ -15,14 +15,16 @@
 %bcond_with    xpmem
 
 Name: ucx
-Version: 1.10.0
+Version: 1.10.1
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
-Patch:  ucx-config.patch
+Source: https://github.com/openucx/%{name}/releases/download/v1.10.1-rc1/ucx-1.10.1.tar.gz
+
+BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+Prefix: %{_prefix}
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64
@@ -31,7 +33,6 @@ ExclusiveArch: aarch64 ppc64le x86_64
 Requires: %{?extra_deps}
 %endif
 
-BuildRequires: make
 BuildRequires: automake autoconf libtool gcc-c++
 %if "%{_vendor}" == "suse"
 BuildRequires: libnuma-devel
@@ -72,6 +73,7 @@ either main memory (RAM) or GPU memory (through CUDA and ROCm libraries). In
 addition, UCX provides efficient intra-node communication, by leveraging the
 following shared memory mechanisms: posix, sysv, cma, knem, and xpmem.
 The acronym UCX stands for "Unified Communication X".
+
 This package was built from '' branch, commit c334359.
 
 %if "%{_vendor}" == "suse"
@@ -87,7 +89,6 @@ Provides header files and examples for developing with UCX.
 
 %prep
 %setup -q
-%patch -p1
 
 %build
 %define _with_arg()   %{expand:%%{?with_%{1}:--with-%{2}}%%{!?with_%{1}:--without-%{2}}}
@@ -97,7 +98,6 @@ Provides header files and examples for developing with UCX.
            --disable-debug \
            --disable-assertions \
            --disable-params-check \
-           --enable-examples \
            --without-java \
            %_enable_arg cma cma \
            %_with_arg cuda cuda \
@@ -289,8 +289,14 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Mon Apr 26 2021 Yurii Shestakov <yuriis@nvidia.com> 1.10.1-rc1
+- Bump version to 1.10.1-rc1
+
 * Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1.9.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
+* Wed Nov 11 2020 Yossi Itigin <yosefe@mellanox.com> 1.10.0-1
+- Make the RPM relocatable
 
 * Mon Nov  2 2020 Orion Poplawski <orion@nwra.com> - 1.9.0-1
 - Update to 1.9.0
