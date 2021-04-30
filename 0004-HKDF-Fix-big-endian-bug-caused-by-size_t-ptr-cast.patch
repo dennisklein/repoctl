@@ -1,0 +1,146 @@
+From 2ad81007d2371f536af9e231490357c928eca53a Mon Sep 17 00:00:00 2001
+From: Chris Dunlap <cdunlap@llnl.gov>
+Date: Wed, 2 Dec 2020 09:50:27 -0800
+Subject: [PATCH 4/4] HKDF: Fix big-endian bug caused by size_t ptr cast
+
+When Fedora updated to 0.5.14 and added the new test suite to their
+rpm spec's %check, munge successfully built but its test suite failed
+on s390x for hkdf_test:
+
+> FAIL: hkdf_test
+> ===============
+> Failed to finalize HKDF MAC ctx for extraction
+
+This is caused by the cast of prklenp from a size_t * to an int *
+in _hkdf_extract().
+
+On s390x, memory ordering is big-endian and size_t is an alias for
+unsigned long.  Thus, a ptr to an 8-byte size_t was being cast to a
+ptr to a 4-byte int.
+
+This worked on little-endian systems (of which all my test systems
+had been) since the least-significant byte is stored at the smallest
+memory address (the little end), and the stored value always fit
+within 4 bytes.  But on big-endian systems, the least-significant
+byte is stored at the largest memory address (the big end) which
+differs for 4-byte and 8-byte values.
+
+Remove the cast by using an int variable as an intermediary.
+
+Reference:
+- https://fedoraproject.org/wiki/Architectures/s390x#Notes_for_application_developers_and_package_maintainers
+- https://bugzilla.redhat.com/show_bug.cgi?id=1923337
+- https://bugs.launchpad.net/bugs/1915457
+- https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=982564
+
+Tested:
+- Arch Linux
+- CentOS Stream 8, 8.3.2011, 7.9.2009, 6.10
+- Debian sid, 10.8, 9.13, 8.11, 7.11, 6.0.10, 5.0.10, 4.0
+- Fedora 33 [s390x, x86_64], 32, 31
+- FreeBSD 12.2, 11.4
+- NetBSD 9.1, 9.0, 8.1
+- OpenBSD 6.8, 6.7, 6.6
+- openSUSE 15.2, 15.1
+- Raspberry Pi OS (Raspbian 10) [armv7l]
+- Ubuntu 20.10, 20.04.2 LTS, 18.04.5 LTS, 16.04.7 LTS, 14.04.6 LTS, 12.04.5 LTS
+
+Closes #91
+---
+ src/common/hkdf.c | 30 ++++++++++++++++++++++++++----
+ 1 file changed, 26 insertions(+), 4 deletions(-)
+
+diff --git a/src/common/hkdf.c b/src/common/hkdf.c
+index ac7ab6f..364f3e0 100644
+--- a/src/common/hkdf.c
++++ b/src/common/hkdf.c
+@@ -32,6 +32,7 @@
+ 
+ #include <assert.h>
+ #include <errno.h>
++#include <limits.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -316,6 +317,7 @@ _hkdf_extract (hkdf_ctx_t *ctxp, void *prk, size_t *prklenp)
+ {
+     mac_ctx mac_ctx;
+     int     mac_ctx_is_initialized = 0;
++    int     prklen;
+     int     rv = 0;
+ 
+     assert (ctxp != NULL);
+@@ -325,6 +327,14 @@ _hkdf_extract (hkdf_ctx_t *ctxp, void *prk, size_t *prklenp)
+     assert (prklenp != NULL);
+     assert (*prklenp > 0);
+ 
++    /*  Convert prklen size_t to int for the call to mac_final() since the parm
++     *    is being passed as a ptr, and size of size_t and int may differ.
++     *  *prklenp must be representable as an int because it was assigned
++     *    (via ctxp->mdlen) by mac_size() which returns an int.
++     */
++    assert (*prklenp <= INT_MAX);
++    prklen = (int) *prklenp;
++
+     /*  Compute the pseudorandom key.
+      *    prk = HMAC (salt, ikm)
+      */
+@@ -340,7 +350,7 @@ _hkdf_extract (hkdf_ctx_t *ctxp, void *prk, size_t *prklenp)
+         log_msg (LOG_ERR, "Failed to update HKDF MAC ctx for extraction");
+         goto err;
+     }
+-    rv = mac_final (&mac_ctx, prk, (int *) prklenp);
++    rv = mac_final (&mac_ctx, prk, &prklen);
+     if (rv == -1) {
+         log_msg (LOG_ERR, "Failed to finalize HKDF MAC ctx for extraction");
+         goto err;
+@@ -352,6 +362,12 @@ err:
+             return -1;
+         }
+     }
++    /*  Update [prklenp] on success.
++     */
++    if (rv >= 0) {
++        assert (prklen >= 0);
++        *prklenp = (size_t) prklen;
++    }
+     return rv;
+ }
+ 
+@@ -371,7 +387,7 @@ _hkdf_expand (hkdf_ctx_t *ctxp, const void *prk, size_t prklen,
+     unsigned char *dstptr;
+     size_t         dstlen;
+     unsigned char *okm = NULL;
+-    size_t         okmlen;
++    int            okmlen;
+     int            num_rounds;
+     const int      max_rounds = 255;
+     unsigned char  round;
+@@ -390,8 +406,14 @@ _hkdf_expand (hkdf_ctx_t *ctxp, const void *prk, size_t prklen,
+ 
+     /*  Allocate buffer for output keying material.
+      *  The buffer size is equal to the size of the hash function output.
++     *  Note that okmlen must be an int (and not size_t) for the call to
++     *    mac_final() since the parm is being passed as a ptr, and size of
++     *    size_t and int may differ.
++     *  ctxp->mdlen must be representable as an int because it was assigned
++     *    by mac_size() which returns an int.
+      */
+-    okmlen = ctxp->mdlen;
++    assert (ctxp->mdlen <= INT_MAX);
++    okmlen = (int) ctxp->mdlen;
+     okm = calloc (1, okmlen);
+     if (okm == NULL) {
+         rv = -1;
+@@ -448,7 +470,7 @@ _hkdf_expand (hkdf_ctx_t *ctxp, const void *prk, size_t prklen,
+                     "for expansion round #%u", round);
+             goto err;
+         }
+-        rv = mac_final (&mac_ctx, okm, (int *) &okmlen);
++        rv = mac_final (&mac_ctx, okm, &okmlen);
+         if (rv == -1) {
+             log_msg (LOG_ERR,
+                     "Failed to finalize HKDF MAC ctx "
+-- 
+2.30.0
+

@@ -2,7 +2,7 @@
 
 Name:           munge
 Version:        0.5.14
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Enables uid & gid authentication across a host cluster
 
 # The libs and devel package is GPLv3+ and LGPLv3+ where as the main package is GPLv3 only.
@@ -13,9 +13,21 @@ Source1:        https://github.com/dun/munge/releases/download/%{name}-%{version
 Source2:        https://github.com/dun.gpg
 Source3:        munge.sysusers
 Source4:        README.md
+# Not included in the release tar
+Source5:        https://github.com/dun/munge/raw/f90281631a27c7df0e15e3b66df1a6e5393cee49/t/0104-munged-security-pidfile.t
+Source6:        https://github.com/dun/munge/raw/f90281631a27c7df0e15e3b66df1a6e5393cee49/t/0105-munged-security-seedfile.t
 
-BuildRequires: make
+
+# Patches to fix s390x build
+# https://bugzilla.redhat.com/show_bug.cgi?id=1923337
+Patch0:         0001-Sharness-Add-munged_kill_daemon-and-munged_cleanup.patch
+Patch1:         0002-Sharness-Fix-dup-of-failing-check-when-run-by-root.patch
+Patch2:         0003-Sharness-Fix-EACCES-failure-succeeding-for-root.patch
+Patch3:         0004-HKDF-Fix-big-endian-bug-caused-by-size_t-ptr-cast.patch
+
+BuildRequires:  make
 BuildRequires:  gcc
+BuildRequires:  git-core
 BuildRequires:  gnupg2
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  zlib-devel bzip2-devel openssl-devel
@@ -60,8 +72,17 @@ Runtime libraries for using MUNGE.
 
 %prep
 %{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
-%autosetup
+%autosetup -N -S git
 cp "%{SOURCE4}"  README-Fedora.md
+pushd t
+cp "%{SOURCE5}" .
+cp "%{SOURCE6}" .
+chmod +x *.t
+git add .
+git commit -m "Include additional files"
+popd
+
+%autopatch
 
 %build
 %configure  --disable-static --with-crypto-lib=openssl --runstatedir="%{_rundir}" --with-systemdunitdir="%{_unitdir}"  --with-sysconfigdir="%{_sysconfdir}/sysconfig/" --with-logrotateddir="%{_sysconfdir}/logrotate.d/"
@@ -170,6 +191,12 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 
 
 %changelog
+* Fri Apr 30 2021 Ankur Sinha <ankursinha AT fedoraproject DOT org> - 0.5.14-4
+- Correct readme
+- Include patches to fix build on s390x
+- https://bugzilla.redhat.com/show_bug.cgi?id=1923337
+- Include additional sources
+
 * Tue Mar 02 2021 Zbigniew Jędrzejewski-Szmek <zbyszek@in.waw.pl> - 0.5.14-3
 - Rebuilt for updated systemd-rpm-macros
   See https://pagure.io/fesco/issue/2583.
