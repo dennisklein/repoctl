@@ -16,12 +16,12 @@
 
 Name: ucx
 Version: 1.10.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.10.1-rc1/ucx-1.10.1.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.10.1/ucx-1.10.1.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
@@ -289,6 +289,9 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Thu May 27 2021 Yurii Shestakov <yuriis@nvidia.com> 1.10.1
+- Bump version to 1.10.1-
+
 * Mon Apr 26 2021 Yurii Shestakov <yuriis@nvidia.com> 1.10.1-rc1
 - Bump version to 1.10.1-rc1
 
