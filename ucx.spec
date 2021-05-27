@@ -289,8 +289,8 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
-* Thu May 27 2021 Yurii Shestakov <yuriis@nvidia.com> 1.10.1
-- Bump version to 1.10.1-
+* Thu May 27 2021 Yurii Shestakov <yuriis@nvidia.com> 1.10.1-2
+- Bump version to 1.10.1
 
 * Mon Apr 26 2021 Yurii Shestakov <yuriis@nvidia.com> 1.10.1-rc1
 - Bump version to 1.10.1-rc1
