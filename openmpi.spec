@@ -90,7 +90,7 @@ BuildRequires:  rpm-mpi-hooks
 %endif
 
 Provides:       mpi
-%if 0%{?rhel}
+%if 0%{?rhel} == 7
 # Need this for /etc/profile.d/modules.sh
 Requires:       environment-modules
 %endif
