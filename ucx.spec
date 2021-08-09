@@ -15,13 +15,13 @@
 %bcond_with    xpmem
 
 Name: ucx
-Version: 1.10.1
-Release: 3%{?dist}
+Version: 1.11.0
+Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.10.1/ucx-1.10.1.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.11.0/ucx-1.11.0.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
@@ -289,6 +289,9 @@ process to map the memory of another process into its virtual address space.
 
 
 %changelog
+* Mon Aug 09 2021 Yurii Shestakov <yuriis@nvidia.com> 1.11.0-1
+- Bump version to 1.11.0
+
 * Fri Jul 23 2021 Fedora Release Engineering <releng@fedoraproject.org> - 1.10.1-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
 
