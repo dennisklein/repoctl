@@ -30,7 +30,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        4.1.1
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -322,6 +322,7 @@ make check
 %{_fmoddir}/%{name}/
 %{_libdir}/%{name}/lib/*.so
 %{_libdir}/%{name}/lib/*.mod
+%{_libdir}/%{name}/lib/cmake/
 %{_libdir}/%{name}/lib/pkgconfig/
 %{_libdir}/pkgconfig/*.pc
 %{_mandir}/%{namearch}/man1/mpi[cCf]*
@@ -357,6 +358,9 @@ make check
 
 
 %changelog
+* Fri Sep 03 2021 Sandro Mani <manisandro@gmail.com> - 4.1.1-4
+- Also own %%{_libdir}/%%{name}/lib/cmake/
+
 * Thu Jul 22 2021 Fedora Release Engineering <releng@fedoraproject.org> - 4.1.1-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
 
