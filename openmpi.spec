@@ -241,6 +241,9 @@ cd %{buildroot}%{_libdir}/pkgconfig
 ln -s ../%{name}/lib/pkgconfig/*.pc .
 cd -
 
+# Create cmake dir
+mkdir -p %{buildroot}%{_libdir}/%{name}/lib/cmake/
+
 # Remove extraneous wrapper link libraries (bug 814798)
 sed -i -e s/-ldl// -e s/-lhwloc// \
   %{buildroot}%{_libdir}/%{name}/share/openmpi/*-wrapper-data.txt
