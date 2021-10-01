@@ -1,6 +1,6 @@
 Name:           pmix
-Version:        3.2.3
-Release:        2%{?dist}
+Version:        4.1.0
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -15,6 +15,7 @@ BuildRequires:  libevent-devel
 BuildRequires:  libtool
 BuildRequires:  make
 BuildRequires:  munge-devel
+BuildRequires:  pandoc
 BuildRequires:  perl-interpreter
 
 %description
@@ -43,22 +44,6 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
-%package        pmi
-Summary:        The %{name} implementation of libpmi and libpmi2
-Requires:       %{name}%{?_isa} = %{version}-%{release}
-Conflicts:      slurm-pmi
-%description    pmi
-The %{name}-pmi package contains the %{name} implementation of
-the libpmi and libpmi2 backward-compatibility libraries.
-
-%package        pmi-devel
-Summary:        Development files for %{name}-pmi
-Requires:       %{name}-pmi%{?_isa} = %{version}-%{release}
-Conflicts:      slurm-pmi-devel
-%description    pmi-devel
-The %{name}-pmi-devel package contains the development files for
-the libpmi and libpmi2 backward-compatibility libraries.
-
 %package        tools
 Summary:        Tools for %{name}
 Requires:       %{name}%{?_isa} = %{version}-%{release}
@@ -84,7 +69,6 @@ find src -name \*.l -print -exec touch --no-create {} \;
     --disable-static \
     --disable-silent-rules \
     --enable-shared \
-    --enable-pmi-backward-compatibility \
     --with-munge
 
 %make_build
@@ -109,30 +93,23 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %dir %{_sysconfdir}/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/*.conf
 %{_datadir}/%{name}/*.txt
-%{_libdir}/libmca_common_dstore.so.1*
 %{_libdir}/libpmix.so.2*
 %{_libdir}/%{name}/*.so
+%{_mandir}/man1/*.1*
 
 %files devel
 %{_datadir}/%{name}/*.supp
 %{_includedir}/pmix*.h
-%{_libdir}/libmca_common_dstore.so
 %{_libdir}/libpmix.so
 %{_libdir}/pkgconfig/*.pc
-
-%files pmi
-%{_libdir}/libpmi.so.1*
-%{_libdir}/libpmi2.so.1*
-
-%files pmi-devel
-%{_includedir}/{pmi,pmi2}.h
-%{_libdir}/libpmi.so
-%{_libdir}/libpmi2.so
 
 %files tools
 %{_bindir}/*
 
 %changelog
+* Fri Oct 01 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-1
+- Update to 4.1.0
+
 * Fri Jul 23 2021 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.3-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
 
