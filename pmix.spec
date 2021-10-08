@@ -5,6 +5,7 @@ Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
 Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+Source1:        simptest.h
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -57,12 +58,14 @@ based starters (e.g., mpirun).
 
 %prep
 %setup -q -n %{name}-%{version}
+cp %SOURCE1 test/simple
 
 # touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
 
 %build
 %{_builddir}/%{name}-%{version}/autogen.pl
+export CFLAGS="%{build_cflags} -Wno-unused-function -Wno-attributes"
 %configure \
     --prefix=%{_prefix} \
     --sysconfdir=%{_sysconfdir}/%{name} \
@@ -107,8 +110,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
-* Fri Oct 01 2021 Orion Poplawski <orion@nwra.com> - 4.1.0-1
+* Fri Oct 08 2021 Philip Kovacs <pkfed@fedoraproject.org> - 4.1.0-1
 - Update to 4.1.0
+- Remove pmix v1/2 backward compatibility subpackages
 
 * Fri Jul 23 2021 Fedora Release Engineering <releng@fedoraproject.org> - 3.2.3-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
