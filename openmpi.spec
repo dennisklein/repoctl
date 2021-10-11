@@ -29,14 +29,14 @@
 %bcond_with autogen
 
 Name:           openmpi%{?_cc_name_suffix}
-Version:        4.1.1
-Release:        4%{?dist}
+Version:        4.1.2
+Release:        0.1.rc1%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
 
 # We can't use %%{name} here because of _cc_name_suffix
-Source0:        https://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-%{version}.tar.bz2
+Source0:        https://www.open-mpi.org/software/ompi/v4.1/downloads/openmpi-%{version}rc1.tar.bz2
 Source1:        openmpi.module.in
 Source2:        openmpi.pth.py2
 Source3:        openmpi.pth.py3
@@ -168,7 +168,7 @@ OpenMPI support for Python 3.
 
 
 %prep
-%autosetup -p1 -n %{name}-%{version}
+%autosetup -p1 -n %{name}-%{version}rc1
 %if %{with autogen}
 ./autogen.pl --force
 %endif
@@ -361,6 +361,9 @@ make check
 
 
 %changelog
+* Sun Oct 10 2021 Orion Poplawski <orion@nwra.com> - 4.1.2-0.1.rc1
+- Update to 4.1.2rc1
+
 * Fri Sep 03 2021 Sandro Mani <manisandro@gmail.com> - 4.1.1-4
 - Also own %%{_libdir}/%%{name}/lib/cmake/
 
