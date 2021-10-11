@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        4.1.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -18,6 +18,7 @@ BuildRequires:  make
 BuildRequires:  munge-devel
 BuildRequires:  pandoc
 BuildRequires:  perl-interpreter
+BuildRequires:  zlib-devel
 
 %description
 The Process Management Interface (PMI) has been used for quite some time as
@@ -110,6 +111,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Mon Oct 11 2021 Philip Kovacs <pkfed@fedoraproject.org> - 4.1.0-2
+- Add zlib support
+
 * Fri Oct 08 2021 Philip Kovacs <pkfed@fedoraproject.org> - 4.1.0-1
 - Update to 4.1.0
 - Remove pmix v1/2 backward compatibility subpackages
