@@ -13,15 +13,16 @@
 %bcond_with    rocm
 %bcond_with    ugni
 %bcond_with    xpmem
+%bcond_with    vfs
 
 Name: ucx
-Version: 1.11.0
+Version: 1.11.2
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.11.0/ucx-1.11.0.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.11.2/ucx-1.11.2.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
@@ -63,6 +64,9 @@ BuildRequires: hsa-rocr-dev
 %if %{with xpmem}
 BuildRequires: xpmem-devel
 %endif
+%if %{with vfs}
+BuildRequires: fuse3-devel
+%endif
 
 %description
 UCX is an optimized communication framework for high-performance distributed
@@ -74,7 +78,7 @@ addition, UCX provides efficient intra-node communication, by leveraging the
 following shared memory mechanisms: posix, sysv, cma, knem, and xpmem.
 The acronym UCX stands for "Unified Communication X".
 
-This package was built from '' branch, commit c334359.
+This package was built from '' branch, commit ef2bbcf.
 
 %if "%{_vendor}" == "suse"
 %debug_package
@@ -108,6 +112,7 @@ Provides header files and examples for developing with UCX.
            %_with_arg rdmacm rdmacm \
            %_with_arg rocm rocm \
            %_with_arg xpmem xpmem \
+           %_with_arg vfs fuse3 \
            %_with_arg ugni ugni \
            %{?configure_options}
 make %{?_smp_mflags} V=1
@@ -122,7 +127,9 @@ rm -f %{buildroot}%{_libdir}/ucx/lib*.a
 
 %files
 %{_libdir}/lib*.so.*
-%{_bindir}/uc*
+%{_bindir}/ucx_info
+%{_bindir}/ucx_perftest
+%{_bindir}/ucx_read_profile
 %{_bindir}/io_demo
 %{_datadir}/ucx
 %exclude %{_datadir}/ucx/examples
@@ -287,8 +294,24 @@ process to map the memory of another process into its virtual address space.
 %{_libdir}/ucx/libuct_xpmem.so.*
 %endif
 
+%if %{with vfs}
+%package vfs
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Summary: UCX Virtual Filesystem support.
+
+%description vfs
+Provides a virtual filesystem over FUSE which allows real-time monitoring of UCX
+library internals, protocol objects, transports status, and more.
+
+%files vfs
+%{_libdir}/ucx/libucs_fuse.so.*
+%{_bindir}/ucx_vfs
+%endif
 
 %changelog
+* Mon Nov 01 2021 Honggang Li <honli@redhat.com> - 1.11.2-1
+- Bump version to 1.11.2
+
 * Mon Aug 09 2021 Yurii Shestakov <yuriis@nvidia.com> 1.11.0-1
 - Bump version to 1.11.0
 
