@@ -1,13 +1,10 @@
+%global __remake_config 1
+
 %{!?configure_options: %global configure_options %{nil}}
 %bcond_without cma
 %bcond_with    cuda
 %bcond_with    gdrcopy
 %bcond_without ib
-%if 0%{?fedora} >= 30 || 0%{?rhel} >= 7
-%bcond_with ib_cm
-%else
-%bcond_without ib_cm
-%endif
 %bcond_with    knem
 %bcond_without rdmacm
 %bcond_with    rocm
@@ -16,13 +13,13 @@
 %bcond_with    vfs
 
 Name: ucx
-Version: 1.11.2
+Version: 1.12.0
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v1.11.2/ucx-1.11.2.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v1.12.0/ucx-1.12.0.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
@@ -48,9 +45,6 @@ BuildRequires: gdrcopy
 %endif
 %if %{with ib}
 BuildRequires: libibverbs-devel
-%endif
-%if %{with ib_cm}
-BuildRequires: libibcm-devel
 %endif
 %if %{with knem}
 BuildRequires: knem
@@ -78,7 +72,7 @@ addition, UCX provides efficient intra-node communication, by leveraging the
 following shared memory mechanisms: posix, sysv, cma, knem, and xpmem.
 The acronym UCX stands for "Unified Communication X".
 
-This package was built from '' branch, commit ef2bbcf.
+This package was built from '' branch, commit 8ab494b.
 
 %if "%{_vendor}" == "suse"
 %debug_package
@@ -95,6 +89,9 @@ Provides header files and examples for developing with UCX.
 %setup -q
 
 %build
+%if %{__remake_config}
+./autogen.sh
+%endif
 %define _with_arg()   %{expand:%%{?with_%{1}:--with-%{2}}%%{!?with_%{1}:--without-%{2}}}
 %define _enable_arg() %{expand:%%{?with_%{1}:--enable-%{2}}%%{!?with_%{1}:--disable-%{2}}}
 %configure --disable-optimizations \
@@ -107,7 +104,6 @@ Provides header files and examples for developing with UCX.
            %_with_arg cuda cuda \
            %_with_arg gdrcopy gdrcopy \
            %_with_arg ib verbs \
-           %_with_arg ib_cm cm \
            %_with_arg knem knem \
            %_with_arg rdmacm rdmacm \
            %_with_arg rocm rocm \
@@ -141,6 +137,7 @@ rm -f %{buildroot}%{_libdir}/ucx/lib*.a
 %{_includedir}/uc*
 %{_libdir}/lib*.so
 %{_libdir}/pkgconfig/ucx.pc
+%{_libdir}/cmake/ucx/*.cmake
 %{_datadir}/ucx/examples
 
 %post -p /sbin/ldconfig
@@ -202,18 +199,6 @@ hardware-offloaded data transfer.
 
 %files ib
 %{_libdir}/ucx/libuct_ib.so.*
-%endif
-
-%if %{with ib_cm}
-%package ib-cm
-Requires: %{name}-ib%{?_isa} = %{version}-%{release}
-Summary: UCX InfiniBand connection-manager support
-
-%description ib-cm
-Provides Infiniband Connection Manager (also known as ibcm) support for UCX.
-
-%files ib-cm
-%{_libdir}/ucx/libuct_ib_cm.so.*
 %endif
 
 %if %{with knem}
@@ -309,6 +294,9 @@ library internals, protocol objects, transports status, and more.
 %endif
 
 %changelog
+* Mon Dec 13 2021 Honggang Li <honli@redhat.com> - 1.12.0-1
+- Bump version to 1.12.0
+
 * Mon Nov 01 2021 Honggang Li <honli@redhat.com> - 1.11.2-1
 - Bump version to 1.11.2
 
