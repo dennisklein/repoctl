@@ -1,8 +1,8 @@
-%global name_version %{name}-%{version}rc5
+%global name_version %{name}-%{version}rc6
 
 Name:           pmix
 Version:        4.1.1
-Release:        0.1.rc5%{?dist}
+Release:        0.1.rc6%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -111,6 +111,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Fri Jan 14 2022 Philip Kovacs <pkfed@fedoraproject.org> - 4.1.1-0.1.rc6
+- Update to 4.1.1rc6
+
 * Sun Nov 7 2021 Philip Kovacs <pkfed@fedoraproject.org> - 4.1.1-0.1.rc5
 - Update to 4.1.1rc5
 
