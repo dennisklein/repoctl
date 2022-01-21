@@ -2,7 +2,7 @@
 
 Name:           pmix
 Version:        4.1.1
-Release:        0.1.rc6%{?dist}
+Release:        0.2.rc6%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
@@ -111,6 +111,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Fri Jan 21 2022 Fedora Release Engineering <releng@fedoraproject.org> - 4.1.1-0.2.rc6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
+
 * Fri Jan 14 2022 Philip Kovacs <pkfed@fedoraproject.org> - 4.1.1-0.1.rc6
 - Update to 4.1.1rc6
 
