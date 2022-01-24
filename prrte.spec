@@ -1,6 +1,6 @@
 Name:           prrte
 Version:        2.0.0
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 License:        BSD
 URL:            https://github.com/openpmix/%{name}
@@ -9,6 +9,7 @@ Source0:        https://github.com/openpmix/%{name}/releases/download/v%{version
 BuildRequires:  flex
 BuildRequires:  gcc
 BuildRequires:  make
+BuildRequires:  libevent-devel
 BuildRequires:  pmix-devel >= 4.1.0
 BuildRequires:  pandoc
 BuildRequires:  perl-interpreter
@@ -104,6 +105,9 @@ find %{buildroot} -name '*.la' -delete
 
 
 %changelog
+* Mon Jan 24 2022 Orion Poplawski <orion@nwra.com> - 2.0.0-5
+- Add explicit BR on libevent-devel
+
 * Fri Jan 21 2022 Fedora Release Engineering <releng@fedoraproject.org> - 2.0.0-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
 
