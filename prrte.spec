@@ -9,6 +9,7 @@ Source0:        https://github.com/openpmix/%{name}/releases/download/v%{version
 BuildRequires:  flex
 BuildRequires:  gcc
 BuildRequires:  make
+BuildRequires:  hwloc-devel
 BuildRequires:  libevent-devel
 BuildRequires:  pmix-devel >= 4.1.0
 BuildRequires:  pandoc
@@ -106,7 +107,7 @@ find %{buildroot} -name '*.la' -delete
 
 %changelog
 * Mon Jan 24 2022 Orion Poplawski <orion@nwra.com> - 2.0.0-5
-- Add explicit BR on libevent-devel
+- Add explicit BR on hwloc-devel and libevent-devel
 
 * Fri Jan 21 2022 Fedora Release Engineering <releng@fedoraproject.org> - 2.0.0-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
