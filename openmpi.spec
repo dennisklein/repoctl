@@ -30,7 +30,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        4.1.2
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -361,6 +361,9 @@ make check
 
 
 %changelog
+* Sat Feb 05 2022 Jiri Vanek <jvanek@redhat.com> - 4.1.2-3
+- Rebuilt for java-17-openjdk as system jdk
+
 * Thu Jan 20 2022 Fedora Release Engineering <releng@fedoraproject.org> - 4.1.2-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
 
