@@ -1,12 +1,10 @@
-%global name_version %{name}-%{version}rc6
-
 Name:           pmix
-Version:        4.1.1
-Release:        0.2.rc6%{?dist}
+Version:        4.1.2
+Release:        1%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD
 URL:            https://pmix.org/
-Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name_version}.tar.bz2
+Source0:        https://github.com/pmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -59,13 +57,13 @@ based starters (e.g., mpirun).
 * pevent - inject an event into the system
 
 %prep
-%setup -q -n %{name_version}
+%setup -q -n %{name}-%{version}
 
 # touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
 
 %build
-%{_builddir}/%{name_version}/autogen.pl
+%{_builddir}/%{name}-%{version}/autogen.pl
 export CFLAGS="%{build_cflags} -Wno-unused-function -Wno-attributes"
 %configure \
     --prefix=%{_prefix} \
@@ -111,6 +109,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Sat Feb 12 2022 Philip Kovacs <pkfed@fedoraproject.org> - 4.1.2-1
+- Update to 4.1.2
+
 * Fri Jan 21 2022 Fedora Release Engineering <releng@fedoraproject.org> - 4.1.1-0.2.rc6
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
 
