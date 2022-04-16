@@ -29,8 +29,8 @@
 %bcond_with autogen
 
 Name:           openmpi%{?_cc_name_suffix}
-Version:        4.1.2
-Release:        3%{?dist}
+Version:        4.1.3
+Release:        1%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -361,6 +361,9 @@ make check
 
 
 %changelog
+* Sat Apr 16 2022 Orion Poplawski <orion@nwra.com> - 4.1.3-1
+- Update to 4.1.3
+
 * Sat Feb 05 2022 Jiri Vanek <jvanek@redhat.com> - 4.1.2-3
 - Rebuilt for java-17-openjdk as system jdk
 
