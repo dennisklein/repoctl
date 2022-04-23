@@ -1,6 +1,6 @@
 Name:           prrte
-Version:        2.0.0
-Release:        5%{?dist}
+Version:        2.0.2
+Release:        1%{?dist}
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 License:        BSD
 URL:            https://github.com/openpmix/%{name}
@@ -46,7 +46,7 @@ developing applications that use %{name}.
 
 
 %prep
-%setup -q -n prte-%{version}
+%setup -q
 
 # touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
@@ -106,6 +106,9 @@ find %{buildroot} -name '*.la' -delete
 
 
 %changelog
+* Sat Apr 23 2022 Orion Poplawski <orion@nwra.com> - 2.0.2-1
+- Update to 2.0.2
+
 * Mon Jan 24 2022 Orion Poplawski <orion@nwra.com> - 2.0.0-5
 - Add explicit BR on hwloc-devel and libevent-devel
 
