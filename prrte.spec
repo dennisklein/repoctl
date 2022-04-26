@@ -12,6 +12,8 @@ BuildRequires:  make
 BuildRequires:  hwloc-devel
 BuildRequires:  libevent-devel
 BuildRequires:  pmix-devel >= 4.1.0
+# For pmixcc - https://bugzilla.redhat.com/show_bug.cgi?id=2078048
+BuildRequires:  pmix-tools
 BuildRequires:  pandoc
 BuildRequires:  perl-interpreter
 BuildRequires:  torque-devel
