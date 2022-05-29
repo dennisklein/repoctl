@@ -29,7 +29,7 @@
 %bcond_with autogen
 
 Name:           openmpi%{?_cc_name_suffix}
-Version:        4.1.3
+Version:        4.1.4
 Release:        1%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
@@ -361,6 +361,9 @@ make check
 
 
 %changelog
+* Sun May 29 2022 Orion Poplawski <orion@nwra.com> - 4.1.4-1
+- Update to 4.1.4
+
 * Sat Apr 16 2022 Orion Poplawski <orion@nwra.com> - 4.1.3-1
 - Update to 4.1.3
 
