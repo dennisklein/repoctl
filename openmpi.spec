@@ -25,12 +25,19 @@
 %bcond_without rdma
 %endif
 
+# No more Java on i686
+%ifarch %{java_arches}
+%bcond_without java
+%else
+%bcond_with java
+%endif
+
 # Run autogen - needed for some patches
 %bcond_with autogen
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        4.1.4
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -62,7 +69,12 @@ BuildRequires:  rdma-core-devel
 BuildRequires:  hwloc-devel
 # So configure can find lstopo
 BuildRequires:  hwloc-gui
+%if %{with java}
 BuildRequires:  java-devel
+%else
+Obsoletes:      %{name}-java < %{version}-%{release}
+Obsoletes:      %{name}-java-devel < %{version}-%{release}
+%endif
 # Old libevent causes issues
 %if !0%{?el7}
 BuildRequires:  libevent-devel
@@ -127,6 +139,7 @@ Requires:	(python(abi) = %{python3_version} if python3)
 %description devel
 Contains development headers and libraries for openmpi.
 
+%if %{with java}
 %package java
 Summary:        Java library
 Requires:       %{name} = %{version}-%{release}
@@ -142,6 +155,7 @@ Requires:       java-devel
 
 %description java-devel
 Contains development wrapper for compiling Java with openmpi.
+%endif
 
 # We set this to for convenience, since this is the unique dir we use for this
 # particular package, version, compiler
@@ -183,7 +197,9 @@ OpenMPI support for Python 3.
 	--disable-silent-rules \
 	--enable-builtin-atomics \
 	--enable-mpi-cxx \
+%if %{with java}
 	--enable-mpi-java \
+%endif
 	--enable-mpi1-compatibility \
 	--with-sge \
 	--with-valgrind \
@@ -339,6 +355,7 @@ make check
 %{_libdir}/%{name}/share/openmpi/*-wrapper-data.txt
 %{macrosdir}/macros.%{namearch}
 
+%if %{with java}
 %files java
 %{_libdir}/%{name}/lib/mpi.jar
 
@@ -348,6 +365,7 @@ make check
 # Currently this only contaings openmpi/javadoc
 %{_libdir}/%{name}/share/doc/
 %{_mandir}/%{namearch}/man1/mpijavac.1.gz
+%endif
 
 %if %{with python2}
 %files -n python2-openmpi
@@ -361,6 +379,9 @@ make check
 
 
 %changelog
+* Sun Jul 10 2022 Orion Poplawski <orion@nwra.com> - 4.1.4-3
+- Drop java for i686 (bz#2104085)
+
 * Mon Jun 13 2022 Python Maint <python-maint@redhat.com> - 4.1.4-2
 - Rebuilt for Python 3.11
 
