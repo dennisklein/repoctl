@@ -99,7 +99,7 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 %if %{with check}
 %make_build check \
     LD_LIBRARY_PATH=%{buildroot}%{_libdir} \
-    MUNGE_ROOT=/tmp/munge-$$ VERBOSE=t verbose=t
+    root=/tmp/munge-$$ VERBOSE=t verbose=t
 %endif
 
 
