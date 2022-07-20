@@ -1,7 +1,7 @@
 %bcond_without check
 
 Name:           munge
-Version:        0.5.14
+Version:        0.5.15
 Release:        %autorelease
 Summary:        Enables uid & gid authentication across a host cluster
 
@@ -13,17 +13,6 @@ Source1:        https://github.com/dun/munge/releases/download/%{name}-%{version
 Source2:        https://github.com/dun.gpg
 Source3:        munge.sysusers
 Source4:        README.md
-# Not included in the release tar
-Source5:        https://github.com/dun/munge/raw/f90281631a27c7df0e15e3b66df1a6e5393cee49/t/0104-munged-security-pidfile.t
-Source6:        https://github.com/dun/munge/raw/f90281631a27c7df0e15e3b66df1a6e5393cee49/t/0105-munged-security-seedfile.t
-
-
-# Patches to fix s390x build
-# https://bugzilla.redhat.com/show_bug.cgi?id=1923337
-Patch0:         0001-Sharness-Add-munged_kill_daemon-and-munged_cleanup.patch
-Patch1:         0002-Sharness-Fix-dup-of-failing-check-when-run-by-root.patch
-Patch2:         0003-Sharness-Fix-EACCES-failure-succeeding-for-root.patch
-Patch3:         0004-HKDF-Fix-big-endian-bug-caused-by-size_t-ptr-cast.patch
 
 BuildRequires:  make
 BuildRequires:  gcc
@@ -74,13 +63,6 @@ Runtime libraries for using MUNGE.
 %{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
 %autosetup -N -S git
 cp "%{SOURCE4}"  README-Fedora.md
-pushd t
-cp "%{SOURCE5}" .
-cp "%{SOURCE6}" .
-chmod +x *.t
-git add .
-git commit -m "Include additional files"
-popd
 
 %autopatch
 
