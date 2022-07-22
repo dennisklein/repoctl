@@ -37,7 +37,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        4.1.4
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -379,6 +379,9 @@ make check
 
 
 %changelog
+* Fri Jul 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 4.1.4-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
 * Sun Jul 10 2022 Orion Poplawski <orion@nwra.com> - 4.1.4-3
 - Drop java for i686 (bz#2104085)
 
