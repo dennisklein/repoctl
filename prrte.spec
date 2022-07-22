@@ -1,6 +1,6 @@
 Name:           prrte
 Version:        2.0.2
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 License:        BSD
 URL:            https://github.com/openpmix/%{name}
@@ -108,6 +108,9 @@ find %{buildroot} -name '*.la' -delete
 
 
 %changelog
+* Fri Jul 22 2022 Fedora Release Engineering <releng@fedoraproject.org> - 2.0.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
 * Sat Apr 23 2022 Orion Poplawski <orion@nwra.com> - 2.0.2-1
 - Update to 2.0.2
 
