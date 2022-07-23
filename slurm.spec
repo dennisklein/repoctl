@@ -16,7 +16,7 @@
 
 Name:           slurm
 Version:        21.08.8
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Simple Linux Utility for Resource Management
 License:        GPLv2 and BSD
 URL:            https://slurm.schedmd.com/
@@ -748,6 +748,9 @@ fi
 %systemd_postun_with_restart slurmdbd.service
 
 %changelog
+* Sat Jul 23 2022 Fedora Release Engineering <releng@fedoraproject.org> - 21.08.8-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
 * Mon May 30 2022 Jitka Plesnikova <jplesnik@redhat.com> - 21.08.8-3
 - Perl 5.36 rebuild
 
