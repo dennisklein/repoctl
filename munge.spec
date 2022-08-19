@@ -29,8 +29,6 @@ BuildRequires:  util-linux
 %endif
 
 
-Requires(pre):    shadow-utils
-
 %{?systemd_requires}
 %{?sysusers_requires_compat}
 
