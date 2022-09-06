@@ -1,5 +1,5 @@
 # Upstream tarballs use an additional release number
-%global ups_rel 2
+%global ups_rel 1
 
 %if "%{ups_rel}" == "1"
 %global name_version %{name}-%{version}
@@ -15,12 +15,12 @@
 %endif
 
 Name:           slurm
-Version:        21.08.8
-Release:        4%{?dist}
+Version:        22.05.3
+Release:        1%{?dist}
 Summary:        Simple Linux Utility for Resource Management
 License:        GPLv2 and BSD
 URL:            https://slurm.schedmd.com/
-Source0:        http://www.schedmd.com/download/latest/%{name_version}.tar.bz2
+Source0:        https://download.schedmd.com/slurm/%{name_version}.tar.bz2
 Source1:        slurm.conf
 Source2:        slurmdbd.conf
 Source3:        slurm-sview.desktop
@@ -31,27 +31,27 @@ Source5:        slurm-setuser.in
 Patch0:         slurm_release_version.patch
 
 # Build-related patches
-Patch10:        slurm_perlapi_rpaths.patch
+Patch10:        slurm_check_version.patch
 Patch11:        slurm_html_doc_path.patch
-Patch12:        slurm_without_cray.patch
-Patch13:        slurm_check_version.patch
-Patch14:        slurm_detect_pmix_v4.patch
+Patch12:        slurm_perlapi_rpaths.patch
 
 # Other patches
-Patch20:        slurm_pmix_soname.patch
+Patch20:        slurm_runtime_linking.patch
 Patch21:        slurm_to_python3.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
+BuildRequires:  dbus-devel
 BuildRequires:  desktop-file-utils
 BuildRequires:  gcc
 BuildRequires:  make
+BuildRequires:  man2html
 BuildRequires:  perl-devel
 BuildRequires:  perl-ExtUtils-MakeMaker
 BuildRequires:  perl-interpreter
 BuildRequires:  perl-macros
 BuildRequires:  perl-podlators
-%if !0%{?el7}
+%if 0%{?epel} != 7
 BuildRequires:  pkgconf
 %else
 BuildRequires:  pkgconfig
@@ -83,7 +83,7 @@ BuildRequires:  ucx-devel
 %endif
 
 # create slurm-slurmrestd package for Fedora >= 34 and EPEL7/8
-%if (0%{?fedora} >= 34) || 0%{?el7} || 0%{?el8}
+%if (0%{?fedora} >= 34) || (0%{?epel} >= 7)
 BuildRequires:  http-parser-devel
 BuildRequires:  json-c-devel
 BuildRequires:  libjwt-devel
@@ -165,7 +165,7 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 Slurm database daemon. Used to accept and process database RPCs and upload
 database changes to slurmctld daemons on each cluster.
 
-%if (0%{?fedora} >= 34) || 0%{?el7} || 0%{?el8}
+%if (0%{?fedora} >= 34) || (0%{?epel} >= 7)
 %package slurmrestd
 Summary: Slurm REST API deamon
 Requires: %{name}%{?_isa} = %{version}-%{release}
@@ -253,14 +253,15 @@ export LDFLAGS="%{build_ldflags} -Wl,-z,lazy"
 %if 0%{?fedora} && %{with ucx}
   --with-ucx=%{_prefix} \
 %endif
+  --enable-pam \
+  --enable-really-no-cray \
   --enable-shared \
   --enable-x11 \
   --disable-static \
   --disable-debug \
-  --disable-developer \
   --disable-salloc-background \
-  --disable-multiple-slurmd \
   --disable-partial_attach \
+  --with-oneapi=no \
   --with-shared-libslurm \
   --without-rpath
 # patch libtool to remove rpaths
@@ -379,7 +380,11 @@ rm -f %{buildroot}%{_libdir}/%{name}/job_submit_defaults.so
 rm -f %{buildroot}%{_libdir}/%{name}/job_submit_logging.so
 rm -f %{buildroot}%{_libdir}/%{name}/job_submit_partition.so
 # remove cray files
+rm -f %{buildroot}%{_libdir}/%{name}/*datawarp*.so
+rm -f %{buildroot}%{_libdir}/%{name}/*cray*.so
 rm -f %{buildroot}%{_mandir}/man5/cray*
+rm -f %{buildroot}%{_sbindir}/capmc*
+rm -f %{buildroot}%{_sbindir}/slurmsmwd*
 # remove perl cruft
 rm -f %{buildroot}%{perl_vendorarch}/auto/Slurm*/.packlist
 rm -f %{buildroot}%{perl_vendorarch}/auto/Slurm*/Slurm*.bs
@@ -431,12 +436,13 @@ rm -f %{buildroot}%{_unitdir}/slurmrestd.service
 %{_bindir}/%{name}-setuser
 %{_libdir}/%{name}/accounting_storage_*.so
 %{_libdir}/%{name}/acct_gather_*.so
-%if (0%{?fedora} >= 34) || 0%{?el7} || 0%{?el8}
+%if (0%{?fedora} >= 34) || (0%{?epel} >= 7)
 %{_libdir}/%{name}/auth_jwt.so
 %endif
 %{_libdir}/%{name}/auth_munge.so
 %{_libdir}/%{name}/burst_buffer_lua.so
 %{_libdir}/%{name}/cgroup_v1.so
+%{_libdir}/%{name}/cgroup_v2.so
 %{_libdir}/%{name}/cli_filter_*.so
 %{_libdir}/%{name}/core_spec_none.so
 %{_libdir}/%{name}/cred_*.so
@@ -452,7 +458,6 @@ rm -f %{buildroot}%{_unitdir}/slurmrestd.service
 %{_libdir}/%{name}/mcs_*.so
 %{_libdir}/%{name}/mpi_*.so
 %{_libdir}/%{name}/node_features_*.so
-%{_libdir}/%{name}/openapi_*.so
 %{_libdir}/%{name}/power_none.so
 %{_libdir}/%{name}/preempt_*.so
 %{_libdir}/%{name}/prep_script.so
@@ -495,6 +500,7 @@ rm -f %{buildroot}%{_unitdir}/slurmrestd.service
 %{_mandir}/man5/helpers.conf.5*
 %{_mandir}/man5/job_container.conf.5*
 %{_mandir}/man5/knl.conf.5*
+%{_mandir}/man5/mpi.conf.5*
 %{_mandir}/man5/nonstop.conf.5*
 %{_mandir}/man5/oci.conf.5*
 %{_mandir}/man5/slurm.conf.5*
@@ -532,9 +538,7 @@ rm -f %{buildroot}%{_unitdir}/slurmrestd.service
 # ---------
 
 %files doc
-%dir %{_docdir}/%{name}
-%dir %{_docdir}/%{name}/html
-%{_docdir}/%{name}/html/*
+%{_docdir}
 
 # ---------
 # Slurm-gui
@@ -620,11 +624,8 @@ fi
 
 %if (0%{?fedora} >= 34) || 0%{?el7} || 0%{?el8}
 %files slurmrestd
-%{_libdir}/%{name}/openapi_dbv0_0_36.so
-%{_libdir}/%{name}/openapi_v0_0_36.so
-%{_libdir}/%{name}/openapi_v0_0_35.so
-%{_libdir}/%{name}/rest_auth_jwt.so
-%{_libdir}/%{name}/rest_auth_local.so
+%{_libdir}/%{name}/openapi*.so
+%{_libdir}/%{name}/rest*.so
 %{_sbindir}/slurmrestd
 %{_unitdir}/slurmrestd.service
 %endif
@@ -748,6 +749,10 @@ fi
 %systemd_postun_with_restart slurmdbd.service
 
 %changelog
+* Mon Sep 5 2022 Philip Kovacs <pkfed@fedoraproject.org> - 22.05.3-1
+- Thanks Cristian Le (fedora@lecris.me) for his contributions
+- Update to 22.05.3
+
 * Sat Jul 23 2022 Fedora Release Engineering <releng@fedoraproject.org> - 21.08.8-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
 
