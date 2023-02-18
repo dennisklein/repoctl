@@ -17,7 +17,7 @@ Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD-3-Clause
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v%{version}-rc4/ucx-%{version}.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
