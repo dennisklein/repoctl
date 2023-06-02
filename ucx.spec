@@ -11,8 +11,8 @@
 %bcond_with    vfs
 
 Name: ucx
-Version: 1.13.1
-Release: 4%{?dist}
+Version: 1.14.1
+Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD-3-Clause AND MIT AND CC-PDDC AND (BSD-3-Clause OR Apache-2.0)
@@ -319,6 +319,9 @@ status, and more.
 %endif
 
 %changelog
+* Fri Jun 02 2023 Kamal Heib <kheib@redhat.com> - 1.14.1-1
+- Update to upstream release 1.14.1
+
 * Sun Feb 19 2023 Benson Muite <benson_muite@emailplus.org> - 1.13.1-4
 - List additional licenses used
 - Remove unneeded ldconfig calls
