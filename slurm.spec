@@ -55,7 +55,7 @@ BuildRequires:  perl-ExtUtils-MakeMaker
 BuildRequires:  perl-interpreter
 BuildRequires:  perl-generators
 BuildRequires:  perl-podlators
-%if (0%{?epel} != 7)
+%if (0%{?rhel} != 7)
 BuildRequires:  pkgconf
 %else
 BuildRequires:  pkgconfig
@@ -76,7 +76,7 @@ BuildRequires:  mariadb-devel
 BuildRequires:  munge-devel
 # numctl-devel not available in el9 for arch s390x (#2099483);
 # task/affinity plugin won't be available in el9 for arch s390x
-%if (0%{?epel} != 9) || ("%{_arch}" != "s390x")
+%if (0%{?rhel} != 9) || ("%{_arch}" != "s390x")
 BuildRequires:  numactl-devel
 %endif
 BuildRequires:  pam-devel
@@ -90,8 +90,8 @@ BuildRequires:  zlib-devel
 BuildRequires:  ucx-devel
 %endif
 
-# create slurm-slurmrestd package for Fedora >= 34 and EPEL7/8/9
-%if (0%{?fedora} >= 34) || (0%{?epel} >= 7)
+# create slurm-slurmrestd package for Fedora and EPEL7/8/9
+%if 0%{?fedora} || (0%{?rhel} >= 7)
 BuildRequires:  http-parser-devel
 BuildRequires:  json-c-devel
 BuildRequires:  libjwt-devel
@@ -174,7 +174,7 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 Slurm database daemon. Used to accept and process database RPCs and upload
 database changes to slurmctld daemons on each cluster.
 
-%if (0%{?fedora} >= 34) || (0%{?epel} >= 7)
+%if 0%{?fedora} || (0%{?rhel} >= 7)
 %package slurmrestd
 Summary: Slurm REST API deamon
 Requires: %{name}%{?_isa} = %{version}-%{release}
@@ -397,10 +397,6 @@ rm -f %{buildroot}%{_sbindir}/slurmsmwd*
 rm -f %{buildroot}%{perl_vendorarch}/auto/Slurm*/.packlist
 rm -f %{buildroot}%{perl_vendorarch}/auto/Slurm*/Slurm*.bs
 rm -f %{buildroot}%{perl_archlib}/perllocal.pod
-%if 0%{?fedora} && (0%{?fedora} < 34)
-# remove unused slurmrestd service file
-rm -f %{buildroot}%{_unitdir}/slurmrestd.service
-%endif
 
 %ldconfig_scriptlets devel
 %ldconfig_scriptlets libs
@@ -444,7 +440,7 @@ rm -f %{buildroot}%{_unitdir}/slurmrestd.service
 %{_bindir}/%{name}-setuser
 %{_libdir}/%{name}/accounting_storage_*.so
 %{_libdir}/%{name}/acct_gather_*.so
-%if (0%{?fedora} >= 34) || (0%{?epel} >= 7)
+%if 0%{?fedora} || (0%{?rhel} >= 7)
 %{_libdir}/%{name}/auth_jwt.so
 %endif
 %{_libdir}/%{name}/auth_munge.so
@@ -558,7 +554,7 @@ rm -f %{buildroot}%{_unitdir}/slurmrestd.service
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 %{_mandir}/man1/sview.1*
 
-%if (0%{?epel} == 7)
+%if (0%{?rhel} == 7)
 %post gui
 /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
 
@@ -630,7 +626,7 @@ fi
 # Slurm-slurmrestd
 # ----------------
 
-%if (0%{?fedora} >= 34) || (0%{?epel} >= 7)
+%if 0%{?fedora} || (0%{?rhel} >= 7)
 %files slurmrestd
 %{_libdir}/%{name}/openapi*.so
 %{_libdir}/%{name}/rest*.so
