@@ -16,9 +16,12 @@
 
 Name:           slurm
 Version:        22.05.9
-Release:        3%{?dist}
+Release:        %autorelease
 Summary:        Simple Linux Utility for Resource Management
-License:        GPLv2 and BSD
+# ./src/common/log.c: BSD 2-Clause License
+# ./src/common/log.h: BSD 2-Clause License
+# ./src/common/uthash.h: BSD 1-Clause License
+License:        GPL-2.0-or-later AND BSD-2-Clause AND BSD-1-Clause
 URL:            https://slurm.schedmd.com/
 Source0:        https://download.schedmd.com/slurm/%{name_version}.tar.bz2
 Source1:        slurm.conf
@@ -754,11 +757,4 @@ fi
 %systemd_postun_with_restart slurmdbd.service
 
 %changelog
-* Sat Jul 22 2023 Fedora Release Engineering <releng@fedoraproject.org> - 22.05.9-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_39_Mass_Rebuild
-
-* Tue Jul 11 2023 Jitka Plesnikova <jplesnik@redhat.com> - 22.05.9-2
-- Perl 5.38 rebuild
-
-
 %autochangelog
