@@ -309,6 +309,8 @@ make check
 %dir %{_libdir}/%{name}/bin
 %dir %{_libdir}/%{name}/lib
 %dir %{_libdir}/%{name}/lib/openmpi
+%dir %{_libdir}/%{name}/lib/openmpi/cmake
+%dir %{_libdir}/%{name}/include
 %dir %{_mandir}/%{namearch}
 %dir %{_mandir}/%{namearch}/man*
 %config(noreplace) %{_sysconfdir}/%{namearch}/*
