@@ -28,6 +28,9 @@ License: BSD-3-Clause AND MIT AND CC-PDDC AND (BSD-3-Clause OR Apache-2.0)
 
 URL: http://www.openucx.org
 Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
+# BUILD/CONFIG: Keep CFLAGS and CXXFLAGS separate
+# Fixes build for https://fedoraproject.org/wiki/Changes/PortingToModernC
+Patch0: https://github.com/openucx/%{name}/pull/9558.patch
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
@@ -94,6 +97,8 @@ Provides header files and examples for developing with UCX.
 
 %prep
 %setup -q
+%patch -P0 -p1
+autoreconf -fiv
 
 %build
 # Fix incorrect declaration
