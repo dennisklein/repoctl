@@ -12,7 +12,7 @@
 
 Name: ucx
 Version: 1.14.1
-Release: 4%{?dist}
+Release: 5%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD-3-Clause AND MIT AND CC-PDDC AND (BSD-3-Clause OR Apache-2.0)
@@ -322,6 +322,9 @@ status, and more.
 %endif
 
 %changelog
+* Sun Dec 23 2023 Benson Muite <benson_muite@emailplus.org> - 1.14.1-5
+- Add patch to separate C and C++ flags from yselkowitz
+
 * Sat Jul 22 2023 Fedora Release Engineering <releng@fedoraproject.org> - 1.14.1-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_39_Mass_Rebuild
 
