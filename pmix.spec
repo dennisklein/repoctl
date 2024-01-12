@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        4.2.7
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
 URL:            https://pmix.org/
@@ -16,6 +16,7 @@ BuildRequires:  libtool
 BuildRequires:  make
 BuildRequires:  munge-devel
 BuildRequires:  perl-interpreter
+BuildRequires:  python3-devel
 BuildRequires:  zlib-devel
 
 %description
@@ -115,6 +116,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Wed Jan 10 2024 Dennis Klein <d.klein@gsi.de> - 4.2.7-2
+- Rebuilt on rl8+epel
+
 * Fri Oct 27 2023 Orion Poplawski <orion@nwra.com> - 4.2.7-1
 - Update to 4.2.7
 - Enable IPv6 support
