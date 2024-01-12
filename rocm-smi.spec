@@ -5,7 +5,7 @@
 
 Name:       rocm-smi
 Version:    %{rocm_version}
-Release:    1%{?dist}
+Release:    2%{?dist}
 Summary:    ROCm System Management Interface Library
 
 License:    NCSA and MIT and BSD
@@ -32,6 +32,7 @@ applications.
 %package devel
 Summary: ROCm SMI Library development files
 Requires: %{name}%{?_isa} = %{version}-%{release}
+Requires: kernel-headers
 
 %description devel
 ROCm System Management Interface Library development files
@@ -69,6 +70,10 @@ install -D -m 644 README.md %{buildroot}%{_docdir}/rocm_smi/README.md
 %{_libdir}/cmake/rocm_smi/
 
 %changelog
+* Thu Jan 11 2024 Dennis Klein <d.klein@gsi.de> - 5.7.1-2
+- Depend on kernel-headers
+- Rebuilt for rocky+epel-8
+
 * Thu Oct 19 2023 Jeremy Newton <alexjnewt at hotmail dot com> - 5.7.1-1
 - Update to 5.7.1
 
@@ -91,16 +96,16 @@ install -D -m 644 README.md %{buildroot}%{_docdir}/rocm_smi/README.md
 
 * Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
- 
+
 * Tue Dec 22 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 4.0.0-1
 - Upstream version 4.0.0 (no changes whatsoever, still deprecated)
- 
+
 * Fri Dec 11 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 3.10.0-1
 - Upstream version 3.10.0 (no changes whatsoever, still deprecated)
- 
+
 * Thu Nov 19 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 3.9.0-1
 - Upstream version 3.9.0 (no changes except deprecation)
 - Deprecate package
- 
+
 * Thu Oct 15 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 3.8.0-1
 - Initial import (#1885684)
