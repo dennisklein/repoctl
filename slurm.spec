@@ -8,14 +8,14 @@
 %endif
 
 # follow arch-inclusions for ucx
-%ifarch aarch64 ppc64le x86_64
+%ifarch aarch64 ppc64le # x86_64
 %bcond_without ucx
 %else
 %bcond_with ucx
 %endif
 
 Name:           slurm
-Version:        22.05.11
+Version:        23.11.1
 Release:        %autorelease
 Summary:        Simple Linux Utility for Resource Management
 # ./src/common/log.c: BSD 2-Clause License
@@ -39,9 +39,7 @@ Patch11:        slurm_html_doc_path.patch
 Patch12:        slurm_perlapi_rpaths.patch
 
 # Other patches
-# https://bugs.schedmd.com/show_bug.cgi?id=14868
-Patch20:        slurm_runtime_linking.patch
-Patch21:        slurm_to_python3.patch
+Patch20:        slurm_to_python3.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -83,12 +81,10 @@ BuildRequires:  pam-devel
 BuildRequires:  pmix-devel
 BuildRequires:  rdma-core-devel
 BuildRequires:  readline-devel
+BuildRequires:  rocm-smi-devel
 BuildRequires:  rrdtool-devel
 BuildRequires:  zlib-devel
-
-%if 0%{?fedora} && %{with ucx}
 BuildRequires:  ucx-devel
-%endif
 
 # create slurm-slurmrestd package for Fedora and EPEL7/8/9
 %if 0%{?fedora} || (0%{?rhel} >= 7)
@@ -105,9 +101,7 @@ ExcludeArch:    i686
 Requires:       /bin/mailx
 Requires:       munge
 Requires:       pmix
-%if 0%{?fedora} && %{with ucx}
 Requires:       ucx
-%endif
 %{?systemd_requires}
 
 %description
@@ -182,6 +176,13 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 Slurm REST API daemon.  The slurmrestd daemon is designed to allow clients
 to communicate with Slurm via a REST API.
 %endif
+
+%package sackd
+Summary: Slurm authentication daemon
+Requires: %{name}%{?_isa} = %{version}-%{release}
+%description sackd
+Slurm authentication daemon. Used on login nodes that are not running slurmd
+daemons to allow authentication to the cluster.
 
 # -----------------
 # Contribs Packages
@@ -258,20 +259,18 @@ export LDFLAGS="%{build_ldflags} -Wl,-z,lazy"
   --prefix=%{_prefix} \
   --sysconfdir=%{_sysconfdir}/%{name} \
   --with-pam_dir=%{_libdir}/security \
-%if 0%{?fedora} && %{with ucx}
   --with-ucx=%{_prefix} \
-%endif
   --enable-pam \
-  --enable-really-no-cray \
   --enable-shared \
   --enable-x11 \
   --disable-static \
   --disable-debug \
-  --disable-salloc-background \
   --disable-partial_attach \
   --with-oneapi=no \
   --with-shared-libslurm \
-  --without-rpath
+  --without-rpath \
+  --with-pmix=%{_prefix} \
+  --with-rsmi=%{_prefix}
 # patch libtool to remove rpaths
 sed -i 's|^hardcode_into_libs=.*|hardcode_into_libs=no|g' libtool
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
@@ -316,6 +315,7 @@ install -m 0644 -p etc/slurmctld.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmdbd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmrestd.service %{buildroot}%{_unitdir}
+install -m 0644 -p etc/sackd.service %{buildroot}%{_unitdir}
 
 # tmpfiles.d file for creating /run/slurm dir after reboot
 install -d -m 0755 %{buildroot}%{_tmpfilesdir}
@@ -427,6 +427,7 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_bindir}/scancel
 %{_bindir}/scontrol
 %{_bindir}/scrontab
+%{_bindir}/scrun
 %{_bindir}/sdiag
 %{_bindir}/sh5util
 %{_bindir}/sinfo
@@ -444,36 +445,31 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_libdir}/%{name}/auth_jwt.so
 %endif
 %{_libdir}/%{name}/auth_munge.so
+%{_libdir}/%{name}/auth_slurm.so
 %{_libdir}/%{name}/burst_buffer_lua.so
 %{_libdir}/%{name}/cgroup_v1.so
 %{_libdir}/%{name}/cgroup_v2.so
 %{_libdir}/%{name}/cli_filter_*.so
-%{_libdir}/%{name}/core_spec_none.so
 %{_libdir}/%{name}/cred_*.so
-%{_libdir}/%{name}/ext_sensors_none.so
+%{_libdir}/%{name}/data_parser_*.so
 %{_libdir}/%{name}/gres_*.so
-%{_libdir}/%{name}/gpu_generic.so
+%{_libdir}/%{name}/gpu_*.so
 %{_libdir}/%{name}/hash_k12.so
 %{_libdir}/%{name}/job_container_*.so
 %{_libdir}/%{name}/job_submit_*.so
 %{_libdir}/%{name}/jobacct_gather_*.so
 %{_libdir}/%{name}/jobcomp_*.so
-%{_libdir}/%{name}/launch_slurm.so
 %{_libdir}/%{name}/mcs_*.so
 %{_libdir}/%{name}/mpi_*.so
 %{_libdir}/%{name}/node_features_*.so
-%{_libdir}/%{name}/power_none.so
 %{_libdir}/%{name}/preempt_*.so
 %{_libdir}/%{name}/prep_script.so
 %{_libdir}/%{name}/priority_*.so
 %{_libdir}/%{name}/proctrack_*.so
-%{_libdir}/%{name}/route_*.so
 %{_libdir}/%{name}/sched_*.so
 %{_libdir}/%{name}/select_*.so
 %{_libdir}/%{name}/serializer_*.so
-%{_libdir}/%{name}/site_factor_none.so
-%{_libdir}/%{name}/slurmctld_nonstop.so
-%{_libdir}/%{name}/switch_*.so
+%{_libdir}/%{name}/site_factor_example.so
 %{_libdir}/%{name}/task_*.so
 %{_libdir}/%{name}/topology_*.so
 %{_mandir}/man1/sacct.1*
@@ -483,6 +479,7 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_mandir}/man1/sbatch.1*
 %{_mandir}/man1/sbcast.1*
 %{_mandir}/man1/scancel.1*
+%{_mandir}/man1/scrun.1*
 %{_mandir}/man1/scontrol.1*
 %{_mandir}/man1/scrontab.1*
 %{_mandir}/man1/sdiag.1*
@@ -505,7 +502,6 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_mandir}/man5/job_container.conf.5*
 %{_mandir}/man5/knl.conf.5*
 %{_mandir}/man5/mpi.conf.5*
-%{_mandir}/man5/nonstop.conf.5*
 %{_mandir}/man5/oci.conf.5*
 %{_mandir}/man5/slurm.conf.5*
 %{_mandir}/man5/topology.conf.5*
@@ -634,6 +630,14 @@ fi
 %{_unitdir}/slurmrestd.service
 %endif
 
+# ----------------
+# Slurm-sackd
+# ----------------
+
+%files sackd
+%{_sbindir}/sackd
+%{_unitdir}/sackd.service
+
 # --------------
 # Slurm-contribs
 # --------------
@@ -724,6 +728,15 @@ fi
 %{_mandir}/man1/qstat.1*
 %{_mandir}/man1/qsub.1*
 %{_mandir}/man1/mpiexec.1*
+
+%post sackd
+%systemd_post sackd.service
+
+%preun sackd
+%systemd_preun sackd.service
+
+%postun sackd
+%systemd_postun_with_restart sackd.service
 
 %post slurmctld
 %systemd_post slurmctld.service

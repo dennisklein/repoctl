@@ -1,26 +1,22 @@
-diff --git a/contribs/perlapi/libslurm/perl/Makefile.PL.in b/contribs/perlapi/libslurm/perl/Makefile.PL.in
-index fcae43796d..34c1ad1411 100644
 --- a/contribs/perlapi/libslurm/perl/Makefile.PL.in
 +++ b/contribs/perlapi/libslurm/perl/Makefile.PL.in
-@@ -77,7 +77,7 @@ DESTDIR_BUG
+@@ -68,7 +68,7 @@ DESTDIR_BUG
  # AIX has problems with not always having the correct
  # flags so we have to add some :)
  my $os = lc(`uname`);
--my $other_ld_flags = "-Wl,-rpath,@top_builddir@/src/api/.libs -Wl,-rpath,@prefix@/lib";
+-my $other_ld_flags = '-Wl,-rpath,@top_builddir@/src/api/.libs -Wl,-rpath,@libdir@';
 +my $other_ld_flags = "";
  $other_ld_flags = " -brtl -G -bnoentry -bgcbypass:1000 -bexpfull"
- 	if $os =~ "aix";
- 
-diff --git a/contribs/perlapi/libslurmdb/perl/Makefile.PL.in b/contribs/perlapi/libslurmdb/perl/Makefile.PL.in
-index 2db028c113..d143c20190 100644
+	if $os =~ "aix";
+
 --- a/contribs/perlapi/libslurmdb/perl/Makefile.PL.in
 +++ b/contribs/perlapi/libslurmdb/perl/Makefile.PL.in
-@@ -76,7 +76,7 @@ DESTDIR_BUG
+@@ -68,7 +68,7 @@ DESTDIR_BUG
  # AIX has problems with not always having the correct
  # flags so we have to add some :)
  my $os = lc(`uname`);
--my $other_ld_flags = "-Wl,-rpath,@top_builddir@/src/db_api/.libs -Wl,-rpath,@prefix@/lib";
+-my $other_ld_flags = '-Wl,-rpath,@top_builddir@/src/db_api/.libs -Wl,-rpath,@libdir@';
 +my $other_ld_flags = "";
  $other_ld_flags = " -brtl -G -bnoentry -bgcbypass:1000 -bexpfull"
- 	if $os =~ "aix";
- 
+	if $os =~ "aix";
+
