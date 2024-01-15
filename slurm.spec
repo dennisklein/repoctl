@@ -37,6 +37,7 @@ Patch0:         slurm_release_version.patch
 Patch10:        slurm_check_version.patch
 Patch11:        slurm_html_doc_path.patch
 Patch12:        slurm_perlapi_rpaths.patch
+Patch13:        slurm_plugstack_conf_d.patch
 
 # Other patches
 Patch20:        slurm_to_python3.patch
@@ -316,6 +317,8 @@ install -m 0644 -p etc/slurmd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmdbd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmrestd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/sackd.service %{buildroot}%{_unitdir}
+install -m 0644 -p etc/plugstack.conf %{buildroot}%{_sysconfdir}/%{name}
+install -d -m 0755 %{buildroot}%{_sysconfdir}/%{name}/plugstack.conf.d
 
 # tmpfiles.d file for creating /run/slurm dir after reboot
 install -d -m 0755 %{buildroot}%{_tmpfilesdir}
@@ -411,12 +414,14 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %dir %{_libdir}/%{name}
 %dir %{_rundir}/%{name}
 %dir %{_sysconfdir}/%{name}
+%dir %{_sysconfdir}/%{name}/plugstack.conf.d
 %dir %{_var}/log/%{name}
 %dir %{_var}/spool/%{name}
 %dir %{_var}/spool/%{name}/ctld
 %dir %{_var}/spool/%{name}/d
 %config(noreplace) %{_sysconfdir}/%{name}/cgroup.conf
 %config(noreplace) %{_sysconfdir}/%{name}/slurm.conf
+%config(noreplace) %{_sysconfdir}/%{name}/plugstack.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 %{_bindir}/sacct
 %{_bindir}/sacctmgr

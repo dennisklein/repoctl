@@ -1,0 +1,24 @@
+--- a/etc/Makefile.am
++++ b/etc/Makefile.am
+@@ -1,6 +1,6 @@
+ ETC_FILES = init.d.slurmdbd init.d.slurm \
+ 	    sackd.service slurmctld.service slurmdbd.service slurmd.service \
+-	    slurmrestd.service
++	    slurmrestd.service plugstack.conf
+
+ CLEANFILES = $(ETC_FILES)
+
+@@ -21,6 +21,9 @@ init.d.slurmdbd: Makefile $(srcdir)/init.d.slurmdbd.in
+ init.d.slurm: Makefile $(srcdir)/init.d.slurm.in
+ 	$(edit) $(srcdir)/init.d.slurm.in > init.d.slurm
+
++plugstack.conf: Makefile $(srcdir)/plugstack.conf.in
++	$(edit) $(srcdir)/plugstack.conf.in > plugstack.conf
++
+ sackd.service: Makefile $(srcdir)/sackd.service.in
+ 	$(edit) $(srcdir)/sackd.service.in > sackd.service
+
+--- /dev/null
++++ b/etc/plugstack.conf.in
+@@ -0,0 +1 @@
++include @sysconfdir@/plugstack.conf.d/*
