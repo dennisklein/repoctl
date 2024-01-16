@@ -4,6 +4,7 @@
 Name:           slurm-singularity-exec
 Version:        2.0.0
 Release:        %autorelease
+Epoch:          1
 Summary:        Slurm SPANK plugin to start Singularity/Apptainer containers
 
 License:        GPLv3
