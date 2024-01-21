@@ -5,6 +5,7 @@ Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
 URL:            https://pmix.org/
 Source0:        https://github.com/openpmix/openpmix/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+Patch1:         https://github.com/openpmix/openpmix/pull/3245.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -57,7 +58,7 @@ based starters (e.g., mpirun).
 * pevent - inject an event into the system
 
 %prep
-%setup -q -n %{name}-%{version}
+%autosetup -p1
 
 # touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
@@ -117,6 +118,7 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %changelog
 * Sun Jan 21 2024 Fedora Release Engineering <releng@fedoraproject.org> - 4.2.7-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
+- Fix GCC-14 new errors (https://github.com/openpmix/openpmix/pull/3245)
 
 * Fri Oct 27 2023 Orion Poplawski <orion@nwra.com> - 4.2.7-1
 - Update to 4.2.7
