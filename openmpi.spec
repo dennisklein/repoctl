@@ -76,7 +76,6 @@ Source1:        openmpi.module.in
 Source2:        openmpi.pth.py2
 Source3:        openmpi.pth.py3
 Source4:        macros.openmpi
-Patch1:         3245.patch
 
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
@@ -452,7 +451,6 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 %changelog
 * Sun Jan 21 2024 Fedora Release Engineering <releng@fedoraproject.org> - 5.0.1-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
-- Fix GCC-14 new errors (https://github.com/openpmix/openpmix/pull/3245)
 
 * Thu Dec 21 2023 Orion Poplawski <orion@nwra.com> - 5.0.1-1
 - Update to 5.0.1
