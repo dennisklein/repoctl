@@ -58,7 +58,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        5.0.1
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
