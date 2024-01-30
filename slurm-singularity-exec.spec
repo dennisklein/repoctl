@@ -1,5 +1,6 @@
 %global tag v%{version}
 %global name_tag %{name}-v%{version}
+%global plugstack_conf_d /slurm/plugstack.conf.d
 
 Name:           slurm-singularity-exec
 Version:        2.0.0
@@ -35,11 +36,15 @@ the cluster administrator.
 
 %install
 %cmake_install
+install -d -m 0755 %{buildroot}%{_datadir}%{plugstack_conf_d}
+mv %{buildroot}%{_sysconfdir}%{plugstack_conf_d}/singularity-exec.conf \
+    %{buildroot}%{_datadir}%{plugstack_conf_d}
+rm -rf %{buildroot}%{_sysconfdir}%{plugstack_conf_d}
 
 %files
 %{_libexecdir}/slurm-singularity-exec.so
 %{_libexecdir}/slurm-singularity-wrapper.sh
-%config(noreplace) %{_sysconfdir}/slurm/plugstack.conf.d/singularity-exec.conf
+%config(noreplace) %{_datadir}%{plugstack_conf_d}/singularity-exec.conf
 %license LICENSE
 %doc README.md
 
