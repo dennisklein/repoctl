@@ -14,6 +14,8 @@
 %bcond_with ucx
 %endif
 
+%global slurmcfgdir %{_datadir}/%{name}
+
 Name:           slurm
 Version:        23.11.1
 Release:        %autorelease
@@ -238,9 +240,7 @@ Torque wrapper scripts used for helping migrate from Torque/PBS to Slurm.
 %prep
 %autosetup -p1 -n %{name_version}
 cp %SOURCE1 etc/slurm.conf
-cp %SOURCE1 etc/slurm.conf.example
 cp %SOURCE2 etc/slurmdbd.conf
-cp %SOURCE2 etc/slurmdbd.conf.example
 mkdir -p share/applications
 mkdir -p share/icons/hicolor/128x128/apps
 cp %SOURCE3 share/applications/%{name}-sview.desktop
@@ -302,23 +302,19 @@ s|^dir_tmpfiles_d=.*|dir_tmpfiles_d="%{_tmpfilesdir}"|g;' \
 %make_install
 %make_build DESTDIR=%{buildroot} install-contrib
 
-install -d -m 0755 %{buildroot}%{_sysconfdir}/%{name}
+install -d -m 0755 %{buildroot}%{slurmcfgdir}
 install -d -m 0755 %{buildroot}%{_unitdir}
 install -m 0644 -p etc/cgroup.conf.example \
-    %{buildroot}%{_sysconfdir}/%{name}
-install -m 0644 -p etc/cgroup.conf.example \
-    %{buildroot}%{_sysconfdir}/%{name}/cgroup.conf
-install -m 0644 -p etc/slurm.conf %{buildroot}%{_sysconfdir}/%{name}
-install -m 0644 -p etc/slurm.conf.example %{buildroot}%{_sysconfdir}/%{name}
-install -m 0600 -p etc/slurmdbd.conf %{buildroot}%{_sysconfdir}/%{name}
-install -m 0600 -p etc/slurmdbd.conf.example %{buildroot}%{_sysconfdir}/%{name}
+    %{buildroot}%{slurmcfgdir}/cgroup.conf
+install -m 0644 -p etc/slurm.conf %{buildroot}%{slurmcfgdir}
+install -m 0600 -p etc/slurmdbd.conf %{buildroot}%{slurmcfgdir}
 install -m 0644 -p etc/slurmctld.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmdbd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/slurmrestd.service %{buildroot}%{_unitdir}
 install -m 0644 -p etc/sackd.service %{buildroot}%{_unitdir}
-install -m 0644 -p etc/plugstack.conf %{buildroot}%{_sysconfdir}/%{name}
-install -d -m 0755 %{buildroot}%{_sysconfdir}/%{name}/plugstack.conf.d
+install -m 0644 -p etc/plugstack.conf %{buildroot}%{slurmcfgdir}
+install -d -m 0755 %{buildroot}%{slurmcfgdir}/plugstack.conf.d
 
 # tmpfiles.d file for creating /run/slurm dir after reboot
 install -d -m 0755 %{buildroot}%{_tmpfilesdir}
@@ -413,15 +409,15 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %license COPYING LICENSE.OpenSSL
 %dir %{_libdir}/%{name}
 %dir %{_rundir}/%{name}
-%dir %{_sysconfdir}/%{name}
-%dir %{_sysconfdir}/%{name}/plugstack.conf.d
+%dir %{slurmcfgdir}
+%dir %{slurmcfgdir}/plugstack.conf.d
 %dir %{_var}/log/%{name}
 %dir %{_var}/spool/%{name}
 %dir %{_var}/spool/%{name}/ctld
 %dir %{_var}/spool/%{name}/d
-%config(noreplace) %{_sysconfdir}/%{name}/cgroup.conf
-%config(noreplace) %{_sysconfdir}/%{name}/slurm.conf
-%config(noreplace) %{_sysconfdir}/%{name}/plugstack.conf
+%config(noreplace) %{slurmcfgdir}/cgroup.conf
+%config(noreplace) %{slurmcfgdir}/slurm.conf
+%config(noreplace) %{slurmcfgdir}/plugstack.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 %{_bindir}/sacct
 %{_bindir}/sacctmgr
@@ -512,8 +508,6 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_mandir}/man5/topology.conf.5*
 %{_mandir}/man8/slurmrestd.8*
 %{_mandir}/man8/spank.8*
-%{_sysconfdir}/%{name}/cgroup*.conf.example
-%{_sysconfdir}/%{name}/slurm.conf.example
 %{_tmpfilesdir}/slurm.conf
 
 # -----------
@@ -614,12 +608,11 @@ fi
 # --------------
 
 %files slurmdbd
-%config(noreplace) %{_sysconfdir}/%{name}/slurmdbd.conf
+%config(noreplace) %{slurmcfgdir}/slurmdbd.conf
 %{_libdir}/%{name}/accounting_storage_mysql.so
 %{_mandir}/man5/slurmdbd.conf.5*
 %{_mandir}/man8/slurmdbd.8*
 %{_sbindir}/slurmdbd
-%{_sysconfdir}/%{name}/slurmdbd.conf.example
 %{_unitdir}/slurmdbd.service
 %ghost %{_rundir}/%{name}/slurmdbd.pid
 
