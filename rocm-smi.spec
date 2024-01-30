@@ -5,7 +5,7 @@
 
 Name:       rocm-smi
 Version:    %{rocm_version}
-Release:    2%{?dist}
+Release:    3%{?dist}
 Summary:    ROCm System Management Interface Library
 
 License:    NCSA and MIT and BSD
@@ -70,6 +70,9 @@ install -D -m 644 README.md %{buildroot}%{_docdir}/rocm_smi/README.md
 %{_libdir}/cmake/rocm_smi/
 
 %changelog
+* Wed Jan 17 2024 Dennis Klein <d.klein@gsi.de> - 5.7.2-3
+- Rebuilt for rocky+epel-9
+
 * Thu Jan 11 2024 Dennis Klein <d.klein@gsi.de> - 5.7.1-2
 - Depend on kernel-headers
 - Rebuilt for rocky+epel-8
