@@ -734,7 +734,7 @@ fi
 %systemd_preun sackd.service
 
 %postun sackd
-%systemd_postun_with_restart sackd.service
+%systemd_postun sackd.service
 
 %post slurmctld
 %systemd_post slurmctld.service
@@ -743,7 +743,7 @@ fi
 %systemd_preun slurmctld.service
 
 %postun slurmctld
-%systemd_postun_with_restart slurmctld.service
+%systemd_postun slurmctld.service
 
 %post slurmd
 %systemd_post slurmd.service
@@ -752,7 +752,7 @@ fi
 %systemd_preun slurmd.service
 
 %postun slurmd
-%systemd_postun_with_restart slurmd.service
+%systemd_postun slurmd.service
 
 %post slurmdbd
 %systemd_post slurmdbd.service
@@ -761,7 +761,7 @@ fi
 %systemd_preun slurmdbd.service
 
 %postun slurmdbd
-%systemd_postun_with_restart slurmdbd.service
+%systemd_postun slurmdbd.service
 
 %changelog
 %autochangelog
