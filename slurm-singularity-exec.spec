@@ -1,15 +1,13 @@
-%global tag v%{version}
-%global name_tag %{name}-v%{version}
 %global plugstack_conf_d /slurm/plugstack.conf.d
 
 Name:           slurm-singularity-exec
-Version:        2.0.0
+Version:        3.0.0
 Release:        %autorelease
 Epoch:          1
 Summary:        Slurm SPANK plugin to start Singularity/Apptainer containers
 
 License:        GPLv3
-Source0:        https://git.gsi.de/SDE/%{name}/-/archive/%{tag}/%{name_tag}.tar.bz2
+Source0:        https://github.com/GSI-HPC/%{name}/archive/refs/tags/v%{version}.tar.gz
 
 BuildRequires:  cmake
 BuildRequires:  gcc
@@ -28,7 +26,7 @@ then propagated to a shell script slurm-singularity-wrapper.sh customizable by
 the cluster administrator.
 
 %prep
-%autosetup -n %{name_tag}
+%autosetup
 
 %build
 %cmake -D INSTALL_PLUGSTACK_CONF=ON
