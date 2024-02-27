@@ -1,6 +1,6 @@
 Name:           pmix
 Version:        4.2.7
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
 URL:            https://pmix.org/
@@ -116,6 +116,9 @@ find %{buildroot} -name '*.la' | xargs rm -f
 %{_bindir}/*
 
 %changelog
+* Wed Jan 17 2024 Dennis Klein <d.klein@gsi.de> - 4.2.7-3
+- Rebuilt for rocky+epel-9
+
 * Wed Jan 10 2024 Dennis Klein <d.klein@gsi.de> - 4.2.7-2
 - Rebuilt on rl8+epel
 
