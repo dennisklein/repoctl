@@ -1,7 +1,7 @@
 %bcond_without check
 
 Name:           munge
-Version:        0.5.15
+Version:        0.5.16
 Release:        %autorelease
 Summary:        Enables uid & gid authentication across a host cluster
 
