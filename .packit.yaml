@@ -1,0 +1,14 @@
+upstream_project_url: https://github.com/dun/munge/
+upstream_tag_template: munge-{version}
+copy_upstream_release_description: false
+ 
+jobs:
+  - job: pull_from_upstream
+    trigger: release
+    dist_git_branches:
+      - fedora-rawhide
+  - job: koji_build
+    trigger: commit
+    dist_git_branches:
+      - fedora-all
+
