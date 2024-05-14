@@ -1,7 +1,7 @@
 %global plugstack_conf_d /slurm/plugstack.conf.d
 
 Name:           slurm-singularity-exec
-Version:        3.0.0
+Version:        3.1.0
 Release:        %autorelease
 Epoch:          1
 Summary:        Slurm SPANK plugin to start Singularity/Apptainer containers
