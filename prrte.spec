@@ -1,6 +1,6 @@
 Name:           prrte
 Version:        3.0.2
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 # src/mca/prtereachable/netlink/reachable_netlink_utils_common.c is BSD-2-Clause
 # -devel related licenses:
@@ -79,27 +79,31 @@ echo 'typedef int x;' > src/util/qsort.c
 %make_build
 
 
-%check
-%make_build check
-
-
 %install
 %make_install
+# Move to openmpi dir to avoid conflict with putty
+mkdir -p %{buildroot}%{_libdir}/openmpi/{bin,share/man}
+mv %{buildroot}%{_bindir}/* %{buildroot}%{_libdir}/openmpi/bin
+mv %{buildroot}%{_mandir}/* %{buildroot}%{_libdir}/openmpi/share/man/
 
 # remove libtool archives
 find %{buildroot} -name '*.la' -delete
 
 
+%check
+%make_build check
+
+
 %files
 %doc README.md
-%{_bindir}/prte
-%{_bindir}/prte_info
-%{_bindir}/prted
-%{_bindir}/prterun
-%{_bindir}/prun
-%{_bindir}/pterm
-%{_mandir}/man1/*.1*
-%{_mandir}/man5/*.5*
+%{_libdir}/openmpi/bin/prte
+%{_libdir}/openmpi/bin/prte_info
+%{_libdir}/openmpi/bin/prted
+%{_libdir}/openmpi/bin/prterun
+%{_libdir}/openmpi/bin/prun
+%{_libdir}/openmpi/bin/pterm
+%{_libdir}/openmpi/share/man/man1/*.1*
+%{_libdir}/openmpi/share/man/man5/*.5*
 
 %files libs
 %license LICENSE
@@ -110,7 +114,7 @@ find %{buildroot} -name '*.la' -delete
 %{_libdir}/prte/
 
 %files devel
-%{_bindir}/pcc
+%{_libdir}/openmpi/bin/pcc
 %{_docdir}/prrte/
 %{_includedir}/prte*.h
 %{_includedir}/prte/
@@ -118,6 +122,10 @@ find %{buildroot} -name '*.la' -delete
 
 
 %changelog
+* Wed May 15 2024 Orion Poplawski <orion@nwra.com> - 3.0.2-5
+- Move binaries and man pages into openmpi path to avoid conclicting with putty
+  (bz#2247407)
+
 * Fri Jan 26 2024 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.2-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_40_Mass_Rebuild
 
