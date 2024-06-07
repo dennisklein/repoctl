@@ -1,4 +1,4 @@
-%global rocm_release 6.0
+%global rocm_release 6.1
 %global rocm_patch 2
 %global rocm_version %{rocm_release}.%{rocm_patch}
 %global upstreamname rocm_smi_lib
@@ -45,7 +45,7 @@ ROCm System Management Interface Library development files
 sed -i '/CMAKE_C.*_FLAGS/d' CMakeLists.txt
 
 %build
-%cmake -DFILE_REORG_BACKWARD_COMPATIBILITY=OFF
+%cmake -DFILE_REORG_BACKWARD_COMPATIBILITY=OFF -DCMAKE_INSTALL_LIBDIR=%{_lib}
 %cmake_build
 
 %install
