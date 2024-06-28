@@ -11,7 +11,7 @@
 %bcond_with    vfs
 
 Name: ucx
-Version: 1.16.0
+Version: 1.17.0
 Release: 1%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
@@ -31,6 +31,7 @@ Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{v
 # BUILD/CONFIG: Keep CFLAGS and CXXFLAGS separate
 # Fixes build for https://fedoraproject.org/wiki/Changes/PortingToModernC
 Patch0: https://github.com/openucx/%{name}/pull/9558.patch
+
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
@@ -99,6 +100,9 @@ Provides header files and examples for developing with UCX.
 %setup -q
 %patch -P0 -p1
 autoreconf -fiv
+# https://github.com/openucx/ucx/commit/b0a275a5492125a13020cd095fe9934e0b5e7c6a
+# can be removed on release after 1.17.0
+sed -i '/#include <limits.h>/a #include <math.h>' src/ucs/time/time.h
 
 %build
 
@@ -135,9 +139,12 @@ rm -f %{buildroot}%{_libdir}/ucx/lib*.a
 %{_libdir}/lib*.so.*
 %{_bindir}/ucx_info
 %{_bindir}/ucx_perftest
+%{_bindir}/ucx_perftest_daemon
 %{_bindir}/ucx_read_profile
 %{_bindir}/io_demo
 %{_datadir}/ucx
+%dir %{_sysconfdir}/ucx
+%{_sysconfdir}/ucx/ucx.conf
 %exclude %{_datadir}/ucx/examples
 %doc README AUTHORS NEWS
 %{!?_licensedir:%global license %%doc}
@@ -317,6 +324,9 @@ status, and more.
 %endif
 
 %changelog
+* Thu Jun 27 2024 Benson Muite <benson_muite@emailplus.org> - 1.17.0-1
+- Upgrade to new release bz2280815
+
 * Sat Apr 27 2024 Benson Muite <benson_muite@emailplus.org> - 1.16.0-1
 - Upgrade to new release bz2256073
 
