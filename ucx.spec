@@ -12,7 +12,7 @@
 
 Name: ucx
 Version: 1.17.0
-Release: 2%{?dist}
+Release: 3%{?dist}
 Summary: UCX is a communication library implementing high-performance messaging
 
 License: BSD-3-Clause AND MIT AND CC-PDDC AND (BSD-3-Clause OR Apache-2.0)
@@ -37,7 +37,7 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
 
 # UCX currently supports only the following architectures
-ExclusiveArch: aarch64 ppc64le x86_64
+ExclusiveArch: aarch64 ppc64le x86_64 riscv64
 
 %if %{defined extra_deps}
 Requires: %{?extra_deps}
@@ -324,6 +324,9 @@ status, and more.
 %endif
 
 %changelog
+* Wed Oct 30 2024 David Abdurachmanov <davidlt@rivosinc.com> - 1.17.0-3
+- Enable riscv64
+
 * Sat Jul 20 2024 Fedora Release Engineering <releng@fedoraproject.org> - 1.17.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_41_Mass_Rebuild
 
