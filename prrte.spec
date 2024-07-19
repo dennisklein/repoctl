@@ -1,6 +1,6 @@
 Name:           prrte
 Version:        3.0.2
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 # src/mca/prtereachable/netlink/reachable_netlink_utils_common.c is BSD-2-Clause
 # -devel related licenses:
@@ -122,6 +122,9 @@ find %{buildroot} -name '*.la' -delete
 
 
 %changelog
+* Fri Jul 19 2024 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.2-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_41_Mass_Rebuild
+
 * Wed May 15 2024 Orion Poplawski <orion@nwra.com> - 3.0.2-5
 - Move binaries and man pages into openmpi path to avoid conclicting with putty
   (bz#2247407)
