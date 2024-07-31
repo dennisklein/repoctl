@@ -57,8 +57,8 @@
 %bcond_with autogen
 
 Name:           openmpi%{?_cc_name_suffix}
-Version:        5.0.3
-Release:        3%{?dist}
+Version:        5.0.5
+Release:        1%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -444,6 +444,9 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 
 
 %changelog
+* Wed Jul 31 2024 Orion Poplawski <orion@nwra.com> - 5.0.5-1
+- Update to 5.0.5
+
 * Thu Jul 18 2024 Fedora Release Engineering <releng@fedoraproject.org> - 5.0.3-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_41_Mass_Rebuild
 
