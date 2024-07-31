@@ -58,7 +58,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        5.0.5
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Open Message Passing Interface
 License:        BSD and MIT and Romio
 URL:            http://www.open-mpi.org/
@@ -444,6 +444,9 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 
 
 %changelog
+* Wed Jul 31 2024 Sandro Mani <manisandro@gmail.com> - 5.0.5-2
+- Rebuild with rpm-mpi-hooks-8-10 to fix provides (#2302033)
+
 * Wed Jul 31 2024 Orion Poplawski <orion@nwra.com> - 5.0.5-1
 - Update to 5.0.5
 
