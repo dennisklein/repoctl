@@ -1,5 +1,5 @@
-%global rocm_release 6.1
-%global rocm_patch 2
+%global rocm_release 6.2
+%global rocm_patch 0
 %global rocm_version %{rocm_release}.%{rocm_patch}
 %global upstreamname rocm_smi_lib
 
@@ -11,8 +11,6 @@ Summary:    ROCm System Management Interface Library
 License:    NCSA and MIT and BSD
 URL:        https://github.com/RadeonOpenCompute/%{upstreamname}
 Source0:    %{url}/archive/refs/tags/rocm-%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
-# https://github.com/ROCm/rocm_smi_lib/pull/156
-Patch0:     0001-remove-const-for-ScopeGuard-operator.patch
 
 # SMI requires the AMDGPU kernel module, which only builds on:
 ExclusiveArch:  x86_64 aarch64 ppc64le riscv64
