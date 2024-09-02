@@ -58,9 +58,10 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        5.0.5
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Open Message Passing Interface
-License:        BSD and MIT and Romio
+# Automatically converted from old format: BSD and MIT and Romio - review is highly recommended.
+License:        LicenseRef-Callaway-BSD AND LicenseRef-Callaway-MIT AND LicenseRef-Romio
 URL:            http://www.open-mpi.org/
 ExcludeArch:    %{ix86}
 
@@ -444,6 +445,9 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 
 
 %changelog
+* Mon Sep 02 2024 Miroslav Suchý <msuchy@redhat.com> - 5.0.5-3
+- convert license to SPDX
+
 * Wed Jul 31 2024 Sandro Mani <manisandro@gmail.com> - 5.0.5-2
 - Rebuild with rpm-mpi-hooks-8-10 to fix provides (#2302033)
 
