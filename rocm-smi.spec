@@ -5,7 +5,7 @@
 
 Name:       rocm-smi
 Version:    %{rocm_version}
-%if 0%{?rhel} < 10
+%if 0%{?rhel} && 0%{?rhel} < 10
 Release:    1%{?dist}
 %else
 Release:    %autorelease
