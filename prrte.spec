@@ -1,6 +1,6 @@
 Name:           prrte
-Version:        3.0.2
-Release:        6%{?dist}
+Version:        3.0.6
+Release:        1%{?dist}
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 # src/mca/prtereachable/netlink/reachable_netlink_utils_common.c is BSD-2-Clause
 # -devel related licenses:
@@ -10,6 +10,8 @@ Summary:        PMIx Reference RunTime Environment (PRRTE)
 License:        BSD-3-Clause-Open-MPI AND BSD-2-Clause
 URL:            https://github.com/openpmix/%{name}
 Source0:        https://github.com/openpmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+# Upstream fix for --stdfor for non-zeron ranks - fixes rhbz#2307533
+Patch0:         https://patch-diff.githubusercontent.com/raw/openpmix/prrte/pull/2038.patch
 
 BuildRequires:  flex
 BuildRequires:  gcc
@@ -56,7 +58,7 @@ developing applications that use %{name}.
 
 
 %prep
-%setup -q -n %{name}-%{version}
+%autosetup -p1 -n %{name}-%{version}
 
 # touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
@@ -122,6 +124,10 @@ find %{buildroot} -name '*.la' -delete
 
 
 %changelog
+* Sun Oct 20 2024 Orion Poplawski <orion@nwra.com> - 3.0.6-1
+- Update to 3.0.6
+- Add upstream fix for rhbz#2307533
+
 * Fri Jul 19 2024 Fedora Release Engineering <releng@fedoraproject.org> - 3.0.2-6
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_41_Mass_Rebuild
 
