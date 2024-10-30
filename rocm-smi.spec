@@ -16,8 +16,12 @@ License:    NCSA and MIT and BSD
 URL:        https://github.com/RadeonOpenCompute/%{upstreamname}
 Source0:    %{url}/archive/refs/tags/rocm-%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
 
+%if 0%{?rhel}
+ExclusiveArch:  x86_64
+%else
 # SMI requires the AMDGPU kernel module, which only builds on:
 ExclusiveArch:  x86_64 aarch64 ppc64le riscv64
+%endif
 
 BuildRequires:  cmake
 # Fedora 38 has doxygen 1.9.6
