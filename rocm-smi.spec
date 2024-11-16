@@ -3,6 +3,8 @@
 %global rocm_version %{rocm_release}.%{rocm_patch}
 %global upstreamname rocm_smi_lib
 
+%bcond_with doc
+
 Name:       rocm-smi
 Version:    %{rocm_version}
 %if 0%{?is_opensuse} || 0%{?rhel} && 0%{?rhel} < 10
@@ -24,10 +26,12 @@ ExclusiveArch:  x86_64 aarch64 ppc64le riscv64
 %endif
 
 BuildRequires:  cmake
+%if %{with doc}
 # Fedora 38 has doxygen 1.9.6
 %if 0%{?fedora} > 38
 BuildRequires:  doxygen >= 1.9.7
 BuildRequires:  doxygen-latex >= 1.9.7
+%endif
 %endif
 BuildRequires:  gcc-c++
 
