@@ -57,8 +57,8 @@
 %bcond_with autogen
 
 Name:           openmpi%{?_cc_name_suffix}
-Version:        5.0.5
-Release:        4%{?dist}
+Version:        5.0.6
+Release:        1%{?dist}
 Summary:        Open Message Passing Interface
 # Automatically converted from old format: BSD and MIT and Romio - review is highly recommended.
 License:        LicenseRef-Callaway-BSD AND LicenseRef-Callaway-MIT AND LicenseRef-Romio
@@ -71,8 +71,6 @@ Source1:        openmpi.module.in
 Source2:        openmpi.pth.py2
 Source3:        openmpi.pth.py3
 Source4:        macros.openmpi
-# Upstream fix for hdf5 tests
-Patch:          https://github.com/open-mpi/ompi/pull/12847.patch
 
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
@@ -447,6 +445,9 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 
 
 %changelog
+* Sat Nov 16 2024 Orion Poplawski <orion@nwra.com> - 5.0.6-1
+- Update to 5.0.6
+
 * Mon Oct 07 2024 Orion Poplawski <orion@nwra.com> - 5.0.5-4
 - Add upstream patch to fix hdf5 tests
 
