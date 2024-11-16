@@ -17,6 +17,7 @@ Summary:    ROCm System Management Interface Library
 License:    NCSA and MIT and BSD
 URL:        https://github.com/RadeonOpenCompute/%{upstreamname}
 Source0:    %{url}/archive/refs/tags/rocm-%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
+Patch0:     0001-Fix-empty-return.patch
 
 %if 0%{?rhel} || 0%{?is_opensuse}
 ExclusiveArch:  x86_64
