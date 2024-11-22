@@ -7,7 +7,7 @@
 
 Name:       rocm-smi
 Version:    %{rocm_version}
-%if 0%{?is_opensuse} || 0%{?rhel} && 0%{?rhel} < 10
+%if 0%{?suse_version} || 0%{?rhel} && 0%{?rhel} < 10
 Release:    1%{?dist}
 %else
 Release:    %autorelease
@@ -19,7 +19,7 @@ URL:        https://github.com/RadeonOpenCompute/%{upstreamname}
 Source0:    %{url}/archive/refs/tags/rocm-%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
 Patch0:     0001-Fix-empty-return.patch
 
-%if 0%{?rhel} || 0%{?is_opensuse}
+%if 0%{?rhel} || 0%{?suse_version}
 ExclusiveArch:  x86_64
 %else
 # SMI requires the AMDGPU kernel module, which only builds on:
@@ -86,7 +86,7 @@ fi
 %{_libdir}/cmake/rocm_smi/
 
 %changelog
-%if 0%{?is_opensuse}
+%if 0%{?suse_version}
 * Sun Nov 3 2024 Tom Rix <Tom.Rix@amd.com> - 6.2.1-1
 - Stub for tumbleweed
 
