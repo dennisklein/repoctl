@@ -1,0 +1,38 @@
+Subject: [PATCH] Switch perl site install path to vendor
+---
+Index: contribs/perlapi/libslurm/Makefile.am
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/contribs/perlapi/libslurm/Makefile.am b/contribs/perlapi/libslurm/Makefile.am
+--- a/contribs/perlapi/libslurm/Makefile.am	(revision ca885c43cd9c6deae7800619282573c421933bc1)
++++ b/contribs/perlapi/libslurm/Makefile.am	(revision 8dd9898e73e3c890092e133068d143e842ab40ba)
+@@ -62,8 +62,7 @@
+ 	fi
+ 	@cd $(perl_dir) && $(perlpath) Makefile.PL $(PERL_MM_PARAMS) \
+ 		prefix=${prefix} libdir=${libdir} INSTALL_BASE= PERL_MM_OPT= \
+-		INSTALLDIRS=site INSTALLSITELIB=${_perlsitedir} \
+-		INSTALLSITEARCH=${_perlsitedir} \
++		INSTALLDIRS=vendor \
+ 		INSTALLSITEMAN1DIR=$(mandir)/man1 \
+ 		INSTALLSITEMAN3DIR=$(mandir)/man3
+ 
+Index: contribs/perlapi/libslurmdb/Makefile.am
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/contribs/perlapi/libslurmdb/Makefile.am b/contribs/perlapi/libslurmdb/Makefile.am
+--- a/contribs/perlapi/libslurmdb/Makefile.am	(revision ca885c43cd9c6deae7800619282573c421933bc1)
++++ b/contribs/perlapi/libslurmdb/Makefile.am	(revision 8dd9898e73e3c890092e133068d143e842ab40ba)
+@@ -34,8 +34,7 @@
+ 	fi
+ 	@cd $(perl_dir) && $(perlpath) Makefile.PL $(PERL_MM_PARAMS) \
+ 		prefix=${prefix} INSTALL_BASE= PERL_MM_OPT= \
+-		INSTALLDIRS=site INSTALLSITELIB=${_perlsitedir} \
+-		INSTALLSITEARCH=${_perlsitedir} \
++		INSTALLDIRS=vendor \
+ 		INSTALLSITEMAN1DIR=$(mandir)/man1 \
+ 		INSTALLSITEMAN3DIR=$(mandir)/man3
+ 

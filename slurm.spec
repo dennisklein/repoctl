@@ -17,7 +17,7 @@
 %global slurmcfgdir %{_datadir}/%{name}
 
 Name:           slurm
-Version:        23.11.3
+Version:        24.05.2
 Release:        %autorelease
 Summary:        Simple Linux Utility for Resource Management
 # ./src/common/log.c: BSD 2-Clause License
@@ -36,13 +36,10 @@ Source5:        slurm-setuser.in
 Patch0:         slurm_release_version.patch
 
 # Build-related patches
-Patch10:        slurm_check_version.patch
 Patch11:        slurm_html_doc_path.patch
 Patch12:        slurm_perlapi_rpaths.patch
-Patch13:        slurm_plugstack_conf_d.patch
-
-# Other patches
-Patch20:        slurm_to_python3.patch
+Patch13:        slurm-24.05.2-perlapi_vendor_installpath.patch
+Patch14:        slurm_plugstack_conf_d.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -56,11 +53,7 @@ BuildRequires:  perl-ExtUtils-MakeMaker
 BuildRequires:  perl-interpreter
 BuildRequires:  perl-generators
 BuildRequires:  perl-podlators
-%if (0%{?rhel} != 7)
 BuildRequires:  pkgconf
-%else
-BuildRequires:  pkgconfig
-%endif
 BuildRequires:  pkgconfig(check)
 BuildRequires:  pkgconfig(lua)
 BuildRequires:  python3
@@ -85,17 +78,13 @@ BuildRequires:  pmix-devel
 BuildRequires:  rdma-core-devel
 BuildRequires:  readline-devel
 BuildRequires:  rocm-smi-devel
-BuildRequires:  rrdtool-devel
 BuildRequires:  zlib-devel
 BuildRequires:  ucx-devel
 
-# create slurm-slurmrestd package for Fedora and EPEL7/8/9
-%if 0%{?fedora} || (0%{?rhel} >= 7)
 BuildRequires:  http-parser-devel
 BuildRequires:  json-c-devel
 BuildRequires:  libjwt-devel
 BuildRequires:  libyaml-devel
-%endif
 
 # exclude upstream-deprecated 32-bit architectures
 ExcludeArch:    armv7hl
@@ -142,14 +131,6 @@ Summary: Slurm shared libraries
 %description libs
 Slurm shared libraries.
 
-%package rrdtool
-Summary: Slurm rrdtool external sensor plugin
-Requires: %{name}%{?_isa} = %{version}-%{release}
-%description rrdtool
-Slurm external sensor plugin for rrdtool. This package is separated from
-the base plugins package due to gui dependencies which are unneeded if not
-using this plugin.
-
 %package slurmctld
 Summary: Slurm controller daemon
 Requires: %{name}%{?_isa} = %{version}-%{release}
@@ -171,21 +152,19 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 Slurm database daemon. Used to accept and process database RPCs and upload
 database changes to slurmctld daemons on each cluster.
 
-%if 0%{?fedora} || (0%{?rhel} >= 7)
 %package slurmrestd
 Summary: Slurm REST API deamon
 Requires: %{name}%{?_isa} = %{version}-%{release}
 %description slurmrestd
 Slurm REST API daemon.  The slurmrestd daemon is designed to allow clients
 to communicate with Slurm via a REST API.
-%endif
 
 %package sackd
-Summary: Slurm authentication daemon
+Summary: Slurm Auth and Cred Kiosk daemon
 Requires: %{name}%{?_isa} = %{version}-%{release}
 %description sackd
-Slurm authentication daemon. Used on login nodes that are not running slurmd
-daemons to allow authentication to the cluster.
+Slurm Auth and Cred Kiosk daemon. It can be used on login nodes that are not
+running slurmd daemons to allow authentication to the cluster.
 
 # -----------------
 # Contribs Packages
@@ -237,6 +216,7 @@ Requires: %{name}-perlapi%{?_isa} = %{version}-%{release}
 %description torque
 Torque wrapper scripts used for helping migrate from Torque/PBS to Slurm.
 
+
 %prep
 %autosetup -p1 -n %{name_version}
 cp %SOURCE1 etc/slurm.conf
@@ -248,6 +228,7 @@ cp %SOURCE4 share/icons/hicolor/128x128/apps/%{name}.png
 mkdir -p extras
 cp %SOURCE5 extras/%{name}-setuser.in
 
+
 %build
 aclocal -I auxdir
 autoconf
@@ -257,7 +238,6 @@ export CFLAGS="%{build_cflags} -fcommon"
 # use -z lazy to allow dlopen with unresolved symbols
 export LDFLAGS="%{build_ldflags} -Wl,-z,lazy"
 %configure \
-  --prefix=%{_prefix} \
   --sysconfdir=%{_sysconfdir}/%{name} \
   --with-pam_dir=%{_libdir}/security \
   --with-ucx=%{_prefix} \
@@ -268,9 +248,9 @@ export LDFLAGS="%{build_ldflags} -Wl,-z,lazy"
   --disable-debug \
   --disable-partial_attach \
   --with-oneapi=no \
+  --with-pmix=%{_prefix} \
   --with-shared-libslurm \
   --without-rpath \
-  --with-pmix=%{_prefix} \
   --with-rsmi=%{_prefix}
 # patch libtool to remove rpaths
 sed -i 's|^hardcode_into_libs=.*|hardcode_into_libs=no|g' libtool
@@ -286,17 +266,15 @@ s|^dir_spool=.*|dir_spool="%{_var}/spool/%{name}"|g;
 s|^dir_tmpfiles_d=.*|dir_tmpfiles_d="%{_tmpfilesdir}"|g;' \
     extras/%{name}-setuser.in > extras/%{name}-setuser
 
+# patch the test files
+sed -i 's|"PluginDir=" SLURM_PREFIX "/lib/slurm/\\n"|"PluginDir=%{buildroot}%{_libdir}/%{name}/\\n"|g' testsuite/slurm_unit/common/serializer-test.c
+
 # build base packages
 %make_build
 
 # build contribs packages
-# INSTALLDIRS=vendor so perlapi goes to vendor_perl directory
-%make_build PERL_MM_PARAMS="INSTALLDIRS=vendor" contrib
+%make_build contrib
 
-%check
-# The test binaries need LD_LIBRARY_PATH to find the compiled slurm library
-# in the build tree.
-%make_build LD_LIBRARY_PATH="%{buildroot}%{_libdir};%{_libdir}" check
 
 %install
 %make_install
@@ -396,9 +374,18 @@ rm -f %{buildroot}%{_sbindir}/slurmsmwd*
 rm -f %{buildroot}%{perl_vendorarch}/auto/Slurm*/.packlist
 rm -f %{buildroot}%{perl_vendorarch}/auto/Slurm*/Slurm*.bs
 rm -f %{buildroot}%{perl_archlib}/perllocal.pod
+# remove other example stuff
+rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 
 %ldconfig_scriptlets devel
 %ldconfig_scriptlets libs
+
+
+%check
+# The test binaries need LD_LIBRARY_PATH to find the compiled slurm library
+# in the build tree.
+%make_build LD_LIBRARY_PATH="%{buildroot}%{_libdir}" check
+
 
 # -----
 # Slurm
@@ -442,9 +429,7 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_bindir}/%{name}-setuser
 %{_libdir}/%{name}/accounting_storage_*.so
 %{_libdir}/%{name}/acct_gather_*.so
-%if 0%{?fedora} || (0%{?rhel} >= 7)
 %{_libdir}/%{name}/auth_jwt.so
-%endif
 %{_libdir}/%{name}/auth_munge.so
 %{_libdir}/%{name}/auth_slurm.so
 %{_libdir}/%{name}/burst_buffer_lua.so
@@ -453,9 +438,9 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_libdir}/%{name}/cli_filter_*.so
 %{_libdir}/%{name}/cred_*.so
 %{_libdir}/%{name}/data_parser_*.so
-%{_libdir}/%{name}/gres_*.so
 %{_libdir}/%{name}/gpu_*.so
-%{_libdir}/%{name}/hash_k12.so
+%{_libdir}/%{name}/gres_*.so
+%{_libdir}/%{name}/hash_*.so
 %{_libdir}/%{name}/job_container_*.so
 %{_libdir}/%{name}/job_submit_*.so
 %{_libdir}/%{name}/jobacct_gather_*.so
@@ -470,8 +455,9 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_libdir}/%{name}/sched_*.so
 %{_libdir}/%{name}/select_*.so
 %{_libdir}/%{name}/serializer_*.so
-%{_libdir}/%{name}/site_factor_example.so
+%{_libdir}/%{name}/switch_*.so
 %{_libdir}/%{name}/task_*.so
+%{_libdir}/%{name}/tls_none.so
 %{_libdir}/%{name}/topology_*.so
 %{_mandir}/man1/sacct.1*
 %{_mandir}/man1/sacctmgr.1*
@@ -480,9 +466,9 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_mandir}/man1/sbatch.1*
 %{_mandir}/man1/sbcast.1*
 %{_mandir}/man1/scancel.1*
-%{_mandir}/man1/scrun.1*
 %{_mandir}/man1/scontrol.1*
 %{_mandir}/man1/scrontab.1*
+%{_mandir}/man1/scrun.1*
 %{_mandir}/man1/sdiag.1*
 %{_mandir}/man1/sh5util.1*
 %{_mandir}/man1/sinfo.1*
@@ -497,7 +483,6 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_mandir}/man5/acct_gather.conf.5*
 %{_mandir}/man5/burst_buffer.conf.5*
 %{_mandir}/man5/cgroup.conf.5*
-%{_mandir}/man5/ext_sensors.conf.5*
 %{_mandir}/man5/gres.conf.5*
 %{_mandir}/man5/helpers.conf.5*
 %{_mandir}/man5/job_container.conf.5*
@@ -524,7 +509,6 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_includedir}/%{name}/slurm_errno.h
 %{_includedir}/%{name}/slurm_version.h
 %{_includedir}/%{name}/slurmdb.h
-%{_includedir}/%{name}/smd_ns.h
 %{_includedir}/%{name}/spank.h
 %{_libdir}/libpmi.so
 %{_libdir}/libpmi2.so
@@ -538,6 +522,12 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 
 %files doc
 %{_docdir}
+%exclude %{_docdir}/%{name}/CONTRIBUTING.md
+%exclude %{_docdir}/%{name}/DISCLAIMER
+%exclude %{_docdir}/%{name}/META
+%exclude %{_docdir}/%{name}/NEWS
+%exclude %{_docdir}/%{name}/README.rst
+%exclude %{_docdir}/%{name}/RELEASE_NOTES
 
 # ---------
 # Slurm-gui
@@ -549,20 +539,6 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 %{_datadir}/icons/hicolor/*/apps/%{name}.png
 %{_mandir}/man1/sview.1*
 
-%if (0%{?rhel} == 7)
-%post gui
-/bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
-
-%postun gui
-if [ $1 -eq 0 ] ; then
-    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
-    /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
-fi
-
-%posttrans gui
-/usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
-%endif
-
 # ----------
 # Slurm-libs
 # ----------
@@ -573,13 +549,6 @@ fi
 %{_libdir}/libslurm.so.*
 %{_libdir}/libslurmfull-*.so
 %{_libdir}/libslurm_pmi-*.so
-
-# -------------
-# Slurm-rrdtool
-# -------------
-
-%files rrdtool
-%{_libdir}/%{name}/ext_sensors_rrd.so
 
 # ---------------
 # Slurm-slurmctld
@@ -620,13 +589,11 @@ fi
 # Slurm-slurmrestd
 # ----------------
 
-%if 0%{?fedora} || (0%{?rhel} >= 7)
 %files slurmrestd
 %{_libdir}/%{name}/openapi*.so
 %{_libdir}/%{name}/rest*.so
 %{_sbindir}/slurmrestd
 %{_unitdir}/slurmrestd.service
-%endif
 
 # ----------------
 # Slurm-sackd
@@ -634,6 +601,7 @@ fi
 
 %files sackd
 %{_sbindir}/sackd
+%{_mandir}/man8/sackd.8*
 %{_unitdir}/sackd.service
 
 # --------------
