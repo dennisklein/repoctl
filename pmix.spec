@@ -1,5 +1,5 @@
 Name:           pmix
-Version:        4.2.7
+Version:        5.0.4
 Release:        %autorelease
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
