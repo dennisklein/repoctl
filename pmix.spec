@@ -1,3 +1,5 @@
+%global _lto_cflags %nil
+
 Name:           pmix
 Version:        5.0.4
 Release:        %autorelease
