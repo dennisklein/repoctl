@@ -1,25 +1,38 @@
-%global rocm_release 5.7
+%global rocm_release 6.2
 %global rocm_patch 1
 %global rocm_version %{rocm_release}.%{rocm_patch}
 %global upstreamname rocm_smi_lib
 
+%bcond_with doc
+
 Name:       rocm-smi
 Version:    %{rocm_version}
-Release:    3%{?dist}
+%if 0%{?suse_version} || 0%{?rhel} && 0%{?rhel} < 10
+Release:    1%{?dist}
+%else
+Release:    %autorelease
+%endif
 Summary:    ROCm System Management Interface Library
 
 License:    NCSA and MIT and BSD
 URL:        https://github.com/RadeonOpenCompute/%{upstreamname}
 Source0:    %{url}/archive/refs/tags/rocm-%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
+Patch0:     0001-Fix-empty-return.patch
 
+%if 0%{?rhel} || 0%{?suse_version}
+ExclusiveArch:  x86_64
+%else
 # SMI requires the AMDGPU kernel module, which only builds on:
-ExclusiveArch:  x86_64 aarch64 ppc64le
+ExclusiveArch:  x86_64 aarch64 ppc64le riscv64
+%endif
 
 BuildRequires:  cmake
+%if %{with doc}
 # Fedora 38 has doxygen 1.9.6
 %if 0%{?fedora} > 38
 BuildRequires:  doxygen >= 1.9.7
 BuildRequires:  doxygen-latex >= 1.9.7
+%endif
 %endif
 BuildRequires:  gcc-c++
 
@@ -44,7 +57,7 @@ ROCm System Management Interface Library development files
 sed -i '/CMAKE_C.*_FLAGS/d' CMakeLists.txt
 
 %build
-%cmake -DFILE_REORG_BACKWARD_COMPATIBILITY=OFF
+%cmake -DFILE_REORG_BACKWARD_COMPATIBILITY=OFF -DCMAKE_INSTALL_LIBDIR=%{_lib}
 %cmake_build
 
 %install
@@ -53,14 +66,18 @@ sed -i '/CMAKE_C.*_FLAGS/d' CMakeLists.txt
 # For Fedora < 38, the README is not installed if doxygen is disabled:
 install -D -m 644 README.md %{buildroot}%{_docdir}/rocm_smi/README.md
 
+F=%{buildroot}%{_datadir}/doc/rocm_smi/LICENSE.txt
+if [ -f $F ]; then
+    rm $F
+fi
+
 %files
 %doc %{_docdir}/rocm_smi
 %license License.txt
 %{_bindir}/rocm-smi
 %{_libexecdir}/rocm_smi
-%{_libdir}/librocm_smi64.so.5{,.*}
+%{_libdir}/librocm_smi64.so.1{,.*}
 %{_libdir}/liboam.so.1{,.*}
-%exclude %{_docdir}/rocm_smi/LICENSE.txt
 
 %files devel
 %{_includedir}/rocm_smi/
@@ -70,45 +87,10 @@ install -D -m 644 README.md %{buildroot}%{_docdir}/rocm_smi/README.md
 %{_libdir}/cmake/rocm_smi/
 
 %changelog
-* Wed Jan 17 2024 Dennis Klein <d.klein@gsi.de> - 5.7.2-3
-- Rebuilt for rocky+epel-9
+%if 0%{?suse_version}
+* Sun Nov 3 2024 Tom Rix <Tom.Rix@amd.com> - 6.2.1-1
+- Stub for tumbleweed
 
-* Thu Jan 11 2024 Dennis Klein <d.klein@gsi.de> - 5.7.1-2
-- Depend on kernel-headers
-- Rebuilt for rocky+epel-8
-
-* Thu Oct 19 2023 Jeremy Newton <alexjnewt at hotmail dot com> - 5.7.1-1
-- Update to 5.7.1
-
-* Sun Sep 17 2023 Jeremy Newton <alexjnewt at hotmail dot com> - 5.7.0-1
-- Update to 5.7
-
-* Fri Jul 21 2023 Fedora Release Engineering <releng@fedoraproject.org> - 5.6.0-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_39_Mass_Rebuild
-
-* Thu Jun 29 2023 Jeremy Newton <alexjnewt at hotmail dot com> - 5.6.0-1
-- Update to 5.6.0
-- Replace fixes with upstream patches
-
-* Sun Jun 25 2023 Jeremy Newton <alexjnewt at hotmail dot com> - 5.5.1-2
-- Rename to rocm-smi to replace existing retired package
-- Add patches to fix soversion
-
-* Fri Jun 23 2023 Jeremy Newton <alexjnewt at hotmail dot com> - 5.5.1-1
-- Complete rewrite of spec file (start from scratch)
-
-* Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 4.0.0-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
-
-* Tue Dec 22 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 4.0.0-1
-- Upstream version 4.0.0 (no changes whatsoever, still deprecated)
-
-* Fri Dec 11 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 3.10.0-1
-- Upstream version 3.10.0 (no changes whatsoever, still deprecated)
-
-* Thu Nov 19 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 3.9.0-1
-- Upstream version 3.9.0 (no changes except deprecation)
-- Deprecate package
-
-* Thu Oct 15 2020 Benjamin A. Beasley <code@musicinmybrain.net> - 3.8.0-1
-- Initial import (#1885684)
+%else
+%autochangelog
+%endif
