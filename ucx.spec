@@ -113,6 +113,7 @@ sed -i '/#include <limits.h>/a #include <math.h>' src/ucs/time/time.h
            --disable-debug \
            --disable-assertions \
            --disable-params-check \
+           --enable-mt \
            --without-java \
            %_enable_arg cma cma \
            %_with_arg cuda cuda \
