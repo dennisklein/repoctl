@@ -1,0 +1,121 @@
+#!/usr/bin/python
+"""
+Install dependencies:
+
+dnf install python3-humanize python3-rich
+"""
+
+import argparse
+import dnf
+from rich.console import Console
+
+
+def parse_cli_args():
+    cli = argparse.ArgumentParser(
+        prog="rpmlist",
+        description="List contents of RPM repos",
+    )
+    cli.add_argument(
+        "repo_path",
+        default=None,
+        type=str,
+        help="file path to RPM repo"
+    )
+    cli.add_argument(
+        "--repo-type",
+        default="rpm-md",
+        type=str,
+        choices=["rpm", "repomd", "rpmmd", "yum", "YUM"],
+        help="RPM repo type",
+    )
+    cli.add_argument(
+        "-f", "--format",
+        default="console",
+        type=str,
+        choices=["console", "json"],
+        help="Output format",
+    )
+    return cli.parse_args()
+
+
+def query_repo(repo_path, repo_type):
+    base = dnf.Base()
+
+    base.repos.add_new_repo(
+        "rpmlist",
+        base.conf,
+        baseurl=[repo_path],
+        type=repo_type,
+        # gpgcheck=False,
+        # repo_gpgcheck=False,
+        # gpgkey=f'{path}/{name}/RPM-GPG-KEY',
+    )
+
+    base.fill_sack()
+    pkgs = list(base.sack.query().available())
+
+    # print(dir(pkgs[0]))
+    return [{"name": pkg.name,
+             "epoch": pkg.epoch,
+             "version": pkg.version,
+             "release": pkg.release,
+             "arch": pkg.arch,
+             "size": pkg.installsize,
+             "summary": pkg.summary,
+             } for pkg in pkgs]
+
+
+def print_json(console, pkgs):
+    import json
+    from rich.syntax import Syntax
+
+    syntax = Syntax(json.dumps(pkgs, indent=4),
+                    "json",
+                    theme="monokai")
+    console.print(syntax)
+
+
+def print_console(console, pkgs):
+    from humanize import naturalsize
+    from rich.table import Column, Table, Text
+
+    if not pkgs:
+        return
+
+    table = Table(
+        Column("Name", style="bold"),
+        Column("Version", justify="right"),
+        Column("Size", style="dim yellow"),
+        "Summary",
+        border_style="dim",
+        show_header=True,
+    )
+    for pkg in pkgs:
+        table.add_row(
+            pkg["name"],
+            Text.assemble(
+                (f"{pkg['epoch']}:", "dim"),
+                (pkg['version'], "bold magenta"),
+                f"-{pkg['release']}",
+                (f".{pkg['arch']}", "dim"),
+            ),
+            naturalsize(pkg["size"], gnu=True),
+            pkg["summary"],
+        )
+    console.print(table)
+
+
+def sort_pkgs(pkgs):
+    return sorted(pkgs, key=lambda d: d["name"])
+
+
+def rpmlist(args):
+    pkgs = query_repo(args.repo_path, args.repo_type)
+    sorted_pkgs = sort_pkgs(pkgs)
+    console = Console()
+    globals()[f"print_{args.format}"](console, sorted_pkgs)
+
+
+if __name__ == "__main__":
+    args = parse_cli_args()
+    rpmlist(args)

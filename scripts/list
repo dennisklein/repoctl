@@ -1,0 +1,15 @@
+#!/bin/bash
+
+__DIR__="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+. ${__DIR__}/common.sh
+
+for specfile in packages/*/*.spec; do
+  ${rpmspec} -q --srpm --qf "%-32{NAME}%{version}-%{release}.%{arch}\n" ${specfile}
+  echo -n "  buildrequires: "
+  ${rpmspec} -q --srpm --buildrequires ${specfile} | tr '\n' ' '
+  echo
+  echo "  builtrpms:"
+  ${rpmspec} -q --builtrpms --qf "    %{NAME}\n" ${specfile}
+done
+
+status

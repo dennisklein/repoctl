@@ -1,0 +1,15 @@
+#!/bin/bash
+
+sudo dnf install rpm-build rpm-devel rpm-sign rpmlint make python bash coreutils diffutils patch rpmdevtools mock tree gnupg2 mock-rpmautospec rpmautospec
+
+echo
+echo "*** Checking signing key"
+echo "Make sure to have a gpg key in your keyring and set a rpm macro %_gpg_name that references it, e.g. via associated email."
+gpg_name=$(rpm --eval "%{_gpg_name}")
+echo "Currently, the rpm macro %_gpg_name evaluates to \"${gpg_name}\"."
+if [[ -z "${gpg_name}" ]]; then
+  echo "It appears empty, please add a line '%_gpg_name your.email@gsi.de' to ~/.rpmmacros"
+else
+  echo "Keys associated with that name in your keyring are:"
+  gpg --list-keys ${gpg_name}
+fi

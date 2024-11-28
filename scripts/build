@@ -1,0 +1,121 @@
+#!/bin/bash
+
+__DIR__="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+. ${__DIR__}/common.sh
+
+function build_srpm() {
+  version=$(${rpmspec} -q --srpm --qf "%{version}" ${spec})
+  tarball=$(${rpmspec} -q --srpm --qf "%{source}" ${spec})
+  url=$(${rpmspec} -q --srpm --qf "%{url}" ${spec})
+
+  (
+  pushd ${sources}
+  if [[ -n "$(grep '^%define gh_repo_url ' ${spec})" ]]; then
+    cloneversion=v${version}
+    git clone -b ${cloneversion} --depth 1 ${url} ${name}-${version}
+    git -C ${name}-${version} submodule update --init
+    tar cvzf ${tarball} ${name}-${version}
+    rm -rf ${name}-${version}
+  fi
+  pushd $(dirname ${spec})
+  git clone --depth 1 . ${sources} || cp -r . ${sources}
+  spectool -g -C ${sources} ${spec}
+  popd
+  popd
+  ) > ${builddir}/${pkg}/sources.log 2>&1
+
+  ${mock} -q --buildsrpm --spec ${spec} --sources ${sources} --resultdir ${buildresultsrpm}
+}
+
+function build_rpms() {
+  ${mock} -q --rebuild ${buildresultsrpm}/${name}*.src.rpm --resultdir ${buildresultrpms} ${mockaddrepo}
+  rm -f ${buildresultrpms}/*.src.rpm
+  mkdir -p ${buildresultrpms}/debug
+  mv ${buildresultrpms}/*debug{info,source}*.rpm ${buildresultrpms}/debug || true # ignore if no debug pkgs
+}
+
+function build_repos() {
+  gpgname=$(rpm --eval "%{_gpg_name}")
+
+  debugrpms=${debugrepo}/packages
+  mkdir -p ${debugrpms}
+  {
+    cp ${buildresultrpms}/debug/*.rpm ${debugrpms} && {
+      rpm --resign ${debugrpms}/*.rpm
+      pushd ${debugrepo}
+      createrepo --update .
+      gpg --batch --yes -u ${gpgname} --detach-sign --armor repodata/repomd.xml
+      gpg --armor --export ${gpgname} > RPM-GPG-KEY
+      sha256sum --tag RPM-GPG-KEY > RPM-GPG-KEY-CHECKSUM.txt
+      popd
+    }
+  } || true # ignore if no debug pkgs
+
+  srpm=${sourcerepo}/packages
+  mkdir -p ${srpm}
+  cp ${buildresultsrpm}/*.src.rpm ${srpm} && {
+    rpm --resign ${srpm}/*.rpm
+    pushd ${sourcerepo}
+    createrepo --update .
+    gpg --batch --yes -u ${gpgname} --detach-sign --armor repodata/repomd.xml
+    gpg --armor --export ${gpgname} > RPM-GPG-KEY
+    sha256sum --tag RPM-GPG-KEY > RPM-GPG-KEY-CHECKSUM.txt
+    popd
+  }
+
+  rpms=${binrepo}/packages
+  mkdir -p ${rpms}
+  cp ${buildresultrpms}/*.rpm ${rpms} && {
+    rpm --resign ${rpms}/*.rpm
+    pushd ${binrepo}
+    createrepo --update --deltas .
+    gpg --batch --yes -u ${gpgname} --detach-sign --armor repodata/repomd.xml
+    gpg --armor --export ${gpgname} > RPM-GPG-KEY
+    sha256sum --tag RPM-GPG-KEY > RPM-GPG-KEY-CHECKSUM.txt
+    popd
+  }
+
+  if [[ ${pkg} = "${reponame}-release" ]]; then
+    pushd ${resultdir}
+    rm -f ${pkg}.rpm
+    ln -s ${reponame}/packages/${pkg}-*.noarch.rpm ${pkg}.rpm
+    popd
+  fi
+}
+
+function build() {
+  set -x
+  pkg=$1
+  spec=${pkgdir}/${pkg}/${pkg}.spec
+  echo ">>> Building ${spec}"
+  name=$(${rpmspec} -q --srpm --qf "%{name}" ${spec})
+  sources=${builddir}/${pkg}/SOURCES
+  mkdir -p ${sources}
+  buildresultsrpm=${builddir}/${pkg}/SRPMS
+  mkdir -p ${buildresultsrpm}
+  buildresultrpms=${builddir}/${pkg}/RPMS
+  mkdir -p ${buildresultrpms}
+  binrepo=${resultdir}/${reponame}
+  mkdir -p ${binrepo}
+  sourcerepo=${resultdir}/${reponame}-source
+  mkdir -p ${sourcerepo}
+  if [[ -n "$(ls -A ${binrepo})" ]]; then
+    mockaddrepo="--addrepo=${binrepo}"
+  fi
+  debugrepo=${resultdir}/${reponame}-debuginfo
+  mkdir -p ${debugrepo}
+  build_srpm
+  build_rpms
+  build_repos
+  set +x
+}
+
+build ucx
+build pmix
+build prrte
+build munge
+build rocm-smi
+build slurm
+build slurm-singularity-exec
+build openmpi
+build slurm-release
