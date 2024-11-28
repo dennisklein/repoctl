@@ -56,6 +56,8 @@
 # Run autogen - needed for some patches
 %bcond_with autogen
 
+%bcond_without slurm
+
 Name:           openmpi%{?_cc_name_suffix}
 Version:        5.0.6
 Release:        %autorelease
@@ -260,6 +262,9 @@ OpenMPI support for Python 3.
 	--with-libevent=external \
 %if %{with pmix}
 	--with-pmix=external \
+%endif
+%if %{with slurm}
+	--with-slurm \
 %endif
 %endif
 
