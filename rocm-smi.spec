@@ -1,22 +1,25 @@
-%global rocm_release 6.2
-%global rocm_patch 1
+%global rocm_release 6.3
+%global rocm_patch 0
 %global rocm_version %{rocm_release}.%{rocm_patch}
 %global upstreamname rocm_smi_lib
+
+%bcond_with test
+%if %{with test}
+%global build_test ON
+%else
+%global build_test OFF
+%endif
 
 %bcond_with doc
 
 Name:       rocm-smi
 Version:    %{rocm_version}
-%if 0%{?suse_version} || 0%{?rhel} && 0%{?rhel} < 10
 Release:    1%{?dist}
-%else
-Release:    %autorelease
-%endif
 Summary:    ROCm System Management Interface Library
 
 License:    NCSA and MIT and BSD
 URL:        https://github.com/RadeonOpenCompute/%{upstreamname}
-Source0:    %{url}/archive/refs/tags/rocm-%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
+Source0:    %{url}/archive/rocm-%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
 Patch0:     0001-Fix-empty-return.patch
 
 %if 0%{?rhel} || 0%{?suse_version}
@@ -49,6 +52,15 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %description devel
 ROCm System Management Interface Library development files
 
+%if %{with test}
+%package test
+Summary:        Tests for %{name}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+
+%description test
+%{summary}
+%endif
+
 %prep
 %autosetup -n %{upstreamname}-rocm-%{version} -p1
 
@@ -56,7 +68,10 @@ ROCm System Management Interface Library development files
 sed -i '/CMAKE_C.*_FLAGS/d' CMakeLists.txt
 
 %build
-%cmake -DFILE_REORG_BACKWARD_COMPATIBILITY=OFF -DCMAKE_INSTALL_LIBDIR=%{_lib}
+%cmake -DFILE_REORG_BACKWARD_COMPATIBILITY=OFF -DCMAKE_INSTALL_LIBDIR=%{_lib} \
+       -DCMAKE_SKIP_INSTALL_RPATH=TRUE \
+       -DBUILD_TESTS=%build_test
+
 %cmake_build
 
 %install
@@ -85,11 +100,14 @@ fi
 %{_libdir}/liboam.so
 %{_libdir}/cmake/rocm_smi/
 
+%if %{with test}
+%files test
+%{_datarootdir}/rsmitst_tests
+%endif
+
 %changelog
-%if 0%{?suse_version}
+* Sat Dec 7 2024 Tom Rix <Tom.Rix@amd.com> - 6.3.0-1
+- Update to 6.3
+
 * Sun Nov 3 2024 Tom Rix <Tom.Rix@amd.com> - 6.2.1-1
 - Stub for tumbleweed
-
-%else
-%autochangelog
-%endif
