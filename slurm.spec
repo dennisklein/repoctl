@@ -436,6 +436,7 @@ rm -rf %{buildroot}/usr/share/bash-completion
 %{_libdir}/%{name}/auth_munge.so
 %{_libdir}/%{name}/auth_slurm.so
 %{_libdir}/%{name}/burst_buffer_lua.so
+%{_libdir}/%{name}/certmgr_script.so
 %{_libdir}/%{name}/cgroup_v1.so
 %{_libdir}/%{name}/cgroup_v2.so
 %{_libdir}/%{name}/cli_filter_*.so
