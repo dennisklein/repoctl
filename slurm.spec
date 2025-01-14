@@ -377,6 +377,9 @@ rm -f %{buildroot}%{perl_archlib}/perllocal.pod
 # remove other example stuff
 rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 
+# for now, d.klein 01/2025
+rm -rf %{buildroot}/usr/share/bash-completion
+
 %ldconfig_scriptlets devel
 %ldconfig_scriptlets libs
 
