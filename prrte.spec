@@ -1,5 +1,7 @@
+%global _lto_cflags %nil
+
 Name:           prrte
-Version:        3.0.6
+Version:        3.0.11
 Release:        %autorelease
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 # src/mca/prtereachable/netlink/reachable_netlink_utils_common.c is BSD-2-Clause
@@ -10,8 +12,6 @@ Summary:        PMIx Reference RunTime Environment (PRRTE)
 License:        BSD-3-Clause-Open-MPI AND BSD-2-Clause
 URL:            https://github.com/openpmix/%{name}
 Source0:        https://github.com/openpmix/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.bz2
-# Upstream fix for --stdfor for non-zeron ranks - fixes rhbz#2307533
-Patch0:         https://patch-diff.githubusercontent.com/raw/openpmix/prrte/pull/2038.patch
 
 BuildRequires:  flex
 BuildRequires:  gcc
