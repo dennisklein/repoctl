@@ -112,8 +112,6 @@ find %{buildroot} -name '*.la' -delete
 %config(noreplace) %{_sysconfdir}/prte/*
 %{_datadir}/prte/
 %{_libdir}/lib%{name}.so.3*
-%dir %{_libdir}/prte/
-%{_libdir}/prte/prte_mca_plm_tm.so
 
 %files devel
 %{_libdir}/openmpi/bin/pcc
