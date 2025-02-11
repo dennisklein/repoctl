@@ -22,7 +22,6 @@ BuildRequires:  pmix-devel >= 4.2.2
 # For pmixcc - https://bugzilla.redhat.com/show_bug.cgi?id=2078048
 BuildRequires:  pmix-tools
 BuildRequires:  perl-interpreter
-BuildRequires:  torque-devel
 Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
 
 # openmpi, pmix no longer support 32-bit platforms
