@@ -1,0 +1,23 @@
+From 2ea6bfb8d6b32a4a2ddc79dbf1043d0cef8e221c Mon Sep 17 00:00:00 2001
+From: Orion Poplawski <orion@nwra.com>
+Date: Sat, 1 Mar 2025 14:25:18 -0700
+Subject: [PATCH] Latest Fedora has dropped the arch suffix from the openjdk
+ directory
+
+---
+ config/ompi_setup_java.m4 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/config/ompi_setup_java.m4 b/config/ompi_setup_java.m4
+index b0212b230e7..02029b83dd6 100644
+--- a/config/ompi_setup_java.m4
++++ b/config/ompi_setup_java.m4
+@@ -101,7 +101,7 @@ AC_DEFUN([_OMPI_SETUP_JAVA],[
+            if test "$ompi_java_found" = "0"; then
+                # Various Linux
+                if test -z "$JAVA_HOME"; then
+-                   ompi_java_dir='/usr/lib/jvm/java-*-openjdk-*/include/'
++                   ompi_java_dir='/usr/lib/jvm/java-*-openjdk*/include/'
+                else
+                    ompi_java_dir=$JAVA_HOME/include
+                fi

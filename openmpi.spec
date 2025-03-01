@@ -54,7 +54,7 @@
 %bcond_without pmix
 
 # Run autogen - needed for some patches
-%bcond_with autogen
+%bcond autogen 1
 
 Name:           openmpi%{?_cc_name_suffix}
 Version:        5.0.6
@@ -71,6 +71,9 @@ Source1:        openmpi.module.in
 Source2:        openmpi.pth.py2
 Source3:        openmpi.pth.py3
 Source4:        macros.openmpi
+
+# Fix JAVA_HOME search
+Patch:          https://github.com/open-mpi/ompi/pull/13117.patch
 
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
