@@ -1,5 +1,5 @@
 Name:           pmix
-Version:        4.2.8
+Version:        4.2.9
 Release:        %autorelease
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
@@ -7,7 +7,6 @@ URL:            https://pmix.org/
 Source0:        https://github.com/openpmix/openpmix/releases/download/v%{version}/%{name}-%{version}.tar.bz2
 # file missing from release
 Source1:        construct_event_strings.py
-Patch1:         https://github.com/openpmix/openpmix/pull/3245.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
