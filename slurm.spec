@@ -56,6 +56,8 @@ BuildRequires:  perl-podlators
 BuildRequires:  pkgconf
 BuildRequires:  pkgconfig(check)
 BuildRequires:  pkgconfig(lua)
+BuildRequires:  pkgconfig(pmix)
+BuildRequires:  pkgconfig(pmix_v4)
 BuildRequires:  python3
 BuildRequires:  systemd
 
@@ -74,7 +76,6 @@ BuildRequires:  munge-devel
 BuildRequires:  numactl-devel
 %endif
 BuildRequires:  pam-devel
-BuildRequires:  pmix-devel
 BuildRequires:  rdma-core-devel
 BuildRequires:  readline-devel
 BuildRequires:  rocm-smi-devel
@@ -93,6 +94,7 @@ ExcludeArch:    i686
 Requires:       /bin/mailx
 Requires:       munge
 Requires:       pmix
+Requires:       pmix_v4
 Requires:       ucx
 %{?systemd_requires}
 
@@ -248,7 +250,7 @@ export LDFLAGS="%{build_ldflags} -Wl,-z,lazy"
   --disable-debug \
   --disable-partial_attach \
   --with-oneapi=no \
-  --with-pmix=%{_prefix} \
+  --with-pmix=$(pkg-config --variable=prefix pmix):$(pkg-config --variable=prefix pmix_v4) \
   --with-shared-libslurm \
   --without-rpath \
   --with-rsmi=%{_prefix}
