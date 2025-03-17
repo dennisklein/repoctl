@@ -11,7 +11,7 @@
 %bcond_with    vfs
 
 Name: ucx
-Version: 1.17.0
+Version: 1.18.0
 Release: %autorelease
 Summary: UCX is a communication library implementing high-performance messaging
 
@@ -28,10 +28,6 @@ License: BSD-3-Clause AND MIT AND CC-PDDC AND (BSD-3-Clause OR Apache-2.0)
 
 URL: http://www.openucx.org
 Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
-# BUILD/CONFIG: Keep CFLAGS and CXXFLAGS separate
-# Fixes build for https://fedoraproject.org/wiki/Changes/PortingToModernC
-Patch0: https://github.com/openucx/%{name}/pull/9558.patch
-
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Prefix: %{_prefix}
@@ -98,11 +94,7 @@ Provides header files and examples for developing with UCX.
 
 %prep
 %setup -q
-%patch -P0 -p1
 autoreconf -fiv
-# https://github.com/openucx/ucx/commit/b0a275a5492125a13020cd095fe9934e0b5e7c6a
-# can be removed on release after 1.17.0
-sed -i '/#include <limits.h>/a #include <math.h>' src/ucs/time/time.h
 
 %build
 
@@ -219,7 +211,8 @@ hardware-offloaded data transfer.
 
 %files ib
 %dir %{_libdir}/ucx
-%{_libdir}/ucx/libuct_ib.so.*
+%{_libdir}/ucx/libucx_perftest_mad.so.*
+%{_libdir}/ucx/libuct_ib*.so.*
 %endif
 
 %if %{with knem}
