@@ -1,6 +1,6 @@
 Name: slurm-release
 Version: 9
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: GSI Slurm Packages
 License: LGPLv3
 Source0: RPM-GPG-KEY-slurm
@@ -28,5 +28,7 @@ install -p -m 644 -D -t %{buildroot}%{_sysconfdir}/yum.repos.d %{SOURCE1}
 %{_sysconfdir}/pki/rpm-gpg/*
 
 %changelog
+* Fri Mar 21 2025 Dennis Klein <d.klein@gsi.de> - 9-2
+- Expire metadata after one hour
 * Wed Nov 27 2024 Dennis Klein <d.klein@gsi.de> - 9-1
 - Release for rocky+epel-9
