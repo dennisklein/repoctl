@@ -17,7 +17,7 @@
 %global slurmcfgdir %{_datadir}/%{name}
 
 Name:           slurm
-Version:        24.11.5
+Version:        25.05.0
 Release:        %autorelease
 Summary:        Simple Linux Utility for Resource Management
 # ./src/common/log.c: BSD 2-Clause License
@@ -382,6 +382,25 @@ rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 %ldconfig_scriptlets devel
 %ldconfig_scriptlets libs
 
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sacct
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sacctmgr
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/salloc
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sattach
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sbatch
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sbcast
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/scancel
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/scontrol
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/scrontab
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sdiag
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sinfo
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/slurmrestd
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sprio
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/squeue
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sreport
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/srun
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sshare
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/sstat
+ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 
 %check
 # The test binaries need LD_LIBRARY_PATH to find the compiled slurm library
@@ -394,7 +413,7 @@ rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 # -----
 
 %files
-%doc CONTRIBUTING.md DISCLAIMER META NEWS README.rst RELEASE_NOTES
+%doc CONTRIBUTING.md DISCLAIMER META README.md RELEASE_NOTES.md
 %license COPYING LICENSE.OpenSSL
 %dir %{_libdir}/%{name}
 %dir %{_rundir}/%{name}
@@ -436,6 +455,7 @@ rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 %{_libdir}/%{name}/auth_slurm.so
 %{_libdir}/%{name}/burst_buffer_lua.so
 %{_libdir}/%{name}/certmgr_script.so
+%{_libdir}/%{name}/certgen_script.so
 %{_libdir}/%{name}/cgroup_v1.so
 %{_libdir}/%{name}/cgroup_v2.so
 %{_libdir}/%{name}/cli_filter_*.so
@@ -494,6 +514,7 @@ rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 %{_mandir}/man5/oci.conf.5*
 %{_mandir}/man5/slurm.conf.5*
 %{_mandir}/man5/topology.conf.5*
+%{_mandir}/man5/topology.yaml.5*
 %{_mandir}/man8/slurmrestd.8*
 %{_mandir}/man8/spank.8*
 %{_tmpfilesdir}/slurm.conf
@@ -528,9 +549,8 @@ rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 %exclude %{_docdir}/%{name}/CONTRIBUTING.md
 %exclude %{_docdir}/%{name}/DISCLAIMER
 %exclude %{_docdir}/%{name}/META
-%exclude %{_docdir}/%{name}/NEWS
-%exclude %{_docdir}/%{name}/README.rst
-%exclude %{_docdir}/%{name}/RELEASE_NOTES
+%exclude %{_docdir}/%{name}/README.md
+%exclude %{_docdir}/%{name}/RELEASE_NOTES.md
 
 # ---------
 # Slurm-gui
@@ -625,6 +645,26 @@ rm -f %{buildroot}%{_libdir}/%{name}/site_factor_example.so
 %{_mandir}/man1/sgather.1*
 %{_mandir}/man1/sjobexitmod.1*
 %{_mandir}/man1/sjstat.1*
+%{bash_completions_dir}/sacct
+%{bash_completions_dir}/sacctmgr
+%{bash_completions_dir}/salloc
+%{bash_completions_dir}/sattach
+%{bash_completions_dir}/sbatch
+%{bash_completions_dir}/sbcast
+%{bash_completions_dir}/scancel
+%{bash_completions_dir}/scontrol
+%{bash_completions_dir}/scrontab
+%{bash_completions_dir}/sdiag
+%{bash_completions_dir}/sinfo
+%{bash_completions_dir}/slurm_completion.sh
+%{bash_completions_dir}/slurmrestd
+%{bash_completions_dir}/sprio
+%{bash_completions_dir}/squeue
+%{bash_completions_dir}/sreport
+%{bash_completions_dir}/srun
+%{bash_completions_dir}/sshare
+%{bash_completions_dir}/sstat
+%{bash_completions_dir}/strigger
 
 # ---------------
 # Slurm-nss_slurm
