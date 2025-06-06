@@ -13,10 +13,10 @@ BuildRequires:  cmake
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
 BuildRequires:  libstdc++-static
-BuildRequires:  slurm-devel = 24.11.5
+BuildRequires:  slurm-devel = 25.05.0
 
 Requires:       apptainer
-Requires:       slurm-slurmd = 24.11.5
+Requires:       slurm-slurmd = 25.05.0
 
 %description
 The Singularity SPANK plug-in provides the users with an interface to launch an
