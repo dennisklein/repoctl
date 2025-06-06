@@ -11,7 +11,7 @@
 %bcond_with    vfs
 
 Name: ucx
-Version: 1.18.0
+Version: 1.18.1
 Release: %autorelease
 Summary: UCX is a communication library implementing high-performance messaging
 
