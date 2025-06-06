@@ -737,5 +737,14 @@ rm -rf %{buildroot}/usr/share/bash-completion
 %postun slurmdbd
 %systemd_postun slurmdbd.service
 
+%post slurmrestd
+%systemd_post slurmrestd.service
+
+%preun slurmrestd
+%systemd_preun slurmrestd.service
+
+%postun slurmrestd
+%systemd_postun slurmrestd.service
+
 %changelog
 %autochangelog
