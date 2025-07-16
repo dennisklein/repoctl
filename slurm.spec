@@ -17,7 +17,7 @@
 %global slurmcfgdir %{_datadir}/%{name}
 
 Name:           slurm
-Version:        25.05.0
+Version:        25.05.1
 Release:        %autorelease
 Summary:        Simple Linux Utility for Resource Management
 # ./src/common/log.c: BSD 2-Clause License
