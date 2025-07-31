@@ -5,7 +5,8 @@
 
 %global macrosdir %(d=%{_rpmconfigdir}/macros.d; [ -d $d ] || d=%{_sysconfdir}/rpm; echo $d)
 
-%ifarch aarch64 ppc64le x86_64
+# ucx on ppc64le/power10 is broken https://github.com/openucx/ucx/issues/10780
+%ifarch aarch64 x86_64
 %bcond_without ucx
 %else
 %bcond_with ucx
