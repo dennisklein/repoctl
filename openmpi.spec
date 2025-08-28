@@ -11,12 +11,6 @@
 %bcond_without python2
 %endif
 
-%ifarch aarch64 ppc64le x86_64
-%bcond_without ucx
-%else
-%bcond_with ucx
-%endif
-
 # ARM 32-bit is not supported by rdma
 # https://bugzilla.redhat.com/show_bug.cgi?id=1780584
 %ifarch %{arm}
@@ -50,16 +44,11 @@
 %bcond_with psm2
 %endif
 
-# Some RCs require unreleased pmix version - at least let us test builds
-%bcond_without pmix
-
 # Run autogen - needed for some patches
 %bcond_with autogen
 
-%bcond_without slurm
-
 Name:           openmpi%{?_cc_name_suffix}
-Version:        5.0.6
+Version:        5.0.8
 Release:        %autorelease
 Summary:        Open Message Passing Interface
 # Automatically converted from old format: BSD and MIT and Romio - review is highly recommended.
@@ -116,9 +105,7 @@ BuildRequires:  orangefs-devel
 BuildRequires:  perl-generators
 BuildRequires:  perl-interpreter
 BuildRequires:  perl(Getopt::Long)
-%if %{with pmix}
 BuildRequires:  pmix-devel >= 4.2.7
-%endif
 # For configure to find /usr/bin/prte
 BuildRequires:  prrte
 BuildRequires:  prrte-devel
@@ -126,9 +113,7 @@ BuildRequires:  python%{python3_pkgversion}-devel
 %if %{with psm2}
 BuildRequires:  libpsm2-devel
 %endif
-%if %{with ucx}
 BuildRequires:  ucx-devel
-%endif
 BuildRequires:  zlib-devel
 %if !0%{?el7}
 BuildRequires:  rpm-mpi-hooks
@@ -260,12 +245,8 @@ OpenMPI support for Python 3.
 	--with-hwloc=/usr \
 %if !0%{?el7}
 	--with-libevent=external \
-%if %{with pmix}
 	--with-pmix=external \
-%endif
-%if %{with slurm}
 	--with-slurm \
-%endif
 %endif
 
 %make_build V=1
@@ -352,57 +333,28 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 %config(noreplace) %{_sysconfdir}/%{namearch}/*
 %{_libdir}/%{name}/bin/mpi[er]*
 %{_libdir}/%{name}/bin/ompi*
-%if %{with ucx}
 %{_libdir}/%{name}/bin/oshmem_info
-%endif
 %{_libdir}/%{name}/bin/oshrun
-%if %{without pmix}
-%{_libdir}/%{name}/bin/pattrs
-%{_libdir}/%{name}/bin/pctrl
-%{_libdir}/%{name}/bin/pevent
-%{_libdir}/%{name}/bin/plookup
-%{_libdir}/%{name}/bin/pmix_info
-%{_libdir}/%{name}/bin/pmixcc
-%{_libdir}/%{name}/bin/pps
-%{_libdir}/%{name}/bin/pquery
-%{_libdir}/%{name}/lib/libpmix.so.2*
-%{_libdir}/%{name}/lib/pmix/
-%{_libdir}/%{name}/share/pmix/
-%{_mandir}/%{namearch}/man1/pmix_info.1*
-%{_mandir}/%{namearch}/man5/openpmix.5*
-%endif
 %{_mandir}/%{namearch}/man7/Open-MPI.7*
 %{_libdir}/%{name}/lib/*.so.40*
 %{_libdir}/%{name}/lib/*.so.80*
-%if 0%{?el7}
-%{_libdir}/%{name}/lib/pmix/
-%endif
 %{_mandir}/%{namearch}/man1/mpirun.1*
 %{_mandir}/%{namearch}/man1/mpisync.1*
 %{_mandir}/%{namearch}/man1/ompi*
-%if %{with ucx}
 %{_mandir}/%{namearch}/man1/oshmem_info*
-%endif
 %{_libdir}/%{name}/lib/openmpi/*
 %{_datadir}/modulefiles/mpi/
 %dir %{_libdir}/%{name}/share
 %dir %{_libdir}/%{name}/share/openmpi
 %{_libdir}/%{name}/share/openmpi/amca-param-sets
 %{_libdir}/%{name}/share/openmpi/help*.txt
-%if 0%{?el7}
-%{_libdir}/%{name}/share/pmix/
-%endif
 
 %files devel
 %dir %{_includedir}/%{namearch}
 %{_libdir}/%{name}/bin/mpi[cCf]*
 %{_libdir}/%{name}/bin/opal_*
-%if %{with ucx}
 %{_libdir}/%{name}/bin/osh[cCf]*
-%endif
-%if %{with ucx}
 %{_libdir}/%{name}/bin/shmem[cCf]*
-%endif
 %{_includedir}/%{namearch}/*
 %{_fmoddir}/%{name}/
 %{_libdir}/%{name}/lib/*.so
@@ -411,11 +363,9 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 %{_libdir}/%{name}/lib/pkgconfig/
 %{_libdir}/pkgconfig/*.pc
 %{_mandir}/%{namearch}/man1/mpi[cCf]*
-%if %{with ucx}
 %{_mandir}/%{namearch}/man1/osh[cCf]*
 %{_mandir}/%{namearch}/man1/oshmem-wrapper-compiler.1*
 %{_mandir}/%{namearch}/man1/shmem[cCf]*
-%endif
 %{_mandir}/%{namearch}/man1/opal_*
 %{_mandir}/%{namearch}/man3/*
 %{_libdir}/%{name}/share/openmpi/openmpi-valgrind.supp
