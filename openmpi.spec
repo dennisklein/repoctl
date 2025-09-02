@@ -48,6 +48,7 @@
 %bcond_with autogen
 
 Name:           openmpi%{?_cc_name_suffix}
+Epoch:          3
 Version:        5.0.8
 Release:        %autorelease
 Summary:        Open Message Passing Interface
@@ -62,6 +63,7 @@ Source1:        openmpi.module.in
 Source2:        openmpi.pth.py2
 Source3:        openmpi.pth.py3
 Source4:        macros.openmpi
+Source5:        openmpi.profile.in
 
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
@@ -275,6 +277,12 @@ sed 's#@LIBDIR@#%{_libdir}/%{name}#;
      <%{SOURCE1} \
      >%{buildroot}%{_datadir}/modulefiles/mpi/%{namearch}
 
+# Make the profile script to auto-load module
+mkdir -p %{buildroot}%{_sysconfdir}/profile.d
+sed 's#@NAMEARCH@#%{namearch}#' \
+     <%{SOURCE5} \
+     >%{buildroot}%{_sysconfdir}/profile.d/%{namearch}.sh
+
 # make the rpm config file
 install -Dpm 644 %{SOURCE4} %{buildroot}/%{macrosdir}/macros.%{namearch}
 
@@ -344,6 +352,7 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 %{_mandir}/%{namearch}/man1/oshmem_info*
 %{_libdir}/%{name}/lib/openmpi/*
 %{_datadir}/modulefiles/mpi/
+%{_sysconfdir}/profile.d/%{namearch}.sh
 %dir %{_libdir}/%{name}/share
 %dir %{_libdir}/%{name}/share/openmpi
 %{_libdir}/%{name}/share/openmpi/amca-param-sets
