@@ -4,156 +4,87 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an RPM package builder repository for Slurm and related HPC components at GSI. It builds RPM packages for Rocky Linux 9 (EL9) with EPEL dependencies. The repository contains git submodules for various HPC packages that are built into signed RPM repositories.
+RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packages for Rocky Linux 9 (EL9) with EPEL dependencies using Mock for isolated, reproducible builds.
 
-## Key Components
+## Build Commands
 
-### Package Structure
-- **packages/**: Git submodules containing package sources and spec files for:
-  - `slurm`: Main Slurm workload manager (version 25.05.2)
-  - `openmpi`: OpenMPI implementation
-  - `pmix` & `pmix_v4`: Process Management Interface for Exascale
-  - `prrte`: PMIx Reference RunTime Environment
-  - `ucx`: Unified Communication X library
-  - `munge`: Authentication service
-  - `rocm-smi`: AMD ROCm System Management Interface
-  - `slurm-release`: Repository configuration package
-  - `fi-slurm-utils`: Rust-based CLI utilities for Slurm (fi-nodes, fi-slurm-limits)
-
-### Build System
-- **scripts/build**: Main build script that processes all packages in sequence
-- **scripts/common.sh**: Shared configuration and variables
-- **scripts/macros**: RPM macros for build customization
-- **scripts/rpmlist**: Python utility to list RPM repository contents
-
-### Directory Layout
-- **build/el9/**: Build artifacts and temporary files
-- **result/el9/**: Final RPM repositories (binary, source, debuginfo)
-
-## Common Commands
-
-### Initial Setup
 ```bash
-# Install dependencies and configure GPG signing
+# Initial setup (install dependencies, configure GPG)
 ./scripts/setup
 
-# Configure GPG key for RPM signing (if not already done)
-echo "%_gpg_name your.email@gsi.de" >> ~/.rpmmacros
-```
-
-### Building Packages
-```bash
 # Build all packages in dependency order
 ./scripts/build
 
-# Build a specific package (edit scripts/build to uncomment desired package)
-# Current build order: ucx → pmix → pmix_v4 → prrte → munge → rocm-smi → slurm → slurm-singularity-exec → openmpi → slurm-release → fi-slurm-utils
-vim scripts/build  # Uncomment the desired "build <package>" line
-./scripts/build
-```
+# To build specific packages, comment out unwanted builds in scripts/build
+# Build order: ucx → pmix → pmix_v4 → prrte → munge → rocm-smi → slurm → slurm-singularity-exec → openmpi → slurm-release
 
-### Repository Management
-```bash
-# List all available packages with dependencies
+# List packages with dependencies and build requirements
 ./scripts/list
 
-# Query built RPM repository contents
+# Query built repository contents
 ./scripts/rpmlist result/el9/slurm/
 ./scripts/rpmlist --format json result/el9/slurm/
 
-# Clean all build artifacts
+# Clean build artifacts
 ./scripts/clean
 
 # Update mock environment
 ./scripts/update
 ```
 
-### Verification
-```bash
-# Check build status and disk usage
-tree -h build/ result/
-du -hs build/ result/
+## Repository Structure
 
-# Verify RPM signatures
-rpm -K result/el9/slurm/packages/*.rpm
-
-# Check repository metadata signature
-gpg --verify result/el9/slurm/repodata/repomd.xml.asc
-```
+- **packages/**: Git submodules with package sources and spec files
+  - `ucx`, `pmix`, `pmix_v4`, `prrte`, `munge`, `rocm-smi`, `slurm`, `slurm-singularity-exec`, `openmpi`
+- **packages/slurm-release/**: Package sources and spec files for the repo pkg that can be used to configure yum/dnf on a target system pointing to the rpm repo
+- **scripts/**: Build tooling
+  - `build`: Main build script with `build()` function for each package
+  - `common.sh`: Shared config (mock target, paths, macros)
+  - `macros`: RPM macros passed to mock
+  - `rpmlist`: Python tool to query repo contents (requires `python3-humanize python3-rich`)
+- **build/el9/**: Temporary build artifacts (`SOURCES/`, `SRPMS/`, `RPMS/`)
+- **result/el9/**: Final signed repositories
+  - `slurm/`: Binary RPMs
+  - `slurm-source/`: Source RPMs
+  - `slurm-debuginfo/`: Debug packages
 
 ## Build Configuration
 
-- **Target**: `rocky+epel-9-x86_64` (defined in `scripts/common.sh`)
-- **Mock root**: Configurable via `$mockroot` variable
-- **Build directories**:
-  - Sources: `build/el9/<package>/SOURCES/`
-  - SRPMs: `build/el9/<package>/SRPMS/`
-  - RPMs: `build/el9/<package>/RPMS/`
-- **Repository structure**:
-  - Binary: `result/el9/slurm/`
-  - Source: `result/el9/slurm-source/`
-  - Debug: `result/el9/slurm-debuginfo/`
+- **Mock target**: `rocky+epel-9-x86_64` (set in `scripts/common.sh`)
+- **GPG signing**: Requires `%_gpg_name` in `~/.rpmmacros` pointing to your GPG key
 
-## Development Workflow
+## Working with Packages
 
-### Adding New Packages
-1. Add as git submodule: `git submodule add <repo-url> packages/<name>`
-2. Ensure package has proper `.spec` file in `packages/<name>/`
-3. Add build line to `scripts/build` in correct dependency order
-4. Test build: `./scripts/build`
-5. Commit submodule reference: `git add packages/<name> && git commit`
+```bash
+# Modify a package
+cd packages/<package>
+# make changes, commit within submodule
+cd ../..
+git add packages/<package> && git commit
 
-### Modifying Existing Packages
-1. Navigate to submodule: `cd packages/<package>`
-2. Make changes and commit within submodule
-3. Return to main repo: `cd ../..`
-4. Update submodule reference: `git add packages/<package> && git commit`
-5. Rebuild: `./scripts/build`
-
-### Working with Git Branches
-- **Current branch**: `slurm-25.05` (for Slurm 25.05.x releases)
-- **Main branch**: `virgo-3-el8` (used as base for pull requests)
-- Each major Slurm version typically has its own branch
+# Add new package
+git submodule add <repo-url> packages/<name>
+# Add "build <name>" line to scripts/build in dependency order
+```
 
 ## Troubleshooting
 
-### GPG Signing Issues
-```bash
-# Check configured GPG key
-rpm --eval "%{_gpg_name}"
-
-# List available keys
-gpg --list-secret-keys
-
-# If missing, generate a new key
-gpg --gen-key
-```
-
-### Build Failures
 ```bash
 # Check build logs
 less build/el9/<package>/sources.log
 
-# Mock shell for debugging
+# Debug in mock shell
 mock -r rocky+epel-9-x86_64 --shell
 
-# Clean mock cache if corrupted
+# Clean corrupted mock cache
 mock -r rocky+epel-9-x86_64 --clean
+
+# Verify GPG setup
+rpm --eval "%{_gpg_name}"
+gpg --list-secret-keys
 ```
 
-### Missing Dependencies
-- Check EPEL is enabled in mock config
-- Verify all submodules are initialized: `git submodule update --init`
-- Ensure packages are built in correct order (dependency chain)
+## Git Branching
 
-## Architecture Notes
-
-This is a specialized RPM build system designed for HPC environments at GSI. Key features:
-
-- **Mock-based builds**: Ensures reproducible, isolated build environments
-- **Automatic GPG signing**: All RPMs and repository metadata are cryptographically signed
-- **Dependency management**: Handles complex chains between Slurm and supporting libraries
-- **Multi-repository output**: Separates binary, source, and debug packages
-- **Git submodules**: Each package maintained in separate repository for version control
-
-The build process uses Mock with RPM macros to maintain ABI compatibility and follow enterprise Linux packaging conventions. The `slurm-release` package provides repository configuration for client systems.
+- **Main branch**: `virgo-3-el8` (base for PRs)
+- Each major Slurm version has its own branch (e.g., `slurm-25.05`, `slurm-25.11`)

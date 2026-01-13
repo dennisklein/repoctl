@@ -1,6 +1,6 @@
 Name: slurm-release
 Version: 9
-Release: 3%{?dist}
+Release: 4%{?dist}
 Summary: GSI Slurm Packages
 License: LGPLv3
 Source0: RPM-GPG-KEY-slurm
@@ -28,6 +28,9 @@ install -p -m 644 -D -t %{buildroot}%{_sysconfdir}/yum.repos.d %{SOURCE1}
 %{_sysconfdir}/pki/rpm-gpg/*
 
 %changelog
+* Wed Jan 21 2026 Dennis Klein <d.klein@gsi.de> - 9-4
+- Update repo URLs to slurm-25.11
+- Update key expiration to 2030-01-20
 * Wed Jul 16  2025 Dennis Klein <d.klein@gsi.de> - 9-3
 - Fix repo URL
 * Fri Mar 21 2025 Dennis Klein <d.klein@gsi.de> - 9-2
