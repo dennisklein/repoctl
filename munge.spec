@@ -1,7 +1,7 @@
 %bcond_without check
 
 Name:           munge
-Version:        0.5.16
+Version:        0.5.17
 Release:        %autorelease
 Summary:        Enables uid & gid authentication across a host cluster
 
@@ -11,8 +11,7 @@ URL:            https://dun.github.io/munge/
 Source0:        https://github.com/dun/munge/releases/download/munge-%{version}/munge-%{version}.tar.xz
 Source1:        https://github.com/dun/munge/releases/download/%{name}-%{version}/%{name}-%{version}.tar.xz.asc
 Source2:        https://github.com/dun.gpg
-Source3:        munge.sysusers
-Source4:        README.md
+Source3:        README.md
 
 BuildRequires:  make
 BuildRequires:  gcc
@@ -60,12 +59,10 @@ Runtime libraries for using MUNGE.
 %prep
 %{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
 %autosetup -N -S git
-cp "%{SOURCE4}"  README-Fedora.md
-
-%autopatch
+cp "%{SOURCE3}"  README-Fedora.md
 
 %build
-%configure  --disable-static --with-crypto-lib=openssl --runstatedir="%{_rundir}" --with-systemdunitdir="%{_unitdir}"  --with-sysconfigdir="%{_sysconfdir}/sysconfig/" --with-logrotateddir="%{_sysconfdir}/logrotate.d/"
+%configure  --disable-static --with-crypto-lib=openssl --runstatedir="%{_rundir}" --with-systemdunitdir="%{_unitdir}"  --with-sysconfigdir="%{_sysconfdir}/sysconfig/" --with-logrotateddir="%{_sysconfdir}/logrotate.d/" --with-systemdsysusersdir="%{_sysusersdir}"
 # Get rid of some rpaths for /usr/sbin
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
@@ -74,9 +71,6 @@ sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 
 %install
 %make_install
-
-# Install extra files.
-install -p -D -m 0644 %{SOURCE3} %{buildroot}%{_sysusersdir}/munge.conf
 
 # rm unneeded files.
 # Exclude .la files
@@ -102,7 +96,7 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 
 
 %pre
-%sysusers_create_compat %{SOURCE3}
+%sysusers_create_compat %{_sysusersdir}/munge.conf
 
 %preun
 %systemd_preun munge.service
@@ -147,7 +141,7 @@ touch %{buildroot}%{_rundir}/munge/munged.pid
 
 %files libs
 %{_libdir}/libmunge.so.2
-%{_libdir}/libmunge.so.2.0.0
+%{_libdir}/libmunge.so.2.*
 
 %files devel
 %{_includedir}/munge.h
