@@ -9,9 +9,12 @@
 %bcond_with    ugni
 %bcond_with    xpmem
 %bcond_with    vfs
+%bcond_without mlx5
+%bcond_with    efa
+%bcond_without mad
 
 Name: ucx
-Version: 1.18.1
+Version: 1.20.0
 Release: %autorelease
 Summary: UCX is a communication library implementing high-performance messaging
 
@@ -27,10 +30,7 @@ License: BSD-3-Clause AND MIT AND CC-PDDC AND (BSD-3-Clause OR Apache-2.0)
 # All other files
 
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
-
-BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-Prefix: %{_prefix}
+Source: https://github.com/openucx/%{name}/releases/download/%{version}/ucx-%{version}.tar.gz
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64 riscv64
@@ -53,6 +53,12 @@ BuildRequires: gdrcopy
 %endif
 %if %{with ib}
 BuildRequires: libibverbs-devel
+%endif
+%if %{with mlx5}
+BuildRequires: rdma-core-devel
+%endif
+%if %{with mad}
+BuildRequires: libibmad-devel libibumad-devel
 %endif
 %if %{with knem}
 BuildRequires: knem
@@ -107,10 +113,14 @@ autoreconf -fiv
            --disable-params-check \
            --enable-mt \
            --without-java \
+           --without-go \
            %_enable_arg cma cma \
            %_with_arg cuda cuda \
            %_with_arg gdrcopy gdrcopy \
            %_with_arg ib verbs \
+           %_with_arg mlx5 mlx5 \
+           %_with_arg efa efa \
+           %_with_arg mad mad \
            %_with_arg knem knem \
            %_with_arg rdmacm rdmacm \
            %_with_arg rocm rocm \
@@ -211,8 +221,51 @@ hardware-offloaded data transfer.
 
 %files ib
 %dir %{_libdir}/ucx
+%{_libdir}/ucx/libuct_ib.so.*
+%endif
+
+%if %{with mlx5}
+%package ib-mlx5
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Requires: %{name}-ib%{?_isa} = %{version}-%{release}
+Summary: UCX IB MLX5 RDMA provider support
+
+%description ib-mlx5
+Provides support for DevX, Direct Verbs and DC transports for Mellanox
+InfiniBand devices.
+
+%files ib-mlx5
+%dir %{_libdir}/ucx
+%{_libdir}/ucx/libuct_ib_mlx5.so.*
+%endif
+
+%if %{with efa}
+%package ib-efa
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Requires: %{name}-ib%{?_isa} = %{version}-%{release}
+Summary: UCX EFA device RDMA support
+
+%description ib-efa
+Provides support for AWS Elastic Fabric Adapter (EFA) device as an IBTA
+transport for UCX.
+
+%files ib-efa
+%dir %{_libdir}/ucx
+%{_libdir}/ucx/libuct_ib_efa.so.*
+%endif
+
+%if %{with mad}
+%package mad
+Requires: %{name}%{?_isa} = %{version}-%{release}
+Summary: UCX InfiniBand MAD support
+
+%description mad
+Provides InfiniBand MAD support for UCX. Enables running perftest using
+InfiniBand datagrams for out-of-band communications.
+
+%files mad
+%dir %{_libdir}/ucx
 %{_libdir}/ucx/libucx_perftest_mad.so.*
-%{_libdir}/ucx/libuct_ib*.so.*
 %endif
 
 %if %{with knem}
@@ -233,7 +286,6 @@ for large messages.
 %if %{with rdmacm}
 %package rdmacm
 Requires: %{name}-ib%{?_isa} = %{version}-%{release}
-Requires: ucx-ib = %{version}-%{release}
 Summary: UCX RDMA connection manager support
 
 %description rdmacm
