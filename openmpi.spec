@@ -5,11 +5,9 @@
 
 %global macrosdir %(d=%{_rpmconfigdir}/macros.d; [ -d $d ] || d=%{_sysconfdir}/rpm; echo $d)
 
-%if 0%{?fedora} >= 32 || 0%{?rhel} >= 8
-%bcond_with python2
-%else
-%bcond_without python2
-%endif
+# ucx on ppc64le/power10 is broken https://github.com/openucx/ucx/issues/10780
+# Fedora: bcond_with on non-x86_64/aarch64, we enable unconditionally
+%bcond_without ucx
 
 # ARM 32-bit is not supported by rdma
 # https://bugzilla.redhat.com/show_bug.cgi?id=1780584
@@ -44,12 +42,16 @@
 %bcond_with psm2
 %endif
 
+# Some RCs require unreleased pmix version - at least let us test builds
+# Fedora: bcond_without pmix, we also enable unconditionally
+%bcond_without pmix
+
 # Run autogen - needed for some patches
-%bcond_with autogen
+%bcond autogen 0
 
 Name:           openmpi%{?_cc_name_suffix}
 Epoch:          3
-Version:        5.0.8
+Version:        5.0.9
 Release:        %autorelease
 Summary:        Open Message Passing Interface
 # Automatically converted from old format: BSD and MIT and Romio - review is highly recommended.
@@ -60,10 +62,8 @@ ExcludeArch:    %{ix86}
 # We can't use %%{name} here because of _cc_name_suffix
 Source0:        https://www.open-mpi.org/software/ompi/v5.0/downloads/openmpi-%{version}.tar.bz2
 Source1:        openmpi.module.in
-Source2:        openmpi.pth.py2
 Source3:        openmpi.pth.py3
 Source4:        macros.openmpi
-Source5:        openmpi.profile.in
 
 BuildRequires:  gcc-c++
 BuildRequires:  gcc-gfortran
@@ -107,7 +107,9 @@ BuildRequires:  orangefs-devel
 BuildRequires:  perl-generators
 BuildRequires:  perl-interpreter
 BuildRequires:  perl(Getopt::Long)
+%if %{with pmix}
 BuildRequires:  pmix-devel >= 4.2.7
+%endif
 # For configure to find /usr/bin/prte
 BuildRequires:  prrte
 BuildRequires:  prrte-devel
@@ -115,7 +117,9 @@ BuildRequires:  python%{python3_pkgversion}-devel
 %if %{with psm2}
 BuildRequires:  libpsm2-devel
 %endif
+%if %{with ucx}
 BuildRequires:  ucx-devel
+%endif
 BuildRequires:  zlib-devel
 %if !0%{?el7}
 BuildRequires:  rpm-mpi-hooks
@@ -195,17 +199,6 @@ Contains development wrapper for compiling Java with openmpi.
 # particular package, version, compiler
 %global namearch openmpi-%{_arch}%{?_cc_name_suffix}
 
-%if %{with python2}
-%package -n python2-openmpi
-Summary:        OpenMPI support for Python 2
-BuildRequires:  python2-devel
-Requires:       %{name} = %{version}-%{release}
-Requires:       python(abi) = %{python2_version}
-
-%description -n python2-openmpi
-OpenMPI support for Python 2.
-%endif
-
 %package -n python%{python3_pkgversion}-openmpi
 Summary:        OpenMPI support for Python 3
 Requires:       %{name} = %{version}-%{release}
@@ -247,7 +240,9 @@ OpenMPI support for Python 3.
 	--with-hwloc=/usr \
 %if !0%{?el7}
 	--with-libevent=external \
+%if %{with pmix}
 	--with-pmix=external \
+%endif
 	--with-slurm \
 %endif
 
@@ -266,22 +261,11 @@ sed 's#@LIBDIR@#%{_libdir}/%{name}#;
      s#@FMODDIR@#%{_fmoddir}/%{name}#;
      s#@INCDIR@#%{_includedir}/%{namearch}#;
      s#@MANDIR@#%{_mandir}/%{namearch}#;
-%if %{with python2}
-     s#@PY2SITEARCH@#%{python2_sitearch}/%{name}#;
-%else
-     /@PY2SITEARCH@/d;
-%endif
      s#@PY3SITEARCH@#%{python3_sitearch}/%{name}#;
      s#@COMPILER@#openmpi-%{_arch}%{?_cc_name_suffix}#;
      s#@SUFFIX@#%{?_cc_name_suffix}_openmpi#' \
      <%{SOURCE1} \
      >%{buildroot}%{_datadir}/modulefiles/mpi/%{namearch}
-
-# Make the profile script to auto-load module
-mkdir -p %{buildroot}%{_sysconfdir}/profile.d
-sed 's#@NAMEARCH@#%{namearch}#' \
-     <%{SOURCE5} \
-     >%{buildroot}%{_sysconfdir}/profile.d/%{namearch}.sh
 
 # make the rpm config file
 install -Dpm 644 %{SOURCE4} %{buildroot}/%{macrosdir}/macros.%{namearch}
@@ -312,19 +296,11 @@ sed -i -e s/-ldl// -e s/-lhwloc// \
   %{buildroot}%{_libdir}/%{name}/share/openmpi/*-wrapper-data.txt
 
 # install .pth files
-%if %{with python2}
-mkdir -p %{buildroot}/%{python2_sitearch}/%{name}
-install -pDm0644 %{SOURCE2} %{buildroot}/%{python2_sitearch}/openmpi.pth
-%endif
 mkdir -p %{buildroot}/%{python3_sitearch}/%{name}
 install -pDm0644 %{SOURCE3} %{buildroot}/%{python3_sitearch}/openmpi.pth
 
 %check
 fail=1
-# Failing on s390x - https://github.com/open-mpi/ompi/issues/10988
-%ifarch s390x
-fail=0
-%endif
 make check || ( cat test/*/test-suite.log && exit $fail )
 
 %files
@@ -341,29 +317,57 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 %config(noreplace) %{_sysconfdir}/%{namearch}/*
 %{_libdir}/%{name}/bin/mpi[er]*
 %{_libdir}/%{name}/bin/ompi*
+%if %{with ucx}
 %{_libdir}/%{name}/bin/oshmem_info
+%endif
 %{_libdir}/%{name}/bin/oshrun
+%if %{without pmix}
+%{_libdir}/%{name}/bin/pattrs
+%{_libdir}/%{name}/bin/pctrl
+%{_libdir}/%{name}/bin/pevent
+%{_libdir}/%{name}/bin/plookup
+%{_libdir}/%{name}/bin/pmix_info
+%{_libdir}/%{name}/bin/pmixcc
+%{_libdir}/%{name}/bin/pps
+%{_libdir}/%{name}/bin/pquery
+%{_libdir}/%{name}/lib/libpmix.so.2*
+%{_libdir}/%{name}/lib/pmix/
+%{_libdir}/%{name}/share/pmix/
+%{_mandir}/%{namearch}/man1/pmix_info.1*
+%{_mandir}/%{namearch}/man5/openpmix.5*
+%endif
 %{_mandir}/%{namearch}/man7/Open-MPI.7*
 %{_libdir}/%{name}/lib/*.so.40*
 %{_libdir}/%{name}/lib/*.so.80*
+%if 0%{?el7}
+%{_libdir}/%{name}/lib/pmix/
+%endif
 %{_mandir}/%{namearch}/man1/mpirun.1*
 %{_mandir}/%{namearch}/man1/mpisync.1*
 %{_mandir}/%{namearch}/man1/ompi*
+%if %{with ucx}
 %{_mandir}/%{namearch}/man1/oshmem_info*
+%endif
 %{_libdir}/%{name}/lib/openmpi/*
 %{_datadir}/modulefiles/mpi/
-%{_sysconfdir}/profile.d/%{namearch}.sh
 %dir %{_libdir}/%{name}/share
 %dir %{_libdir}/%{name}/share/openmpi
 %{_libdir}/%{name}/share/openmpi/amca-param-sets
 %{_libdir}/%{name}/share/openmpi/help*.txt
+%if 0%{?el7}
+%{_libdir}/%{name}/share/pmix/
+%endif
 
 %files devel
 %dir %{_includedir}/%{namearch}
 %{_libdir}/%{name}/bin/mpi[cCf]*
 %{_libdir}/%{name}/bin/opal_*
+%if %{with ucx}
 %{_libdir}/%{name}/bin/osh[cCf]*
+%endif
+%if %{with ucx}
 %{_libdir}/%{name}/bin/shmem[cCf]*
+%endif
 %{_includedir}/%{namearch}/*
 %{_fmoddir}/%{name}/
 %{_libdir}/%{name}/lib/*.so
@@ -372,9 +376,11 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 %{_libdir}/%{name}/lib/pkgconfig/
 %{_libdir}/pkgconfig/*.pc
 %{_mandir}/%{namearch}/man1/mpi[cCf]*
+%if %{with ucx}
 %{_mandir}/%{namearch}/man1/osh[cCf]*
 %{_mandir}/%{namearch}/man1/oshmem-wrapper-compiler.1*
 %{_mandir}/%{namearch}/man1/shmem[cCf]*
+%endif
 %{_mandir}/%{namearch}/man1/opal_*
 %{_mandir}/%{namearch}/man3/*
 %{_libdir}/%{name}/share/openmpi/openmpi-valgrind.supp
@@ -395,12 +401,6 @@ make check || ( cat test/*/test-suite.log && exit $fail )
 %{_libdir}/%{name}/bin/mpijavac.pl
 %doc %{_libdir}/%{name}/share/doc/openmpi/javadoc-openmpi
 %{_mandir}/%{namearch}/man1/mpijavac.1.gz
-%endif
-
-%if %{with python2}
-%files -n python2-openmpi
-%dir %{python2_sitearch}/%{name}
-%{python2_sitearch}/openmpi.pth
 %endif
 
 %files -n python%{python3_pkgversion}-openmpi
