@@ -1,22 +1,22 @@
 %global plugstack_conf_d /slurm/plugstack.conf.d
 
 Name:           slurm-singularity-exec
-Version:        3.1.0
+Version:        3.2.0
 Release:        %autorelease
 Epoch:          1
 Summary:        Slurm SPANK plugin to start Singularity/Apptainer containers
 
-License:        GPLv3
+License:        GPL-3.0-or-later
 Source0:        https://github.com/GSI-HPC/%{name}/archive/refs/tags/v%{version}.tar.gz
 
 BuildRequires:  cmake
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
 BuildRequires:  libstdc++-static
-BuildRequires:  slurm-devel = 25.05.2
+BuildRequires:  slurm-devel >= 25.11, slurm-devel < 25.12
 
 Requires:       apptainer
-Requires:       slurm-slurmd = 25.05.2
+Requires:       slurm-slurmd >= 25.11, slurm-slurmd < 25.12
 
 %description
 The Singularity SPANK plug-in provides the users with an interface to launch an
