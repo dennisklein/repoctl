@@ -17,7 +17,7 @@
 %global slurmcfgdir %{_datadir}/%{name}
 
 Name:           slurm
-Version:        25.05.2
+Version:        25.11.2
 Release:        %autorelease
 Summary:        Simple Linux Utility for Resource Management
 # ./src/common/log.c: BSD 2-Clause License
@@ -38,12 +38,14 @@ Patch0:         slurm_release_version.patch
 # Build-related patches
 Patch11:        slurm_html_doc_path.patch
 Patch12:        slurm_perlapi_rpaths.patch
-Patch13:        slurm-24.05.2-perlapi_vendor_installpath.patch
+Patch13:        slurm_perlapi_vendor_installpath.patch
 Patch14:        slurm_plugstack_conf_d.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  dbus-devel
+BuildRequires:  kernel-headers
+BuildRequires:  libbpf-devel
 BuildRequires:  desktop-file-utils
 BuildRequires:  gcc
 BuildRequires:  make
@@ -92,6 +94,7 @@ ExcludeArch:    armv7hl
 ExcludeArch:    i686
 
 Requires:       /bin/mailx
+Requires:       libbpf
 Requires:       munge
 Requires:       pmix
 Requires:       pmix_v4
@@ -243,6 +246,7 @@ export LDFLAGS="%{build_ldflags} -Wl,-z,lazy"
   --sysconfdir=%{_sysconfdir}/%{name} \
   --with-pam_dir=%{_libdir}/security \
   --with-ucx=%{_prefix} \
+  --enable-cgroupv2 \
   --enable-pam \
   --enable-shared \
   --enable-x11 \
@@ -464,7 +468,9 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %{_libdir}/%{name}/gpu_*.so
 %{_libdir}/%{name}/gres_*.so
 %{_libdir}/%{name}/hash_*.so
-%{_libdir}/%{name}/job_container_*.so
+%{_libdir}/%{name}/http_parser_*.so
+%{_libdir}/%{name}/metrics_*.so
+%{_libdir}/%{name}/namespace_*.so
 %{_libdir}/%{name}/job_submit_*.so
 %{_libdir}/%{name}/jobacct_gather_*.so
 %{_libdir}/%{name}/jobcomp_*.so
@@ -509,9 +515,10 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %{_mandir}/man5/gres.conf.5*
 %{_mandir}/man5/helpers.conf.5*
 %{_mandir}/man5/job_container.conf.5*
-%{_mandir}/man5/knl.conf.5*
 %{_mandir}/man5/mpi.conf.5*
+%{_mandir}/man5/namespace.yaml.5*
 %{_mandir}/man5/oci.conf.5*
+%{_mandir}/man5/resources.yaml.5*
 %{_mandir}/man5/slurm.conf.5*
 %{_mandir}/man5/topology.conf.5*
 %{_mandir}/man5/topology.yaml.5*
