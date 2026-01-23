@@ -90,8 +90,8 @@ BuildRequires:  hwloc-gui
 %if %{with java}
 BuildRequires:  java-devel
 %else
-Obsoletes:      %{name}-java < %{version}-%{release}
-Obsoletes:      %{name}-java-devel < %{version}-%{release}
+Obsoletes:      %{name}-java < %{epoch}:%{version}-%{release}
+Obsoletes:      %{name}-java-devel < %{epoch}:%{version}-%{release}
 %endif
 # Old libevent causes issues
 %if !0%{?el7}
@@ -157,7 +157,7 @@ researchers. For more information, see http://www.open-mpi.org/ .
 
 %package devel
 Summary:	Development files for openmpi
-Requires:	%{name} = %{version}-%{release}, gcc-gfortran
+Requires:	%{name} = %{epoch}:%{version}-%{release}, gcc-gfortran
 Provides:	mpi-devel
 %if !0%{?el7}
 Requires:	rpm-mpi-hooks
@@ -180,7 +180,7 @@ HTML documentation for openmpi.
 %if %{with java}
 %package java
 Summary:        Java library
-Requires:       %{name} = %{version}-%{release}
+Requires:       %{name} = %{epoch}:%{version}-%{release}
 Requires:       java-headless
 
 %description java
@@ -188,7 +188,7 @@ Java library.
 
 %package java-devel
 Summary:        Java development files for openmpi
-Requires:       %{name}-java = %{version}-%{release}
+Requires:       %{name}-java = %{epoch}:%{version}-%{release}
 Requires:       java-devel
 
 %description java-devel
@@ -201,7 +201,7 @@ Contains development wrapper for compiling Java with openmpi.
 
 %package -n python%{python3_pkgversion}-openmpi
 Summary:        OpenMPI support for Python 3
-Requires:       %{name} = %{version}-%{release}
+Requires:       %{name} = %{epoch}:%{version}-%{release}
 Requires:       python(abi) = %{python3_version}
 
 %description -n python%{python3_pkgversion}-openmpi
