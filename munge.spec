@@ -13,6 +13,8 @@ Source1:        https://github.com/dun/munge/releases/download/%{name}-%{version
 Source2:        https://github.com/dun.gpg
 Source3:        README.md
 
+Patch0:         munge-runtime-directory-preserve.patch
+
 BuildRequires:  make
 BuildRequires:  gcc
 BuildRequires:  git-core
@@ -59,6 +61,7 @@ Runtime libraries for using MUNGE.
 %prep
 %{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
 %autosetup -N -S git
+%patch -P0 -p1
 cp "%{SOURCE3}"  README-Fedora.md
 
 %build
