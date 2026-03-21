@@ -62,11 +62,42 @@ Version:    %{rocm_version}
 %if %{with preview}
 Release:    0%{?dist}
 %else
-Release:    2%{?dist}
+Release:    3%{?dist}
 %endif
 Summary:    ROCm System Management Interface Library
 
 License:    MIT AND NCSA
+# The main license is MIT
+# The NCSA license applies to these files
+#  cmake_modules/utils.cmake
+#  include/rocm_smi/rocm_smi.h
+#  include/rocm_smi/rocm_smi_common.h
+#  include/rocm_smi/rocm_smi_counters.h
+#  include/rocm_smi/rocm_smi_device.h
+#  include/rocm_smi/rocm_smi_exception.h
+#  include/rocm_smi/rocm_smi_io_link.h
+#  include/rocm_smi/rocm_smi_kfd.h
+#  include/rocm_smi/rocm_smi_logger.h
+#  include/rocm_smi/rocm_smi_main.h
+#  include/rocm_smi/rocm_smi_monitor.h
+#  include/rocm_smi/rocm_smi_power_mon.h
+#  include/rocm_smi/rocm_smi_properties.h
+#  include/rocm_smi/rocm_smi_utils.h
+#  rocm_smi/example/rocm_smi_example.cc
+#  src/rocm_smi.cc
+#  src/rocm_smi_counters.cc
+#  src/rocm_smi_device.cc
+#  src/rocm_smi_io_link.cc
+#  src/rocm_smi_kfd.cc
+#  src/rocm_smi_logger.cc
+#  src/rocm_smi_main.cc
+#  src/rocm_smi_monitor.cc
+#  src/rocm_smi_power_mon.cc
+#  src/rocm_smi_properties.cc
+#  src/rocm_smi_utils.cc
+#  oam/src/oamConfig.in
+#  src/rocm_smi64Config.in
+
 URL:        https://github.com/ROCm/rocm-systems
 Source0:    %{url}/releases/download/%{pkg_src}/%{upstreamname}.tar.gz#/%{upstreamname}-%{version}.tar.gz
 
@@ -91,6 +122,10 @@ BuildRequires:  rocm-filesystem%{pkg_suffix}
 
 %if %{with test}
 BuildRequires:  gtest-devel
+%endif
+
+%if %{with compat}
+Requires:       rocm-filesystem%{pkg_suffix}
 %endif
 
 %description
@@ -137,6 +172,11 @@ sed -i -e '/TARGETS gtest gtest_main/,+3d' tests/rocm_smi_test/CMakeLists.txt
 # https://github.com/ROCm/rocm-systems/issues/1021
 sed -i '/#include <string.*/a#include <iomanip>' tests/rocm_smi_test/test_base.h
 
+# Do not package tests if we are building them
+%if %{without test}
+rm -rf tests
+%endif
+
 %build
 %cmake \
     -DBUILD_TESTS=%{build_test} \
@@ -179,6 +219,9 @@ rm -f %{buildroot}%{pkg_prefix}/share/doc/rocm-smi-lib/LICENSE.md
 %endif
 
 %changelog
+* Sat Mar 21 2026 Tom Rix <Tom.Rix@amd.com> - 7.2.0-2
+- Merge back rocm-smi7.2
+
 * Wed Mar 11 2026 Tom Rix <Tom.Rix@amd.com> - 7.2.0-2
 - Add --with preview
 
