@@ -1,0 +1,252 @@
+#!/bin/bash
+# Get all release information for a package
+# Usage: get-package-info <package> [version-filter]
+#
+# The GitHub owner/repo is derived from the spec file URL or built-in mapping.
+#
+# Output (JSON):
+# {
+#   "package": "ucx",
+#   "upstream_url": "https://github.com/openucx/ucx",
+#   "github_tag": "v1.18.0",
+#   "github_date": "2024-12-01T12:00:00Z",
+#   "fedora_version": "1.18.0"
+# }
+
+set -e
+
+PKG="${1:?Usage: get-package-info <package> [version-filter]}"
+VERSION_FILTER="${2:-}"
+
+# Built-in mapping for packages where URL doesn't match GitHub repo
+declare -A REPO_MAP=(
+    [munge]="dun/munge"
+    [openmpi]="open-mpi/ompi"
+    [pmix]="openpmix/openpmix"
+    [pmix_v4]="openpmix/openpmix"
+    [prrte]="openpmix/prrte"
+    [slurm]="SchedMD/slurm"
+    [rocm-smi]="ROCm/rocm_smi_lib"
+    [slurm-singularity-exec]="GSI-HPC/slurm-singularity-exec"
+    [ucx]="openucx/ucx"
+)
+
+# Default version filters for specific packages
+declare -A DEFAULT_FILTERS=(
+    [openmpi]="^v[0-9]"
+    [pmix]="^v5"
+    [pmix_v4]="^v4"
+    [rocm-smi]="^rocm-[0-9]"
+    [slurm]="^slurm-"
+)
+
+#
+# Get upstream URL from package spec file
+#
+get_upstream_url() {
+    local pkg="$1"
+    local spec="packages/${pkg}/${pkg}.spec"
+
+    if [[ ! -f "$spec" ]]; then
+        echo ""
+        return
+    fi
+
+    rpmspec -q --srpm --qf '%{url}\n' "$spec" 2>/dev/null || echo ""
+}
+
+#
+# Extract owner/repo from GitHub URL
+#
+extract_github_repo() {
+    local url="$1"
+    # Match github.com/owner/repo patterns
+    if [[ "$url" =~ github\.com[/:]([^/]+)/([^/]+) ]]; then
+        local owner="${BASH_REMATCH[1]}"
+        local repo="${BASH_REMATCH[2]}"
+        # Strip .git suffix if present
+        repo="${repo%.git}"
+        echo "${owner}/${repo}"
+    fi
+}
+
+#
+# Get GitHub repo for a package
+#
+get_github_repo() {
+    local pkg="$1"
+
+    # Check built-in mapping first
+    if [[ -n "${REPO_MAP[$pkg]}" ]]; then
+        echo "${REPO_MAP[$pkg]}"
+        return
+    fi
+
+    # Try to extract from spec URL
+    local url
+    url=$(get_upstream_url "$pkg")
+    if [[ -n "$url" && "$url" != "(none)" ]]; then
+        local repo
+        repo=$(extract_github_repo "$url")
+        if [[ -n "$repo" ]]; then
+            echo "$repo"
+            return
+        fi
+    fi
+
+    echo ""
+}
+
+#
+# Get latest stable GitHub release
+# Falls back to tags if no releases exist
+#
+get_github_release() {
+    local repo="$1"
+    local filter="$2"
+
+    local result
+    result=$(get_from_releases "$repo" "$filter")
+
+    if [[ "$result" == "null null" ]]; then
+        result=$(get_from_tags "$repo" "$filter")
+    fi
+
+    echo "$result"
+}
+
+get_from_releases() {
+    local repo="$1"
+    local filter="$2"
+    local jq_filter='.[] | select(.prerelease == false and (.tag_name | test("rc|alpha|beta|amzn"; "i") | not))'
+
+    [[ -n "$filter" ]] && jq_filter+=" | select(.tag_name | test(\"$filter\"))"
+
+    local data tag date tags_only highest_version
+    data=$(gh api "repos/${repo}/releases" --paginate | jq -r "$jq_filter | \"\(.tag_name)\t\(.published_at)\"")
+
+    [[ -z "$data" ]] && { echo "null null"; return; }
+
+    # Sort by version after stripping v prefix, then find the original tag name
+    tags_only=$(cut -f1 <<< "$data")
+    highest_version=$(echo "$tags_only" | sed 's/^v//' | sort -V | tail -1)
+    tag=$(echo "$tags_only" | grep -E "^v?${highest_version}$" | head -1)
+    date=$(grep -P "^${tag}\t" <<< "$data" | cut -f2)
+    echo "$tag $date"
+}
+
+get_from_tags() {
+    local repo="$1"
+    local filter="$2"
+    local tag tags_raw
+
+    # Get all tags, filter for stable releases
+    if [[ -n "$filter" ]]; then
+        tags_raw=$(gh api "repos/${repo}/tags" --paginate | \
+            jq -r --arg filter "$filter" \
+            '.[] | select(.name | test("rc|alpha|beta|amzn"; "i") | not) | select(.name | test($filter)) | .name')
+    else
+        tags_raw=$(gh api "repos/${repo}/tags" --paginate | \
+            jq -r '.[] | select(.name | test("rc|alpha|beta|amzn"; "i") | not) | .name')
+    fi
+
+    # Sort by version after stripping v prefix, then find the original tag name
+    local highest_version
+    highest_version=$(echo "$tags_raw" | sed 's/^v//' | sort -V | tail -1)
+    # Match back to original tag (prefer v-prefixed if both exist)
+    tag=$(echo "$tags_raw" | grep -E "^v?${highest_version}$" | head -1)
+
+    if [[ -n "$tag" && "$tag" != "null" ]]; then
+        local commit_sha date obj_type
+        commit_sha=$(gh api "repos/${repo}/git/ref/tags/${tag}" --jq '.object.sha' 2>/dev/null || echo "")
+        if [[ -n "$commit_sha" ]]; then
+            obj_type=$(gh api "repos/${repo}/git/tags/${commit_sha}" --jq '.object.type' 2>/dev/null || echo "commit")
+            if [[ "$obj_type" == "commit" ]]; then
+                commit_sha=$(gh api "repos/${repo}/git/tags/${commit_sha}" --jq '.object.sha' 2>/dev/null || echo "$commit_sha")
+            fi
+            date=$(gh api "repos/${repo}/commits/${commit_sha}" --jq '.commit.committer.date' 2>/dev/null || echo "unknown")
+        else
+            date="unknown"
+        fi
+        echo "$tag $date"
+    else
+        echo "null null"
+    fi
+}
+
+#
+# Get package version from Fedora rawhide
+#
+get_fedora_version() {
+    local pkg="$1"
+    local pkg_dir="packages/${pkg}"
+
+    if [[ ! -d "$pkg_dir" ]]; then
+        echo "N/A"
+        return
+    fi
+
+    local fedora_remote
+    fedora_remote=$(git -C "$pkg_dir" remote -v 2>/dev/null | \
+        grep 'src.fedoraproject.org' | \
+        head -1 | \
+        awk '{print $1}')
+
+    if [[ -z "$fedora_remote" ]]; then
+        echo "N/A"
+        return
+    fi
+
+    git -C "$pkg_dir" fetch "$fedora_remote" rawhide 2>/dev/null || {
+        echo "N/A"
+        return
+    }
+
+    git -C "$pkg_dir" show "${fedora_remote}/rawhide:${pkg}.spec" 2>/dev/null | \
+        rpmspec -q --srpm --qf '%{version}\n' /dev/stdin 2>/dev/null || echo "N/A"
+}
+
+#
+# Main
+#
+main() {
+    local upstream_url repo gh_result gh_tag gh_date fedora_version filter
+
+    upstream_url=$(get_upstream_url "$PKG")
+    repo=$(get_github_repo "$PKG")
+
+    if [[ -z "$repo" ]]; then
+        echo "Error: Could not determine GitHub repo for $PKG" >&2
+        exit 1
+    fi
+
+    # Fall back to GitHub URL if spec has no URL
+    if [[ -z "$upstream_url" || "$upstream_url" == "(none)" ]]; then
+        upstream_url="https://github.com/${repo}"
+    fi
+
+    # Use provided filter or default
+    filter="${VERSION_FILTER:-${DEFAULT_FILTERS[$PKG]:-}}"
+
+    gh_result=$(get_github_release "$repo" "$filter")
+    gh_tag=$(echo "$gh_result" | awk '{print $1}')
+    gh_date=$(echo "$gh_result" | awk '{print $2}')
+
+    fedora_version=$(get_fedora_version "$PKG")
+
+    jq -n \
+        --arg pkg "$PKG" \
+        --arg url "$upstream_url" \
+        --arg tag "$gh_tag" \
+        --arg date "$gh_date" \
+        --arg fedora "$fedora_version" \
+        '{
+            package: $pkg,
+            upstream_url: $url,
+            github_tag: $tag,
+            github_date: $date,
+            fedora_version: $fedora
+        }'
+}
+
+main
