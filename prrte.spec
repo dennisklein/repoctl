@@ -97,12 +97,8 @@ find %{buildroot} -name '*.la' -delete
 
 %files
 %doc README.md
-%{_libdir}/openmpi/bin/prte
-%{_libdir}/openmpi/bin/prte_info
-%{_libdir}/openmpi/bin/prted
-%{_libdir}/openmpi/bin/prterun
-%{_libdir}/openmpi/bin/prun
-%{_libdir}/openmpi/bin/pterm
+%{_libdir}/openmpi/bin/*
+%exclude %{_libdir}/openmpi/bin/pcc
 %{_libdir}/openmpi/share/man/man1/*.1*
 %{_libdir}/openmpi/share/man/man5/*.5*
 
