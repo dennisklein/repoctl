@@ -51,7 +51,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Epoch:          3
-Version:        5.0.9
+Version:        5.0.10
 Release:        %autorelease
 Summary:        Open Message Passing Interface
 # Automatically converted from old format: BSD and MIT and Romio - review is highly recommended.
@@ -108,7 +108,7 @@ BuildRequires:  perl-generators
 BuildRequires:  perl-interpreter
 BuildRequires:  perl(Getopt::Long)
 %if %{with pmix}
-BuildRequires:  pmix-devel >= 4.2.7
+BuildRequires:  pmix-devel >= 6.1.0
 %endif
 # For configure to find /usr/bin/prte
 BuildRequires:  prrte
