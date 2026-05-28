@@ -1,7 +1,7 @@
 %global _lto_cflags %nil
 
 Name:           prrte
-Version:        3.0.12
+Version:        4.1.0
 Release:        %autorelease
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 # src/mca/prtereachable/netlink/reachable_netlink_utils_common.c is BSD-2-Clause
@@ -18,7 +18,7 @@ BuildRequires:  gcc
 BuildRequires:  make
 BuildRequires:  hwloc-devel
 BuildRequires:  libevent-devel
-BuildRequires:  pmix-devel >= 4.2.2
+BuildRequires:  pmix-devel >= 6.1.0
 # For pmixcc - https://bugzilla.redhat.com/show_bug.cgi?id=2078048
 BuildRequires:  pmix-tools
 BuildRequires:  perl-interpreter
