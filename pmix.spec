@@ -1,7 +1,7 @@
 %global _lto_cflags %nil
 
 Name:           pmix
-Version:        5.0.9
+Version:        6.1.0
 Release:        %autorelease
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
