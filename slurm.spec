@@ -17,7 +17,7 @@
 %global slurmcfgdir %{_datadir}/%{name}
 
 Name:           slurm
-Version:        25.11.6
+Version:        26.05.0
 Release:        %autorelease
 Summary:        Simple Linux Utility for Resource Management
 # ./src/common/log.c: BSD 2-Clause License
@@ -59,6 +59,7 @@ BuildRequires:  pkgconf
 BuildRequires:  pkgconfig(check)
 BuildRequires:  pkgconfig(lua)
 BuildRequires:  pkgconfig(pmix)
+BuildRequires:  pkgconfig(pmix_v5)
 BuildRequires:  pkgconfig(pmix_v4)
 BuildRequires:  python3
 BuildRequires:  systemd
@@ -97,6 +98,7 @@ Requires:       /bin/mailx
 Requires:       libbpf
 Requires:       munge
 Requires:       pmix
+Requires:       pmix_v5
 Requires:       pmix_v4
 Requires:       ucx
 %{?systemd_requires}
@@ -254,7 +256,7 @@ export LDFLAGS="%{build_ldflags} -Wl,-z,lazy"
   --disable-debug \
   --disable-partial_attach \
   --with-oneapi=no \
-  --with-pmix=$(pkg-config --variable=prefix pmix):$(pkg-config --variable=prefix pmix_v4) \
+  --with-pmix=$(pkg-config --variable=prefix pmix):$(pkg-config --variable=prefix pmix_v5):$(pkg-config --variable=prefix pmix_v4) \
   --with-shared-libslurm \
   --without-rpath \
   --with-rsmi=%{_prefix}
