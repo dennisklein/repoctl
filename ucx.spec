@@ -14,7 +14,7 @@
 %bcond_without mad
 
 Name: ucx
-Version: 1.20.0
+Version: 1.20.1
 Release: %autorelease
 Summary: UCX is a communication library implementing high-performance messaging
 
@@ -30,7 +30,7 @@ License: BSD-3-Clause AND MIT AND CC-PDDC AND (BSD-3-Clause OR Apache-2.0)
 # All other files
 
 URL: http://www.openucx.org
-Source: https://github.com/openucx/%{name}/releases/download/%{version}/ucx-%{version}.tar.gz
+Source: https://github.com/openucx/%{name}/releases/download/v%{version}/ucx-%{version}.tar.gz
 
 # UCX currently supports only the following architectures
 ExclusiveArch: aarch64 ppc64le x86_64 riscv64
