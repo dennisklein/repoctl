@@ -453,6 +453,7 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %{_bindir}/sshare
 %{_bindir}/sstat
 %{_bindir}/strigger
+%{_bindir}/swait
 %{_bindir}/%{name}-setuser
 %{_libdir}/%{name}/accounting_storage_*.so
 %{_libdir}/%{name}/acct_gather_*.so
@@ -465,11 +466,13 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %{_libdir}/%{name}/cgroup_v1.so
 %{_libdir}/%{name}/cgroup_v2.so
 %{_libdir}/%{name}/cli_filter_*.so
+%{_libdir}/%{name}/compress_*.so
 %{_libdir}/%{name}/cred_*.so
 %{_libdir}/%{name}/data_parser_*.so
 %{_libdir}/%{name}/gpu_*.so
 %{_libdir}/%{name}/gres_*.so
 %{_libdir}/%{name}/hash_*.so
+%{_libdir}/%{name}/http_auth_*.so
 %{_libdir}/%{name}/http_parser_*.so
 %{_libdir}/%{name}/metrics_*.so
 %{_libdir}/%{name}/namespace_*.so
@@ -490,6 +493,7 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %{_libdir}/%{name}/task_*.so
 %{_libdir}/%{name}/tls_none.so
 %{_libdir}/%{name}/topology_*.so
+%{_libdir}/%{name}/url_parser_*.so
 %{_mandir}/man1/sacct.1*
 %{_mandir}/man1/sacctmgr.1*
 %{_mandir}/man1/salloc.1*
@@ -511,6 +515,7 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %{_mandir}/man1/sshare.1*
 %{_mandir}/man1/sstat.1*
 %{_mandir}/man1/strigger.1*
+%{_mandir}/man1/swait.1*
 %{_mandir}/man5/acct_gather.conf.5*
 %{_mandir}/man5/burst_buffer.conf.5*
 %{_mandir}/man5/cgroup.conf.5*
