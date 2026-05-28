@@ -1,12 +1,15 @@
 %global _lto_cflags %nil
+%global _prefix /opt/%{name}
+%global _name pmix
+%global _pmix_v5_pkgconfig /usr/%{_lib}/pkgconfig/%{name}.pc
 
-Name:           pmix
-Version:        5.0.9
+Name:           pmix_v5
+Version:        5.0.10
 Release:        %autorelease
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
 URL:            https://pmix.org/
-Source0:        https://github.com/openpmix/openpmix/releases/download/v%{version}/%{name}-%{version}.tar.bz2
+Source0:        https://github.com/openpmix/openpmix/releases/download/v%{version}/%{_name}-%{version}.tar.bz2
 
 BuildRequires:  autoconf
 BuildRequires:  automake
@@ -20,6 +23,8 @@ BuildRequires:  munge-devel
 BuildRequires:  perl-interpreter
 BuildRequires:  python3-devel
 BuildRequires:  zlib-devel
+
+ExcludeArch:    %{ix86}
 
 %description
 The Process Management Interface (PMI) has been used for quite some time as
@@ -43,24 +48,13 @@ scalability.
 %package        devel
 Summary:        Development files for %{name}
 Requires:       %{name}%{?_isa} = %{version}-%{release}
-Requires:       %{name}-tools%{?_isa} = %{version}-%{release}
+Provides:       pkgconfig(pmix_v5) = %{version}
 %description    devel
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
-%package        tools
-Summary:        Tools for %{name}
-Requires:       %{name}%{?_isa} = %{version}-%{release}
-%description    tools
-The %{name}-tools package contains for use with PMIx-based RMs and language-
-based starters (e.g., mpirun).
-
-* pinfo - show MCA params, build info, etc.
-* pps - get list of active nspaces, retrieve status of jobs/nodes/procs
-* pevent - inject an event into the system
-
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{_name}-%{version}
 
 # touch lexer sources to recompile them
 find src -name \*.l -print -exec touch --no-create {} \;
@@ -72,8 +66,7 @@ export CFLAGS="%{build_cflags} -Wno-unused-function -Wno-attributes"
     --sysconfdir=%{_sysconfdir}/%{name} \
     --disable-static \
     --disable-silent-rules \
-    --enable-wrapper-rpath=no \
-    --enable-wrapper-runpath=no \
+    --disable-pmix-binaries \
     --enable-ipv6 \
     --enable-shared \
     --with-munge
@@ -89,33 +82,32 @@ export CFLAGS="%{build_cflags} -Wno-unused-function -Wno-attributes"
 # remove libtool archives
 find %{buildroot} -name '*.la' | xargs rm -f
 
+rm -rf %{buildroot}%{_mandir}/
+rm -rf %{buildroot}%{_docdir}/%{_name}/
+rm -rf %{buildroot}%{_datadir}/%{_name}/
+mkdir -p %{buildroot}/usr/%{_lib}/pkgconfig
+mv %{buildroot}%{_libdir}/pkgconfig/%{_name}.pc %{buildroot}%{_pmix_v5_pkgconfig}
+rmdir %{buildroot}%{_libdir}/pkgconfig
+sed -i 's/Name: pmix/Name: pmix_v5/g' %{buildroot}%{_pmix_v5_pkgconfig}
+
 %ldconfig_scriptlets
 %ldconfig_scriptlets devel
 
 %files
 %license LICENSE
 %doc README.md
-%dir %{_datadir}/%{name}
-%dir %{_libdir}/%{name}
+%dir %{_libdir}/%{_name}
 %dir %{_sysconfdir}/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/*.conf
-%{_datadir}/%{name}/*.txt
-%{_libdir}/libpmix.so.2*
-%{_libdir}/%{name}/*.so
-%{_mandir}/man1/*.1*
-%{_mandir}/man5/*.5*
+%{_libdir}/lib%{_name}.so.2*
+%{_libdir}/%{_name}/*.so
 
 %files devel
-%{_datadir}/%{name}/*.supp
-%{_includedir}/pmix*.h
-%{_includedir}/pmix/
-%{_libdir}/libpmix.so
-%{_libdir}/pkgconfig/*.pc
-%{_docdir}/%{name}/
-%{_mandir}/man3/*.3*
-
-%files tools
-%{_bindir}/*
+%dir %{_includedir}/%{_name}
+%{_includedir}/%{_name}/
+%{_includedir}/%{_name}*.h
+%{_libdir}/lib%{_name}.so
+%{_pmix_v5_pkgconfig}
 
 %changelog
 %autochangelog
