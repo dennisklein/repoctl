@@ -85,7 +85,12 @@ BuildRequires:  rocm-smi-devel
 BuildRequires:  zlib-devel
 BuildRequires:  ucx-devel
 
+# http-parser was retired in EL10; slurm's http_parser plugin then uses llhttp
+%if 0%{?rhel} >= 10
+BuildRequires:  llhttp-devel
+%else
 BuildRequires:  http-parser-devel
+%endif
 BuildRequires:  json-c-devel
 BuildRequires:  libjwt-devel
 BuildRequires:  libyaml-devel
