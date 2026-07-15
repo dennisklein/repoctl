@@ -51,7 +51,7 @@
 
 Name:           openmpi%{?_cc_name_suffix}
 Epoch:          3
-Version:        5.0.9
+Version:        5.0.10
 Release:        %autorelease
 Summary:        Open Message Passing Interface
 # Automatically converted from old format: BSD and MIT and Romio - review is highly recommended.
