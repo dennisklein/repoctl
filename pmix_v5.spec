@@ -4,7 +4,7 @@
 %global _pmix_v5_pkgconfig /usr/%{_lib}/pkgconfig/%{name}.pc
 
 Name:           pmix_v5
-Version:        5.0.10
+Version:        5.0.11
 Release:        %autorelease
 Summary:        Process Management Interface Exascale (PMIx)
 License:        BSD-3-Clause
