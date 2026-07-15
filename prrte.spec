@@ -1,7 +1,7 @@
 %global _lto_cflags %nil
 
 Name:           prrte
-Version:        3.0.12
+Version:        3.0.14
 Release:        %autorelease
 Summary:        PMIx Reference RunTime Environment (PRRTE)
 # src/mca/prtereachable/netlink/reachable_netlink_utils_common.c is BSD-2-Clause
