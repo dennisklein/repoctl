@@ -14,7 +14,7 @@
 %bcond_without mad
 
 Name: ucx
-Version: 1.20.1
+Version: 1.21.0
 Release: %autorelease
 Summary: UCX is a communication library implementing high-performance messaging
 
