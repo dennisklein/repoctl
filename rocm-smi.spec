@@ -127,7 +127,11 @@ BuildRequires:  doxygen-latex >= 1.9.7
 BuildRequires:  gcc-c++
 BuildRequires:  git
 BuildRequires:  libdrm-devel
+# Only the compat layout installs under the rocm-filesystem prefix; the sources
+# reference neither ROCM_PATH nor rocm-filesystem. EPEL9 has no such package.
+%if %{with compat}
 BuildRequires:  rocm-filesystem%{pkg_suffix}
+%endif
 
 %if %{with test}
 BuildRequires:  gtest-devel
