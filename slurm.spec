@@ -757,6 +757,12 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %{_mandir}/man1/qsub.1*
 %{_mandir}/man1/mpiexec.1*
 
+# Local deviation from Fedora: restart on upgrade for slurmd, slurmrestd and
+# sackd. slurmd.service sets KillMode=process, so slurmstepd processes survive
+# the restart and running jobs continue; slurmd reconnects to them on startup.
+# slurmctld and slurmdbd are deliberately NOT restarted -- they carry cluster
+# state and slurmdbd upgrades may need significant downtime, so those stay
+# under manual control.
 %post sackd
 %systemd_post sackd.service
 
@@ -764,7 +770,7 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %systemd_preun sackd.service
 
 %postun sackd
-%systemd_postun sackd.service
+%systemd_postun_with_restart sackd.service
 
 %post slurmctld
 %systemd_post slurmctld.service
@@ -782,7 +788,7 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %systemd_preun slurmd.service
 
 %postun slurmd
-%systemd_postun slurmd.service
+%systemd_postun_with_restart slurmd.service
 
 %post slurmdbd
 %systemd_post slurmdbd.service
@@ -800,7 +806,7 @@ ln -fs ./slurm_completion.sh %{buildroot}%{bash_completions_dir}/strigger
 %systemd_preun slurmrestd.service
 
 %postun slurmrestd
-%systemd_postun slurmrestd.service
+%systemd_postun_with_restart slurmrestd.service
 
 %changelog
 %autochangelog
