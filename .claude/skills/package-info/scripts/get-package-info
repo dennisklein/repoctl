@@ -27,7 +27,10 @@ declare -A REPO_MAP=(
     [pmix_v5]="openpmix/openpmix"
     [prrte]="openpmix/prrte"
     [slurm]="SchedMD/slurm"
-    [rocm-smi]="ROCm/rocm_smi_lib"
+    # ROCm/rocm_smi_lib is deprecated (default branch amd-staging_deprecated);
+    # rocm-smi-lib now lives in the rocm-systems monorepo, which is also where
+    # the release tarballs are published.
+    [rocm-smi]="ROCm/rocm-systems"
     [slurm-singularity-exec]="GSI-HPC/slurm-singularity-exec"
     [ucx]="openucx/ucx"
 )
@@ -38,7 +41,10 @@ declare -A DEFAULT_FILTERS=(
     [pmix]="^v6"
     [pmix_v4]="^v4"
     [pmix_v5]="^v5"
-    [rocm-smi]="^rocm-[0-9]"
+    # rocm-systems carries two parallel stable streams: the frozen production
+    # line (rocm-X.Y.Z, last release 7.2.4) and the TheRock line (therock-X.Y),
+    # which the spec follows via %{pkg_src}. Match Fedora and track TheRock.
+    [rocm-smi]="^therock-[0-9]"
     [slurm]="^slurm-"
 )
 
