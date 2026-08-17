@@ -19,16 +19,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-%global rocm_release 7.2
-%global rocm_patch 4
-%global rocm_version %{rocm_release}.%{rocm_patch}
 %global upstreamname rocm-smi-lib
+
+%global pkg_library_name rocm_smi64
+%global pkg_library_version 1
+
+%bcond_with preview
+%if %{with preview}
+%global rocm_release 7.14
+%global rocm_patch 0
+%else
+%global rocm_release 7.14
+%global rocm_patch 0
+%endif
+
+%global pkg_src therock-%{rocm_release}
+
+%global rocm_version %{rocm_release}.%{rocm_patch}
 
 %bcond_with compat
 %if %{with compat}
 %global pkg_libdir lib
 %global pkg_prefix %{_prefix}/lib64/rocm/rocm-%{rocm_release}/
-%global pkg_suffix -%{rocm_release}
+%global pkg_suffix %{rocm_release}
 %global pkg_skip_install_rpath FALSE
 %else
 %global pkg_libdir %{_lib}
@@ -36,7 +49,12 @@
 %global pkg_suffix %{nil}
 %global pkg_skip_install_rpath TRUE
 %endif
-%global pkg_name rocm-smi%{pkg_suffix}
+
+%if 0%{?suse_version}
+%global pkg_name %{NAME}-libs
+%else
+%global pkg_name %{NAME}
+%endif
 
 %bcond_with test
 %if %{with test}
@@ -47,14 +65,49 @@
 
 %bcond_with doc
 
-Name:       %{pkg_name}
+Name:       rocm-smi%{pkg_suffix}
 Version:    %{rocm_version}
-Release:    3%{?dist}
+%if %{with preview}
+Release:    1%{?dist}
+%else
+Release:    1%{?dist}
+%endif
 Summary:    ROCm System Management Interface Library
 
 License:    MIT AND NCSA
+# The main license is MIT
+# The NCSA license applies to these files
+#  cmake_modules/utils.cmake
+#  include/rocm_smi/rocm_smi.h
+#  include/rocm_smi/rocm_smi_common.h
+#  include/rocm_smi/rocm_smi_counters.h
+#  include/rocm_smi/rocm_smi_device.h
+#  include/rocm_smi/rocm_smi_exception.h
+#  include/rocm_smi/rocm_smi_io_link.h
+#  include/rocm_smi/rocm_smi_kfd.h
+#  include/rocm_smi/rocm_smi_logger.h
+#  include/rocm_smi/rocm_smi_main.h
+#  include/rocm_smi/rocm_smi_monitor.h
+#  include/rocm_smi/rocm_smi_power_mon.h
+#  include/rocm_smi/rocm_smi_properties.h
+#  include/rocm_smi/rocm_smi_utils.h
+#  rocm_smi/example/rocm_smi_example.cc
+#  src/rocm_smi.cc
+#  src/rocm_smi_counters.cc
+#  src/rocm_smi_device.cc
+#  src/rocm_smi_io_link.cc
+#  src/rocm_smi_kfd.cc
+#  src/rocm_smi_logger.cc
+#  src/rocm_smi_main.cc
+#  src/rocm_smi_monitor.cc
+#  src/rocm_smi_power_mon.cc
+#  src/rocm_smi_properties.cc
+#  src/rocm_smi_utils.cc
+#  oam/src/oamConfig.in
+#  src/rocm_smi64Config.in
+
 URL:        https://github.com/ROCm/rocm-systems
-Source0:    %{url}/releases/download/rocm-%{version}/%{upstreamname}.tar.gz#/%{upstreamname}-%{version}.tar.gz
+Source0:    %{url}/releases/download/%{pkg_src}/%{upstreamname}.tar.gz#/%{upstreamname}-%{version}.tar.gz
 
 %if 0%{?rhel} || 0%{?suse_version}
 ExclusiveArch:  x86_64
@@ -72,10 +125,20 @@ BuildRequires:  doxygen-latex >= 1.9.7
 %endif
 %endif
 BuildRequires:  gcc-c++
+BuildRequires:  git
 BuildRequires:  libdrm-devel
+BuildRequires:  rocm-filesystem%{pkg_suffix}
 
 %if %{with test}
 BuildRequires:  gtest-devel
+%endif
+
+%if %{with compat}
+Requires:       rocm-filesystem%{pkg_suffix}
+%endif
+
+%if 0%{?suse_version}
+Requires:       %{pkg_name}%{?_isa} = %{version}-%{release}
 %endif
 
 %description
@@ -84,9 +147,19 @@ the Radeon Open Compute ROCm software stack . It is a C library for Linux that
 provides a user space interface for applications to monitor and control GPU
 applications.
 
+%if 0%{?suse_version}
+%package -n %{pkg_name}
+Summary:        Runtime for %{name}
+
+%description -n %{pkg_name}
+%summary
+
+%ldconfig_scriptlets -n %{pkg_name}
+%endif
+
 %package devel
 Summary: ROCm SMI Library development files
-Requires: %{name}%{?_isa} = %{version}-%{release}
+Requires: %{pkg_name}%{?_isa} = %{version}-%{release}
 # /usr/include/rocm_smi/kfd_ioctl.h:26:10: fatal error: 'libdrm/drm.h' file not found
 Requires: libdrm-devel
 
@@ -96,7 +169,7 @@ ROCm System Management Interface Library development files
 %if %{with test}
 %package test
 Summary:        Tests for %{name}
-Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       %{pkg_name}%{?_isa} = %{version}-%{release}
 
 %description test
 %{summary}
@@ -116,11 +189,16 @@ sed -i -e 's@env python3@python3@' python_smi_tools/rsmiBindingsInit.py.in
 # https://github.com/ROCm/rocm-systems/issues/1022
 sed -i -e 's@FetchContent_MakeAvailable(googletest)@#FetchContent_MakeAvailable(googletest)@' tests/rocm_smi_test/CMakeLists.txt
 sed -i -e 's@PUBLIC GTest::gtest_main@PUBLIC gtest_main gtest@' tests/rocm_smi_test/CMakeLists.txt
-sed -i -e '/TARGETS gtest gtest_main/,+3d' tests/rocm_smi_test/CMakeLists.txt
+sed -i -e '/install googletest/,+5d' tests/rocm_smi_test/CMakeLists.txt
 
 # fix iomanip include
 # https://github.com/ROCm/rocm-systems/issues/1021
 sed -i '/#include <string.*/a#include <iomanip>' tests/rocm_smi_test/test_base.h
+
+# Do not package tests if we are building them
+%if %{without test}
+rm -rf tests
+%endif
 
 %build
 %cmake \
@@ -139,22 +217,31 @@ sed -i '/#include <string.*/a#include <iomanip>' tests/rocm_smi_test/test_base.h
 rm -f %{buildroot}%{pkg_prefix}/share/doc/rocm-smi-lib/LICENSE.md
 
 %if 0%{?suse_version}
-%post   -p /sbin/ldconfig
-%postun -p /sbin/ldconfig
-%endif
+%files
+%{pkg_prefix}/bin/rocm-smi
+%{pkg_prefix}/libexec/rocm_smi/
+
+%files -n %{pkg_name}
+%doc README.md
+%license LICENSE.md
+%{pkg_prefix}/%{pkg_libdir}/lib%{pkg_library_name}.so.%{pkg_library_version}{,.*}
+%{pkg_prefix}/%{pkg_libdir}/liboam.so.1{,.*}
+
+%else
 
 %files
 %doc README.md
 %license LICENSE.md
 %{pkg_prefix}/bin/rocm-smi
 %{pkg_prefix}/libexec/rocm_smi/
-%{pkg_prefix}/%{pkg_libdir}/librocm_smi64.so.1{,.*}
+%{pkg_prefix}/%{pkg_libdir}/lib%{pkg_library_name}.so.%{pkg_library_version}{,.*}
 %{pkg_prefix}/%{pkg_libdir}/liboam.so.1{,.*}
+%endif
 
 %files devel
 %{pkg_prefix}/include/rocm_smi/
 %{pkg_prefix}/include/oam/
-%{pkg_prefix}/%{pkg_libdir}/librocm_smi64.so
+%{pkg_prefix}/%{pkg_libdir}/lib%{pkg_library_name}.so
 %{pkg_prefix}/%{pkg_libdir}/liboam.so
 %{pkg_prefix}/%{pkg_libdir}/cmake/rocm_smi/
 
@@ -164,6 +251,27 @@ rm -f %{buildroot}%{pkg_prefix}/share/doc/rocm-smi-lib/LICENSE.md
 %endif
 
 %changelog
+* Fri Aug 7 2026 Tom Rix <Tom.Rix@amd.com> - 7.14.0-1
+- Update to 7.14
+
+* Thu Jul 16 2026 Fedora Release Engineering <releng@fedoraproject.org> - 7.2.1-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_45_Mass_Rebuild
+
+* Fri Apr 17 2026 Tom Rix <Tom.Rix@amd.com> - 7.2.1-2
+- Generate suse package names
+
+* Tue Mar 24 2026 Tom Rix <Tom.Rix@amd.com> - 7.2.1-1
+- Update to 7.2.1
+
+* Sat Mar 21 2026 Tom Rix <Tom.Rix@amd.com> - 7.2.0-2
+- Merge back rocm-smi7.2
+
+* Wed Mar 11 2026 Tom Rix <Tom.Rix@amd.com> - 7.2.0-2
+- Add --with preview
+
+* Mon Jan 26 2026 Tom Rix <Tom.Rix@amd.com> - 7.2.0-1
+- Update to 7.2.0
+
 * Sat Jan 17 2026 Fedora Release Engineering <releng@fedoraproject.org> - 7.1.1-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_44_Mass_Rebuild
 
