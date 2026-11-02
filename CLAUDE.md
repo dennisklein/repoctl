@@ -19,7 +19,7 @@ RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packa
 ./scripts/build
 
 # To build specific packages, comment out unwanted builds in scripts/build
-# Build order: ucx → pmix → pmix_v4 → prrte → munge → rocm-smi → slurm → slurm-singularity-exec → openmpi → slurm-release
+# Build order: munge → ucx → pmix → pmix_v5 → pmix_v4 → prrte → rocm-smi → slurm → slurm-singularity-exec → openmpi → slurm-release
 
 # List packages with dependencies and build requirements
 ./scripts/list
