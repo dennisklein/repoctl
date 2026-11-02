@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# Check out the package commits pinned in packages.lock.
+# Each package gets a git worktree in packages/<dir> with a detached HEAD.
+
+set -euo pipefail
+
+repodir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+lock=${repodir}/packages.lock
+remote=${REMOTE:-origin}
+
+while read -r dir branch sha; do
+  [[ -z ${dir} || ${dir} == \#* ]] && continue
+  path=${repodir}/packages/${dir}
+  if ! git -C "${repodir}" cat-file -e "${sha}^{commit}" 2>/dev/null; then
+    git -C "${repodir}" fetch -q "${remote}" \
+      "+refs/heads/${branch}:refs/remotes/${remote}/${branch}"
+  fi
+  if [[ -e ${path}/.git ]]; then
+    git -C "${path}" checkout -q --detach "${sha}"
+  else
+    git -C "${repodir}" worktree add -q --detach "${path}" "${sha}"
+  fi
+  printf '%-24s %s (%s)\n' "${dir}" "${sha:0:12}" "${branch}"
+done < "${lock}"
