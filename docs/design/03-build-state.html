@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>repoctl build state</title>
+<style>
+:root{--bg:#faf8f6;--fg:#231d18;--mut:#6b6158;--line:#ddd5cd;--acc:#b4581f;--box:#f2eeea;--ok:#2f7d4a;--warn:#9a6a00;--err:#c0362c;--hi:rgba(180,88,31,.10);--hi2:rgba(47,125,74,.10)}
+@media(prefers-color-scheme:dark){:root{--bg:#15120f;--fg:#efe9e3;--mut:#bfb4a9;--line:#352d26;--acc:#e08a4f;--box:#241f1a;--ok:#6cc58a;--warn:#e6b84a;--err:#ff7a6e;--hi:rgba(224,138,79,.14);--hi2:rgba(108,197,138,.14)}}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif;max-width:920px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.6rem}h2{margin-top:2.2rem;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin-top:1.4rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{background:var(--box)}
+code{background:var(--box);padding:1px 4px;border-radius:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.9em}
+pre{background:var(--box);padding:10px;border-radius:6px;overflow-x:auto;font-size:.82rem;line-height:1.45}
+svg{width:100%;height:auto;background:var(--box);border-radius:8px;margin:8px 0}
+svg text{fill:var(--fg);font:13px system-ui}svg text.m{fill:var(--mut);font-size:12px}svg text.t{font-weight:600}
+svg .b{fill:var(--bg);stroke:var(--acc);stroke-width:1.5}svg .bm{fill:var(--bg);stroke:var(--mut);stroke-width:1.2;stroke-dasharray:4 3}
+svg .bh{fill:var(--hi);stroke:var(--acc);stroke-width:2}svg .bg{fill:var(--hi2);stroke:var(--ok);stroke-width:1.5}svg .bw{fill:var(--bg);stroke:var(--err);stroke-width:1.5}
+svg .l{stroke:var(--mut);stroke-width:1.4;fill:none;marker-end:url(#a)}svg .lw{stroke:var(--err);stroke-width:1.6;fill:none;marker-end:url(#a)}svg .ah{fill:var(--mut)}
+.note{border-left:4px solid var(--acc);padding:6px 12px;background:var(--box);margin:12px 0}
+.req{color:var(--err);font-weight:600}.warn{color:var(--warn);font-weight:600}.info{color:var(--mut);font-weight:600}
+</style></head><body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;margin:0"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ah"/></marker></defs></svg>
+
+<h1>repoctl: build state, rebuilds, snapshots, LLM in the UI</h1>
+<p>Date: 2026-11-02. Status: decided. This document changes parts of <a href="02-repoctl.html">02-repoctl.html</a> and <a href="04-cli-ui.html">04-cli-ui.html</a>. Section 9 lists the changes.</p>
+
+<h2>1. Summary</h2>
+<div class="note">
+<ul>
+<li><b>The published repo is the build state.</b> Each target repo carries a repoctl manifest in its signed repodata. The next build reads it. repoctl builds only nodes whose package commit is not in the manifest.</li>
+<li><b>No automatic rebuild of dependents.</b> A change in ucx does not rebuild slurm. repoctl trusts upstream ABI stability, as Dennis does today.</li>
+<li><b>A rebuild is a commit.</b> <code>repoctl rebuild slurm --reason "…"</code> makes an empty commit on the package branch. rpmautospec raises the release (Fedora mass rebuilds work the same way). Thus, every build has a new NVR. The same-NVR problem is gone by design.</li>
+<li><b>Advisories say when a rebuild is necessary.</b> They are deterministic checks: a removed soname, a broken repoclosure against the current upstream repos, a changed buildroot. They suggest; the person decides.</li>
+<li><b>Keep all versions.</b> Pruning is explicit, granular and closure-safe.</li>
+<li><b>Snapshots go to an OCI registry as artifacts</b> (one blob per file, not image layers). This gives content hashes, deduplication, rollback and a shared state for the team. It replaces the git repo of builds.</li>
+<li><b>LLM in the UI: advisory buttons, no chat in v1.</b> A button runs a local agent with a fixed skill and shows its result. Actions stay buttons that a person clicks.</li>
+</ul>
+</div>
+
+<h2>2. D1: many keys, one signature per file</h2>
+<p>Two different things have the name "multiple":</p>
+<ul>
+<li><b>Many trusted keys on the clients: yes, this works.</b> The release RPM installs the public keys of all admins. dnf and rpm accept a file if its signer is <i>one</i> of these keys. This is verified on EL9 and EL10 (rpm and dnf source).</li>
+<li><b>Many signatures on one file: do not use it.</b> rpm 4.16 (EL9) keeps only one signature per RPM. EL10 can store more, but then it needs <i>all</i> signer keys. EL10 librepo refuses a <code>repomd.xml.asc</code> with more than one signature.</li>
+</ul>
+<svg viewBox="0 0 820 230" role="img" aria-label="Many trusted keys, one signature per file">
+<rect class="bh" x="20" y="20" width="250" height="90" rx="8"/><text x="36" y="44" class="t">slurm-release on each client</text>
+<text x="36" y="66" class="m">RPM-GPG-KEY-slurm contains</text><text x="36" y="86" class="m">key A (Dennis), key B, key C</text>
+<rect class="b" x="320" y="20" width="230" height="40" rx="6"/><text x="335" y="45">publish by A: each file ← sig A</text>
+<rect class="b" x="320" y="70" width="230" height="40" rx="6"/><text x="335" y="95">publish by B: each file ← sig B</text>
+<rect class="bg" x="600" y="20" width="200" height="90" rx="8"/><text x="616" y="44" class="t">client check</text>
+<text x="616" y="66" class="m">signer in {A, B, C}?</text><text x="616" y="86" class="m">yes → install</text>
+<path class="l" d="M550,40 L598,55"/><path class="l" d="M550,90 L598,75"/>
+<rect class="bw" x="320" y="140" width="480" height="66" rx="8"/><text x="336" y="164" class="t">Not used: one file with sig A + sig B</text>
+<text x="336" y="184" class="m">EL9 keeps only one. EL10 needs every signer key.</text><text x="336" y="200" class="m">EL10 librepo rejects repomd.xml.asc with 2 signatures.</text>
+<text x="20" y="150" class="m">Offboarding: remove key C from the</text><text x="20" y="168" class="m">release RPM, and run rpm -e gpg-pubkey-…</text><text x="20" y="186" class="m">by config management (the release RPM</text><text x="20" y="204" class="m">cannot delete an imported key).</text>
+</svg>
+
+<h2>3. The repo is the build state</h2>
+<svg viewBox="0 0 820 300" role="img" aria-label="Build loop with the repo as state">
+<rect class="bh" x="20" y="20" width="240" height="110" rx="8"/><text x="36" y="44" class="t">published repo (per target)</text>
+<text x="36" y="66" class="m">RPMs, all versions</text><text x="36" y="84" class="m">repodata + repoctl manifest</text><text x="36" y="102" class="m">(signed via repomd.xml.asc)</text><text x="36" y="120" class="m">snapshot in OCI registry</text>
+<rect class="b" x="300" y="20" width="220" height="110" rx="8"/><text x="316" y="44" class="t">plan</text>
+<text x="316" y="66" class="m">lock commit in manifest?</text><text x="316" y="84" class="m">yes → current</text><text x="316" y="102" class="m">no → build</text><text x="316" y="120" class="m">+ advisories</text>
+<rect class="b" x="560" y="20" width="240" height="110" rx="8"/><text x="576" y="44" class="t">build (mock)</text>
+<text x="576" y="66" class="m">--addrepo published repo</text><text x="576" y="84" class="m">--addrepo run staging</text><text x="576" y="102" class="m">+ upstream repos (EPEL, …)</text><text x="576" y="120" class="m">record buildroot + sonames</text>
+<path class="l" d="M260,75 L298,75"/><path class="l" d="M520,75 L558,75"/>
+<rect class="b" x="560" y="170" width="240" height="90" rx="8"/><text x="576" y="194" class="t">staging + post-build advisories</text>
+<text x="576" y="216" class="m">soname diff vs published</text><text x="576" y="234" class="m">repoclosure with staging</text>
+<path class="l" d="M680,130 L680,168"/>
+<rect class="b" x="300" y="170" width="220" height="90" rx="8"/><text x="316" y="194" class="t">publish (human)</text>
+<text x="316" y="216" class="m">sign, add to repo (keep all)</text><text x="316" y="234" class="m">update manifest, push snapshot</text>
+<path class="l" d="M560,215 L522,215"/><path class="l" d="M300,215 C260,215 200,180 160,132"/>
+<rect class="bm" x="20" y="170" width="240" height="90" rx="8"/><text x="36" y="194" class="t">other admin, other host</text>
+<text x="36" y="216" class="m">repoctl repo pull</text><text x="36" y="234" class="m">gets the same state</text>
+</svg>
+<h3>3.1 What starts a build</h3>
+<table>
+<tr><th>Event</th><th>Action</th><th>Why</th></tr>
+<tr><td>New commit on a package branch, pinned in the lock</td><td>build</td><td>New commit = new NVR (rpmautospec).</td></tr>
+<tr><td><code>repoctl rebuild &lt;dir&gt; --reason …</code></td><td>build</td><td>Empty commit "Rebuild: &lt;reason&gt;" on the package branch, then pin. The release goes up. The changelog shows the reason.</td></tr>
+<tr><td>New package or new target in <code>repoctl.yaml</code></td><td>build</td><td>No entry in the manifest.</td></tr>
+<tr><td>A dependency in the set was rebuilt</td><td><span class="info">advisory only</span></td><td>Trust the upstream ABI promise. A soname check tells when this is not safe (section 4).</td></tr>
+<tr><td>Upstream binary repos changed (EPEL, Rocky, extra repos)</td><td><span class="info">advisory only</span></td><td>Repoclosure and buildroot drift checks (section 4).</td></tr>
+<tr><td>mock config or macros changed</td><td><span class="info">advisory only</span></td><td>"Built with an older mock config." The person decides.</td></tr>
+<tr><td><code>build --force</code></td><td>build to staging</td><td>For tests. Publish refuses it if the NVR is already published (<code>nvr.reused</code>, exit 12).</td></tr>
+</table>
+<p>A node that an earlier, unpublished run built with the same commit and the same target config is reused from that run's staging (plan action <code>staged</code>). Thus, a failed run does not rebuild its good nodes.</p>
+
+<h3>3.2 Manifest in the repodata</h3>
+<p>repoctl adds its manifest with <code>modifyrepo_c --mdtype=repoctl</code>. <code>repomd.xml</code> then lists it with its checksum, and <code>repomd.xml.asc</code> signs it. One entry per binary NVR set from one build:</p>
+<pre>{
+  "apiVersion": "repoctl/v1alpha1", "kind": "RepoManifest",
+  "set": "slurm-26.05", "target": "el9", "snapshot": "sha256:4be1…",
+  "builds": [{
+    "dir": "ucx", "commit": "4b1e9c2…", "url": null, "branch": "ucx/slurm-26.05",
+    "srpm": "ucx-1.22.1-1.el9.src.rpm",
+    "rpms": ["ucx-1.22.1-1.el9.x86_64.rpm", "ucx-devel-1.22.1-1.el9.x86_64.rpm", "…"],
+    "reason": "commit",                       # or "rebuild: hwloc soname 15→16"
+    "mockConfig": "sha256:9a0c…", "macros": "sha256:12fe…",
+    "buildroot": "sha256:77d1…",              # hash of the installed package list
+    "buildrootFile": "buildroot/ucx-1.22.1-1.el9.txt",
+    "provides": ["libucp.so.0()(64bit)", "libuct.so.0()(64bit)", "…"],
+    "requires": ["libhwloc.so.15()(64bit)", "libnuma.so.1()(64bit)", "…"],
+    "run": "r-20261102-1750-a3f", "built": "2026-11-02T18:04:11Z",
+    "publish": "p-20261102-1931-2c0", "signer": "D. Klein …7C3A 19F2"
+  }]
+}</pre>
+<p>The full buildroot list (mock <code>installed_pkgs.log</code>) is a separate file. It is the record of the upstream versions that a package was built against.</p>
+
+<h2>4. Advisories</h2>
+<p>Advisories are deterministic. repoctl computes them in <code>plan</code>, after each node build, and in <code>repoctl check</code> (also from a timer). The UI and the agent read the same list (<code>Advisory</code> kind in the contract).</p>
+<table>
+<tr><th>Code</th><th>Level</th><th>When</th><th>Check</th><th>Suggests</th></tr>
+<tr><td><code>soname.removed</code></td><td><span class="req">required</span></td><td>after a node build</td><td>A soname that the published version provides is gone in the new build, and another set package requires it.</td><td><code>repoctl rebuild &lt;dependents&gt; --reason "ucx: libucp.so.0 → .so.1"</code>. Publish refuses unless the dependents are in the same run or the person overrides.</td></tr>
+<tr><td><code>closure.broken</code></td><td><span class="req">required</span></td><td>plan, check</td><td><code>dnf repoclosure</code> per target: published repo + current upstream repos. A requirement of a published RPM has no provider any more (upstream removed or changed a soname).</td><td>Rebuild the affected package.</td></tr>
+<tr><td><code>abi.changed</code></td><td><span class="warn">warn</span></td><td>after a node build (optional, needs libabigail)</td><td><code>abidiff</code> of the shared libraries, old vs new, same soname.</td><td>Review; maybe rebuild dependents.</td></tr>
+<tr><td><code>buildroot.drift</code></td><td><span class="info">info</span></td><td>plan, check</td><td>A BuildRequires provider in the upstream repos now has a newer version than in the recorded buildroot (e.g. hwloc-devel 2.4 → 2.11).</td><td>Nothing, or a rebuild if the person wants the new features.</td></tr>
+<tr><td><code>mock.drift</code></td><td><span class="info">info</span></td><td>plan</td><td>mock config or macros hash differs from the manifest.</td><td>Nothing, or rebuild.</td></tr>
+<tr><td><code>upstream.release</code></td><td><span class="info">info</span></td><td>upstream, check</td><td>New upstream version of the package itself (today's <code>package-info</code>).</td><td>Bump the version (skill <code>bump-package</code>).</td></tr>
+</table>
+<svg viewBox="0 0 820 180" role="img" aria-label="Example of a required advisory">
+<rect class="b" x="20" y="20" width="230" height="60" rx="6"/><text x="36" y="44" class="t">EPEL: hwloc-libs update</text><text x="36" y="64" class="m">libhwloc.so.15 → .so.16</text>
+<rect class="bw" x="290" y="20" width="250" height="60" rx="6"/><text x="306" y="44" class="t">closure.broken (required)</text><text x="306" y="64" class="m">pmix-6.1.0-1.el9 needs libhwloc.so.15</text>
+<rect class="bh" x="580" y="20" width="220" height="60" rx="6"/><text x="596" y="44" class="t">suggestion</text><text x="596" y="64" class="m">repoctl rebuild pmix prrte …</text>
+<path class="l" d="M250,50 L288,50"/><path class="l" d="M540,50 L578,50"/>
+<text x="20" y="116" class="m">The person clicks or runs the suggestion. repoctl makes the empty commits, pins, and plans.</text>
+<text x="20" y="136" class="m">The plan builds pmix, then the soname check runs on pmix and suggests the next layer if needed.</text>
+<text x="20" y="156" class="m">Scenario is an example. No such hwloc change is known.</text>
+</svg>
+
+<h2>5. Keep all versions, prune on request</h2>
+<ul>
+<li>Publish adds to the repo. It never deletes. This is today's <code>createrepo --update</code> behaviour.</li>
+<li><code>repoctl repo prune</code> deletes only on request, with a dry run first (default). Selectors can be combined:</li>
+</ul>
+<pre>repoctl repo prune --target el9 --keep-last 3              # per package name
+repoctl repo prune --repo debuginfo --keep-last 1          # debuginfo only
+repoctl repo prune --older-than 2y --package openmpi
+repoctl repo prune --nvr slurm-26.05.2-1.el9               # one build (all its subpackages)
+repoctl repo prune … --apply                               # really do it</pre>
+<p>Safety rules: never delete the newest NVR of a package. Never delete an NVR that a kept package requires (repoclosure after the prune must pass). Prune makes a new snapshot; old snapshots still hold the files until snapshot retention deletes them.</p>
+
+<h2>6. Snapshot store: OCI</h2>
+<p>Today the builds are in a git repo. Git keeps every version of every binary in its history, so clones grow and you cannot delete one old file. I agree with OCI, with one change: use an <b>OCI artifact with one blob per file</b>, not an image with layers.</p>
+<table>
+<tr><th>Option</th><th>Content hash, dedup</th><th>Prune one NVR</th><th>Restore a snapshot</th><th>Team sharing</th><th>Cost</th></tr>
+<tr><td>Git repo (today)</td><td>yes, but history keeps all</td><td>no (history rewrite)</td><td>checkout</td><td>clone, grows</td><td>large clones</td></tr>
+<tr><td>OCI image, layer per publish</td><td>per layer only</td><td>hard (rewrite layers, whiteouts)</td><td>needs all layers</td><td>registry</td><td>medium</td></tr>
+<tr><td><b>OCI artifact, blob per file</b></td><td><b>per file</b></td><td><b>new manifest without it; GC frees the blob</b></td><td><b>pull one manifest</b></td><td><b>registry</b></td><td><b>low (oras-go)</b></td></tr>
+<tr><td>Plain dir + rsync backup</td><td>no</td><td>yes</td><td>backup restore</td><td>file share</td><td>low, no history</td></tr>
+<tr><td>Pulp</td><td>yes</td><td>yes</td><td>yes</td><td>server</td><td>high (server)</td></tr>
+</table>
+<svg viewBox="0 0 820 230" role="img" aria-label="OCI snapshot layout">
+<rect class="bh" x="20" y="20" width="250" height="190" rx="8"/><text x="36" y="44" class="t">manifest (one per snapshot)</text>
+<text x="36" y="66" class="m">artifactType:</text><text x="36" y="82" class="m">  application/vnd.repoctl.repo.v1</text>
+<text x="36" y="104" class="m">annotations: set, target,</text><text x="36" y="120" class="m">  publish id, set commit, signer</text>
+<text x="36" y="142" class="m">tags: slurm-26.05-el9-p-20261102-1931</text><text x="36" y="158" class="m">      slurm-26.05-el9-latest</text>
+<text x="36" y="186" class="m">layers = list of file blobs</text>
+<rect class="b" x="310" y="20" width="260" height="34" rx="6"/><text x="320" y="42">sha256:aa… ucx-1.22.1-1.el9.rpm</text>
+<rect class="b" x="310" y="62" width="260" height="34" rx="6"/><text x="320" y="84">sha256:bb… slurm-26.05.4-1.el9.rpm</text>
+<rect class="b" x="310" y="104" width="260" height="34" rx="6"/><text x="320" y="126">sha256:cc… repomd.xml (+ .asc)</text>
+<rect class="b" x="310" y="146" width="260" height="34" rx="6"/><text x="320" y="168">sha256:dd… repoctl manifest</text>
+<path class="l" d="M270,60 L308,37"/><path class="l" d="M270,80 L308,79"/><path class="l" d="M270,100 L308,121"/><path class="l" d="M270,120 L308,163"/>
+<rect class="bm" x="590" y="20" width="210" height="80" rx="8"/><text x="604" y="44" class="t">older snapshot</text><text x="604" y="64" class="m">points to sha256:bb… too</text><text x="604" y="82" class="m">→ stored once</text>
+<path class="l" d="M590,60 C582,70 582,79 572,79"/>
+<rect class="bm" x="590" y="120" width="210" height="90" rx="8"/><text x="604" y="144" class="t">HTTP mirror for dnf</text><text x="604" y="164" class="m">plain directory, written</text><text x="604" y="182" class="m">from the snapshot by publish</text><text x="604" y="200" class="m">(dnf cannot read OCI)</text>
+</svg>
+<ul>
+<li><b>Commands:</b> <code>repoctl repo push</code> (publish does it), <code>repo pull [ref]</code>, <code>repo snapshots</code>, <code>repo restore &lt;ref&gt;</code> (rollback = publish an old snapshot to the mirror), <code>repo gc --keep-snapshots …</code>.</li>
+<li><b>Registry: GHCR of this repo</b> (decided). Config: <code>store: {oci: ghcr.io/dennisklein/slurm-repo}</code> in <code>repoctl.yaml</code>. One package per set and target, for example <code>ghcr.io/dennisklein/slurm-repo/slurm-26.05-el9</code>. The annotation <code>org.opencontainers.image.source</code> links each package to the repo. Credentials come from the user's container login (<code>oras login ghcr.io</code> with <code>gh auth token</code> or a token with <code>write:packages</code>), never from the config.</li>
+<li><b>Two admins publish at the same time.</b> Publish checks that <code>…-latest</code> still points to the snapshot that the build started from. If not, it stops and asks for <code>repo pull</code> and a new plan. Registries have no atomic tag compare-and-swap, so a small race window stays; the set lock convention covers it for a small team.</li>
+<li><b>Size:</b> one RPM is stored once in all snapshots of all targets that hold it. Debuginfo can go to its own repository path, with its own retention.</li>
+<li><b>GHCR specifics.</b> GHCR has no garbage collection that the user starts. <code>repoctl repo gc</code> deletes old package versions through the GitHub REST API (token scope <code>delete:packages</code>). GitHub frees the blobs that no version uses. Public packages are free; private packages count against the GitHub Packages storage quota. The debuginfo repos are the largest part.</li>
+</ul>
+
+<h2>7. LLM in the web UI</h2>
+<p><b>Recommendation: advisory buttons, no chat in v1.</b></p>
+<svg viewBox="0 0 820 220" role="img" aria-label="LLM integration in the UI">
+<rect class="b" x="20" y="20" width="230" height="80" rx="8"/><text x="36" y="44" class="t">UI: advisory card</text><text x="36" y="64" class="m">slurm@el10 failed</text><text x="36" y="82" class="m">[Explain]  [Suggest fix]</text>
+<rect class="bh" x="290" y="20" width="250" height="80" rx="8"/><text x="306" y="44" class="t">repoctl ui starts a local agent</text><text x="306" y="64" class="m">claude -p, skill triage-build,</text><text x="306" y="82" class="m">MCP: repoctl mcp (read + plan only)</text>
+<rect class="b" x="580" y="20" width="220" height="80" rx="8"/><text x="596" y="44" class="t">result panel (SSE)</text><text x="596" y="64" class="m">cause, evidence, diff</text><text x="596" y="82" class="m">proposed actions as buttons</text>
+<path class="l" d="M250,60 L288,60"/><path class="l" d="M540,60 L578,60"/>
+<rect class="bg" x="580" y="130" width="220" height="70" rx="8"/><text x="596" y="154" class="t">person clicks an action</text><text x="596" y="174" class="m">e.g. rebuild, pin, build</text><text x="596" y="190" class="m">normal UI action + CSRF</text>
+<path class="l" d="M690,100 L690,128"/>
+<rect class="bm" x="20" y="130" width="520" height="70" rx="8"/><text x="36" y="154" class="t">"Continue in terminal"</text><text x="36" y="174" class="m">claude --resume &lt;session&gt; in the set directory, for a free conversation.</text><text x="36" y="190" class="m">The chat stays in the agent tool. The UI does not copy it.</text>
+</svg>
+<table>
+<tr><th></th><th>Advisory buttons (recommended)</th><th>Chat panel</th></tr>
+<tr><td>Fits the deterministic core</td><td>yes: fixed skill, fixed input, result is data</td><td>open-ended</td></tr>
+<tr><td>Safety</td><td>agent has read and plan tools only; every change is a normal button</td><td>needs a permission model inside the UI</td></tr>
+<tr><td>Work</td><td>small: run a process, stream its output over SSE</td><td>large: a second chat client next to Claude Code</td></tr>
+<tr><td>Works without an LLM</td><td>yes: buttons hide if no agent is set</td><td>no</td></tr>
+</table>
+<p>Buttons in v1: <b>Explain failure</b> (triage-build), <b>Summarize upstream release</b> (package-updates), <b>Is a rebuild necessary?</b> (reads the advisory and the soname/ABI data), <b>Draft version bump</b> (bump-package, stops before commit). User config: <code>agent: {command: claude, args: […]}</code>. Any agent that can run a skill and use MCP fits.</p>
+
+<h2>8. Decisions (Dennis, 2026-11-02)</h2>
+<table>
+<tr><th>#</th><th>Decision</th></tr>
+<tr><td>D1</td><td>Personal keys, many trusted keys, one signature per file (section 2).</td></tr>
+<tr><td>D2, D3</td><td>Repo is the build state. Build only changed and marked packages. Dependents and upstream drift give advisories (sections 3 and 4).</td></tr>
+<tr><td>D4</td><td>Publish per target: yes.</td></tr>
+<tr><td>D5</td><td><code>dep.not-for-target</code>: warn.</td></tr>
+<tr><td>D6</td><td>Keep all, granular pruning (section 5). Snapshots as OCI artifacts in GHCR (section 6).</td></tr>
+<tr><td>D7</td><td>MCP tool for rebuild marks: yes. It is now <code>repoctl_rebuild</code> (empty commit, local, no push).</td></tr>
+</table>
+
+<h2>9. Changes to the earlier documents</h2>
+<table>
+<tr><th>Before</th><th>Now</th></tr>
+<tr><td>Node key = commit + config + keys of dependencies; a dependency change rebuilds dependents.</td><td>Build identity = package commit + target. Dependency and config changes give advisories only.</td></tr>
+<tr><td>Node cache in <code>$XDG_CACHE_HOME/repoctl/nodes/&lt;key&gt;</code></td><td>Published repo + unpublished staging are the cache. The cache dir keeps only git mirrors and mock work dirs.</td></tr>
+<tr><td><code>bump-release</code>; publish refuses <code>nvr.reused</code></td><td><code>rebuild &lt;dir&gt; --reason</code>. <code>nvr.reused</code> happens only with <code>--force</code>.</td></tr>
+<tr><td>Plan reasons <code>dep-key-changed</code>, <code>macros-changed</code>, <code>mock-config-changed</code></td><td>Plan reasons: <code>commit-changed</code>, <code>rebuild</code>, <code>new-package</code>, <code>new-target</code>, <code>forced</code>; plan actions <code>build</code>, <code>current</code>, <code>staged</code>, <code>skip</code>. The rest are advisory codes.</td></tr>
+<tr><td>Story: ucx bump rebuilds slurm, openmpi, slurm-singularity-exec.</td><td>Only ucx builds. The soname check says "libucp.so.0 unchanged: no rebuild necessary".</td></tr>
+<tr><td>Publish replaces repo contents (ui-pkg mockups)</td><td>Publish adds; prune deletes.</td></tr>
+<tr><td>Builds kept in a git repo</td><td>OCI snapshots.</td></tr>
+</table>
+<p>Mockups of the new plan page, the advisories and the agent panel: sections "v2" in <a href="04-cli-ui.html#ui-graph-v2">04-cli-ui.html</a>.</p>
+
+<h2>10. Former open points (decided 2026-11-02)</h2>
+<ol>
+<li>Snapshot registry: GHCR of this repo (section 6).</li>
+<li><code>soname.removed</code> and <code>closure.broken</code> block publish. <code>--accept-advisory &lt;code&gt;</code> overrides with a reason, which goes into the journal. Only info and warn advisories can be dismissed.</li>
+<li><code>repoctl check</code> runs from a systemd user timer (daily). It reports in the UI (badge and Advisories page) and in <code>repoctl status</code>. No mail in v1.</li>
+<li>LLM in the UI: advisory buttons, no chat in v1 (section 7).</li>
+</ol>
+<p>Sources: rpmautospec bumps the release for each commit, also an empty one, as Fedora mass rebuilds do (<a href="https://pagure.io/fedora-infra/rpmautospec/issue/217">rpmautospec issue 217</a>, <a href="https://src.fedoraproject.org/rpms/rpkg/blob/f37/f/0017-Allow-empty-commits-when-uses_rpmautospec.patch">rpkg patch</a>). Signing facts: section "Signing keys" in <a href="04-cli-ui.html#sign">04-cli-ui.html</a>.</p>
+</body></html>
