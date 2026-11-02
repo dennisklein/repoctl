@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" data-mock>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Graph matrix · slurm-26.05 · repoctl</title>
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="graph.css">
+<meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
+<!-- real app: <script src="/static/htmx.min.<hash>.js"></script> <script src="/static/sse.<hash>.js"></script> -->
+</head>
+<body>
+<div class="app">
+<header class="topbar" hx-ext="sse" sse-connect="/s/slurm-26.05/events?topic=run">
+  <a class="brand" href="/"><span class="brand-mark">rc</span><span class="bname">repoctl</span></a>
+  <button class="set-switch" aria-haspopup="listbox"><span>slurm-26.05</span><span class="br sepdot">·</span><span class="br">builder/slurm-26.05</span><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5L8 10l3.5-3.5"/></svg></button>
+  <span class="spacer"></span>
+  <a class="runpill" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" sse-swap="run:summary" hx-swap="outerHTML" title="Run r-20261102-1750-a3f: 3 running, 1 failed"><span class="pill st-running">running</span><span class="mono">r-20261102-1750-a3f</span><span class="rp-more">11:02 · 3 running ·</span> <span class="bad">1 failed</span></a>
+  <button class="icon-btn" aria-label="Toggle theme" title="Theme: system"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M13 9.5A5.5 5.5 0 016.5 3a5.5 5.5 0 106.5 6.5z"/></svg></button>
+</header>
+<nav class="sidebar" aria-label="Main">
+  <a class="nav-item" href="/s/slurm-26.05"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3zM9 9h4v4H9z"/></svg>Overview</a>
+  <a class="nav-item active" href="/s/slurm-26.05/graph"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="4" r="1.8"/><circle cx="3.5" cy="12" r="1.8"/><circle cx="12.5" cy="8" r="1.8"/><path d="M5.2 4.6l5.6 2.7M5.2 11.4l5.6-2.7"/></svg>Graph</a>
+  <a class="nav-item" href="/s/slurm-26.05/runs"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M6.6 5.6l3.4 2.4-3.4 2.4z"/></svg>Runs<span class="count">14</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/packages"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5L8 2.5 13.5 5v6L8 13.5 2.5 11z"/><path d="M2.5 5L8 7.5 13.5 5M8 7.5v6"/></svg>Packages<span class="count">11</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/repo"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="8" cy="4" rx="5" ry="1.8"/><path d="M3 4v8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V4M3 8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8"/></svg>Repository</a>
+  <a class="nav-item" href="/s/slurm-26.05/publish"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5M5 5.5l3-3 3 3M2.5 10v3.5h11V10"/></svg>Publish</a>
+  <div class="nav-label">Targets</div>
+  <a class="nav-item" href="/s/slurm-26.05/targets/el9"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="11" height="4" rx="1"/><rect x="2.5" y="9" width="11" height="4" rx="1"/><path d="M5 5h.01M5 11h.01"/></svg>el9<span class="dot running" title="running"></span><span class="count">11</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/targets/el10"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="11" height="4" rx="1"/><rect x="2.5" y="9" width="11" height="4" rx="1"/><path d="M5 5h.01M5 11h.01"/></svg>el10<span class="dot failed" title="1 failed"></span><span class="count">10</span></a>
+</nav>
+<main class="main">
+<div class="page-head">
+  <div><div class="crumb">slurm-26.05 / graph</div><h1>Build graph</h1></div>
+  <div class="sub">11 packages × 2 targets · 21 nodes · rows grouped by graph level</div>
+  <div class="actions"><a class="btn" href="/s/slurm-26.05/graph.dot">Export DOT</a><a class="btn" href="/s/slurm-26.05/plan">Plan</a></div>
+</div>
+<div class="gtool">
+  <div class="tabs" role="tablist" aria-label="Target">
+    <a role="tab" aria-selected="false" href="/s/slurm-26.05/graph?target=el9&amp;view=matrix">el9 <span class="n">11</span><span class="sd running" title="running"></span></a>
+    <a role="tab" aria-selected="false" href="/s/slurm-26.05/graph?target=el10&amp;view=matrix">el10 <span class="n">10</span><span class="sd failed" title="1 failed"></span></a>
+    <a role="tab" aria-selected="true" href="/s/slurm-26.05/graph?target=all&amp;view=matrix">all <span class="n">2 targets</span></a>
+  </div>
+  <span class="sp"></span>
+  <span class="tool-label">Show</span>
+  <div class="seg" role="group" aria-label="Filter"><button type="button" aria-pressed="true" hx-get="/s/slurm-26.05/graph?target=all&amp;view=matrix&amp;filter=all" hx-target="#canvas" hx-select="#canvas" hx-push-url="true">All</button><button type="button" aria-pressed="false" hx-get="/s/slurm-26.05/graph?target=all&amp;view=matrix&amp;filter=changed" hx-target="#canvas" hx-select="#canvas" hx-push-url="true">Changed only</button><button type="button" aria-pressed="false" hx-get="/s/slurm-26.05/graph?target=all&amp;view=matrix&amp;filter=failed" hx-target="#canvas" hx-select="#canvas" hx-push-url="true">Failed only</button></div>
+  <input class="search" type="search" name="q" placeholder="Find package…" aria-label="Find package">
+  <div class="seg" role="tablist" aria-label="View">
+    <a role="tab" aria-selected="false" href="/s/slurm-26.05/graph?target=el9&amp;view=dag">DAG</a>
+    <a role="tab" aria-selected="true" href="/s/slurm-26.05/graph?target=all&amp;view=matrix">Matrix</a>
+  </div>
+</div>
+<div class="runstrip" id="runstrip" sse-swap="run:strip" hx-swap="outerHTML">
+  <span class="pill st-running">running</span>
+  <a class="rs-id" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">r-20261102-1750-a3f</a>
+  <span class="muted rs-start">started 17:50 by d.klein · jobs 4</span>
+  <span class="mono">11:02</span>
+  <span class="bar" title="21 nodes"><i class="b-cached" style="width:62%"></i><i class="b-ok" style="width:9.5%"></i><i class="b-running" style="width:14.3%"></i><i class="b-failed" style="width:4.8%"></i><i class="b-blocked" style="width:4.8%"></i></span>
+  <span class="rs-counts"><span class="pill st-ok">2 ok</span><span class="pill st-running">3 running</span><span class="pill st-waiting">1 waiting</span><span class="pill st-failed">1 failed</span><span class="pill st-blocked">1 blocked</span><span class="pill st-cached">13 cached</span></span>
+  <span class="sp"></span>
+  <a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">Open run</a>
+</div>
+<div class="card table-wrap" id="canvas" hx-ext="sse" sse-connect="/s/slurm-26.05/events?topic=run:r-20261102-1750-a3f&amp;topic=set:slurm-26.05&amp;view=matrix">
+<table class="table mx">
+  <thead><tr><th>Package</th><th>Version</th><th>Needs (in set)</th>
+    <th class="tcol"><div class="th-t"><span>el9 <span class="tm">rocky+epel-9-x86_64</span></span><span class="tm">4 build · 7 cached · 1 ok · 2 running · 1 waiting</span></div></th>
+    <th class="tcol"><div class="th-t"><span>el10 <span class="tm">rocky+epel-10-x86_64</span></span><span class="tm" style="color:var(--s-failed)">4 build · 6 cached · 1 ok · 1 running · 1 failed · 1 blocked</span></div></th></tr></thead>
+  <tbody>
+<tr class="lvl"><td colspan="5">Level 0<span>no deps in set</span></td></tr>
+<tr><td><span class="pkg">rocm-smi</span></td><td class="ver">7.14.0</td><td class="deps">–</td><td><div class="cell" id="m-el9-rocm-smi" sse-swap="node:rocm-smi@el9" hx-get="/s/slurm-26.05/graph/node/rocm-smi@el9" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">rocm-smi-7.14.0-1.el9</span></div></td><td><div class="cell na">not a target · <span class="mono">targets: [el9]</span></div></td></tr>
+<tr><td><span class="pkg">munge</span></td><td class="ver">0.5.18</td><td class="deps">–</td><td><div class="cell" id="m-el9-munge" sse-swap="node:munge@el9" hx-get="/s/slurm-26.05/graph/node/munge@el9" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">munge-0.5.18-1.el9</span></div></td><td><div class="cell" id="m-el10-munge" sse-swap="node:munge@el10" hx-get="/s/slurm-26.05/graph/node/munge@el10" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">munge-0.5.18-1.el10</span></div></td></tr>
+<tr><td><span class="pkg">ucx</span> <span class="nd-chg" title="changed">Δ</span></td><td class="ver">1.22.1</td><td class="deps">–</td><td><div class="cell" id="m-el9-ucx" sse-swap="node:ucx@el9" hx-get="/s/slurm-26.05/graph/node/ucx@el9" hx-target="#drawer"><span class="pill st-ok">ok</span><span class="nvr">ucx-1.22.1-1.el9</span><span class="why">4:05</span></div></td><td><div class="cell" id="m-el10-ucx" sse-swap="node:ucx@el10" hx-get="/s/slurm-26.05/graph/node/ucx@el10" hx-target="#drawer"><span class="pill st-ok">ok</span><span class="nvr">ucx-1.22.1-1.el10</span><span class="why">4:12</span></div></td></tr>
+<tr><td><span class="pkg">slurm-release</span></td><td class="ver">26.05</td><td class="deps">–</td><td><div class="cell" id="m-el9-slurm-release" sse-swap="node:slurm-release@el9" hx-get="/s/slurm-26.05/graph/node/slurm-release@el9" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">slurm-release-26.05-1.el9</span></div></td><td><div class="cell" id="m-el10-slurm-release" sse-swap="node:slurm-release@el10" hx-get="/s/slurm-26.05/graph/node/slurm-release@el10" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">slurm-release-26.05-1.el10</span></div></td></tr>
+<tr class="lvl"><td colspan="5">Level 1<span>built after level 0</span></td></tr>
+<tr><td><span class="pkg">pmix_v4</span></td><td class="ver">4.2.9</td><td class="deps">munge</td><td><div class="cell" id="m-el9-pmix_v4" sse-swap="node:pmix_v4@el9" hx-get="/s/slurm-26.05/graph/node/pmix_v4@el9" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">pmix_v4-4.2.9-1.el9</span></div></td><td><div class="cell" id="m-el10-pmix_v4" sse-swap="node:pmix_v4@el10" hx-get="/s/slurm-26.05/graph/node/pmix_v4@el10" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">pmix_v4-4.2.9-1.el10</span></div></td></tr>
+<tr><td><span class="pkg">pmix_v5</span></td><td class="ver">5.0.11</td><td class="deps">munge</td><td><div class="cell" id="m-el9-pmix_v5" sse-swap="node:pmix_v5@el9" hx-get="/s/slurm-26.05/graph/node/pmix_v5@el9" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">pmix_v5-5.0.11-1.el9</span></div></td><td><div class="cell" id="m-el10-pmix_v5" sse-swap="node:pmix_v5@el10" hx-get="/s/slurm-26.05/graph/node/pmix_v5@el10" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">pmix_v5-5.0.11-1.el10</span></div></td></tr>
+<tr><td><span class="pkg">pmix</span></td><td class="ver">6.1.0</td><td class="deps">munge</td><td><div class="cell" id="m-el9-pmix" sse-swap="node:pmix@el9" hx-get="/s/slurm-26.05/graph/node/pmix@el9" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">pmix-6.1.0-1.el9</span></div></td><td><div class="cell" id="m-el10-pmix" sse-swap="node:pmix@el10" hx-get="/s/slurm-26.05/graph/node/pmix@el10" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">pmix-6.1.0-1.el10</span></div></td></tr>
+<tr class="lvl"><td colspan="5">Level 2<span>built after level 1</span></td></tr>
+<tr><td><span class="pkg">slurm</span> <span class="nd-chg" title="changed">Δ</span></td><td class="ver">26.05.4</td><td class="deps">munge, ucx, rocm-smi, pmix, pmix_v5, pmix_v4</td><td class="c-running"><div class="cell" id="m-el9-slurm" sse-swap="node:slurm@el9" hx-get="/s/slurm-26.05/graph/node/slurm@el9" hx-target="#drawer"><span class="pill st-running">running</span><span class="nvr">slurm-26.05.4-1.el9</span><span class="stp">rpm 6:12</span></div></td><td class="c-failed"><div class="cell" id="m-el10-slurm" sse-swap="node:slurm@el10" hx-get="/s/slurm-26.05/graph/node/slurm@el10" hx-target="#drawer"><span class="pill st-failed">failed</span><span class="nvr">slurm-26.05.4-1.el10</span><span class="stp" style="color:var(--s-failed)">rpm 0:52</span></div></td></tr>
+<tr><td><span class="pkg">prrte</span></td><td class="ver">4.1.0</td><td class="deps">pmix</td><td><div class="cell" id="m-el9-prrte" sse-swap="node:prrte@el9" hx-get="/s/slurm-26.05/graph/node/prrte@el9" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">prrte-4.1.0-1.el9</span></div></td><td><div class="cell" id="m-el10-prrte" sse-swap="node:prrte@el10" hx-get="/s/slurm-26.05/graph/node/prrte@el10" hx-target="#drawer"><span class="pill st-cached">cached</span><span class="nvr">prrte-4.1.0-1.el10</span></div></td></tr>
+<tr class="lvl"><td colspan="5">Level 3<span>built after level 2</span></td></tr>
+<tr><td><span class="pkg">slurm-singularity-exec</span> <span class="nd-chg" title="changed">Δ</span></td><td class="ver">3.2.0</td><td class="deps">slurm</td><td><div class="cell" id="m-el9-slurm-singularity-exec" sse-swap="node:slurm-singularity-exec@el9" hx-get="/s/slurm-26.05/graph/node/slurm-singularity-exec@el9" hx-target="#drawer"><span class="pill st-waiting">waiting</span><span class="nvr">slurm-singularity-exec-3.2.0-1.el9</span></div></td><td class="c-blocked"><div class="cell" id="m-el10-slurm-singularity-exec" sse-swap="node:slurm-singularity-exec@el10" hx-get="/s/slurm-26.05/graph/node/slurm-singularity-exec@el10" hx-target="#drawer"><span class="pill st-blocked">blocked</span><span class="nvr">slurm-singularity-exec-3.2.0-1.el10</span><span class="why">slurm failed</span></div></td></tr>
+<tr><td><span class="pkg">openmpi</span> <span class="nd-chg" title="changed">Δ</span></td><td class="ver">5.0.11</td><td class="deps">ucx, pmix, prrte</td><td class="c-running"><div class="cell" id="m-el9-openmpi" sse-swap="node:openmpi@el9" hx-get="/s/slurm-26.05/graph/node/openmpi@el9" hx-target="#drawer"><span class="pill st-running">running</span><span class="nvr">openmpi-5.0.11-1.el9</span><span class="stp">rpm 5:51</span></div></td><td class="c-running"><div class="cell" id="m-el10-openmpi" sse-swap="node:openmpi@el10" hx-get="/s/slurm-26.05/graph/node/openmpi@el10" hx-target="#drawer"><span class="pill st-running">running</span><span class="nvr">openmpi-5.0.11-1.el10</span><span class="stp">srpm 0:51</span></div></td></tr>
+  </tbody>
+</table>
+</div>
+</main>
+
+</div>
+<script src="graph.js" defer></script>
+</body>
+</html>

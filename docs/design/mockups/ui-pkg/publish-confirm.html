@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publish &middot; repoctl</title>
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="pkg.css">
+</head>
+<body hx-boost="true">
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="/s/slurm-26.05"><span class="brand-mark">rc</span><span class="word">repoctl</span></a>
+    <span class="set-switch" title="Package set and builder branch">slurm-26.05<span class="br"> &middot; builder/slurm-26.05</span></span>
+    <span class="spacer"></span>
+    <a class="run-ind" href="/s/slurm-26.05/runs/r-20261102-1938-7d2" hx-ext="sse" sse-connect="/s/slurm-26.05/events" sse-swap="run-indicator"><span class="lbl">Last run</span><span class="pill st-ok">r-20261102-1938-7d2 &middot; done</span></a>
+    <button class="btn theme-toggle" type="button" aria-label="Switch theme" title="Switch theme"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" /><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg></button>
+  </header>
+  <nav class="sidebar" aria-label="Main">
+    <a class="nav-item" href="/s/slurm-26.05"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>Overview</a>
+    <a class="nav-item" href="/s/slurm-26.05/graph"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="3.5" cy="8" r="1.8"/><circle cx="12.5" cy="3.5" r="1.8"/><circle cx="12.5" cy="12.5" r="1.8"/><path d="M5.2 7.2l5.6-2.8M5.2 8.8l5.6 2.8"/></svg>Graph</a>
+    <a class="nav-item" href="/s/slurm-26.05/runs"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3l9 5-9 5z"/></svg>Runs</a>
+    <a class="nav-item" href="/s/slurm-26.05/packages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8l5.5 3v6.4L8 14.2 2.5 11.2V4.8z"/><path d="M2.5 4.8L8 7.8l5.5-3M8 7.8v6.4"/></svg>Packages<span class="count">11</span></a>
+    <a class="nav-item" href="/s/slurm-26.05/repo/el9"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="8" cy="3.8" rx="5.5" ry="2"/><path d="M2.5 3.8v8.4c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2V3.8M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/></svg>Repository</a>
+    <a class="nav-item active" href="/s/slurm-26.05/publish"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10V2.5M4.8 5.5L8 2.3l3.2 3.2"/><path d="M2.5 9.5v3.5h11V9.5"/></svg>Publish</a>
+    <div class="nav-label">Targets</div>
+    <a class="nav-item" href="/s/slurm-26.05/repo/el9"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>el9</a>
+    <a class="nav-item" href="/s/slurm-26.05/repo/el10"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>el10</a>
+  </nav>
+  <main class="main" id="main">
+
+    <div class="page-head">
+      <div><h1>Publish slurm-26.05</h1>
+        <div class="sub">Sign the staging repo of one run and replace the published repos. Only a person can start this.</div></div>
+    </div>
+    <div class="stepper"><div class="s on"><span class="n">1</span>Review</div><span class="line"></span><div class="s"><span class="n">2</span>Confirm</div><span class="line"></span><div class="s"><span class="n">3</span>Sign and publish</div></div>
+    <div class="toolbar">
+      <label class="small muted" for="run">Run</label>
+      <select class="select mono" id="run" name="run" hx-get="/s/slurm-26.05/publish" hx-target="#main" hx-include="this"><option>r-20261102-1938-7d2 &middot; done 19:52 &middot; 21 nodes</option><option>r-20261102-1750-a3f &middot; running</option></select>
+      <span class="pill st-ok">done</span><span class="small muted">4 ok &middot; 17 cached &middot; started 19:38 by d.klein</span>
+      <span class="grow"></span><span class="cli"><span class="k">CLI</span><code>repoctl publish --run r-20261102-1938-7d2 --dry-run</code></span>
+    </div>
+    <div class="cols">
+      <div class="stack">
+        <div class="cols-2">
+      <div class="card tcard">
+        <div class="card-head"><h2>el9</h2><span class="muted small mono">/srv/repos/slurm-26.05/el9</span></div>
+        <div class="card-body">
+          <div class="counts">
+            <div><b>60</b><span>RPMs to sign</span></div>
+            <div><b>38</b><span>signed RPMs reused</span></div>
+            <div><b>98</b><span>RPMs after publish</span></div>
+          </div>
+          <ul class="chg">
+            <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">ucx</b> <span class="evr">1.22.0-2</span> <span class="arrow">&rarr;</span> <span class="evr"><b>1.22.1-1</b></span></span><span class="dim small">15 RPMs</span></li>
+            <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">slurm</b> <span class="evr">26.05.4-1</span> <span class="arrow">&rarr;</span> <span class="evr"><b>26.05.4-2</b></span></span><span class="dim small">31 RPMs</span></li>
+            <li><span class="d d-reb" aria-label="rebuilt">&#8635;</span><span><b class="mono">openmpi</b> <span class="evr">5.0.11-1</span> <span class="dim small">same NVR</span></span><span class="dim small">10 RPMs</span></li>
+            <li><span class="d d-reb" aria-label="rebuilt">&#8635;</span><span><b class="mono">slurm-singularity-exec</b> <span class="evr">3.2.0-1</span> <span class="dim small">same NVR</span></span><span class="dim small">4 RPMs</span></li>
+            <li><span class="d d-same" aria-label="unchanged">=</span><span>7 packages unchanged</span><span class="dim small">38 RPMs</span></li>
+            <li><span class="d d-add" aria-label="added">+</span><span class="dim">0 packages added &nbsp;</span><span></span></li>
+            <li><span class="d d-rem" aria-label="removed">&minus;</span><span class="dim">0 packages removed</span><span></span></li>
+          </ul>
+        </div>
+        <div class="card-foot small"><a href="/s/slurm-26.05/repo/el9?view=staging&amp;run=r-20261102-1938-7d2&amp;diff=1">Full diff for el9</a></div>
+      </div>
+      <div class="card tcard">
+        <div class="card-head"><h2>el10</h2><span class="muted small mono">/srv/repos/slurm-26.05/el10</span></div>
+        <div class="card-body">
+          <div class="counts">
+            <div><b>60</b><span>RPMs to sign</span></div>
+            <div><b>33</b><span>signed RPMs reused</span></div>
+            <div><b>93</b><span>RPMs after publish</span></div>
+          </div>
+          <ul class="chg">
+            <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">ucx</b> <span class="evr">1.22.0-2</span> <span class="arrow">&rarr;</span> <span class="evr"><b>1.22.1-1</b></span></span><span class="dim small">15 RPMs</span></li>
+            <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">slurm</b> <span class="evr">26.05.4-1</span> <span class="arrow">&rarr;</span> <span class="evr"><b>26.05.4-2</b></span></span><span class="dim small">31 RPMs</span></li>
+            <li><span class="d d-reb" aria-label="rebuilt">&#8635;</span><span><b class="mono">openmpi</b> <span class="evr">5.0.11-1</span> <span class="dim small">same NVR</span></span><span class="dim small">10 RPMs</span></li>
+            <li><span class="d d-reb" aria-label="rebuilt">&#8635;</span><span><b class="mono">slurm-singularity-exec</b> <span class="evr">3.2.0-1</span> <span class="dim small">same NVR</span></span><span class="dim small">4 RPMs</span></li>
+            <li><span class="d d-same" aria-label="unchanged">=</span><span>6 packages unchanged</span><span class="dim small">33 RPMs</span></li>
+            <li><span class="d d-add" aria-label="added">+</span><span class="dim">0 packages added &nbsp;</span><span></span></li>
+            <li><span class="d d-rem" aria-label="removed">&minus;</span><span class="dim">0 packages removed</span><span></span></li>
+          </ul>
+        </div>
+        <div class="card-foot small"><a href="/s/slurm-26.05/repo/el10?view=staging&amp;run=r-20261102-1938-7d2&amp;diff=1">Full diff for el10</a></div>
+      </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Checks</h2><span class="right"><span class="pill st-ok">8 passed</span><span class="pill st-blocked">1 warning</span></span></div>
+          <ul class="checks"><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>All nodes are ok or cached</div><div class="d2">21 nodes: 4 ok, 17 cached, 0 failed</div></div><span class="r">21/21</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>No dirty worktree</div></div><span class="r">11/11</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Worktrees match repoctl.lock</div></div><span class="r">11/11</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>repoctl.lock is committed</div><div class="d2">builder/slurm-26.05 at 5c1e0a9 &ldquo;Pin ucx 1.22.1, guard rocm-smi on el9&rdquo;</div></div><span class="r">5c1e0a9</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Pinned commits are on the remote</div><div class="d2">Other people can check out the same lock.</div></div><span class="r">10/10</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Release package version</div><div class="d2">slurm-release 26.05-1 matches set name slurm-26.05</div></div><span class="r">26.05</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Signing key is available</div><div class="d2">gpg-agent: key unlocked &middot; YubiKey present</div></div><span class="r"></span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Publish paths are writable</div><div class="d2">/srv/repos/slurm-26.05 &middot; 38 GB free</div></div><span class="r"></span></li><li><span class="ic warn" aria-label="warn">!</span><div><div>2 packages rebuilt with the same NVR</div><div class="d2">openmpi, slurm-singularity-exec. Hosts do not get them with dnf upgrade. This does not block publish.</div></div><span class="r">warning</span></li></ul>
+        </div>
+      </div>
+      <aside class="stack">
+      <div class="card">
+        <div class="card-head"><h2>Signing</h2><span class="right muted small">only Publish signs</span></div>
+        <div class="card-body">
+          <dl class="signer">
+            <dt>Signer</dt><dd><span>GSI HPC Slurm Repo<br><span class="dim small">&lt;hpc-repo@gsi.de&gt;</span></span></dd>
+            <dt>Key</dt><dd class="fpr">4F0E 2B91 D6A8 33C5 9E07<br>1B6D 58A0 E2D4 <b>7C3A 19F2</b></dd>
+            <dt>Source</dt><dd><span class="mono small">sign.gpg_name</span> <span class="dim small">in ~/.config/repoctl/config.yaml</span></dd>
+            <dt>Agent</dt><dd><span class="pill st-ok">gpg-agent: key unlocked</span><span class="pill st-ok">YubiKey present</span></dd>
+            <dt>Started by</dt><dd>d.klein on hpc-build01</dd>
+            <dt>Last publish</dt><dd>2026-09-12 &middot; same key</dd>
+          </dl>
+          <p class="small muted" style="margin:10px 0 0">The signer can be a shared repo key or a personal key. The published repo records the identity of each key.</p>
+        </div>
+      </div>
+        <div class="card">
+          <div class="card-head"><h2>What happens</h2></div>
+          <div class="card-body small">
+            <ol style="margin:0;padding-left:18px;line-height:1.7">
+              <li>Sign 120 changed RPMs. Reuse 71 signed RPMs.</li>
+              <li>Run <code>createrepo_c</code> for 6 sub-repos.</li>
+              <li>Sign 6 <code>repomd.xml</code> files.</li>
+              <li>Verify all signatures.</li>
+              <li>Swap all targets into place in one step.</li>
+            </ol>
+            <p class="muted" style="margin:8px 0 0">The published repo does not change before the last step.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div class="footer-bar">
+      <span class="small">Next: confirm with the set name.</span><span class="grow"></span>
+      <a class="btn" href="/s/slurm-26.05">Cancel</a>
+      <button class="btn btn-primary" hx-get="/s/slurm-26.05/publish/confirm?run=r-20261102-1938-7d2" hx-target="body" hx-swap="beforeend">Continue</button>
+    </div>
+
+  </main>
+</div>
+
+<div class="scrim"></div>
+<dialog class="modal" open aria-labelledby="dlg-t">
+  <form hx-post="/s/slurm-26.05/publish" hx-target="#main">
+  <input type="hidden" name="run" value="r-20261102-1938-7d2">
+  <input type="hidden" name="csrf" value="&hellip;">
+  <div class="mh"><div class="stepper"><div class="s done"><span class="n">&#10003;</span>Review</div><span class="line"></span><div class="s on"><span class="n">2</span>Confirm</div><span class="line"></span><div class="s"><span class="n">3</span>Sign and publish</div></div><h2 id="dlg-t">Sign and publish slurm-26.05?</h2></div>
+  <div class="mb">
+    <p style="margin:0">This step signs RPMs and replaces the published repos. You cannot undo it from the UI.</p>
+    <ul>
+      <li>Targets: <b>el9</b>, <b>el10</b> &middot; run <span class="mono">r-20261102-1938-7d2</span></li>
+      <li>Sign <b>120</b> RPMs and <b>6</b> repomd.xml files</li>
+      <li>Signer: GSI HPC Slurm Repo &middot; key <span class="mono">&hellip;7C3A 19F2</span></li>
+      <li>Hosts see the change after metadata expiry (1 hour).</li>
+    </ul>
+    <div class="confirm-field">
+      <label for="confirm-name">Type <b class="mono">slurm-26.05</b> to confirm.</label>
+      <input class="input mono" id="confirm-name" name="confirm" value="slurm-26.05" autocomplete="off" spellcheck="false">
+      <div class="match">&#10003; The name matches.</div>
+    </div>
+  </div>
+  <div class="mf">
+    <span class="cli"><span class="k">CLI</span><code>repoctl publish --run r-20261102-1938-7d2</code></span>
+    <button class="btn" type="button">Cancel</button>
+    <button class="btn btn-sign" type="submit">Sign and publish</button>
+  </div>
+  </form>
+</dialog>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Components · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="base-fixes.css">
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="pages.css">
+<!-- production: <script src="/-/static/3f9c1e/htmx.min.js"></script><script src="/-/static/3f9c1e/htmx-ext-sse.js"></script> -->
+</head>
+<body data-set="slurm-26.05" data-target="el9" hx-ext="sse" sse-connect="/s/slurm-26.05/-/events?page=components"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="sr-only" href="#main">Skip to content</a>
+<div class="app">
+<header class="topbar" role="banner">
+  <a class="brand" href="/" aria-label="repoctl: all sets"><span class="brand-mark">rc</span>repoctl<small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set (g s)"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span>slurm-26.05<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="/s/slurm-26.05/" aria-current="page"><span class="dot" style="color:var(--s-running)"></span><b class="mono">slurm-26.05</b><span class="pill st-running">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="/s/slurm-25.11/"><span class="dot" style="color:var(--s-ok)"></span><b class="mono">slurm-25.11</b><span class="pill st-ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="/s/slurm-25.11-testing/"><span class="dot" style="color:var(--s-blocked)"></span><b class="mono">slurm-25.11-testing</b><span class="pill st-blocked">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="/"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">Add a set: run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump hide-sm"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/s/slurm-26.05/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" sse-swap="chip" hx-swap="outerHTML"
+     title="Run r-20261102-1750-a3f of slurm-26.05: 4 of 8 builds done, 1 failed, 1 blocked, 3 running. Started 17:50.">
+    <span class="spin" aria-hidden="true"></span><span class="mono">slurm-26.05</span>
+    <span class="progress bar" aria-hidden="true"><i class="p-ok" style="flex:2"></i><i class="p-failed" style="flex:1"></i><i class="p-blocked" style="flex:1"></i><i class="p-running" style="flex:3"></i><i class="p-todo" style="flex:1"></i></span>
+    <span class="n">4/8</span><span class="bad">1 failed</span><span class="n el">11m</span>
+    <span class="sr-only">Run in progress</span></a>
+  <span class="live hide-sm" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="t"></span></span>
+  <span class="meta hide-md mono">d.klein@hpc-build01</span>
+  <button class="icon-btn" type="button" aria-label="Keyboard shortcuts (?)" onclick="document.getElementById('help').showModal()">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+<nav class="sidebar" aria-label="Set navigation">
+  <div class="nav-label">Set <span class="set-name">slurm-26.05</span></div>
+  <a class="nav-item" href="/s/slurm-26.05/"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+  <a class="nav-item" href="/s/slurm-26.05/graph?target=el9"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/></svg>Graph</a>
+  <a class="nav-item" href="/s/slurm-26.05/plan"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M4 18h3"/></svg>Plan<span class="count">8 build</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/runs"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Runs<span class="count hot" sse-swap="nav-runs">1 running</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/packages"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>Packages<span class="count">11</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/upstream"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Upstream<span class="count">2 new</span></a>
+  <div class="nav-label">Repository</div>
+  <a class="nav-item" href="/s/slurm-26.05/repo/el9"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el9</a>
+  <a class="nav-item" href="/s/slurm-26.05/repo/el10"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el10</a>
+  <a class="nav-item" href="/s/slurm-26.05/publish"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>Publish</a>
+  <div class="nav-label">Host</div>
+  <a class="nav-item" href="/s/slurm-26.05/config"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>Config and lock</a>
+  <a class="nav-item" href="/doctor"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Doctor<span class="count">ok</span></a>
+  <a class="nav-item" href="/"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>All sets<span class="count">3</span></a>
+  <div class="side-foot"><span>Press <kbd>?</kbd> for shortcuts</span><span class="mono">repoctl v0.1.0</span></div>
+</nav>
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
+  <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
+
+<div class="page-head"><div><h1>Components</h1><div class="sub">Shared parts of the repoctl web UI. Owner: ui-shell. Classes come from repoctl-base.css, base-fixes.css and shell.css.</div></div></div>
+<div class="cs">
+<section class="card span2"><div class="card-head"><h2>Status pills: node states in a run</h2></div><div class="card-body">
+  <table class="table"><thead><tr><th>Pill</th><th>Class</th><th>Meaning</th></tr></thead><tbody>
+  <tr><td><span class="pill st-queued">queued</span></td><td><code>.pill.st-queued</code></td><td>Ready. Waits for a free job slot.</td></tr><tr><td><span class="pill st-waiting">waiting</span></td><td><code>.pill.st-waiting</code></td><td>Dependencies are not done yet.</td></tr><tr><td><span class="pill st-running">running</span></td><td><code>.pill.st-running</code></td><td>Builds now (srpm, rpm or stage).</td></tr><tr><td><span class="pill st-ok">ok</span></td><td><code>.pill.st-ok</code></td><td>Built in this run.</td></tr><tr><td><span class="pill st-cached">cached</span></td><td><code>.pill.st-cached</code></td><td>Key is in the node cache. Not built.</td></tr><tr><td><span class="pill st-failed">failed</span></td><td><code>.pill.st-failed</code></td><td>The build failed.</td></tr><tr><td><span class="pill st-blocked">blocked</span></td><td><code>.pill.st-blocked</code></td><td>A dependency failed.</td></tr><tr><td><span class="pill st-canceled">canceled</span></td><td><code>.pill.st-canceled</code></td><td>The run was canceled.</td></tr><tr><td><span class="pill st-skip">skip</span></td><td><code>.pill.st-skip</code></td><td>Excluded by a filter (plan only).</td></tr>
+  </tbody></table>
+  <p class="note">Plan actions use their own pills: <span class="pill act-build">build</span> <span class="pill st-cached">cached</span> <span class="pill st-skip">skip</span>. The build action is an outline in the primary color. It is not a run state.</p>
+  <p class="note">Other things with a state use the same colors: green ok, amber needs attention, red failed. Example: <span class="pill st-blocked">lock modified</span> <span class="pill st-ok">lock clean</span>. Each pill has a text label. Color is never the only signal.</p></div></section>
+
+<section class="card "><div class="card-head"><h2>Node chip</h2></div><div class="card-body">
+  <div class="row"><a class="node-chip st-queued" href="#" title="slurm@el9: queued"><b>slurm</b>@el9</a> <a class="node-chip st-waiting" href="#" title="slurm@el9: waiting"><b>slurm</b>@el9</a> <a class="node-chip st-running" href="#" title="slurm@el9: running"><b>slurm</b>@el9</a> <a class="node-chip st-ok" href="#" title="slurm@el9: ok"><b>slurm</b>@el9</a> <a class="node-chip st-cached" href="#" title="slurm@el9: cached"><b>slurm</b>@el9</a> <a class="node-chip st-failed" href="#" title="slurm@el9: failed"><b>slurm</b>@el9</a> <a class="node-chip st-blocked" href="#" title="slurm@el9: blocked"><b>slurm</b>@el9</a> <a class="node-chip st-canceled" href="#" title="slurm@el9: canceled"><b>slurm</b>@el9</a> <a class="node-chip st-skip" href="#" title="rocm-smi@el10: skip"><b>rocm-smi</b>@el10</a></div>
+  <p class="note"><code>&lt;a class="node-chip st-failed" href="…/runs/&lt;run&gt;/nodes/slurm@el10"&gt;&lt;b&gt;slurm&lt;/b&gt;@el10&lt;/a&gt;</code>. The square shows the state. The text stays in text colors. The chip links to the node in its run, or to the package page for a target.</p></div></section>
+
+<section class="card "><div class="card-head"><h2>Target, NVR, hash</h2></div><div class="card-body">
+  <dl class="kv">
+    <dt>Target</dt><dd><span class="target" title="rocky+epel-9-x86_64"><b>el9</b><span>rocky+epel-9-x86_64</span></span> <span class="target" title="rocky+epel-10-x86_64"><b>el10</b><span>rocky+epel-10-x86_64</span></span> <span class="target" title="undefined"><b>el9</b></span> <span class="muted">(short form in tables)</span></dd>
+    <dt>NVR</dt><dd><span class="nvr"><span class="n">slurm</span>-<span class="v">26.05.4</span>-<span class="r">1</span><span class="d">.el9.x86_64</span></span><br><span class="nvr"><span class="n">ucx</span>-<span class="v">1.22.0</span>-<span class="r">2</span><span class="d">.el9</span></span><br><span class="nvr"><span class="n">slurm-singularity-exec</span>-<span class="v">3.2.0</span>-<span class="r">1</span><span class="d">.el10.x86_64</span></span></dd>
+    <dt>Commit</dt><dd><span class="hashc"><span title="d42f66a09b7e3c5d1f8a2b46e0c9d3f7a5b1e2c8">d42f66a</span><button class="copy" type="button" data-copy="d42f66a09b7e3c5d1f8a2b46e0c9d3f7a5b1e2c8" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span> <span class="muted">7 chars, full hash in title and copy</span></dd>
+    <dt>Key</dt><dd><span class="hashc"><span title="k1:9f2c4e7a1b3d5f60e8c2a4b6d8f0e1c3a5b7d9f1e3c5a7b9d1f3e5c7a9b1d3f5">k1:9f2c4e7a1</span><button class="copy" type="button" data-copy="k1:9f2c4e7a1b3d5f60e8c2a4b6d8f0e1c3a5b7d9f1e3c5a7b9d1f3e5c7a9b1d3f5" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></dd>
+    <dt>Fingerprint</dt><dd><span class="hash">…7C3A 19F2</span> <button class="copy" type="button" data-copy="(full fingerprint)" aria-label="Copy fingerprint" title="Copy fingerprint"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></dd>
+    <dt>Tags</dt><dd><span class="tag">ext</span> <span class="tag">release</span> <span class="tag">staged</span> <span class="tag">published</span></dd>
+  </dl></div></section>
+
+<section class="card "><div class="card-head"><h2>Buttons</h2></div><div class="card-body">
+  <div class="row"><button class="btn btn-primary">Build…</button><button class="btn">Plan</button><button class="btn btn-danger">Cancel run…</button>
+  <button class="btn btn-danger solid">Publish slurm-26.05</button><button class="btn" disabled>Publish…</button></div>
+  <div class="row"><button class="btn btn-sm btn-primary">Check now</button><button class="btn btn-sm">Show log</button><button class="btn btn-sm btn-danger">Cancel…</button>
+  <button class="icon-btn" aria-label="Help">?</button><button class="icon-btn" aria-label="Theme"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button><button class="copy" type="button" data-copy="x" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div>
+  <p class="note">A label ending in “…” opens a dialog. The dialog shows the CLI command first. Only the publish confirm uses the solid danger button.</p>
+  <div class="cmd"><code>repoctl build --target el10 slurm</code><button class="copy" type="button" data-copy="repoctl build --target el10 slurm" aria-label="Copy command" title="Copy command"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div></section>
+
+<section class="card span2"><div class="card-head"><h2>Table and key/value</h2></div><div class="card-body">
+  <div class="table-wrap"><table class="table"><thead><tr><th>Node</th><th>Action</th><th>Reason</th><th class="num">Time</th></tr></thead><tbody>
+    <tr><td><a class="node-chip st-ok" href="#" title="ucx@el9: ok"><b>ucx</b>@el9</a></td><td><span class="pill act-build">build</span></td><td>commit 907c60d → 4b1e9c2</td><td class="num">4m02s</td></tr>
+    <tr><td><a class="node-chip st-running" href="#" title="slurm@el9: running"><b>slurm</b>@el9</a></td><td><span class="pill act-build">build</span></td><td>dependency key: ucx@el9</td><td class="num">6m12s</td></tr>
+    <tr><td><a class="node-chip st-cached" href="#" title="munge@el9: cached"><b>munge</b>@el9</a></td><td><span class="pill st-cached">cached</span></td><td class="muted">key in cache</td><td class="num">–</td></tr>
+  </tbody></table></div>
+  <dl class="kv" style="margin-top:12px"><dt>Set</dt><dd class="mono">slurm-26.05</dd><dt>Workspace</dt><dd class="mono">~/src/slurm-repo</dd><dt>Branch</dt><dd><code>builder/slurm-26.05</code></dd><dt>Lock</dt><dd><span class="pill st-blocked">lock modified</span></dd></dl></div></section>
+
+<section class="card "><div class="card-head"><h2>Banners</h2></div><div class="card-body"><div class="stack">
+  <div class="banner info"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><div class="grow">A run is in progress. A new build waits for the set lock.</div></div>
+  <div class="banner warn"><svg viewBox="0 0 24 24" class="ic"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg><div class="grow"><b>repoctl.lock is modified.</b> Commit it before you publish.</div><a class="btn btn-sm" href="#">Show diff</a></div>
+  <div class="banner err"><svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg><div class="grow"><b>repoctl.yaml is not valid.</b> <code>repoctl.yaml:31: targets[1].mock: value is required</code>. Pages show the last valid config.</div></div>
+  <div class="banner err" style="display:flex"><svg viewBox="0 0 24 24" class="ic"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg><div class="grow"><b>Offline.</b> The repoctl ui server does not answer. Live parts are dimmed. The page tries again every 5 s.</div><button class="btn btn-sm">Reload</button></div>
+</div></div></section>
+
+<section class="card "><div class="card-head"><h2>Toasts</h2></div><div class="card-body"><div class="stack toasts-demo">
+  <div class="toast ok" role="status"><span class="dot"></span><div class="msg"><b>Run r-20261030-0912-7d1 is done.</b> 2 built, 19 cached.</div><button class="x" aria-label="Dismiss">×</button><div class="acts"><a href="#">Open run</a></div></div>
+  <div class="toast err" role="alert"><span class="dot"></span><div class="msg"><b>slurm@el10 failed</b> in r-20261102-1750-a3f</div><button class="x" type="button" aria-label="Dismiss">×</button>
+  <div class="acts"><a href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10">Show log</a><a href="/s/slurm-26.05/runs/r-20261102-1750-a3f">Open run</a></div></div>
+  <div class="toast info" role="status"><span class="dot"></span><div class="msg"><b>repoctl.lock changed on disk.</b> The plan is new.</div><button class="x" aria-label="Dismiss">×</button><div class="acts"><a href="#">Show plan</a></div></div>
+</div><p class="note">Bottom right, newest on top, max 3. Ok and info close after 6 s. Errors stay until closed and use <code>role="alert"</code>.</p></div></section>
+
+<section class="card "><div class="card-head"><h2>Run progress</h2></div><div class="card-body"><div class="stack">
+  <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="8" aria-valuenow="4" aria-label="4 of 8 builds done">
+  <i class="p-ok" style="flex:2"></i><i class="p-failed" style="flex:1"></i><i class="p-blocked" style="flex:1"></i><i class="p-running" style="flex:3"></i><i class="p-todo" style="flex:1"></i></div><div class="cap"><b>4 of 8</b> builds done<span class="sep">·</span>11m02s elapsed</div><div class="legend">
+  <span><i style="background:var(--s-ok)"></i>2 ok</span><span><i style="background:var(--s-failed)"></i>1 failed</span>
+  <span><i style="background:var(--s-blocked)"></i>1 blocked</span><span><i style="background:var(--s-running)"></i>3 running</span>
+  <span><i style="box-shadow:inset 0 0 0 1.5px var(--s-queued)"></i>1 to go</span><span class="muted">+ 13 cached</span></div>
+  <div class="row"><a class="run-chip" id="run-chip" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" sse-swap="chip" hx-swap="outerHTML"
+     title="Run r-20261102-1750-a3f of slurm-26.05: 4 of 8 builds done, 1 failed, 1 blocked, 3 running. Started 17:50.">
+    <span class="spin" aria-hidden="true"></span><span class="mono">slurm-26.05</span>
+    <span class="progress bar" aria-hidden="true"><i class="p-ok" style="flex:2"></i><i class="p-failed" style="flex:1"></i><i class="p-blocked" style="flex:1"></i><i class="p-running" style="flex:3"></i><i class="p-todo" style="flex:1"></i></span>
+    <span class="n">4/8</span><span class="bad">1 failed</span><span class="n el">11m</span>
+    <span class="sr-only">Run in progress</span></a></div>
+  <p class="note">Segments in fixed order: ok, cached, failed, blocked, canceled, running, then the rest. The bar counts only nodes that build; the legend names the cached ones. Running segments move (stripes) unless the user asks for less motion.</p>
+</div></div></section>
+
+<section class="card "><div class="card-head"><h2>Sparkline of run durations</h2></div><div class="card-body"><div class="row"><svg class="spark" width="220" height="36" viewBox="0 0 220 36" role="img" aria-label="Duration of the last 12 runs, newest right. Longest: r-20261021-1133-e9b, 1h52m."><rect class="ok" x="0.0" y="22" width="16.5" height="14"><title>r-20260815-1012-11c: ok, 47m</title></rect><rect class="ok" x="18.5" y="21" width="16.5" height="15"><title>r-20260821-1544-2e0: ok, 51m</title></rect><rect class="failed" x="37.0" y="34" width="16.5" height="2"><title>r-20260828-0901-d4a: failed, 6m</title></rect><rect class="ok" x="55.5" y="21" width="16.5" height="15"><title>r-20260829-1130-5f2: ok, 49m</title></rect><rect class="ok" x="74.0" y="31" width="16.5" height="5"><title>r-20260903-1402-77b: ok, 15m</title></rect><rect class="ok" x="92.5" y="23" width="16.5" height="13"><title>r-20260910-0915-a90: ok, 44m</title></rect><rect class="ok" x="111.0" y="24" width="16.5" height="12"><title>r-20260912-0948-5b0: ok, 38m</title></rect><rect class="canceled" x="129.5" y="34" width="16.5" height="2"><title>r-20261015-1621-c3d: canceled, 7m</title></rect><rect class="ok" x="148.0" y="2" width="16.5" height="34"><title>r-20261021-1133-e9b: ok, 1h52m</title></rect><rect class="failed" x="166.5" y="33" width="16.5" height="3"><title>r-20261029-1604-c02: failed, 9m</title></rect><rect class="ok" x="185.0" y="29" width="16.5" height="7"><title>r-20261030-0912-7d1: ok, 24m</title></rect><rect class="running" x="203.5" y="33" width="16.5" height="3"><title>r-20261102-1750-a3f: running, 11m so far</title></rect><line class="base" x1="0" x2="220" y1="35.5" y2="35.5"/></svg><span class="muted">last 12 runs, newest right</span></div>
+  <p class="note">One bar per run. Height is the duration on one linear scale from 0. Color is the run result. Each bar has a title with run id, result and time, so the color is not the only signal. No axis: the table next to it gives the numbers.</p>
+  <div class="row" style="margin-top:12px"><span class="strip" aria-hidden="true"><i class="ok"></i><i class="ok"></i><i class="failed"></i><i class="blocked"></i><i class="running"></i><i class="running"></i><i class="running"></i><i class="waiting"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i></span><span class="muted">Node strip: one square per node of a run (sets page)</span></div></div></section>
+
+<section class="card span2"><div class="card-head"><h2>Empty states</h2></div><div class="card-body"><div class="es">
+  <div class="empty"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg><h3>No runs yet</h3><p>A run builds the nodes of the plan into a staging repo. Start one here or in a terminal.</p><div class="cmd"><code>repoctl build</code><button class="copy" type="button" data-copy="repoctl build" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div><button class="btn btn-primary btn-sm">Build…</button></div>
+  <div class="empty"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg><h3>Not published yet</h3><p>Publish signs the RPMs of a complete run and swaps them into the publish path.</p><a class="btn btn-sm" href="#">Publish…</a></div>
+</div></div></section>
+
+<section class="card span2"><div class="card-head"><h2>Dialogs</h2></div><div class="card-body dlgs">
+  <dialog class="dlg" open aria-labelledby="d1">
+    <header><h2 id="d1">Cancel run?</h2></header>
+    <div class="body"><p style="margin:0">repoctl stops <b>3 running</b> nodes and does not start <b>1 waiting</b> node. Nodes that are done stay in the staging repo.</p>
+      <div class="cmd"><code>repoctl cancel r-20261102-1750-a3f</code><button class="copy" type="button" data-copy="repoctl cancel r-20261102-1750-a3f" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div>
+    <footer><button class="btn">Keep running</button><button class="btn btn-danger solid">Cancel run</button></footer>
+  </dialog>
+  <dialog class="dlg" open aria-labelledby="d2">
+    <header><h2 id="d2">Publish slurm-26.05</h2><span class="steps">Step 2 of 2</span></header>
+    <div class="body">
+      <dl class="kv"><dt>Run</dt><dd class="mono">r-20261102-1938-7d2</dd><dt>Changes</dt><dd>4 packages, 31 RPMs</dd><dt>Target</dt><dd>el9, el10 (one publish run per target)</dd><dt>Signer</dt><dd>Dennis Klein &lt;d.klein@gsi.de&gt; <span class="hash">…7C3A 19F2</span></dd><dt>Path</dt><dd class="mono">~/.local/share/repoctl/slurm-26.05/repo/</dd></dl>
+      <label class="field">Type the set name to publish<input class="input mono" value="slurm-26.0" aria-describedby="d2h" autocomplete="off"></label>
+      <div class="muted" id="d2h" style="font-size:12.5px">The button works when the text is <code>slurm-26.05</code>.</div>
+      <div class="cmd"><code>repoctl publish --run r-20261102-1938-7d2</code><button class="copy" type="button" data-copy="repoctl publish --run r-20261102-1938-7d2" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div>
+    <footer><button class="btn">Back</button><button class="btn btn-danger solid" disabled>Publish slurm-26.05</button></footer>
+  </dialog>
+  <dialog id="help-demo" class="dlg" aria-labelledby="help-t" open style="position:static;margin:0">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="steps">Esc closes</span></header>
+  <div class="body"><table class="table">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Upstream</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Browse the repository (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+  </table><p class="muted" style="margin:0;font-size:12.5px">No shortcut starts a build or a publish.</p></div>
+</dialog>
+</div></section>
+</div>
+</main>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="steps">Esc closes</span></header>
+  <div class="body"><table class="table">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Upstream</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Browse the repository (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+  </table><p class="muted" style="margin:0;font-size:12.5px">No shortcut starts a build or a publish.</p></div>
+</dialog>
+<script src="shell.js"></script>
+</body>
+</html>

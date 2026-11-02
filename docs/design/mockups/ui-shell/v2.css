@@ -1,0 +1,75 @@
+/* v2: advisories, agent buttons, agent drawer (ui-shell) */
+.btn svg{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.ov.v2{grid-template-areas:"attn cur" "adv adv" "mat mat" "runs side"}
+.adv{grid-area:adv}
+@media (max-width:1100px){.ov.v2{grid-template-areas:"attn" "cur" "adv" "mat" "runs" "side"}}
+
+/* plan action "current" and advisory levels reuse state colors (no new colors) */
+.st-current{color:var(--s-cached);background:var(--s-cached-bg)}
+.lvl-required{color:var(--s-failed);background:var(--s-failed-bg)}
+.lvl-warn{color:var(--s-blocked);background:var(--s-blocked-bg)}
+.lvl-info{color:var(--s-queued);background:var(--s-queued-bg)}
+.tag.bad{background:var(--s-failed-bg);color:var(--s-failed)}
+.tag.info{background:var(--s-queued-bg);color:var(--c-text-2)}
+.card-head .pill{margin-left:2px}
+
+/* agent button: always a secondary action, marked with the spark icon */
+.btn-agent{background:var(--c-primary-soft);border-color:color-mix(in srgb,var(--c-primary) 35%,var(--c-border));color:var(--c-primary-strong)}
+.btn-agent:hover{background:color-mix(in srgb,var(--c-primary-soft) 70%,var(--c-primary) 12%)}
+.btn-agent svg{width:14px;height:14px;fill:currentColor;stroke:none}
+
+/* advisories list */
+.adv-list{list-style:none;margin:0;padding:0}
+.adv-list>li{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr) auto;gap:6px 16px;align-items:start;padding:12px 14px;border-bottom:1px solid var(--c-border);border-left:4px solid var(--c-border-strong)}
+.adv-list>li.adv-required{border-left-color:var(--s-failed)}
+.adv-list>li:last-child{border-bottom:0}
+.adv-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.adv-h .code{font-size:12.5px}
+.adv-b{font-size:13px;color:var(--c-text-2);min-width:0}.adv-b .cmd{margin-top:8px}
+.adv-list .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:420px}
+.adv .card-foot{display:block;font-size:12.5px;line-height:1.7}.adv .card-foot .right{display:inline;margin-left:12px}
+.cur .list>li.sub{padding-left:28px;font-size:12.5px;color:var(--c-text-2)}
+@media (max-width:1100px){.adv-list>li{grid-template-columns:minmax(0,1fr)}.adv-list .acts{justify-content:flex-start}}
+
+/* agent drawer: right side, non-modal, under the top bar */
+.drawer{position:fixed;top:var(--topbar-h);right:0;bottom:0;width:min(600px,100vw);z-index:35;display:flex;flex-direction:column;
+  background:var(--c-surface);border-left:1px solid var(--c-border);box-shadow:var(--shadow-2)}
+.dr-head{padding:14px 16px 10px;border-bottom:1px solid var(--c-border);display:grid;gap:10px}
+.dr-title{display:flex;align-items:center;gap:8px}
+.dr-title>svg{width:18px;height:18px;fill:var(--c-primary);stroke:none}
+.dr-title h2{margin:0;font-size:16px}
+.dr-x{margin-left:auto}
+.dr-meta{grid-template-columns:64px 1fr;font-size:12.5px}
+.dr-meta dd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dr-body{flex:1;overflow-y:auto;padding:4px 16px 16px}
+.dr-body section{padding:12px 0;border-bottom:1px solid var(--c-border)}
+.dr-body section:last-child{border-bottom:0}
+.dr-body h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--c-text-3);margin:0 0 8px}
+.dr-body h3 .muted{text-transform:none;letter-spacing:0;font-weight:400}
+.dr-body p{margin:0;font-size:13.5px}
+.dr-body .note{font-size:12.5px;margin-top:8px}
+.dr-foot{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--c-border);background:var(--c-surface-2);font-size:12.5px;color:var(--c-text-2)}
+.dr-foot svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+.tools{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:12.5px}
+.tools li{display:flex;gap:8px;align-items:center}
+.ti{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;font-size:10px;font-weight:700}
+.ti.ok{background:var(--s-ok-bg);color:var(--s-ok)}
+.ti.run{border:2px solid color-mix(in srgb,var(--s-running) 30%,transparent);border-top-color:var(--s-running);animation:spin 1s linear infinite}
+.stream .caret{display:inline-block;width:7px;height:15px;margin-left:2px;vertical-align:-2px;background:var(--c-primary);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.stream .caret,.ti.run{animation:none}}
+.waiting{font-size:12.5px;padding-top:4px}
+.evlist{display:grid;gap:2px;background:#17130f;border-radius:var(--r-md);padding:8px 0;font:12px/1.5 var(--font-mono);overflow-x:auto}
+.ev{display:grid;grid-template-columns:118px 1fr;gap:10px;padding:2px 12px;color:#e9e1d8;white-space:pre}
+.ev:hover{background:#2a231d;text-decoration:none}
+.ev .ln{color:#e08a4f;text-decoration:underline;text-underline-offset:2px}
+.ev .err{color:#ff8a7e}.ev .warn{color:#e6b84a}.ev .dim{color:#8d8278}
+.log.diff{font-size:12px;margin:0}.log.diff .hunk{color:#9fb0d4}
+.dr-body .row{margin:0}
+@media (max-width:760px){.drawer{top:0;z-index:60}}
+
+/* agent-off sample page */
+body.solo{padding:24px}
+.solo-main{max-width:1100px;margin:0 auto}
+.solo-cap{margin:0 0 12px;font-size:13px}
+.agent-hint{font-size:12.5px}

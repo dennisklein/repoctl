@@ -1,0 +1,556 @@
+{
+  "server": {
+    "name": "repoctl",
+    "title": "repoctl package set builder",
+    "transport": "stdio (repoctl mcp start)"
+  },
+  "tools": [
+    {
+      "name": "repoctl_status",
+      "title": "Set status",
+      "description": "Show the package set in the current directory: targets, lock state of each package worktree (in-sync, ahead, behind, dirty), the active run, the last run and the last publish. Call this first in a new session. Returns kind Status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "outputKind": "Status",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_doctor",
+      "title": "Check the build host",
+      "description": "Check that this host can build the set: mock group membership, mock configs of each target, rpmautospec plugin, GPG key, createrepo_c, disk space, XDG directories, reachability of external git URLs, and that the installed skills match the binary. Each check is ok, warning or failed, with a remediation line. Use it when a build fails before the srpm step. Returns kind DoctorReport.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "outputKind": "DoctorReport",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "repoctl_show",
+      "title": "Show packages",
+      "description": "Show packages of the set: source branch or external URL, locked commit, worktree HEAD and state, targets, version and release per target, upstream settings and the notes from repoctl.yaml. Read the notes before you propose a version change: they hold rules such as 'upstream 4.x is frozen'. Returns kind Package, one item per dir. Maps to repoctl list (all) and repoctl show <dir>.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Package dirs, e.g. [\"ucx\"]. Empty or absent: all packages."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Package",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_graph",
+      "title": "Build graph",
+      "description": "Return the dependency graph of each target. An edge from A to B means A must be built before B; via lists the BuildRequires that matched. unresolved lists requires that only a node of another target provides: these often cause a builddep failure. Returns kind Graph, one item per target.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Target ids, e.g. [\"el10\"]. Absent: all targets."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Graph",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_plan",
+      "title": "Plan a build",
+      "description": "Show what a build would do and why, without building. Each node gets action build, cached or skip. A build node lists reasons with a code: commit-changed, dep-key-changed, macros-changed, mock-config-changed, not-in-cache or forced. Read warnings: nvr.reused means the rebuilt package keeps its published NVR (publish will refuse it; repoctl bump-release fixes it), and dep.not-for-target predicts a builddep failure. The first plan of a target can take minutes because repoctl builds SRPMs to read their requires. Returns kind Plan.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Limit to these package dirs and their dependents. Absent: all."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "default": false,
+            "description": "Plan the selected nodes as build even if cached (reason forced)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Plan",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_upstream",
+      "title": "Upstream versions",
+      "description": "Compare each package version with the latest upstream release (GitHub tags or releases with the tag filter from repoctl.yaml, and the Fedora rawhide version). status is up-to-date, update-available, ahead or unknown. newer lists the tags between the current and the latest version; use releaseNotesUrl to read what changed. Answers are cached for one hour unless refresh is true. Returns kind Upstream.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "refresh": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Upstream",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "repoctl_runs",
+      "title": "Run history",
+      "description": "List recent build and publish runs of the set, newest first, with state and node counts. Use it to find the run id of the last failed build. Returns kind Run with nodes left empty; call repoctl_run_get for the nodes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "planning",
+              "running",
+              "ok",
+              "failed",
+              "canceled",
+              "abandoned"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Run",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_run_get",
+      "title": "Run details",
+      "description": "Return one run with every node: state (queued, waiting, running, ok, cached, failed, blocked, canceled), steps with durations and exit codes, NVRs, artifacts, log paths, and for a failed node an error with class and a log excerpt. Works while the run is in progress. publishable lists targets a person may publish; publishBlockers says why the others are not. next lists suggested steps; a step with human: true is for the person only. Returns kind Run.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "run"
+        ],
+        "properties": {
+          "run": {
+            "type": "string",
+            "description": "Run id, e.g. r-20261102-1750-a3f, or 'last'."
+          },
+          "artifacts": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include the artifact list of each node (file, path, size, sha256). Absent: NVRs only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Run",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_run_wait",
+      "title": "Wait for a run",
+      "description": "Wait until a run ends or timeoutSeconds pass, then return the run as repoctl_run_get does. Sends MCP progress notifications (nodes ended of nodes planned) when the call has a progressToken. If the run is not done when the time ends, call the tool again. Do not poll faster: one call can wait up to 600 seconds.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "run"
+        ],
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 600,
+            "default": 300
+          },
+          "artifacts": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include the artifact list of each node (file, path, size, sha256). Absent: NVRs only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Run",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_logs",
+      "title": "Node log",
+      "description": "Return lines (repoctl logs RUN NODE) of the log of one node in a run (all steps: srpm, rpm, stage, with mock root.log and build.log merged in). By default it returns the error excerpt and the last 120 lines. Use grep to find a pattern such as 'error:' or 'Failed build dependencies'. Returns kind NodeLog; lines are escaped and each line is cut at 2000 bytes.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "node"
+        ],
+        "properties": {
+          "node": {
+            "type": "string",
+            "description": "Node id <dir>@<target>, e.g. slurm@el10."
+          },
+          "run": {
+            "type": "string",
+            "description": "Run id. Absent: the newest run that has this node."
+          },
+          "step": {
+            "type": "string",
+            "enum": [
+              "srpm",
+              "rpm",
+              "stage"
+            ]
+          },
+          "tail": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 400,
+            "default": 120
+          },
+          "grep": {
+            "type": "string",
+            "description": "RE2 regular expression; returns matching lines with 3 lines of context, at most 400 lines."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "NodeLog",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_repo_ls",
+      "title": "Repo contents",
+      "description": "List the RPMs in the published repos, or in the staging repo of a run. One item per target and repo (slurm, slurm-source, slurm-debuginfo). Returns kind RepoContents.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "run": {
+            "type": "string",
+            "description": "Staging repo of this run. Absent: published repos."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "binary",
+              "source",
+              "debuginfo"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Glob on the package name, e.g. slurm-*."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "RepoContents",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_repo_diff",
+      "title": "Staging vs published",
+      "description": "Compare the staging repo of a run with the published repo: added, removed, changed (other EVR) and rebuilt (same NVRA, other payload). Use it to write the summary a person reads before they publish. Returns kind RepoDiff, one item per target and repo.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string",
+            "description": "Absent: the newest build run."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "RepoDiff",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_build",
+      "title": "Build to staging",
+      "description": "Start a build of the set into a new staging repo and return when the plan is ready, with the run id. It never signs and never publishes. It never builds uncommitted files: a dirty worktree fails with code lock.dirty and a humanAction. With from=lock (default), every selected worktree must match repoctl.lock (else lock.dirty). Only one run per set: an active run gives code set.busy and its id; wait for it with repoctl_run_wait. Follow the new run with repoctl_run_wait. Returns kind Run (state planning or running).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Build these packages and their dependents. Absent: all."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "force": {
+            "type": "boolean",
+            "default": false
+          },
+          "jobs": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Absent: the user config value."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "lock",
+              "worktree"
+            ],
+            "default": "lock",
+            "description": "lock: pinned commits (publishable). worktree: worktree HEAD commits, to try a commit before pin; the run is never publishable."
+          },
+          "failFast": {
+            "type": "boolean",
+            "default": false,
+            "description": "Stop after the first failure. Default: keep going with independent nodes."
+          },
+          "rdeps": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also build the packages that depend on dirs."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Run",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "repoctl_run_cancel",
+      "title": "Cancel a run",
+      "description": "Cancel a build run that this MCP server started (repoctl cancel). Running nodes are stopped, queued and waiting nodes end canceled, the staging repo keeps the nodes that ended ok. A run started from the CLI or the web UI is not canceled: the call fails with code cancel.foreign-run and a humanAction.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "run"
+        ],
+        "properties": {
+          "run": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Run",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_pin",
+      "title": "Pin worktree commits",
+      "description": "Write the HEAD commit of the named package worktrees into repoctl.lock. Use it after you commit a spec change in packages/<dir>. It does not commit repoctl.lock and does not push. It refuses a dirty worktree (code lock.dirty, with a humanAction). Returns kind Lock with previous and new commits.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "dirs"
+        ],
+        "properties": {
+          "dirs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Lock",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "repoctl_checkout",
+      "title": "Check out locked commits",
+      "description": "Create or update package worktrees at the commits in repoctl.lock, and fetch external mirrors. It never discards changes: a dirty worktree or a worktree with commits that are not in the lock fails with code lock.dirty and a humanAction. Returns kind Lock.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Lock",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "repoctl://schema/config",
+      "name": "repoctl.yaml schema",
+      "mimeType": "application/schema+json"
+    },
+    {
+      "uri": "repoctl://schema/output",
+      "name": "--json output schema",
+      "mimeType": "application/schema+json"
+    },
+    {
+      "uri": "repoctl://schema/events",
+      "name": "run journal schema",
+      "mimeType": "application/schema+json"
+    },
+    {
+      "uri": "repoctl://status",
+      "name": "set status",
+      "mimeType": "application/json",
+      "subscribe": true
+    }
+  ],
+  "resourceTemplates": [
+    {
+      "uriTemplate": "repoctl://runs/{run}",
+      "name": "run",
+      "mimeType": "application/json",
+      "subscribe": true
+    },
+    {
+      "uriTemplate": "repoctl://runs/{run}/journal",
+      "name": "run journal",
+      "mimeType": "application/x-ndjson"
+    },
+    {
+      "uriTemplate": "repoctl://runs/{run}/logs/{node}",
+      "name": "node log",
+      "mimeType": "text/plain"
+    },
+    {
+      "uriTemplate": "repoctl://skills/{name}",
+      "name": "generic skill",
+      "mimeType": "text/markdown"
+    }
+  ],
+  "notExposed": [
+    "publish",
+    "sign",
+    "bump-release",
+    "clean",
+    "cancel of foreign runs",
+    "mock update|shell|clean",
+    "init",
+    "migrate",
+    "config",
+    "ui",
+    "skills install",
+    "mcp"
+  ]
+}

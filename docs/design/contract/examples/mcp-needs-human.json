@@ -1,0 +1,49 @@
+{
+  "jsonrpc": "2.0",
+  "id": 12,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "NEEDS HUMAN: worktree packages/slurm has uncommitted changes. repoctl never builds uncommitted files. Ask the person to commit or discard the changes."
+      }
+    ],
+    "structuredContent": {
+      "apiVersion": "repoctl/v1alpha1",
+      "kind": "Run",
+      "metadata": {
+        "set": "slurm-26.05",
+        "setDir": "/home/dklein/src/slurm-repo",
+        "command": "build",
+        "generatedAt": "2026-11-02T19:21:40.004Z",
+        "repoctl": {
+          "version": "v0.3.0",
+          "commit": "1c9e7b2"
+        },
+        "targets": [
+          "el9",
+          "el10"
+        ]
+      },
+      "items": [],
+      "warnings": [],
+      "errors": [
+        {
+          "code": "lock.dirty",
+          "exitCode": 5,
+          "dir": "slurm",
+          "message": "Worktree packages/slurm has uncommitted changes (slurm.spec).",
+          "humanAction": {
+            "action": "commit-worktree",
+            "reason": "The build input must be a commit.",
+            "command": "git -C packages/slurm status"
+          }
+        }
+      ]
+    },
+    "isError": true,
+    "_meta": {
+      "repoctl/exitCode": 5
+    }
+  }
+}

@@ -1,0 +1,53 @@
+/* Overview page (ui-shell) */
+.set-head h1{font-size:22px;margin-bottom:6px}
+.set-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:var(--c-text-2);font-size:13px}
+.ov{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 380px;
+  grid-template-areas:"attn cur" "mat mat" "runs side";align-items:start}
+.attn{grid-area:attn}.cur{grid-area:cur}.mat{grid-area:mat}.runs{grid-area:runs}.side{grid-area:side;display:grid;gap:16px}
+@media (max-width:1100px){.ov{grid-template-columns:1fr;grid-template-areas:"attn" "cur" "mat" "runs" "side"}}
+
+/* Needs you */
+.attn-list{list-style:none;margin:0;padding:0}
+.attn-list>li{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:4px 14px;padding:12px 14px 12px 0;border-bottom:1px solid var(--c-border);border-left:4px solid var(--c-border-strong)}
+.attn-list>li:last-child{border-bottom:0;border-bottom-left-radius:var(--r-lg)}
+.attn-list .a-failed{border-left-color:var(--s-failed)}
+.attn-list .a-warn{border-left-color:var(--s-blocked)}
+.attn-list .kind{padding-left:12px;font:600 11px var(--font-sans);text-transform:uppercase;letter-spacing:.06em;color:var(--c-text-3);padding-top:4px}
+.attn-list .what{display:grid;gap:6px;min-width:0}
+.attn-list .t{font-weight:500;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.attn-list .d,.attn-list .hint{font-size:13px;color:var(--c-text-2)}
+.attn-list .hint .node-chip{vertical-align:middle;height:22px}
+.attn-list .acts{display:flex;gap:6px;align-items:flex-start}
+.errline{margin:0;padding:6px 10px;background:var(--s-failed-bg);color:var(--c-text);border-radius:var(--r-sm);font:12.5px var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.attn-list .cmd{max-width:640px}
+
+/* Current run */
+.stack{display:grid;gap:12px}
+.cap{font-size:13px;margin:8px 0 6px;color:var(--c-text-2)}.cap b{color:var(--c-text)}
+.cur .list>li{padding:7px 14px}
+.cur .kv{grid-template-columns:72px 1fr}
+
+/* Matrix */
+.matrix td{vertical-align:top}
+.matrix .pkg{font-weight:600;color:var(--c-text)}
+.mcell{display:grid;gap:3px;color:inherit}
+.mcell:hover{text-decoration:none}.mcell:hover .nvr .n{text-decoration:underline}
+.mcell .l1{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mcell .note{font-size:12px;color:var(--c-text-2)}
+.matrix td.na{color:var(--c-text-3);font-size:12px}
+.upd{display:inline-flex;align-items:center;gap:4px;font:600 12.5px var(--font-mono);color:var(--c-primary)}
+.upd svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.card-head .right a{margin-left:4px}
+.runs .card-head .right{gap:8px}
+@media (max-width:760px){
+  .matrix th:nth-child(2),.matrix td:nth-child(2),.matrix th:nth-child(3),.matrix td:nth-child(3),.matrix th:nth-child(6),.matrix td:nth-child(6){display:none}
+  .matrix .nvr{display:none}
+  .mat .card-head .right>:not(a){display:none}
+  .attn-list>li{grid-template-columns:minmax(0,1fr);padding-left:12px}
+  .attn-list .kind{padding:0}
+  .runs .table th:nth-child(3),.runs .table td:nth-child(3),.runs .table th:nth-child(4),.runs .table td:nth-child(4){display:none}
+  .runs .card-head .right>span{display:none}
+  .set-head .actions{margin-left:0}
+}
+.ov>*,.side>*{min-width:0}
+.attn-list .what{grid-template-columns:minmax(0,1fr)}.cmd{min-width:0}

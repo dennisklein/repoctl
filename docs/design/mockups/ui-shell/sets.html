@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sets · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="base-fixes.css">
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="pages.css">
+<!-- production: <script src="/-/static/3f9c1e/htmx.min.js"></script><script src="/-/static/3f9c1e/htmx-ext-sse.js"></script> -->
+</head>
+<body data-set="" data-target="" hx-ext="sse" sse-connect="/-/events?page=sets"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="sr-only" href="#main">Skip to content</a>
+<div class="app nosb">
+<header class="topbar" role="banner">
+  <a class="brand" href="/" aria-label="repoctl: all sets"><span class="brand-mark">rc</span>repoctl<small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set (g s)"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span>All sets<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="/s/slurm-26.05/" ><span class="dot" style="color:var(--s-running)"></span><b class="mono">slurm-26.05</b><span class="pill st-running">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="/s/slurm-25.11/"><span class="dot" style="color:var(--s-ok)"></span><b class="mono">slurm-25.11</b><span class="pill st-ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="/s/slurm-25.11-testing/"><span class="dot" style="color:var(--s-blocked)"></span><b class="mono">slurm-25.11-testing</b><span class="pill st-blocked">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="/"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">Add a set: run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump hide-sm"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/s/-/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" sse-swap="chip" hx-swap="outerHTML"
+     title="Run r-20261102-1750-a3f of slurm-26.05: 4 of 8 builds done, 1 failed, 1 blocked, 3 running. Started 17:50.">
+    <span class="spin" aria-hidden="true"></span><span class="mono">slurm-26.05</span>
+    <span class="progress bar" aria-hidden="true"><i class="p-ok" style="flex:2"></i><i class="p-failed" style="flex:1"></i><i class="p-blocked" style="flex:1"></i><i class="p-running" style="flex:3"></i><i class="p-todo" style="flex:1"></i></span>
+    <span class="n">4/8</span><span class="bad">1 failed</span><span class="n el">11m</span>
+    <span class="sr-only">Run in progress</span></a>
+  <span class="live hide-sm" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="t"></span></span>
+  <span class="meta hide-md mono">d.klein@hpc-build01</span>
+  <button class="icon-btn" type="button" aria-label="Keyboard shortcuts (?)" onclick="document.getElementById('help').showModal()">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
+  <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
+
+<div class="page-head"><div><h1>Sets</h1><div class="sub">3 sets on hpc-build01. One repoctl ui server serves all sets that you opened.</div></div>
+  <div class="actions"><a class="btn" href="/doctor">Doctor</a></div></div>
+<div class="sets">
+<section class="card setc" id="set-slurm-26.05" sse-swap="set:slurm-26.05" hx-swap="outerHTML">
+  <div class="card-head"><a class="mono name" href="/s/slurm-26.05/">slurm-26.05</a><span class="pill st-running">running</span></div>
+  <div class="card-body stack">
+    <div class="muted mono path">~/src/slurm-repo</div>
+    <div class="set-meta">branch <code>builder/slurm-26.05</code></div>
+    <div class="set-meta"><span class="target" title="undefined"><b>el9</b></span> <span class="target" title="undefined"><b>el10</b></span><span class="sep">·</span>21 nodes</div>
+    <div><span class="strip" aria-hidden="true"><i class="ok"></i><i class="ok"></i><i class="failed"></i><i class="blocked"></i><i class="running"></i><i class="running"></i><i class="running"></i><i class="waiting"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i></span></div>
+    <dl class="kv"><dt>Last run</dt><dd><a class="mono" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">r-20261102-1750-a3f</a><br><span class="pill st-running">running</span> 4 of 8 · <span class="pill st-failed">1 failed</span></dd><dt>Published</dt><dd>2026-09-12 <span class="muted">(51 days)</span></dd><dt>Needs you</dt><dd><a href="/s/slurm-26.05/">5 items</a>: failed node, same NVR, lock modified, upstream, publish age</dd></dl>
+  </div>
+  <div class="card-foot"><a class="btn btn-sm btn-primary" href="/s/slurm-26.05/">Open</a><span class="right"><button class="btn btn-sm" type="button" hx-delete="/-/sets/slurm-26.05" hx-confirm="Remove slurm-26.05 from this list? Files stay.">Remove from list</button></span></div>
+</section>
+<section class="card setc" id="set-slurm-25.11" sse-swap="set:slurm-25.11" hx-swap="outerHTML">
+  <div class="card-head"><a class="mono name" href="/s/slurm-25.11/">slurm-25.11</a><span class="pill st-ok">ok</span></div>
+  <div class="card-body stack">
+    <div class="muted mono path">~/src/slurm-repo-25.11</div>
+    <div class="set-meta">branch <code>builder/slurm-25.11</code></div>
+    <div class="set-meta"><span class="target" title="undefined"><b>el9</b></span><span class="sep">·</span>10 nodes</div>
+    <div><span class="strip" aria-hidden="true"><i class="ok"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i></span></div>
+    <dl class="kv"><dt>Last run</dt><dd><a class="mono" href="/s/slurm-25.11/runs/r-20261028-1420-b17">r-20261028-1420-b17</a><br><span class="pill st-ok">ok</span> 1 built, 9 cached</dd><dt>Published</dt><dd>2026-10-28 <span class="muted">(from this run)</span></dd><dt>Needs you</dt><dd><span class="muted">nothing</span></dd></dl>
+  </div>
+  <div class="card-foot"><a class="btn btn-sm " href="/s/slurm-25.11/">Open</a><span class="right"><button class="btn btn-sm" type="button" hx-delete="/-/sets/slurm-25.11" hx-confirm="Remove slurm-25.11 from this list? Files stay.">Remove from list</button></span></div>
+</section>
+<section class="card setc" id="set-slurm-25.11-testing" sse-swap="set:slurm-25.11-testing" hx-swap="outerHTML">
+  <div class="card-head"><a class="mono name" href="/s/slurm-25.11-testing/">slurm-25.11-testing</a><span class="pill st-blocked">not published</span></div>
+  <div class="card-body stack">
+    <div class="muted mono path">~/src/slurm-repo-25.11-testing</div>
+    <div class="set-meta">branch <code>builder/slurm-25.11-testing</code></div>
+    <div class="set-meta"><span class="target" title="undefined"><b>el9</b></span> <span class="target" title="undefined"><b>el10</b></span><span class="sep">·</span>20 nodes</div>
+    <div><span class="strip" aria-hidden="true"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i><i class="cached"></i></span></div>
+    <dl class="kv"><dt>Last run</dt><dd><a class="mono" href="/s/slurm-25.11-testing/runs/r-20261101-2210-91c">r-20261101-2210-91c</a><br><span class="pill st-ok">ok</span> 3 built, 17 cached</dd><dt>Published</dt><dd>2026-10-28 <span class="muted">(1 run behind)</span></dd><dt>Needs you</dt><dd><a href="/s/slurm-25.11-testing/">1 item</a>: run ok and not published</dd></dl>
+  </div>
+  <div class="card-foot"><a class="btn btn-sm " href="/s/slurm-25.11-testing/">Open</a><span class="right"><button class="btn btn-sm" type="button" hx-delete="/-/sets/slurm-25.11-testing" hx-confirm="Remove slurm-25.11-testing from this list? Files stay.">Remove from list</button></span></div>
+</section>
+</div>
+<div class="sets2">
+<section class="card"><div class="card-head"><h2>Open another set</h2></div><div class="card-body stack">
+  <p style="margin:0">Run <code>repoctl ui</code> in the directory of the set. The running server adds the set to this list and opens its page.</p>
+  <div class="cmd"><code>repoctl -C ~/src/lustre-repo ui</code><button class="copy" type="button" data-copy="repoctl -C ~/src/lustre-repo ui" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div></section>
+<section class="card"><div class="card-head"><h2>This host</h2><span class="right"><span class="pill st-ok">doctor ok</span></span></div><div class="card-body"><dl class="kv">
+  <dt>Host</dt><dd class="mono">hpc-build01 · d.klein</dd>
+  <dt>Node cache</dt><dd class="mono">~/.cache/repoctl/nodes</dd><dt>Size</dt><dd>38.2 GiB, shared by the 3 sets</dd>
+  <dt>Server</dt><dd class="mono">127.0.0.1:43117 · pid 48211 · up 3d</dd></dl></div></section>
+</div>
+</main>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="steps">Esc closes</span></header>
+  <div class="body"><table class="table">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Upstream</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Browse the repository (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+  </table><p class="muted" style="margin:0;font-size:12.5px">No shortcut starts a build or a publish.</p></div>
+</dialog>
+<script src="shell.js"></script>
+</body>
+</html>

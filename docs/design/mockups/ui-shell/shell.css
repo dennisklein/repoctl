@@ -1,0 +1,201 @@
+/* repoctl shell.css: the shared frame (top bar, sidebar, banners, toasts) and the
+   shared components. Owner: ui-shell. Other UI pages link it after the base CSS:
+   <link rel="stylesheet" href="../shared/repoctl-base.css">
+   <link rel="stylesheet" href="../ui-shell/base-fixes.css">
+   <link rel="stylesheet" href="../ui-shell/shell.css">
+   Status colors come only from the base .st-* classes and --s-* tokens. */
+
+/* ---------- frame ---------- */
+.topbar{position:sticky;top:0;z-index:30;gap:12px}
+@media (min-width:761px){.sidebar{position:sticky;top:var(--topbar-h);height:calc(100vh - var(--topbar-h));overflow-y:auto}}
+.brand small{font:500 11px var(--font-mono);color:var(--c-text-3);margin-left:2px}
+.brand:hover{text-decoration:none}
+.side-foot{margin-top:auto;padding:10px;font-size:12px;color:var(--c-text-3);display:grid;gap:4px}
+.nav-item svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item .count.hot{color:var(--s-running);font-weight:600}
+.nav-item .count.bad{color:var(--s-failed);font-weight:600}
+.nav-label .set-name{font-family:var(--font-mono);text-transform:none;letter-spacing:0;color:var(--c-text-2)}
+
+/* set switcher: <details> so it works without JS */
+.set-menu{position:relative}
+.set-menu>summary{list-style:none;cursor:pointer}
+.set-menu>summary::-webkit-details-marker{display:none}
+.set-menu>summary .caret{width:10px;height:10px;stroke:var(--c-text-3);fill:none;stroke-width:2}
+.set-menu[open]>summary{border-color:var(--c-border-strong)}
+.set-pop{position:absolute;top:calc(100% + 6px);left:0;width:340px;background:var(--c-surface);border:1px solid var(--c-border);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-2);padding:6px;z-index:40}
+.set-pop a{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px 10px;padding:8px 10px;border-radius:var(--r-md);color:var(--c-text)}
+.set-pop a:hover,.set-pop a[aria-current]{background:var(--c-surface-2);text-decoration:none}
+.set-pop .path{grid-column:2/-1;font:12px var(--font-mono);color:var(--c-text-3)}
+.set-pop hr{border:0;border-top:1px solid var(--c-border);margin:6px 4px}
+.set-pop .foot{padding:6px 10px;font-size:12px;color:var(--c-text-3)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+
+/* jump box (opens the command palette; "/" focuses it) */
+.jump{display:flex;align-items:center;gap:8px;width:min(420px,32vw);height:32px;padding:0 8px 0 10px;border:1px solid var(--c-border);
+  border-radius:var(--r-md);background:var(--c-bg);color:var(--c-text-3);font-size:13px}
+.jump input{flex:1;border:0;background:transparent;color:var(--c-text);font:inherit;outline:0;min-width:0}
+.jump input::placeholder{color:var(--c-text-3)}
+.jump:focus-within{border-color:var(--c-focus);box-shadow:0 0 0 2px color-mix(in srgb,var(--c-focus) 25%,transparent)}
+kbd,.kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border:1px solid var(--c-border-strong);border-bottom-width:2px;
+  border-radius:4px;background:var(--c-surface);color:var(--c-text-2);font:500 11px var(--font-mono)}
+
+/* global run chip (SSE "chip") */
+.run-chip{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--c-border);
+  background:var(--s-running-bg);color:var(--c-text);font-size:12.5px;white-space:nowrap}
+.run-chip:hover{text-decoration:none;border-color:var(--s-running)}
+.run-chip .spin{width:12px;height:12px;border-radius:50%;border:2px solid color-mix(in srgb,var(--s-running) 30%,transparent);border-top-color:var(--s-running);animation:spin 1s linear infinite}
+.run-chip .bar{width:64px}
+.run-chip .n{font-family:var(--font-mono);color:var(--c-text-2)}
+.run-chip .bad{color:var(--s-failed);font-weight:600}
+.run-chip.idle{background:transparent;color:var(--c-text-3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.run-chip .spin{animation:none;border-color:var(--s-running)}}
+
+/* SSE live indicator */
+.live{display:inline-flex;align-items:center;gap:6px;font:12px var(--font-mono);color:var(--c-text-2)}
+.live .dot{color:var(--s-ok)}
+body[data-sse="down"] .live .dot{color:var(--s-failed)}
+body[data-sse="down"] .live .t::after{content:"offline"}
+body:not([data-sse="down"]) .live .t::after{content:"live"}
+.icon-btn{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:var(--r-md);border:1px solid transparent;background:transparent;color:var(--c-text-2);cursor:pointer;font:600 13px var(--font-mono)}
+.icon-btn:hover{background:var(--c-surface-2);border-color:var(--c-border)}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7}
+
+/* offline banner: shown when body[data-sse=down]; content filled by shell.js */
+.offline{display:none;position:sticky;top:var(--topbar-h);z-index:25;grid-column:1/-1;border-radius:0;border-width:0 0 1px}
+body[data-sse="down"] .offline{display:flex}
+body[data-sse="down"] [data-live]{opacity:.55;transition:opacity .3s}
+.banner .grow{flex:1}
+.banner b{font-weight:600}
+.banner .ic{width:18px;height:18px;flex:none;margin-top:1px;stroke:currentColor;fill:none;stroke-width:1.8}
+.banner.warn .ic{color:var(--s-blocked)}.banner.err .ic{color:var(--s-failed)}.banner.info .ic{color:var(--s-cached)}
+.banner.info{border-color:var(--s-cached);background:var(--s-cached-bg)}
+
+/* toasts */
+.toasts{position:fixed;right:16px;bottom:16px;z-index:50;display:grid;gap:8px;width:min(380px,calc(100vw - 32px))}
+.toast{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:start;padding:10px 12px;background:var(--c-surface);
+  border:1px solid var(--c-border);border-left:4px solid var(--c-border-strong);border-radius:var(--r-md);box-shadow:var(--shadow-2);font-size:13px}
+.toast .dot{margin-top:6px}
+.toast .msg b{font-weight:600}
+.toast .acts{grid-column:2/-1;display:flex;gap:12px;font-size:12.5px}
+.toast.ok{border-left-color:var(--s-ok)}.toast.ok .dot{color:var(--s-ok)}
+.toast.err{border-left-color:var(--s-failed)}.toast.err .dot{color:var(--s-failed)}
+.toast.info{border-left-color:var(--s-running)}.toast.info .dot{color:var(--s-running)}
+.toast .x{border:0;background:none;color:var(--c-text-3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px}
+
+/* ---------- shared components ---------- */
+/* node chip: <a class="node-chip st-failed" href=".."><b>slurm</b>@el10</a> (state class gives the color) */
+.node-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px 0 6px;border-radius:var(--r-md);
+  border:1px solid var(--c-border);background:var(--c-surface);font:12.5px var(--font-mono);color:var(--c-text-2)!important;white-space:nowrap}
+.node-chip::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--chip,var(--c-text-3))}
+.node-chip b{font-weight:600;color:var(--c-text)}
+.node-chip:hover{text-decoration:none;border-color:var(--c-border-strong)}
+.node-chip.st-queued{--chip:var(--s-queued)}.node-chip.st-waiting{--chip:var(--s-waiting)}.node-chip.st-running{--chip:var(--s-running)}
+.node-chip.st-ok{--chip:var(--s-ok)}.node-chip.st-cached{--chip:var(--s-cached)}.node-chip.st-failed{--chip:var(--s-failed)}
+.node-chip.st-blocked{--chip:var(--s-blocked)}.node-chip.st-canceled{--chip:var(--s-canceled)}.node-chip.st-skip{--chip:var(--s-skip)}
+.node-chip[class*="st-"]{background:var(--c-surface)}
+.node-chip.st-running::before{animation:pulse 1.2s ease-in-out infinite}
+.node-chip.st-failed{border-color:color-mix(in srgb,var(--s-failed) 45%,var(--c-border))}
+.node-chip.st-skip{border-style:dashed}
+
+/* target badge */
+.target{display:inline-flex;align-items:center;height:20px;border:1px solid var(--c-border-strong);border-radius:var(--r-sm);overflow:hidden;font:500 11.5px var(--font-mono);white-space:nowrap}
+.target b{padding:0 6px;background:var(--c-surface-3);color:var(--c-text);font-weight:600;height:100%;display:grid;place-items:center}
+.target span{padding:0 6px;color:var(--c-text-3)}
+
+/* NVR: name-version-release.dist.arch */
+.nvr{font:12.5px var(--font-mono);white-space:nowrap}
+.nvr .n{color:var(--c-text)}.nvr .v{color:var(--c-text);font-weight:600}.nvr .r{color:var(--c-text-2)}.nvr .d{color:var(--c-text-3)}
+
+/* hash with copy */
+.hashc{display:inline-flex;align-items:center;gap:2px;font:12.5px var(--font-mono);color:var(--c-text-2)}
+.copy{display:inline-grid;place-items:center;width:22px;height:22px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--c-text-3);cursor:pointer}
+.copy:hover{background:var(--c-surface-2);color:var(--c-text)}
+.copy svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8}
+.copy.done{color:var(--s-ok)}
+
+/* run progress: segments in fixed order ok, cached, failed, blocked, canceled, running, waiting/queued */
+.progress{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden;background:var(--c-surface-3)}
+.progress>i{display:block;height:100%}
+.progress .p-ok{background:var(--s-ok)}.progress .p-cached{background:var(--s-cached)}.progress .p-failed{background:var(--s-failed)}
+.progress .p-blocked{background:var(--s-blocked)}.progress .p-canceled{background:var(--s-canceled)}
+.progress .p-running{background:repeating-linear-gradient(-45deg,var(--s-running) 0 6px,color-mix(in srgb,var(--s-running) 70%,var(--c-surface)) 6px 12px);background-size:17px 17px;animation:stripes 1s linear infinite}
+.progress .p-todo{background:transparent}
+@keyframes stripes{to{background-position:17px 0}}
+@media (prefers-reduced-motion:reduce){.progress .p-running{animation:none}}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--c-text-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+/* sparkline of run durations: bars, colored by result, newest right */
+.spark{display:block;overflow:visible}
+.spark rect{rx:1.5}
+.spark .ok{fill:var(--s-ok)}.spark .failed{fill:var(--s-failed)}.spark .running{fill:var(--s-running)}.spark .canceled{fill:var(--s-canceled)}
+.spark .base{stroke:var(--c-border);stroke-width:1}
+.spark rect:hover{opacity:.75}
+
+/* node strip: one square per node, for compact health (sets page, run rows) */
+.strip{display:inline-flex;flex-wrap:wrap;gap:2px;max-width:176px}
+.strip i{width:8px;height:8px;border-radius:2px;background:var(--s-cached)}
+.strip i.ok{background:var(--s-ok)}.strip i.running{background:var(--s-running)}.strip i.failed{background:var(--s-failed)}
+.strip i.blocked{background:var(--s-blocked)}.strip i.queued,.strip i.waiting{background:transparent;box-shadow:inset 0 0 0 1.5px var(--s-queued)}
+
+/* plan action pills (not run states): build is an outline in primary */
+.pill.act-build{color:var(--c-primary);background:transparent;border:1px solid var(--c-primary)}
+.pill.act-build::before{border-radius:1px;transform:rotate(45deg);width:6px;height:6px}
+
+/* empty state */
+.empty{display:grid;justify-items:center;gap:8px;padding:28px 16px;text-align:center;color:var(--c-text-2)}
+.empty>svg{width:36px;height:36px;stroke:var(--c-text-3);fill:none;stroke-width:1.4}
+.empty h3{margin:4px 0 0;color:var(--c-text)}
+.empty p{margin:0;max-width:44ch;font-size:13px}
+.empty pre{margin:4px 0 0}
+
+/* code line with copy (commands the UI runs) */
+.cmd{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 10px;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:var(--r-md);font:12.5px var(--font-mono);color:var(--c-text)}
+.cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap}
+.cmd code::before{content:"$ ";color:var(--c-text-3)}
+
+/* dialog skeleton (native <dialog>, rendered by the server into #modal) */
+.dlg{width:min(560px,calc(100vw - 32px));padding:0;border:1px solid var(--c-border);border-radius:var(--r-lg);background:var(--c-surface);color:var(--c-text);box-shadow:var(--shadow-2)}
+.dlg::backdrop{background:rgba(20,15,10,.45)}
+.dlg header{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--c-border)}
+.dlg header h2{margin:0}
+.dlg .steps{margin-left:auto;font-size:12px;color:var(--c-text-3)}
+.dlg .body{padding:16px;display:grid;gap:14px}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--c-border);background:var(--c-surface-2);border-radius:0 0 var(--r-lg) var(--r-lg)}
+
+/* card helpers */
+.card-head h2{margin:0;font-size:14px}
+.card-head .right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--c-text-3)}
+.card-foot{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--c-border);font-size:12.5px}
+.card-foot .right{margin-left:auto}
+.list{list-style:none;margin:0;padding:0}
+.list>li{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--c-border);font-size:13px}
+.list>li:last-child{border-bottom:0}
+.list .right{margin-left:auto;color:var(--c-text-3);font-size:12px;white-space:nowrap}
+.sep{color:var(--c-border-strong);margin:0 2px}
+
+/* offline banner lives at the top of <main> and sticks under the top bar */
+.offline{margin:-20px -24px 16px;border-radius:0;border-width:0 0 1px;position:sticky;top:var(--topbar-h);z-index:25;align-items:center}
+@media (max-width:760px){.offline{margin:-16px -16px 12px}}
+
+/* layout without sidebar (sets landing) */
+.app.nosb{grid-template-columns:1fr}
+.app.nosb .main{max-width:1120px;width:100%;margin:0 auto}
+
+/* responsive hiding in the top bar */
+@media (max-width:1100px){.hide-md{display:none!important}}
+@media (max-width:760px){
+  .hide-sm{display:none!important}
+  .topbar{gap:8px;padding:0 10px}
+  .brand{font-size:0;gap:0}.brand small{display:none}
+  .set-switch{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .set-pop{position:fixed;left:8px;right:8px;width:auto;top:calc(var(--topbar-h) + 4px)}
+  .run-chip{padding:0 8px;gap:6px}.run-chip .mono,.run-chip .bar,.run-chip .el{display:none}
+}
+.jump svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.set-menu>summary .caret{width:14px;height:14px}
+.tag.warn{background:var(--s-blocked-bg);color:var(--s-blocked)}
+.card-foot .right{display:flex;gap:6px}

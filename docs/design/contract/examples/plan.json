@@ -1,0 +1,377 @@
+{
+  "apiVersion": "repoctl/v1alpha1",
+  "kind": "Plan",
+  "metadata": {
+    "set": "slurm-26.05",
+    "setDir": "/home/dklein/src/slurm-repo",
+    "command": "plan",
+    "generatedAt": "2026-11-02T17:49:12.481Z",
+    "repoctl": {
+      "version": "v0.3.0",
+      "commit": "1c9e7b2"
+    },
+    "targets": [
+      "el9",
+      "el10"
+    ]
+  },
+  "items": [
+    {
+      "targets": [
+        "el9",
+        "el10"
+      ],
+      "selection": {
+        "dirs": [],
+        "targets": [
+          "el9",
+          "el10"
+        ],
+        "from": "lock",
+        "force": false
+      },
+      "baseline": "last-ok-run",
+      "summary": {
+        "build": 8,
+        "cached": 13,
+        "skip": 0,
+        "byTarget": {
+          "el9": {
+            "build": 4,
+            "cached": 7,
+            "skip": 0
+          },
+          "el10": {
+            "build": 4,
+            "cached": 6,
+            "skip": 0
+          }
+        }
+      },
+      "nodes": [
+        {
+          "node": "munge@el9",
+          "action": "cached",
+          "key": "sha256:000d49a352c5e1128b1f43ab169ddf4bd6aa856ac6f95e74522b89e346bea47f",
+          "evr": "0.5.18-1.el9",
+          "deps": []
+        },
+        {
+          "node": "ucx@el9",
+          "action": "build",
+          "key": "sha256:b33e4f9ea2b5142d824a98c5ef8829bd7a6564d10d709001186897b404c16388",
+          "evr": "1.22.1-1.el9",
+          "deps": [],
+          "previousKey": "sha256:c5d207eb31338ec10d115ec64f2d69260e44ee624c59d0d72cc4803752e7b7dd",
+          "reasons": [
+            {
+              "code": "commit-changed",
+              "from": "907c60d9eb9ff6d099a5edfbfaf82022ba80e662",
+              "to": "4b1e9c27d0a35f6e81c2b94d7a1e0c5f3b6d8e21",
+              "subject": "Bump to 1.22.1",
+              "commits": 1,
+              "message": "ucx moved from 907c60d to 4b1e9c2 (1 commit: Bump to 1.22.1)."
+            }
+          ]
+        },
+        {
+          "node": "rocm-smi@el9",
+          "action": "cached",
+          "key": "sha256:60e039007b784fc31ec3e156a081533a0e84a24f6e00c325be5b53faca7fad3b",
+          "evr": "7.14.0-1.el9",
+          "deps": []
+        },
+        {
+          "node": "pmix@el9",
+          "action": "cached",
+          "key": "sha256:fd67e0c6e6649cf4f0b75938cd115e2e0dc838c297a009852eee461bfedb8ad5",
+          "evr": "6.1.0-1.el9",
+          "deps": [
+            "munge@el9"
+          ]
+        },
+        {
+          "node": "pmix_v5@el9",
+          "action": "cached",
+          "key": "sha256:2e49801640c367cdf154828a93964a6453498687ef3692436da6a8e4b8bcda4c",
+          "evr": "5.0.11-1.el9",
+          "deps": [
+            "munge@el9"
+          ]
+        },
+        {
+          "node": "pmix_v4@el9",
+          "action": "cached",
+          "key": "sha256:cd961b5445733ecc7efbd98f22db156c0e8a39a2848ce7fd991894e4fd113acf",
+          "evr": "4.2.9-3.el9",
+          "deps": [
+            "munge@el9"
+          ]
+        },
+        {
+          "node": "prrte@el9",
+          "action": "cached",
+          "key": "sha256:da5caf015a7df501b77f98a9a190cf221c42a47317681fded45f480c369ec1a2",
+          "evr": "4.1.0-1.el9",
+          "deps": [
+            "pmix@el9"
+          ]
+        },
+        {
+          "node": "slurm@el9",
+          "action": "build",
+          "key": "sha256:753aa25de79e5d8cd0b7163858841310e70cfdd0f10fa5db524f99b545305958",
+          "evr": "26.05.4-1.el9",
+          "deps": [
+            "munge@el9",
+            "ucx@el9",
+            "rocm-smi@el9",
+            "pmix@el9",
+            "pmix_v5@el9",
+            "pmix_v4@el9"
+          ],
+          "previousKey": "sha256:00819bb8c2373041e2a965fa9dca3b7bfacc45d297a62a88c9b0b3a3e548ee90",
+          "reasons": [
+            {
+              "code": "dep-key-changed",
+              "dep": "ucx@el9",
+              "from": "sha256:c5d207eb31338ec10d115ec64f2d69260e44ee624c59d0d72cc4803752e7b7dd",
+              "to": "sha256:b33e4f9ea2b5142d824a98c5ef8829bd7a6564d10d709001186897b404c16388",
+              "message": "Dependency ucx@el9 has a new key."
+            }
+          ]
+        },
+        {
+          "node": "slurm-singularity-exec@el9",
+          "action": "build",
+          "key": "sha256:ff687be38b8d4699d3ed0363d556fe6dbf7ff170d06be911f95a3887d1d631a1",
+          "evr": "3.2.0-1.el9",
+          "deps": [
+            "slurm@el9"
+          ],
+          "previousKey": "sha256:818882a41b9a5a4fd258c346bd958c7fbd1605c598591ba1b4b5b9760ab35af2",
+          "reasons": [
+            {
+              "code": "dep-key-changed",
+              "dep": "slurm@el9",
+              "from": "sha256:00819bb8c2373041e2a965fa9dca3b7bfacc45d297a62a88c9b0b3a3e548ee90",
+              "to": "sha256:753aa25de79e5d8cd0b7163858841310e70cfdd0f10fa5db524f99b545305958",
+              "message": "Dependency slurm@el9 has a new key."
+            }
+          ]
+        },
+        {
+          "node": "openmpi@el9",
+          "action": "build",
+          "key": "sha256:0443c555260598c3aaec4c54711583916fd21c64dda6216fda3c99d0d9903175",
+          "evr": "5.0.11-1.el9",
+          "deps": [
+            "ucx@el9",
+            "pmix@el9",
+            "prrte@el9"
+          ],
+          "previousKey": "sha256:4a2bfd7fd41e87ecab45cc234de69fb7b62049ba65a0411b7ffbcbca3a662563",
+          "reasons": [
+            {
+              "code": "dep-key-changed",
+              "dep": "ucx@el9",
+              "from": "sha256:c5d207eb31338ec10d115ec64f2d69260e44ee624c59d0d72cc4803752e7b7dd",
+              "to": "sha256:b33e4f9ea2b5142d824a98c5ef8829bd7a6564d10d709001186897b404c16388",
+              "message": "Dependency ucx@el9 has a new key."
+            }
+          ]
+        },
+        {
+          "node": "slurm-release@el9",
+          "action": "cached",
+          "key": "sha256:36c0c68fad8a6b730b0a060e697c529cd464b4f78bc71af8d8af0436714406f1",
+          "evr": "26.05-1.el9",
+          "deps": []
+        },
+        {
+          "node": "munge@el10",
+          "action": "cached",
+          "key": "sha256:1e0d38dc219506fdd75c5149ba1e2cc6db8e564b7a790d981765d633d68095c5",
+          "evr": "0.5.18-1.el10",
+          "deps": []
+        },
+        {
+          "node": "ucx@el10",
+          "action": "build",
+          "key": "sha256:afa20ab10043393fd1d0ce31e789b39708d3e9600a28ed3e75b861b58ffd6df2",
+          "evr": "1.22.1-1.el10",
+          "deps": [],
+          "previousKey": "sha256:9b186e1051f13abccb82500d15ccb1ea28c79d7c45c2c7fff76b657a14e7cd1b",
+          "reasons": [
+            {
+              "code": "commit-changed",
+              "from": "907c60d9eb9ff6d099a5edfbfaf82022ba80e662",
+              "to": "4b1e9c27d0a35f6e81c2b94d7a1e0c5f3b6d8e21",
+              "subject": "Bump to 1.22.1",
+              "commits": 1,
+              "message": "ucx moved from 907c60d to 4b1e9c2 (1 commit: Bump to 1.22.1)."
+            }
+          ]
+        },
+        {
+          "node": "pmix@el10",
+          "action": "cached",
+          "key": "sha256:f6640de6f00325b9a63ac65f8c85b360bda26c1fd4e47a73e05658ec47448ba9",
+          "evr": "6.1.0-1.el10",
+          "deps": [
+            "munge@el10"
+          ]
+        },
+        {
+          "node": "pmix_v5@el10",
+          "action": "cached",
+          "key": "sha256:fb9185191ca31aeaadc33de0a4b8e0f2aefb7a74d4913c10a078f6368549bcf8",
+          "evr": "5.0.11-1.el10",
+          "deps": [
+            "munge@el10"
+          ]
+        },
+        {
+          "node": "pmix_v4@el10",
+          "action": "cached",
+          "key": "sha256:194182d8afb20d9855e195adb185cb95c38bb4a13790bfbad8befaab9d6c0fe3",
+          "evr": "4.2.9-3.el10",
+          "deps": [
+            "munge@el10"
+          ]
+        },
+        {
+          "node": "prrte@el10",
+          "action": "cached",
+          "key": "sha256:592719c5e30f68775424c07f0292b4eb4675cfc7607183e2cb25af5f8fff20e0",
+          "evr": "4.1.0-1.el10",
+          "deps": [
+            "pmix@el10"
+          ]
+        },
+        {
+          "node": "slurm@el10",
+          "action": "build",
+          "key": "sha256:95d2f3dd423cd6ebcd35c50b01a9e31d18ce0f1248f3b9f2a0c2715945efc622",
+          "evr": "26.05.4-1.el10",
+          "deps": [
+            "munge@el10",
+            "ucx@el10",
+            "pmix@el10",
+            "pmix_v5@el10",
+            "pmix_v4@el10"
+          ],
+          "previousKey": "sha256:c3e60295e9ddde65bf4c3c72044baec92abab37e7c893ee42e0380ea8b964a47",
+          "reasons": [
+            {
+              "code": "dep-key-changed",
+              "dep": "ucx@el10",
+              "from": "sha256:9b186e1051f13abccb82500d15ccb1ea28c79d7c45c2c7fff76b657a14e7cd1b",
+              "to": "sha256:afa20ab10043393fd1d0ce31e789b39708d3e9600a28ed3e75b861b58ffd6df2",
+              "message": "Dependency ucx@el10 has a new key."
+            }
+          ]
+        },
+        {
+          "node": "slurm-singularity-exec@el10",
+          "action": "build",
+          "key": "sha256:2dd70bfe179f3c8ab2bd4934a4373f3a02fc8e8244f89ebe90f4b28684f4415e",
+          "evr": "3.2.0-1.el10",
+          "deps": [
+            "slurm@el10"
+          ],
+          "previousKey": "sha256:69dd2b29ee7d31e3552e31c2fa8a15fbd0f2c1d39fcc5d7fa016c07a67ef4d7b",
+          "reasons": [
+            {
+              "code": "dep-key-changed",
+              "dep": "slurm@el10",
+              "from": "sha256:c3e60295e9ddde65bf4c3c72044baec92abab37e7c893ee42e0380ea8b964a47",
+              "to": "sha256:95d2f3dd423cd6ebcd35c50b01a9e31d18ce0f1248f3b9f2a0c2715945efc622",
+              "message": "Dependency slurm@el10 has a new key."
+            }
+          ]
+        },
+        {
+          "node": "openmpi@el10",
+          "action": "build",
+          "key": "sha256:055c499921681330fcc622961b20ab55b148ed9431478dd040b836e7c1662f72",
+          "evr": "5.0.11-1.el10",
+          "deps": [
+            "ucx@el10",
+            "pmix@el10",
+            "prrte@el10"
+          ],
+          "previousKey": "sha256:eaf05e42629e09cfe0dbd11d6e04d3b9e43ff6515f20a6836837045a5664e8b1",
+          "reasons": [
+            {
+              "code": "dep-key-changed",
+              "dep": "ucx@el10",
+              "from": "sha256:9b186e1051f13abccb82500d15ccb1ea28c79d7c45c2c7fff76b657a14e7cd1b",
+              "to": "sha256:afa20ab10043393fd1d0ce31e789b39708d3e9600a28ed3e75b861b58ffd6df2",
+              "message": "Dependency ucx@el10 has a new key."
+            }
+          ]
+        },
+        {
+          "node": "slurm-release@el10",
+          "action": "cached",
+          "key": "sha256:a61937ffa90d8e83edebf3e4c973b309a3fc3f4d38b11720fae48cd2b9983af1",
+          "evr": "26.05-1.el10",
+          "deps": []
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "code": "dep.not-for-target",
+      "node": "slurm@el10",
+      "target": "el10",
+      "message": "slurm@el10 requires pkgconfig(rocm_smi64). Only rocm-smi@el9 provides it; rocm-smi is not built for el10.",
+      "hint": "Guard the BuildRequires with %if 0%{?rhel} < 10 in slurm.spec, or add el10 to the targets of rocm-smi."
+    },
+    {
+      "code": "nvr.reused",
+      "node": "slurm@el9",
+      "target": "el9",
+      "message": "slurm@el9 rebuilds with the published NVR slurm-26.05.4-1.el9. Clients will not update to it.",
+      "hint": "Run repoctl bump-release slurm. It adds a rebuild commit to the slurm branch and pins it. publish refuses this node until then."
+    },
+    {
+      "code": "nvr.reused",
+      "node": "slurm-singularity-exec@el9",
+      "target": "el9",
+      "message": "slurm-singularity-exec@el9 rebuilds with the published NVR slurm-singularity-exec-3.2.0-1.el9. Clients will not update to it.",
+      "hint": "Run repoctl bump-release slurm-singularity-exec. It adds a rebuild commit to the slurm-singularity-exec branch and pins it. publish refuses this node until then."
+    },
+    {
+      "code": "nvr.reused",
+      "node": "openmpi@el9",
+      "target": "el9",
+      "message": "openmpi@el9 rebuilds with the published NVR openmpi-5.0.11-1.el9. Clients will not update to it.",
+      "hint": "Run repoctl bump-release openmpi. It adds a rebuild commit to the openmpi branch and pins it. publish refuses this node until then."
+    },
+    {
+      "code": "nvr.reused",
+      "node": "slurm@el10",
+      "target": "el10",
+      "message": "slurm@el10 rebuilds with the published NVR slurm-26.05.4-1.el10. Clients will not update to it.",
+      "hint": "Run repoctl bump-release slurm. It adds a rebuild commit to the slurm branch and pins it. publish refuses this node until then."
+    },
+    {
+      "code": "nvr.reused",
+      "node": "slurm-singularity-exec@el10",
+      "target": "el10",
+      "message": "slurm-singularity-exec@el10 rebuilds with the published NVR slurm-singularity-exec-3.2.0-1.el10. Clients will not update to it.",
+      "hint": "Run repoctl bump-release slurm-singularity-exec. It adds a rebuild commit to the slurm-singularity-exec branch and pins it. publish refuses this node until then."
+    },
+    {
+      "code": "nvr.reused",
+      "node": "openmpi@el10",
+      "target": "el10",
+      "message": "openmpi@el10 rebuilds with the published NVR openmpi-5.0.11-1.el10. Clients will not update to it.",
+      "hint": "Run repoctl bump-release openmpi. It adds a rebuild commit to the openmpi branch and pins it. publish refuses this node until then."
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Explain failure · slurm-26.05 · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="base-fixes.css">
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="overview.css">
+<link rel="stylesheet" href="v2.css">
+<!-- production: <script src="/-/static/3f9c1e/htmx.min.js"></script><script src="/-/static/3f9c1e/htmx-ext-sse.js"></script> -->
+</head>
+<body data-set="slurm-26.05" data-target="el9" hx-ext="sse" sse-connect="/s/slurm-26.05/-/events?page=overview&agent=a-20261102-1812-7c1"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="sr-only" href="#main">Skip to content</a>
+<div class="app">
+<header class="topbar" role="banner">
+  <a class="brand" href="/" aria-label="repoctl: all sets"><span class="brand-mark">rc</span>repoctl<small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set (g s)"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span>slurm-26.05<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="/s/slurm-26.05/" aria-current="page"><span class="dot" style="color:var(--s-running)"></span><b class="mono">slurm-26.05</b><span class="pill st-running">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="/s/slurm-25.11/"><span class="dot" style="color:var(--s-ok)"></span><b class="mono">slurm-25.11</b><span class="pill st-ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="/s/slurm-25.11-testing/"><span class="dot" style="color:var(--s-blocked)"></span><b class="mono">slurm-25.11-testing</b><span class="pill st-blocked">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="/"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">Add a set: run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump hide-sm"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/s/slurm-26.05/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" sse-swap="chip" hx-swap="outerHTML" title="Run r-20261102-1750-a3f of slurm-26.05: 1 of 2 builds done. Started 17:50.">
+    <span class="spin" aria-hidden="true"></span><span class="mono">slurm-26.05</span>
+    <span class="progress bar" aria-hidden="true"><i class="p-ok" style="flex:1"></i><i class="p-running" style="flex:1"></i></span>
+    <span class="n">1/2</span><span class="n el">7m40s</span><span class="sr-only">Run in progress</span></a>
+  <span class="live hide-sm" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="t"></span></span>
+  <span class="meta hide-md mono">d.klein@hpc-build01</span>
+  <button class="icon-btn" type="button" aria-label="Keyboard shortcuts (?)" onclick="document.getElementById('help').showModal()">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+<nav class="sidebar" aria-label="Set navigation">
+  <div class="nav-label">Set <span class="set-name">slurm-26.05</span></div>
+  <a class="nav-item active" aria-current="page" href="/s/slurm-26.05/"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+  <a class="nav-item" href="/s/slurm-26.05/graph?target=el9"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/></svg>Graph</a>
+  <a class="nav-item" href="/s/slurm-26.05/plan"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M4 18h3"/></svg>Plan<span class="count">2 build</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/advisories"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>Advisories<span class="count bad">1 required</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/runs"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Runs<span class="count hot" sse-swap="nav-runs">1 running</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/packages"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>Packages<span class="count">11</span></a>
+  
+  <div class="nav-label">Repository</div>
+  <a class="nav-item" href="/s/slurm-26.05/repo/el9"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el9</a>
+  <a class="nav-item" href="/s/slurm-26.05/repo/el10"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el10</a>
+  <a class="nav-item" href="/s/slurm-26.05/publish"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>Publish</a>
+  <div class="nav-label">Host</div>
+  <a class="nav-item" href="/s/slurm-26.05/config"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>Config and lock</a>
+  <a class="nav-item" href="/doctor"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Doctor<span class="count">ok</span></a>
+  <a class="nav-item" href="/"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>All sets<span class="count">3</span></a>
+  <div class="side-foot"><span>Press <kbd>?</kbd> for shortcuts</span><span class="mono">repoctl v0.1.0</span></div>
+</nav>
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
+  <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
+
+<div class="page-head set-head" id="set-head" data-live hx-get="/s/slurm-26.05/-/frag/set-head" hx-trigger="refresh" sse-swap="set-head" hx-swap="outerHTML">
+  <div><h1 class="mono">slurm-26.05</h1>
+    <div class="set-meta"><span class="mono">~/src/slurm-repo</span><span class="sep">·</span><span>branch <code>builder/slurm-26.05</code></span><span class="sep">·</span>
+      <span class="pill st-blocked">lock modified</span><span class="sep">·</span><span class="target" title="rocky+epel-9-x86_64"><b>el9</b><span>rocky+epel-9-x86_64</span></span> <span class="target" title="rocky+epel-10-x86_64"><b>el10</b><span>rocky+epel-10-x86_64</span></span></div></div>
+  <div class="actions"><a class="btn" href="/s/slurm-26.05/plan">Plan</a><button class="btn btn-primary" type="button" hx-get="/s/slurm-26.05/-/dialog/build" hx-target="#modal">Build…</button><a class="btn" href="/s/slurm-26.05/publish">Publish…</a></div>
+</div>
+<div class="ov v2">
+<section class="card attn" id="attention" aria-labelledby="attn-t" data-live hx-get="/s/slurm-26.05/-/frag/attention" hx-trigger="refresh" sse-swap="attention" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="attn-t">Needs you</h2><span class="right">4 items</span></div>
+  <ul class="attn-list">
+    <li class="a-failed"><span class="kind">Run</span>
+      <div class="what">
+        <div class="t"><a class="node-chip st-failed" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10" title="slurm@el10: failed"><b>slurm</b>@el10</a> failed in run <a class="mono" href="/s/slurm-26.05/runs/r-20261101-2140-5be">r-20261101-2140-5be</a> <span class="muted">yesterday 21:52</span></div>
+        <pre class="errline">error: Failed build dependencies: pkgconfig(rocm_smi64) is needed</pre>
+        <div class="hint"><b>Hint:</b> <code>rocm-smi</code> provides this, but it has <code>targets: [el9]</code> (<code>dep.not-for-target</code>).</div>
+      </div>
+      <div class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/explain-failure" hx-vals='{"run":"r-20261101-2140-5be","node":"slurm@el10"}' hx-target="#drawer" hx-swap="outerHTML"
+     title="Runs claude -p with the skill triage-build. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Explain failure</button><a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10">Show log</a></div></li>
+    <li class="a-failed"><span class="kind">Advisory</span>
+      <div class="what"><div class="t">1 required advisory: <code>closure.broken</code> on <a class="node-chip st-failed" href="#advisories" title="pmix@el9: failed"><b>pmix</b>@el9</a></div>
+        <div class="d">Publish of el9 refuses while it is open. See Advisories below.</div></div>
+      <div class="acts"><a class="btn btn-sm" href="#advisories">Show</a></div></li>
+    <li class="a-warn"><span class="kind">Lock</span>
+      <div class="what"><div class="t"><code>repoctl.lock</code> has changes that are not committed</div>
+        <div class="d"><span class="mono">ucx</span> 907c60d → 4b1e9c2 “Bump to 1.22.1”. Publish refuses a lock that is not committed (exit 5).</div>
+        <div class="cmd"><code>git -C ~/src/slurm-repo commit -m "ucx: bump to 1.22.1" repoctl.lock</code><button class="copy" type="button" data-copy="git -C ~/src/slurm-repo commit -m "ucx: bump to 1.22.1" repoctl.lock" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div>
+      <div class="acts"><a class="btn btn-sm" href="/s/slurm-26.05/config#lock">Show diff</a></div></li>
+    <li class="a-info"><span class="kind">Repo</span>
+      <div class="what"><div class="t">el9 and el10 were published 51 days ago</div><div class="d">Last publish 2026-09-12. Keep all versions: publish adds, prune deletes.</div></div>
+      <div class="acts"><a class="btn btn-sm" href="/s/slurm-26.05/publish">Review…</a></div></li>
+  </ul>
+</section>
+
+<section class="card cur" id="current-run" aria-labelledby="cur-t" data-live hx-get="/s/slurm-26.05/-/frag/current-run" hx-trigger="refresh" sse-swap="current-run" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="cur-t">Current run</h2><span class="pill st-running">running</span><span class="right"><a class="mono" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">r-20261102-1750-a3f</a></span></div>
+  <div class="card-body stack">
+    <div sse-swap="run:r-20261102-1750-a3f" hx-swap="innerHTML">
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="2" aria-valuenow="1" aria-label="1 of 2 builds done"><i class="p-ok" style="flex:1"></i><i class="p-running" style="flex:1"></i></div>
+      <div class="cap"><b>1 of 2</b> builds done<span class="sep">·</span>7m40s elapsed</div>
+      <div class="legend"><span><i style="background:var(--s-ok)"></i>1 ok</span><span><i style="background:var(--s-running)"></i>1 running</span><span class="muted">+ 19 current</span></div></div>
+    <dl class="kv"><dt>Started</dt><dd>17:50 by d.klein, from the CLI</dd><dt>Command</dt><dd><code>repoctl build</code></dd><dt>Reason</dt><dd><code>commit-changed</code>: ucx 907c60d → 4b1e9c2</dd></dl>
+  </div>
+  <ul class="list nodes">
+    <li><a class="node-chip st-ok" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/ucx@el9" title="ucx@el9: ok"><b>ucx</b>@el9</a><span class="muted">stage</span><span class="right">4m02s</span></li>
+    <li class="sub"><span class="pill st-ok">soname check</span><span>libucp.so.0 unchanged. No rebuild necessary.</span></li>
+    <li><a class="node-chip st-running" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/ucx@el10" title="ucx@el10: running"><b>ucx</b>@el10</a><span class="muted">rpm</span><span class="right">3m21s</span></li>
+  </ul>
+  <div class="card-foot"><a href="/s/slurm-26.05/runs/r-20261102-1750-a3f">Open run and logs</a><span class="right"><button class="btn btn-sm btn-danger" type="button" hx-get="/s/slurm-26.05/-/dialog/cancel?run=r-20261102-1750-a3f" hx-target="#modal">Cancel run…</button></span></div>
+</section>
+
+<section class="card adv" id="advisories" aria-labelledby="adv-t" data-live hx-get="/s/slurm-26.05/-/frag/advisories" hx-trigger="refresh" sse-swap="advisories" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="adv-t">Advisories</h2><span class="pill lvl-required">1 required</span><span class="pill lvl-info">3 info</span>
+    <span class="right"><span class="hide-sm">repoctl check, today 06:00 (timer)</span><button class="btn btn-sm" type="button" hx-post="/s/slurm-26.05/-/actions/check" hx-target="#advisories" hx-swap="outerHTML">Check now</button></span></div>
+  <ul class="adv-list">
+  <li class="adv-required">
+      <div class="adv-h"><span class="pill lvl-required">required</span><code class="code">closure.broken</code><a class="node-chip st-failed" href="/s/slurm-26.05/packages/pmix?target=el9" title="pmix@el9: cached"><b>pmix</b>@el9</a></div>
+      <div class="adv-b"><span class="nvr"><span class="n">pmix</span>-<span class="v">6.1.0</span>-<span class="r">1</span><span class="d">.el9.x86_64</span></span> needs <code>libhwloc.so.15()(64bit)</code>. EPEL now has <code>hwloc-libs-2.11.2</code>, which provides only <code>libhwloc.so.16</code>. dnf cannot install pmix on a new el9 host.
+     <div class="cmd"><code>repoctl rebuild pmix --reason "hwloc: libhwloc.so.15 → .so.16"</code><button class="copy" type="button" data-copy="repoctl rebuild pmix --reason "hwloc: libhwloc.so.15 → .so.16"" aria-label="Copy command" title="Copy command"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div>
+      <div class="acts"><button class="btn btn-sm btn-primary" type="button" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=pmix&amp;advisory=closure.broken:pmix@el9" hx-target="#modal">Rebuild…</button>
+     <button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/rebuild-advice" hx-vals='{"advisory":"closure.broken:pmix@el9"}' hx-target="#drawer" hx-swap="outerHTML"
+     title="Runs claude -p with the skill rebuild-advice. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Is a rebuild necessary?</button>
+     <button class="btn btn-sm" type="button" hx-post="/s/slurm-26.05/-/actions/dismiss" hx-vals='{"advisory":"closure.broken:pmix@el9"}'>Dismiss</button></div></li>
+  <li class="adv-info">
+      <div class="adv-h"><span class="pill lvl-info">info</span><code class="code">buildroot.drift</code><a class="node-chip st-cached" href="/s/slurm-26.05/packages/munge?target=el9" title="munge@el9: cached"><b>munge</b>@el9</a></div>
+      <div class="adv-b">Built with <code>openssl-devel-3.0.7</code>. Rocky 9 now has <code>3.2.2</code>. Nothing is broken. Rebuild only if you want the new version.</div>
+      <div class="acts"><button class="btn btn-sm" type="button" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=munge&amp;advisory=buildroot.drift:munge@el9" hx-target="#modal">Rebuild…</button>
+     <button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/rebuild-advice" hx-vals='{"advisory":"buildroot.drift:munge@el9"}' hx-target="#drawer" hx-swap="outerHTML"
+     title="Runs claude -p with the skill rebuild-advice. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Is a rebuild necessary?</button>
+     <button class="btn btn-sm" type="button">Dismiss</button></div></li>
+  <li class="adv-info">
+      <div class="adv-h"><span class="pill lvl-info">info</span><code class="code">upstream.release</code><a class="mono pkg" href="/s/slurm-26.05/packages/slurm">slurm</a></div>
+      <div class="adv-b">26.05.4 → <b>26.05.5</b> on <a href="https://github.com/SchedMD/slurm/releases">GitHub SchedMD/slurm</a>.</div>
+      <div class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"dir":"slurm","version":"26.05.5"}' hx-target="#drawer" hx-swap="outerHTML"
+     title="Runs claude -p with the skill package-updates. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Summarize release notes</button>
+     <button class="btn btn-sm" type="button">Dismiss</button></div></li>
+  <li class="adv-info">
+      <div class="adv-h"><span class="pill lvl-info">info</span><code class="code">upstream.release</code><a class="mono pkg" href="/s/slurm-26.05/packages/openmpi">openmpi</a></div>
+      <div class="adv-b">5.0.11 → <b>5.0.12</b> on <a href="https://github.com/open-mpi/ompi/releases">GitHub open-mpi/ompi</a>.</div>
+      <div class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"dir":"openmpi","version":"5.0.12"}' hx-target="#drawer" hx-swap="outerHTML"
+     title="Runs claude -p with the skill package-updates. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Summarize release notes</button>
+     <button class="btn btn-sm" type="button">Dismiss</button></div></li>
+  </ul>
+  <div class="card-foot muted">No finding: <code>mock.drift</code> (mock config and macros match the manifest), <code>soname.removed</code>. Not set up: <code>abi.changed</code> (needs libabigail).
+    </div>
+</section>
+
+<section class="card mat" id="matrix" aria-labelledby="mat-t" data-live hx-get="/s/slurm-26.05/-/frag/matrix" hx-trigger="refresh">
+  <div class="card-head"><h2 id="mat-t">Packages and targets</h2><span class="right"><span>current = this commit is in the published repo</span><a href="/s/slurm-26.05/graph?target=el9">Graph</a><a href="/s/slurm-26.05/packages">All packages</a></span></div>
+  <div class="table-wrap"><table class="table matrix"><thead><tr><th>Package</th><th>Version</th><th>Commit</th><th>el9</th><th>el10</th><th>Upstream</th></tr></thead><tbody>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/munge">munge</a></td>
+    <td class="mono">0.5.18</td>
+    <td><span class="hashc"><span title="3a244fd4728f94342beba4a7634c463370a7b877">3a244fd</span><button class="copy" type="button" data-copy="3a244fd4728f94342beba4a7634c463370a7b877" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-munge-el9" sse-swap="node:munge@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/munge?target=el9">
+      <span class="l1"><span class="pill st-current">current</span><span class="tag info" title="advisory buildroot.drift">buildroot.drift</span></span><span class="nvr"><span class="n">munge</span>-<span class="v">0.5.18</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-munge-el10" sse-swap="node:munge@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/munge?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">munge</span>-<span class="v">0.5.18</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">current</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/ucx">ucx</a></td>
+    <td class="mono">1.22.1</td>
+    <td><span class="hashc"><span title="4b1e9c2d7a01f5e3b6c48a9d2e0f71b5c3a8d6e4">4b1e9c2</span><button class="copy" type="button" data-copy="4b1e9c2d7a01f5e3b6c48a9d2e0f71b5c3a8d6e4" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span> <span class="pill st-blocked" title="lock: 907c60d, not committed">lock modified</span></td>
+    <td id="n-ucx-el9" sse-swap="node:ucx@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/ucx@el9">
+      <span class="l1"><span class="pill st-ok">ok</span><span class="note">built 4m02s</span><span class="tag">staged</span></span><span class="nvr"><span class="n">ucx</span>-<span class="v">1.22.1</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-ucx-el10" sse-swap="node:ucx@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/ucx@el10">
+      <span class="l1"><span class="pill st-running">running</span><span class="note">rpm · 3m21s</span></span><span class="nvr"><span class="n">ucx</span>-<span class="v">1.22.1</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">current</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/rocm-smi">rocm-smi</a> <span class="tag">ext</span></td>
+    <td class="mono">7.14.0</td>
+    <td><span class="hashc"><span title="cae3663bc5c9f97abb8e49c8adebfc4bedde98a0">cae3663</span><button class="copy" type="button" data-copy="cae3663bc5c9f97abb8e49c8adebfc4bedde98a0" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-rocm-smi-el9" sse-swap="node:rocm-smi@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/rocm-smi?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">rocm-smi</span>-<span class="v">7.14.0</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td class="na" title="rocm-smi is not built for el10 (targets: [el9])"><span class="muted">not in target</span></td>
+    <td><span class="muted">current</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/pmix">pmix</a></td>
+    <td class="mono">6.1.0</td>
+    <td><span class="hashc"><span title="6644bdf1c0e2a7d95b3f84e6a1c27d0b9e5f3a12">6644bdf</span><button class="copy" type="button" data-copy="6644bdf1c0e2a7d95b3f84e6a1c27d0b9e5f3a12" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-pmix-el9" sse-swap="node:pmix@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/pmix?target=el9">
+      <span class="l1"><span class="pill st-current">current</span><span class="tag bad" title="advisory closure.broken">closure.broken</span></span><span class="nvr"><span class="n">pmix</span>-<span class="v">6.1.0</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-pmix-el10" sse-swap="node:pmix@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/pmix?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">pmix</span>-<span class="v">6.1.0</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">current</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/pmix_v5">pmix_v5</a></td>
+    <td class="mono">5.0.11</td>
+    <td><span class="hashc"><span title="2dff24a8e91b3c07d6f5a24e8b1c90d3f7a6e5b4">2dff24a</span><button class="copy" type="button" data-copy="2dff24a8e91b3c07d6f5a24e8b1c90d3f7a6e5b4" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-pmix_v5-el9" sse-swap="node:pmix_v5@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/pmix_v5?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">pmix5</span>-<span class="v">5.0.11</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-pmix_v5-el10" sse-swap="node:pmix_v5@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/pmix_v5?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">pmix5</span>-<span class="v">5.0.11</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">current</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/pmix_v4">pmix_v4</a></td>
+    <td class="mono">4.2.9</td>
+    <td><span class="hashc"><span title="75255957c1d2e8a4b0f63e9d5a7c1b28e4f0d93a">7525595</span><button class="copy" type="button" data-copy="75255957c1d2e8a4b0f63e9d5a7c1b28e4f0d93a" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-pmix_v4-el9" sse-swap="node:pmix_v4@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/pmix_v4?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">pmix4</span>-<span class="v">4.2.9</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-pmix_v4-el10" sse-swap="node:pmix_v4@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/pmix_v4?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">pmix4</span>-<span class="v">4.2.9</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">frozen</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/prrte">prrte</a></td>
+    <td class="mono">4.1.0</td>
+    <td><span class="hashc"><span title="58caa8c3e5b7d1f2a9046c8e3b5d7f1a2c4e6b80">58caa8c</span><button class="copy" type="button" data-copy="58caa8c3e5b7d1f2a9046c8e3b5d7f1a2c4e6b80" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-prrte-el9" sse-swap="node:prrte@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/prrte?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">prrte</span>-<span class="v">4.1.0</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-prrte-el10" sse-swap="node:prrte@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/prrte?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">prrte</span>-<span class="v">4.1.0</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">current</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/slurm">slurm</a></td>
+    <td class="mono">26.05.4</td>
+    <td><span class="hashc"><span title="d42f66a09b7e3c5d1f8a2b46e0c9d3f7a5b1e2c8">d42f66a</span><button class="copy" type="button" data-copy="d42f66a09b7e3c5d1f8a2b46e0c9d3f7a5b1e2c8" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-slurm-el9" sse-swap="node:slurm@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/slurm?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">slurm</span>-<span class="v">26.05.4</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-slurm-el10" sse-swap="node:slurm@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10">
+      <span class="l1"><span class="pill st-failed">failed</span><span class="note">run of Nov 1</span></span><span class="nvr"><span class="n">slurm</span>-<span class="v">26.05.4</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="upd"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>26.05.5</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/slurm-singularity-exec">slurm-singularity-exec</a></td>
+    <td class="mono">3.2.0</td>
+    <td><span class="hashc"><span title="093012d5f7b9e1c3a5d7f9b1e3c5a7d9f1b3e5c7">093012d</span><button class="copy" type="button" data-copy="093012d5f7b9e1c3a5d7f9b1e3c5a7d9f1b3e5c7" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-slurm-singularity-exec-el9" sse-swap="node:slurm-singularity-exec@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/slurm-singularity-exec?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">slurm-singularity-exec</span>-<span class="v">3.2.0</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-slurm-singularity-exec-el10" sse-swap="node:slurm-singularity-exec@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/slurm-singularity-exec?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">slurm-singularity-exec</span>-<span class="v">3.2.0</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">current</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/openmpi">openmpi</a></td>
+    <td class="mono">5.0.11</td>
+    <td><span class="hashc"><span title="65a37e5b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c">65a37e5</span><button class="copy" type="button" data-copy="65a37e5b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c" aria-label="Copy full hash" title="Copy full hash"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></span></td>
+    <td id="n-openmpi-el9" sse-swap="node:openmpi@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/openmpi?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">openmpi</span>-<span class="v">5.0.11</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-openmpi-el10" sse-swap="node:openmpi@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/openmpi?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">openmpi</span>-<span class="v">5.0.11</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="upd"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>5.0.12</span></td></tr>
+<tr>
+    <td><a class="mono pkg" href="/s/slurm-26.05/packages/slurm-release">slurm-release</a> <span class="tag">release</span></td>
+    <td class="mono">26.05</td>
+    <td><span class="muted">in tree</span></td>
+    <td id="n-slurm-release-el9" sse-swap="node:slurm-release@el9" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/slurm-release?target=el9">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">slurm-release</span>-<span class="v">26.05</span>-<span class="r">1</span><span class="d">.el9</span></span></a></td><td id="n-slurm-release-el10" sse-swap="node:slurm-release@el10" hx-swap="innerHTML"><a class="mcell" href="/s/slurm-26.05/packages/slurm-release?target=el10">
+      <span class="l1"><span class="pill st-current">current</span></span><span class="nvr"><span class="n">slurm-release</span>-<span class="v">26.05</span>-<span class="r">1</span><span class="d">.el10</span></span></a></td>
+    <td><span class="muted">–</span></td></tr>
+  </tbody></table></div>
+</section>
+
+<section class="card runs" id="recent-runs" aria-labelledby="runs-t" data-live hx-get="/s/slurm-26.05/-/frag/recent-runs" hx-trigger="refresh" sse-swap="recent-runs" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="runs-t">Recent runs</h2><span class="right"><a href="/s/slurm-26.05/runs">All runs</a></span></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Run</th><th>Started</th><th>From</th><th>Nodes</th><th>Result</th><th class="num">Duration</th></tr></thead><tbody>
+    <tr><td><a class="mono" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">r-20261102-1750-a3f</a></td><td>today 17:50</td><td>cli</td><td>2 build · 19 current</td><td><span class="pill st-running">running</span></td><td class="num">7m40s</td></tr>
+    <tr><td><a class="mono" href="/s/slurm-26.05/runs/r-20261101-2140-5be">r-20261101-2140-5be</a></td><td>Nov 1 21:40</td><td>cli</td><td>2 build · 1 failed</td><td><span class="pill st-failed">failed</span></td><td class="num">12m31s</td></tr>
+    <tr><td><a class="mono" href="/s/slurm-26.05/runs/r-20261030-0912-7d1">r-20261030-0912-7d1</a></td><td>Oct 30 09:12</td><td>ui</td><td>2 build · 19 current</td><td><span class="pill st-ok">ok</span></td><td class="num">24m12s</td></tr>
+  </tbody></table></div>
+</section>
+
+<div class="side">
+<section class="card" id="last-publish" aria-labelledby="pub-t"><div class="card-head"><h2 id="pub-t">Last publish</h2><span class="right">per target</span></div>
+  <div class="card-body"><dl class="kv">
+    <dt><span class="target" title="undefined"><b>el9</b></span></dt><dd>2026-09-12 10:31 · <a class="mono" href="/s/slurm-26.05/runs/p-20260912-1031-6b2">p-20260912-1031-6b2</a></dd>
+    <dt><span class="target" title="undefined"><b>el10</b></span></dt><dd>2026-09-12 10:33 · <a class="mono" href="/s/slurm-26.05/runs/p-20260912-1033-0e4">p-20260912-1033-0e4</a></dd>
+    <dt>Signer</dt><dd>Dennis Klein &lt;d.klein@gsi.de&gt; <span class="hash">…7C3A 19F2</span></dd>
+    <dt>Snapshot</dt><dd class="mono">registry.gsi.de/hpc/slurm-repo:slurm-26.05-el9-latest</dd></dl></div>
+  <div class="card-foot"><span class="muted">Keeps all versions</span><span class="right"><a class="btn btn-sm" href="/s/slurm-26.05/publish">Publish…</a></span></div></section>
+</div>
+</div>
+</main>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+<aside class="drawer" id="drawer" role="complementary" aria-labelledby="dr-t" data-state="done"
+    sse-swap="agent:a-20261102-1812-7c1" hx-swap="none">
+  <header class="dr-head">
+    <div class="dr-title"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg><h2 id="dr-t">Explain failure</h2><a class="node-chip st-failed" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10" title="slurm@el10: failed"><b>slurm</b>@el10</a>
+      <a class="icon-btn dr-x" href="/s/slurm-26.05/" aria-label="Close panel" hx-get="/s/slurm-26.05/" hx-select="#drawer" hx-target="#drawer"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></a></div>
+    <dl class="kv dr-meta">
+      <dt>State</dt><dd><span class="pill st-ok">done</span> in 0m41s</dd>
+      <dt>Skill</dt><dd><code>triage-build</code> <span class="muted">(generic, ships with repoctl)</span></dd>
+      <dt>Agent</dt><dd><code>claude -p</code> <span class="muted">from user config <code>agent.command</code></span></dd>
+      <dt>Started</dt><dd>18:12 by d.klein · input <a class="mono" href="/s/slurm-26.05/runs/r-20261101-2140-5be">r-20261101-2140-5be</a></dd>
+      <dt>Tools</dt><dd><span class="pill st-cached">read and plan only</span> <span class="muted">No Edit, no Bash, no build, no rebuild.</span></dd>
+    </dl>
+  </header>
+  <div class="dr-body" aria-busy="false">
+    <section><h3>Tools used</h3><ul class="tools">
+  <li><span class="ti ok">✓</span><code>repoctl_logs</code><span class="muted">slurm@el10, root.log and build.log</span></li>
+  <li><span class="ti ok">✓</span><code>repoctl_show</code><span class="muted">rocm-smi, slurm</span></li>
+  <li><span class="ti ok">✓</span><code>Read</code><span class="muted">packages/slurm/slurm.spec</span></li>
+  <li><span class="ti ok">✓</span><code>repoctl_graph</code><span class="muted">--target el10</span></li>
+  <li><span class="ti ok">✓</span><code>repoctl_plan</code><span class="muted">slurm with the proposed diff, dry</span></li>
+</ul></section>
+    
+    <section><h3>Cause</h3><p>slurm.spec asks for <code>rocm-smi-devel</code> on every target. In this set, rocm-smi has <code>targets: [el9]</code>, so no package provides it on el10. mock stops before the build starts. Fix A (below): build slurm without the rsmi plugin on el10. The plugin gives GPU data for AMD GPUs only. Fix B: the el10 target already has the extra repo <code>repo.radeon.com/rocm/el10/7.14/main</code>. If rocm-smi builds there, set <code>targets: [el9, el10]</code> for rocm-smi and keep the spec as it is.</p></section>
+    <section><h3>Evidence</h3><div class="evlist">
+      <a class="ev" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10?log=build.log#L3"><span class="ln">build.log:3</span><span class="err">error: Failed build dependencies: pkgconfig(rocm_smi64) is needed</span></a>
+      <a class="ev" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10?log=root.log#L212"><span class="ln">root.log:212</span><span class="warn">No matching package to install: 'pkgconfig(rocm_smi64)'</span></a>
+      <a class="ev" href="/s/slurm-26.05/config#L41"><span class="ln">repoctl.yaml:41</span><span>targets: [el9]   <span class="dim"># package rocm-smi</span></span></a>
+      <a class="ev" href="/s/slurm-26.05/packages/slurm?tab=spec#L84"><span class="ln">slurm.spec:84</span><span>BuildRequires:  rocm-smi-devel</span></a>
+      <a class="ev" href="/s/slurm-26.05/packages/slurm?tab=spec#L267"><span class="ln">slurm.spec:267</span><span>  --with-rsmi=%{_prefix}</span></a>
+    </div></section>
+    <section><h3>Proposed change, fix A <span class="muted">(slurm branch <code>slurm/slurm-26.05</code>)</span></h3>
+      <pre class="log diff"><span class="dim">--- a/slurm.spec</span>
+<span class="dim">+++ b/slurm.spec</span>
+<span class="hunk">@@ -81,9 +81,11 @@ BuildRequires:  numactl-devel</span>
+ BuildRequires:  pam-devel
+ BuildRequires:  rdma-core-devel
+ BuildRequires:  readline-devel
+<span class="ok">+%if 0%{?rhel} &lt; 10</span>
+ BuildRequires:  rocm-smi-devel
+<span class="ok">+%endif</span>
+ BuildRequires:  zlib-devel
+ BuildRequires:  ucx-devel
+<span class="hunk">@@ -264,4 +266,4 @@ autoconf</span>
+   --with-shared-libslurm \
+   --without-rpath \
+<span class="err">-  --with-rsmi=%{_prefix}</span>
+<span class="ok">+  %{?el9:--with-rsmi=%{_prefix}}</span></pre>
+      <p class="note">repoctl_plan with this diff: slurm@el10 resolves its BuildRequires. The new commit builds slurm on el9 and el10 (<code>commit-changed</code>), with release 2.</p></section>
+    <section><h3>Proposed actions</h3><div class="row">
+      <a class="btn btn-sm" href="/s/slurm-26.05/packages/slurm?tab=spec">Open package</a>
+      <button class="btn btn-sm" type="button" data-copy="(the diff above)"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg>Copy diff</button>
+      <button class="btn btn-sm btn-primary" type="button" disabled title="Works after a new commit on slurm/slurm-26.05">Rebuild after fix…</button></div>
+      <p class="note">Rebuild after fix… starts to work when the slurm branch has a new commit. It then pins it and opens the build dialog.</p></section>
+    <section><h3>Continue in terminal</h3>
+      <div class="cmd"><code>cd ~/src/slurm-repo &amp;&amp; claude --resume 5f1c2a9e-7d43-4b8e-9a21-c03e6b1d2f77</code><button class="copy" type="button" data-copy="cd ~/src/slurm-repo && claude --resume 5f1c2a9e-7d43-4b8e-9a21-c03e6b1d2f77" aria-label="Copy command" title="Copy command"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div>
+      <p class="note">The conversation stays in the agent tool. repoctl ui does not keep a copy of it.</p></section>
+  </div>
+  <footer class="dr-foot"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Suggestions only. repoctl changes nothing until you click.</footer>
+</aside>
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="steps">Esc closes</span></header>
+  <div class="body"><table class="table">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Upstream</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Browse the repository (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+  </table><p class="muted" style="margin:0;font-size:12.5px">No shortcut starts a build or a publish.</p></div>
+</dialog>
+<script src="shell.js"></script>
+</body>
+</html>

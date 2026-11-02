@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Runs · repoctl</title>
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="run.css">
+<!-- product: htmx + htmx-ext-sse served as hashed embedded assets, e.g. /static/htmx.3f2a91.js -->
+</head>
+<body hx-ext="sse" sse-connect="/s/slurm-26.05/events?topic=runs" hx-headers='{"X-CSRF-Token":"…"}'>
+<div id="sse-sink" hidden sse-swap="run.started,plan.ready,node.state,node.step,node.log,artifact.added,run.finished,resync" hx-swap="none"></div>
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark">rc</span>repoctl</a>
+    <div class="set-switch">slurm-26.05 · builder/slurm-26.05</div>
+    <div class="spacer"></div>
+    <a class="live-run" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" title="Live run"
+><span class="pill st-running"><span class="rid-long">r-20261102-1750-a3f · </span>running <span data-since="2026-11-02T17:50:04+01:00">11:02</span></span></a>
+    <button class="icon-btn" type="button" aria-label="Toggle theme" onclick="var r=document.documentElement;r.dataset.theme=(r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme:dark)').matches))?'light':'dark'"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor"/></svg></button>
+  </header>
+  <nav class="sidebar" aria-label="Main">
+    <a class="nav-item" href="/s/slurm-26.05"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>Overview</a>
+    <a class="nav-item" href="/s/slurm-26.05/graph"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="4" cy="12" r="2"/><path d="M6 4.8 10 7.2M6 11.2l4-2.4"/></svg>Graph</a>
+    <a class="nav-item active" href="/s/slurm-26.05/runs" aria-current="page"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3l8 5-8 5z"/></svg>Runs<span class="count">1 live</span></a>
+    <a class="nav-item" href="/s/slurm-26.05/packages"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5 14 4.5v7L8 14.5 2 11.5v-7z"/><path d="M2 4.5 8 7.5l6-3M8 7.5v7"/></svg>Packages</a>
+    <a class="nav-item" href="/s/slurm-26.05/repo"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="8" cy="3.5" rx="5.5" ry="2"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/></svg>Repository</a>
+    <a class="nav-item" href="/s/slurm-26.05/publish"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 11V2M4.5 5.5 8 2l3.5 3.5M2.5 10v3.5h11V10"/></svg>Publish</a>
+    <div class="nav-label">Targets</div>
+    <a class="nav-item" href="/s/slurm-26.05/targets/el9"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/><rect x="6" y="6" width="4" height="4"/><path d="M6 1v2M10 1v2M6 13v2M10 13v2M1 6h2M1 10h2M13 6h2M13 10h2"/></svg><span class="tgt">el9</span><span class="count">11</span></a>
+    <a class="nav-item" href="/s/slurm-26.05/targets/el10"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/><rect x="6" y="6" width="4" height="4"/><path d="M6 1v2M10 1v2M6 13v2M10 13v2M1 6h2M1 10h2M13 6h2M13 10h2"/></svg><span class="tgt">el10</span><span class="count">10</span></a>
+  </nav>
+  <main class="main">
+    <div class="page-head">
+      <div><h1>Runs</h1><div class="sub">Every build of set slurm-26.05. Each run builds into its own staging repo.</div></div>
+      <div class="actions">
+        <a class="btn" href="/s/slurm-26.05/runs/compare?a=r-20261102-1750-a3f&amp;b=r-20260912-1404-c21"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg>Compare with published</a>
+        <a class="btn btn-primary" href="/s/slurm-26.05/plan"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3l8 5-8 5z"/></svg>Plan a build</a>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <div class="card tile"><div class="k">Runs, last 30 days</div><div class="v">10</div><div class="s"><span style="color:var(--s-ok)">6 ok</span> · <span style="color:var(--s-failed)">2 failed</span> · 1 canceled · 1 running</div></div>
+      <div class="card tile"><div class="k">Median duration, ok runs</div><div class="v">20m08s</div><div class="s">range 2m10s to 1h04m (--force)</div></div>
+      <div class="card tile"><div class="k">Published</div><div class="v mono" style="font-size:16px;padding:5px 0">r-20260912-1404-c21</div><div class="s">2026-09-12 by d.klein · 51 days ago</div></div>
+      <div class="card tile"><div class="k">Target el10</div><div class="v" style="color:var(--s-failed)">not complete</div><div class="s">slurm@el10 failed in 2 of 2 runs</div></div>
+    </div>
+
+    <div class="card" id="runs-card">
+      <form class="filters" hx-get="/s/slurm-26.05/runs/f/table" hx-target="#runs-table" hx-trigger="change, input delay:300ms from:input" hx-push-url="true">
+        <label class="search" style="min-width:260px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input type="search" name="q" placeholder="Run id, package or user"></label>
+        <span class="seg-ctl" role="group" aria-label="Result">
+          <a class="on" href="?result=">All <span class="muted">15</span></a><a href="?result=ok">ok <span class="muted">9</span></a><a href="?result=failed">failed <span class="muted">4</span></a><a href="?result=canceled">canceled <span class="muted">1</span></a><a href="?result=running">running <span class="muted">1</span></a>
+        </span>
+        <span class="select">By: <b>anyone</b> ▾</span>
+        <span class="select">Target: <b>all</b> ▾</span>
+        <span class="select">Since: <b>90 days</b> ▾</span>
+        <label class="chk"><span class="box"></span>Published only</label>
+        <span style="margin-left:auto" class="muted">15 of 42 runs</span>
+      </form>
+      <div class="cmpbar" role="region" aria-label="Compare selection">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg><span>2 runs selected: <span class="mono">r-20261030-0912-7d1</span> and <span class="mono">r-20260912-1404-c21</span> (published)</span>
+      <span class="btns"><button class="btn btn-sm" type="button">Clear</button><a class="btn btn-sm btn-primary" href="/s/slurm-26.05/runs/compare?a=r-20261030-0912-7d1&amp;b=r-20260912-1404-c21">Compare keys, NVRs and durations ›</a></span>
+    </div>
+      <div class="table-wrap">
+        <table class="table runs-table" id="runs-table">
+          <thead><tr>
+            <th style="width:28px"><span class="box"></span></th><th>Run</th><th>Started · by</th><th>Selection</th><th>Targets</th>
+            <th style="white-space:nowrap">Built · cached · failed</th><th>Duration <span class="muted">· jobs busy</span></th><th>Result</th><th>Published</th><th></th>
+          </tr></thead>
+          <tbody>
+          <tr class="live" id="run-r-20261102-1750-a3f">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">r-20261102-1750-a3f</a></td>
+            <td><span class="mono" style="font-size:12.5px">11-02 17:50</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">ucx <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span> <span class="tag">el10</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>13</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked · 4 open</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 3 of 4"><title>Jobs busy over 11m02s: peak 3 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 12.0 L21.9 12.0 L21.9 17.0 L25.6 17.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 12.0 L36.5 12.0 L36.5 12.0 L40.2 12.0 L40.2 7.0 L43.8 7.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">11m02s…</span></span></td>
+            <td><span class="pill st-running">running</span></td>
+            <td><span class="muted">–</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261102-1750-a3f&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261102-1612-e40">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261102-1612-e40">r-20261102-1612-e40</a></td>
+            <td><span class="mono" style="font-size:12.5px">11-02 16:12</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">slurm-release <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>10</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 2m10s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 17.0 L21.9 17.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 22.0 L32.9 22.0 L32.9 17.0 L36.5 17.0 L36.5 22.0 L40.2 22.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 22.0 L62.1 22.0 L62.1 22.0 L65.7 22.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 17.0 L76.7 17.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">2m10s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261102-1612-e40&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr class="picked" id="run-r-20261030-0912-7d1">
+            <td><span class="box on"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261030-0912-7d1">r-20261030-0912-7d1</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-30 09:12</span><br><span class="muted" style="font-size:12px">d.klein · mcp</span></td>
+            <td class="sel">openmpi <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>10</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 21m05s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 22.0 L7.3 22.0 L7.3 22.0 L11.0 22.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 22.0 L21.9 22.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 17.0 L62.1 17.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">21m05s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261030-0912-7d1&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261028-1408-19c">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261028-1408-19c">r-20261028-1408-19c</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-28 14:08</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">prrte <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 3 of 4"><title>Jobs busy over 24m05s: peak 3 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 12.0 L11.0 12.0 L11.0 12.0 L14.6 12.0 L14.6 12.0 L18.3 12.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 12.0 L36.5 12.0 L36.5 7.0 L40.2 7.0 L40.2 17.0 L43.8 17.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 17.0 L62.1 17.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 12.0 L73.0 12.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 12.0 L84.0 12.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">24m05s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261028-1408-19c&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261027-1111-0be">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261027-1111-0be">r-20261027-1111-0be</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-27 11:11</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">prrte <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="z" style="color:var(--s-ok)" title="built"><i></i>0</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 4m02s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 17.0 L21.9 17.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 17.0 L62.1 17.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 22.0 L73.0 22.0 L73.0 22.0 L76.7 22.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">4m02s</span></span></td>
+            <td><span class="pill st-failed">failed</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261027-1111-0be&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261023-1645-b02">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261023-1645-b02">r-20261023-1645-b02</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-23 16:45</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">all <span class="muted">(--force)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>11</span><span class="z" style="color:var(--s-cached)" title="cached"><i></i>0</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 1h04m: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 7.0 L7.3 7.0 L7.3 7.0 L11.0 7.0 L11.0 7.0 L14.6 7.0 L14.6 7.0 L18.3 7.0 L18.3 7.0 L21.9 7.0 L21.9 2.0 L25.6 2.0 L25.6 2.0 L29.2 2.0 L29.2 2.0 L32.9 2.0 L32.9 2.0 L36.5 2.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 2.0 L47.5 2.0 L47.5 2.0 L51.1 2.0 L51.1 2.0 L54.8 2.0 L54.8 7.0 L58.4 7.0 L58.4 2.0 L62.1 2.0 L62.1 7.0 L65.7 7.0 L65.7 7.0 L69.4 7.0 L69.4 7.0 L73.0 7.0 L73.0 12.0 L76.7 12.0 L76.7 12.0 L80.3 12.0 L80.3 12.0 L84.0 12.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">1h04m</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261023-1645-b02&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261021-1002-6aa">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261021-1002-6aa">r-20261021-1002-6aa</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-21 10:02</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">all</td>
+            <td><span class="tag">el9</span> <span class="tag">el10</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>5</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>12</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span><br><span class="x muted">4 canceled</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 31m12s: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 12.0 L11.0 12.0 L11.0 7.0 L14.6 7.0 L14.6 7.0 L18.3 7.0 L18.3 12.0 L21.9 12.0 L21.9 7.0 L25.6 7.0 L25.6 7.0 L29.2 7.0 L29.2 7.0 L32.9 7.0 L32.9 7.0 L36.5 7.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 7.0 L47.5 7.0 L47.5 7.0 L51.1 7.0 L51.1 12.0 L54.8 12.0 L54.8 7.0 L58.4 7.0 L58.4 7.0 L62.1 7.0 L62.1 12.0 L65.7 12.0 L65.7 7.0 L69.4 7.0 L69.4 7.0 L73.0 7.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">31m12s</span></span></td>
+            <td><span class="pill st-canceled">canceled</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261021-1002-6aa&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261020-1530-f3e">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261020-1530-f3e">r-20261020-1530-f3e</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-20 15:30</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">all <span class="muted">(new target el10)</span></td>
+            <td><span class="tag">el10</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>8</span><span class="z" style="color:var(--s-cached)" title="cached"><i></i>0</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 48m30s: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 7.0 L11.0 7.0 L11.0 2.0 L14.6 2.0 L14.6 7.0 L18.3 7.0 L18.3 2.0 L21.9 2.0 L21.9 7.0 L25.6 7.0 L25.6 2.0 L29.2 2.0 L29.2 7.0 L32.9 7.0 L32.9 2.0 L36.5 2.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 2.0 L47.5 2.0 L47.5 2.0 L51.1 2.0 L51.1 7.0 L54.8 7.0 L54.8 7.0 L58.4 7.0 L58.4 7.0 L62.1 7.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">48m30s</span></span></td>
+            <td><span class="pill st-failed">failed</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261020-1530-f3e&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261015-0930-2d4">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261015-0930-2d4">r-20261015-0930-2d4</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-15 09:30</span><br><span class="muted" style="font-size:12px">d.klein · mcp</span></td>
+            <td class="sel">pmix_v5 <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>3</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>8</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 19m10s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 12.0 L14.6 12.0 L14.6 12.0 L18.3 12.0 L18.3 12.0 L21.9 12.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 12.0 L32.9 12.0 L32.9 17.0 L36.5 17.0 L36.5 12.0 L40.2 12.0 L40.2 17.0 L43.8 17.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">19m10s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261015-0930-2d4&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261008-1420-91e">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261008-1420-91e">r-20261008-1420-91e</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-08 14:20</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">slurm <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 15m50s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 17.0 L36.5 17.0 L36.5 12.0 L40.2 12.0 L40.2 12.0 L43.8 12.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 17.0 L58.4 17.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 12.0 L69.4 12.0 L69.4 12.0 L73.0 12.0 L73.0 12.0 L76.7 12.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">15m50s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261008-1420-91e&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261001-1105-c7a">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261001-1105-c7a">r-20261001-1105-c7a</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-01 11:05</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">rocm-smi <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>3</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>8</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 19m02s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 12.0 L14.6 12.0 L14.6 12.0 L18.3 12.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 17.0 L36.5 17.0 L36.5 12.0 L40.2 12.0 L40.2 12.0 L43.8 12.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">19m02s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261001-1105-c7a&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20260924-1610-4af">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20260924-1610-4af">r-20260924-1610-4af</a></td>
+            <td><span class="mono" style="font-size:12.5px">09-24 16:10</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">pmix_v4 <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>8</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 9m40s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 22.0 L7.3 22.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 22.0 L18.3 22.0 L18.3 22.0 L21.9 22.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 22.0 L58.4 22.0 L58.4 22.0 L62.1 22.0 L62.1 22.0 L65.7 22.0 L65.7 22.0 L69.4 22.0 L69.4 22.0 L73.0 22.0 L73.0 22.0 L76.7 22.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">9m40s</span></span></td>
+            <td><span class="pill st-failed">failed</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20260924-1610-4af&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr class="picked" id="run-r-20260912-1404-c21">
+            <td><span class="box on"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20260912-1404-c21">r-20260912-1404-c21</a></td>
+            <td><span class="mono" style="font-size:12.5px">09-12 14:04</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">slurm <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 15m12s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 17.0 L11.0 17.0 L11.0 12.0 L14.6 12.0 L14.6 17.0 L18.3 17.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 12.0 L36.5 12.0 L36.5 17.0 L40.2 17.0 L40.2 12.0 L43.8 12.0 L43.8 12.0 L47.5 12.0 L47.5 17.0 L51.1 17.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 12.0 L69.4 12.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 12.0 L80.3 12.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">15m12s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="pub">yes <span class="tag" title="This run is the published repo now">live</span> <span class="muted">09-12</span></span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20260912-1404-c21&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20260911-1738-5e2">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20260911-1738-5e2">r-20260911-1738-5e2</a></td>
+            <td><span class="mono" style="font-size:12.5px">09-11 17:38</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">slurm <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="z" style="color:var(--s-ok)" title="built"><i></i>0</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 6m03s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 17.0 L21.9 17.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 17.0 L62.1 17.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 22.0 L73.0 22.0 L73.0 22.0 L76.7 22.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">6m03s</span></span></td>
+            <td><span class="pill st-failed">failed</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20260911-1738-5e2&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20260905-0915-0d9">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20260905-0915-0d9">r-20260905-0915-0d9</a></td>
+            <td><span class="mono" style="font-size:12.5px">09-05 09:15</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">all <span class="muted">(--force)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>11</span><span class="z" style="color:var(--s-cached)" title="cached"><i></i>0</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 58m40s: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 7.0 L11.0 7.0 L11.0 7.0 L14.6 7.0 L14.6 7.0 L18.3 7.0 L18.3 2.0 L21.9 2.0 L21.9 2.0 L25.6 2.0 L25.6 7.0 L29.2 7.0 L29.2 2.0 L32.9 2.0 L32.9 2.0 L36.5 2.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 2.0 L47.5 2.0 L47.5 2.0 L51.1 2.0 L51.1 2.0 L54.8 2.0 L54.8 2.0 L58.4 2.0 L58.4 2.0 L62.1 2.0 L62.1 7.0 L65.7 7.0 L65.7 7.0 L69.4 7.0 L69.4 7.0 L73.0 7.0 L73.0 7.0 L76.7 7.0 L76.7 12.0 L80.3 12.0 L80.3 12.0 L84.0 12.0 L84.0 12.0 L87.7 12.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">58m40s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="pub">yes <span class="muted">superseded</span></span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20260905-0915-0d9&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tfoot"><span>Run logs and event logs stay in <code>~/.local/state/repoctl/slurm-26.05/</code>. Staging repos of old runs may be cleaned.</span><span class="r"><a class="btn btn-sm" href="?cursor=r-20260905-0915-0d9" hx-get="/s/slurm-26.05/runs/f/table?cursor=r-20260905-0915-0d9" hx-target="#runs-table tbody" hx-swap="beforeend">Load 15 older</a></span></div>
+    </div>
+
+
+  </main>
+</div>
+
+</body>
+</html>

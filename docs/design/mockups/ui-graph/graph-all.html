@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-mock>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Graph all targets · slurm-26.05 · repoctl</title>
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="graph.css">
+<meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
+<!-- real app: <script src="/static/htmx.min.<hash>.js"></script> <script src="/static/sse.<hash>.js"></script> -->
+</head>
+<body>
+<div class="app">
+<header class="topbar" hx-ext="sse" sse-connect="/s/slurm-26.05/events?topic=run">
+  <a class="brand" href="/"><span class="brand-mark">rc</span><span class="bname">repoctl</span></a>
+  <button class="set-switch" aria-haspopup="listbox"><span>slurm-26.05</span><span class="br sepdot">·</span><span class="br">builder/slurm-26.05</span><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5L8 10l3.5-3.5"/></svg></button>
+  <span class="spacer"></span>
+  <a class="runpill" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" sse-swap="run:summary" hx-swap="outerHTML" title="Run r-20261102-1750-a3f: 3 running, 1 failed"><span class="pill st-running">running</span><span class="mono">r-20261102-1750-a3f</span><span class="rp-more">11:02 · 3 running ·</span> <span class="bad">1 failed</span></a>
+  <button class="icon-btn" aria-label="Toggle theme" title="Theme: system"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M13 9.5A5.5 5.5 0 016.5 3a5.5 5.5 0 106.5 6.5z"/></svg></button>
+</header>
+<nav class="sidebar" aria-label="Main">
+  <a class="nav-item" href="/s/slurm-26.05"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3zM9 9h4v4H9z"/></svg>Overview</a>
+  <a class="nav-item active" href="/s/slurm-26.05/graph"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="4" r="1.8"/><circle cx="3.5" cy="12" r="1.8"/><circle cx="12.5" cy="8" r="1.8"/><path d="M5.2 4.6l5.6 2.7M5.2 11.4l5.6-2.7"/></svg>Graph</a>
+  <a class="nav-item" href="/s/slurm-26.05/runs"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M6.6 5.6l3.4 2.4-3.4 2.4z"/></svg>Runs<span class="count">14</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/packages"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5L8 2.5 13.5 5v6L8 13.5 2.5 11z"/><path d="M2.5 5L8 7.5 13.5 5M8 7.5v6"/></svg>Packages<span class="count">11</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/repo"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="8" cy="4" rx="5" ry="1.8"/><path d="M3 4v8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V4M3 8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8"/></svg>Repository</a>
+  <a class="nav-item" href="/s/slurm-26.05/publish"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5M5 5.5l3-3 3 3M2.5 10v3.5h11V10"/></svg>Publish</a>
+  <div class="nav-label">Targets</div>
+  <a class="nav-item" href="/s/slurm-26.05/targets/el9"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="11" height="4" rx="1"/><rect x="2.5" y="9" width="11" height="4" rx="1"/><path d="M5 5h.01M5 11h.01"/></svg>el9<span class="dot running" title="running"></span><span class="count">11</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/targets/el10"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="11" height="4" rx="1"/><rect x="2.5" y="9" width="11" height="4" rx="1"/><path d="M5 5h.01M5 11h.01"/></svg>el10<span class="dot failed" title="1 failed"></span><span class="count">10</span></a>
+</nav>
+<main class="main">
+<div class="page-head">
+  <div><div class="crumb">slurm-26.05 / graph</div><h1>Build graph</h1></div>
+  <div class="sub">11 packages on 2 targets · union of the el9 and el10 graphs · dotted edge = one target only</div>
+  <div class="actions"><a class="btn" href="/s/slurm-26.05/graph.dot">Export DOT</a><a class="btn" href="/s/slurm-26.05/plan">Plan</a></div>
+</div>
+<div class="gtool">
+  <div class="tabs" role="tablist" aria-label="Target">
+    <a role="tab" aria-selected="false" href="/s/slurm-26.05/graph?target=el9&amp;view=dag">el9 <span class="n">11</span><span class="sd running" title="running"></span></a>
+    <a role="tab" aria-selected="false" href="/s/slurm-26.05/graph?target=el10&amp;view=dag">el10 <span class="n">10</span><span class="sd failed" title="1 failed"></span></a>
+    <a role="tab" aria-selected="true" href="/s/slurm-26.05/graph?target=all&amp;view=dag">all <span class="n">2 targets</span></a>
+  </div>
+  <span class="sp"></span>
+  <span class="tool-label">Show</span>
+  <div class="seg" role="group" aria-label="Filter"><button type="button" aria-pressed="true" hx-get="/s/slurm-26.05/graph?target=all&amp;view=dag&amp;filter=all" hx-target="#canvas" hx-select="#canvas" hx-push-url="true">All</button><button type="button" aria-pressed="false" hx-get="/s/slurm-26.05/graph?target=all&amp;view=dag&amp;filter=changed" hx-target="#canvas" hx-select="#canvas" hx-push-url="true">Changed only</button><button type="button" aria-pressed="false" hx-get="/s/slurm-26.05/graph?target=all&amp;view=dag&amp;filter=failed" hx-target="#canvas" hx-select="#canvas" hx-push-url="true">Failed only</button></div>
+  <input class="search" type="search" name="q" placeholder="Find package…" aria-label="Find package">
+  <div class="seg" role="tablist" aria-label="View">
+    <a role="tab" aria-selected="true" href="/s/slurm-26.05/graph?target=all&amp;view=dag">DAG</a>
+    <a role="tab" aria-selected="false" href="/s/slurm-26.05/graph?target=all&amp;view=matrix">Matrix</a>
+  </div>
+</div>
+<div class="runstrip" id="runstrip" sse-swap="run:strip" hx-swap="outerHTML">
+  <span class="pill st-running">running</span>
+  <a class="rs-id" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">r-20261102-1750-a3f</a>
+  <span class="muted rs-start">started 17:50 by d.klein · jobs 4</span>
+  <span class="mono">11:02</span>
+  <span class="bar" title="21 nodes"><i class="b-cached" style="width:62%"></i><i class="b-ok" style="width:9.5%"></i><i class="b-running" style="width:14.3%"></i><i class="b-failed" style="width:4.8%"></i><i class="b-blocked" style="width:4.8%"></i></span>
+  <span class="rs-counts"><span class="pill st-ok">2 ok</span><span class="pill st-running">3 running</span><span class="pill st-waiting">1 waiting</span><span class="pill st-failed">1 failed</span><span class="pill st-blocked">1 blocked</span><span class="pill st-cached">13 cached</span></span>
+  <span class="sp"></span>
+  <a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">Open run</a>
+</div>
+<div class="canvas" id="canvas" hx-ext="sse" sse-connect="/s/slurm-26.05/events?topic=run:r-20261102-1750-a3f&amp;topic=set:slurm-26.05&amp;view=dag&amp;target=all">
+  
+  <div class="canvas-scroll">
+<svg class="graph" xmlns="http://www.w3.org/2000/svg" width="1140" height="608" data-h="608" viewBox="0 0 1140 608" role="img" aria-label="Build graph for all targets: 11 nodes, 14 edges">
+<g class="lanes">
+  <rect class="lane" x="6" y="8" width="232" height="596" rx="10"/>
+  <text class="lane-label" x="18" y="28">LEVEL 0</text><text class="lane-sub" x="226" y="28" text-anchor="end">no deps in set · 4 nodes</text>
+  <rect class="lane" x="298" y="8" width="232" height="596" rx="10"/>
+  <text class="lane-label" x="310" y="28">LEVEL 1</text><text class="lane-sub" x="518" y="28" text-anchor="end">3 nodes</text>
+  <rect class="lane" x="610" y="8" width="232" height="596" rx="10"/>
+  <text class="lane-label" x="622" y="28">LEVEL 2</text><text class="lane-sub" x="830" y="28" text-anchor="end">2 nodes</text>
+  <rect class="lane" x="902" y="8" width="232" height="596" rx="10"/>
+  <text class="lane-label" x="914" y="28">LEVEL 3</text><text class="lane-sub" x="1122" y="28" text-anchor="end">2 nodes</text>
+</g>
+<g class="edges">
+<g class="edge" data-from="munge" data-to="pmix"><title>munge → pmix</title><path class="ln" d="M228,221 L262,221 Q268,221 268,227 L268,345.1 Q268,351.113287134679 274,351.1 L301,351.113287134679"/><path class="ah" d="M301,346.613287134679 L308,351.113287134679 L301,355.613287134679 Z"/></g>
+<g class="edge" data-from="munge" data-to="pmix_v5"><title>munge → pmix_v5</title><path class="ln" d="M228,221 L262,221 Q268,221 268,227 L268,239.1 Q268,245.113287134679 274,245.1 L301,245.113287134679"/><path class="ah" d="M301,240.613287134679 L308,245.113287134679 L301,249.613287134679 Z"/></g>
+<g class="edge" data-from="munge" data-to="pmix_v4"><title>munge → pmix_v4</title><path class="ln" d="M228,221 L262,221 Q268,221 268,215 L268,205.1 Q268,199.113287134679 274,199.1 L301,199.113287134679"/><path class="ah" d="M301,194.613287134679 L308,199.113287134679 L301,203.613287134679 Z"/></g>
+<g class="edge" data-from="pmix" data-to="prrte"><title>pmix → prrte</title><path class="ln" d="M520,381.113287134679 L561.7,381.1 Q564,381.113287134679 564,378.8 L564,378.8 Q564,376.4585718589934 566.3,376.5 L613,376.4585718589934"/><path class="ah" d="M613,371.9585718589934 L620,376.4585718589934 L613,380.9585718589934 Z"/></g>
+<g class="edge" data-from="munge" data-to="slurm"><title>munge → slurm</title><path class="ln" d="M228,221 L262,221 Q268,221 268,215 L268,117.1 Q268,111.11328713467901 274,111.1 L582,111.1 Q588,111.11328713467901 588,117.1 L588,234 Q588,240 594,240 L613,240"/><path class="ah" d="M613,235.5 L620,240 L613,244.5 Z"/></g>
+<g class="edge" data-from="ucx" data-to="slurm"><title>ucx → slurm</title><path class="ln" d="M228,439.113287134679 L546,439.1 Q552,439.113287134679 552,433.1 L552,246 Q552,240 558,240 L613,240"/><path class="ah" d="M613,235.5 L620,240 L613,244.5 Z"/></g>
+<g class="edge" data-from="rocm-smi" data-to="slurm" data-only="el9"><title>rocm-smi → slurm (el9 only)</title><path class="ln" d="M228,99.11328713467901 L594,99.1 Q600,99.11328713467901 600,105.1 L600,234 Q600,240 606,240 L613,240" stroke-dasharray="2 3"/><path class="ah" d="M613,235.5 L620,240 L613,244.5 Z"/></g>
+<g class="edge" data-from="pmix" data-to="slurm"><title>pmix → slurm</title><path class="ln" d="M520,381.113287134679 L558,381.1 Q564,381.113287134679 564,375.1 L564,246 Q564,240 570,240 L613,240"/><path class="ah" d="M613,235.5 L620,240 L613,244.5 Z"/></g>
+<g class="edge" data-from="pmix_v5" data-to="slurm"><title>pmix_v5 → slurm</title><path class="ln" d="M520,275.113287134679 L534,275.1 Q540,275.113287134679 540,269.1 L540,246 Q540,240 546,240 L613,240"/><path class="ah" d="M613,235.5 L620,240 L613,244.5 Z"/></g>
+<g class="edge" data-from="pmix_v4" data-to="slurm"><title>pmix_v4 → slurm</title><path class="ln" d="M520,169.113287134679 L570,169.1 Q576,169.113287134679 576,175.1 L576,234 Q576,240 582,240 L613,240"/><path class="ah" d="M613,235.5 L620,240 L613,244.5 Z"/></g>
+<g class="edge" data-from="slurm" data-to="slurm-singularity-exec"><title>slurm → slurm-singularity-exec</title><path class="ln" d="M832,240.45857185899342 L905,240.45857185899342"/><path class="ah" d="M905,235.95857185899342 L912,240.45857185899342 L905,244.95857185899342 Z"/></g>
+<g class="edge" data-from="ucx" data-to="openmpi"><title>ucx → openmpi</title><path class="ln" d="M228,439.113287134679 L546,439.1 Q552,439.113287134679 552,433.1 L552,422.5 Q552,416.4585718589934 558,416.5 L863.7,416.5 Q866,416.4585718589934 866,418.7 L866,418.7 Q866,421 868.3,421 L905,421"/><path class="ah" d="M905,416.5 L912,421 L905,425.5 Z"/></g>
+<g class="edge" data-from="pmix" data-to="openmpi"><title>pmix → openmpi</title><path class="ln" d="M520,381.113287134679 L558,381.1 Q564,381.113287134679 564,387.1 L564,398.5 Q564,404.4585718589934 570,404.5 L872,404.5 Q878,404.4585718589934 878,398.5 L878,395 Q878,389 884,389 L905,389"/><path class="ah" d="M905,384.5 L912,389 L905,393.5 Z"/></g>
+<g class="edge" data-from="prrte" data-to="openmpi"><title>prrte → openmpi</title><path class="ln" d="M832,357 L905,357"/><path class="ah" d="M905,352.5 L912,357 L905,361.5 Z"/></g>
+</g>
+<g class="nodes">
+<g class="gnode" data-node="munge" data-state="" data-up="" data-down="pmix prrte openmpi slurm slurm-singularity-exec pmix_v5 pmix_v4">
+  <foreignObject x="12" y="175" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-munge" title="munge 0.5.18" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/munge" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-dir">munge</span><span class="nd-ver">0.5.18</span></div>
+      <div class="nd-tg" sse-swap="node:munge@el9"><span class="tid">el9</span><span class="pill st-cached">cached</span></div><div class="nd-tg" sse-swap="node:munge@el10"><span class="tid">el10</span><span class="pill st-cached">cached</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="ucx" data-state="" data-up="" data-down="slurm slurm-singularity-exec openmpi">
+  <foreignObject x="12" y="380" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-ucx" title="ucx 1.22.1" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/ucx" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-chg" title="changed">Δ</span><span class="nd-dir">ucx</span><span class="nd-ver">1.22.1</span></div>
+      <div class="nd-tg" sse-swap="node:ucx@el9"><span class="tid">el9</span><span class="pill st-ok">ok</span><span class="nd-step">4:05</span></div><div class="nd-tg" sse-swap="node:ucx@el10"><span class="tid">el10</span><span class="pill st-ok">ok</span><span class="nd-step">4:12</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="rocm-smi" data-state="" data-up="" data-down="slurm slurm-singularity-exec">
+  <foreignObject x="12" y="40" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-rocm-smi" title="rocm-smi 7.14.0" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/rocm-smi" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-dir">rocm-smi</span><span class="nd-ver">7.14.0</span></div>
+      <div class="nd-tg" sse-swap="node:rocm-smi@el9"><span class="tid">el9</span><span class="pill st-cached">cached</span></div><div class="nd-tg"><span class="tid">el10</span><span class="na">not a target</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="pmix" data-state="" data-up="munge" data-down="prrte openmpi slurm slurm-singularity-exec">
+  <foreignObject x="304" y="335" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-pmix" title="pmix 6.1.0" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/pmix" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-dir">pmix</span><span class="nd-ver">6.1.0</span></div>
+      <div class="nd-tg" sse-swap="node:pmix@el9"><span class="tid">el9</span><span class="pill st-cached">cached</span></div><div class="nd-tg" sse-swap="node:pmix@el10"><span class="tid">el10</span><span class="pill st-cached">cached</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="pmix_v5" data-state="" data-up="munge" data-down="slurm slurm-singularity-exec">
+  <foreignObject x="304" y="229" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-pmix_v5" title="pmix_v5 5.0.11" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/pmix_v5" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-dir">pmix_v5</span><span class="nd-ver">5.0.11</span></div>
+      <div class="nd-tg" sse-swap="node:pmix_v5@el9"><span class="tid">el9</span><span class="pill st-cached">cached</span></div><div class="nd-tg" sse-swap="node:pmix_v5@el10"><span class="tid">el10</span><span class="pill st-cached">cached</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="pmix_v4" data-state="" data-up="munge" data-down="slurm slurm-singularity-exec">
+  <foreignObject x="304" y="123" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-pmix_v4" title="pmix_v4 4.2.9" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/pmix_v4" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-dir">pmix_v4</span><span class="nd-ver">4.2.9</span></div>
+      <div class="nd-tg" sse-swap="node:pmix_v4@el9"><span class="tid">el9</span><span class="pill st-cached">cached</span></div><div class="nd-tg" sse-swap="node:pmix_v4@el10"><span class="tid">el10</span><span class="pill st-cached">cached</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="prrte" data-state="" data-up="pmix munge" data-down="openmpi">
+  <foreignObject x="616" y="300" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-prrte" title="prrte 4.1.0" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/prrte" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-dir">prrte</span><span class="nd-ver">4.1.0</span></div>
+      <div class="nd-tg" sse-swap="node:prrte@el9"><span class="tid">el9</span><span class="pill st-cached">cached</span></div><div class="nd-tg" sse-swap="node:prrte@el10"><span class="tid">el10</span><span class="pill st-cached">cached</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="slurm" data-state="" data-up="munge ucx rocm-smi pmix pmix_v5 pmix_v4" data-down="slurm-singularity-exec">
+  <foreignObject x="616" y="194" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-slurm" title="slurm 26.05.4" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/slurm" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-chg" title="changed">Δ</span><span class="nd-dir">slurm</span><span class="nd-ver">26.05.4</span></div>
+      <div class="nd-tg" sse-swap="node:slurm@el9"><span class="tid">el9</span><span class="pill st-running">running</span><span class="nd-step">rpm 6:12</span></div><div class="nd-tg" sse-swap="node:slurm@el10"><span class="tid">el10</span><span class="pill st-failed">failed</span><span class="nd-step">rpm 0:52</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="slurm-singularity-exec" data-state="" data-up="slurm munge ucx rocm-smi pmix pmix_v5 pmix_v4" data-down="">
+  <foreignObject x="908" y="194" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-slurm-singularity-exec" title="slurm-singularity-exec 3.2.0" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/slurm-singularity-exec" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-chg" title="changed">Δ</span><span class="nd-dir">slurm-singularity-exec</span><span class="nd-ver">3.2.0</span></div>
+      <div class="nd-tg" sse-swap="node:slurm-singularity-exec@el9"><span class="tid">el9</span><span class="pill st-waiting">waiting</span></div><div class="nd-tg" sse-swap="node:slurm-singularity-exec@el10"><span class="tid">el10</span><span class="pill st-blocked">blocked</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="openmpi" data-state="" data-up="ucx pmix munge prrte" data-down="">
+  <foreignObject x="908" y="343" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-openmpi" title="openmpi 5.0.11" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/openmpi" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-chg" title="changed">Δ</span><span class="nd-dir">openmpi</span><span class="nd-ver">5.0.11</span></div>
+      <div class="nd-tg" sse-swap="node:openmpi@el9"><span class="tid">el9</span><span class="pill st-running">running</span><span class="nd-step">rpm 5:51</span></div><div class="nd-tg" sse-swap="node:openmpi@el10"><span class="tid">el10</span><span class="pill st-running">running</span><span class="nd-step">srpm 0:51</span></div>
+    </div>
+  </foreignObject>
+</g>
+<g class="gnode" data-node="slurm-release" data-state="" data-up="" data-down="">
+  <foreignObject x="12" y="504" width="220" height="92">
+    <div class="nd" style="--st:var(--c-border-strong)" id="n-all-slurm-release" title="slurm-release 26.05" tabindex="0" role="button" hx-get="/s/slurm-26.05/graph/node/slurm-release" hx-target="#drawer">
+      <div class="nd-r1"><span class="nd-dir">slurm-release</span><span class="nd-ver">26.05</span></div>
+      <div class="nd-tg" sse-swap="node:slurm-release@el9"><span class="tid">el9</span><span class="pill st-cached">cached</span></div><div class="nd-tg" sse-swap="node:slurm-release@el10"><span class="tid">el10</span><span class="pill st-cached">cached</span></div>
+    </div>
+  </foreignObject>
+</g>
+</g>
+</svg>
+  </div>
+  <div class="legend" aria-label="Legend">
+    <span class="lg"><svg width="30" height="10" aria-hidden="true"><path d="M1 5H22" fill="none" stroke="var(--c-border-strong)" stroke-width="1.5"/><path d="M22 1.5L29 5L22 8.5Z" fill="var(--c-border-strong)"/></svg>dep done</span>
+    <span class="lg"><svg width="30" height="10" aria-hidden="true"><path d="M1 5H22" fill="none" stroke="var(--c-border-strong)" stroke-width="1.5" stroke-dasharray="5 4"/><path d="M22 1.5L29 5L22 8.5Z" fill="var(--c-border-strong)"/></svg>dep pending</span>
+    <span class="lg"><svg width="30" height="10" aria-hidden="true"><path d="M1 5H22" fill="none" stroke="var(--s-failed)" stroke-width="1.5" stroke-dasharray="5 4"/><path d="M22 1.5L29 5L22 8.5Z" fill="var(--s-failed)"/></svg>dep failed</span>
+    <span class="sepv"></span>
+    <span class="lg"><svg width="30" height="10" aria-hidden="true"><path d="M1 5H22" fill="none" stroke="var(--c-text-2)" stroke-width="2.5"/><path d="M22 1.5L29 5L22 8.5Z" fill="var(--c-text-2)"/></svg>upstream</span>
+    <span class="lg"><svg width="30" height="10" aria-hidden="true"><path d="M1 5H22" fill="none" stroke="var(--c-primary)" stroke-width="2.5"/><path d="M22 1.5L29 5L22 8.5Z" fill="var(--c-primary)"/></svg>downstream</span>
+    <span class="lg"><b class="nd-chg">Δ</b> changed</span>
+    <span class="lg"><svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="3.5" rx="1"/><path d="M3.5 6.5v6h9v-6M6.5 9h3"/></svg> from cache</span>
+  </div>
+  <div class="zoom" role="group" aria-label="Zoom">
+    <button type="button" data-zoom="out" aria-label="Zoom out">−</button><button type="button" class="zl" data-zoom="reset" title="Reset zoom">100%</button><button type="button" data-zoom="in" aria-label="Zoom in">+</button><button type="button" data-zoom="fit">Fit</button>
+  </div>
+</div>
+</main>
+
+</div>
+<script src="graph.js" defer></script>
+</body>
+</html>
