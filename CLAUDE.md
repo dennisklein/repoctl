@@ -12,6 +12,9 @@ RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packa
 # Initial setup (install dependencies, configure GPG)
 ./scripts/setup
 
+# Check out the pinned package commits into packages/<dir>
+./scripts/checkout
+
 # Build all packages in dependency order
 ./scripts/build
 
@@ -34,11 +37,14 @@ RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packa
 
 ## Repository Structure
 
-- **packages/**: Git submodules with package sources and spec files
+- **packages.lock**: Pinned package commits, one line per package: `dir branch sha`
+- **packages/**: Git worktrees with package sources and spec files, created by `scripts/checkout`
   - `ucx`, `pmix`, `pmix_v4`, `prrte`, `munge`, `rocm-smi`, `slurm`, `slurm-singularity-exec`, `openmpi`
 - **packages/slurm-release/**: Package sources and spec files for the repo pkg that can be used to configure yum/dnf on a target system pointing to the rpm repo
 - **scripts/**: Build tooling
   - `build`: Main build script with `build()` function for each package
+  - `checkout`: Create or update the package worktrees from `packages.lock`
+  - `pin`: Write the HEAD of the package worktrees into `packages.lock`
   - `common.sh`: Shared config (mock target, paths, macros)
   - `macros`: RPM macros passed to mock
   - `rpmlist`: Python tool to query repo contents (requires `python3-humanize python3-rich`)
@@ -55,16 +61,23 @@ RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packa
 
 ## Working with Packages
 
+Each package has its own branch `<pkg>/slurm-<version>[-<variant>]` with its own
+history. The spec file is at the root of the branch, so rpmautospec reads the
+package history unchanged.
+
 ```bash
 # Modify a package
-cd packages/<package>
-# make changes, commit within submodule
+cd packages/<dir>
+git switch <pkg>/slurm-<version>
+# make changes, commit, push the package branch
 cd ../..
-git add packages/<package> && git commit
+./scripts/pin <dir>
+git add packages.lock && git commit
 
-# Add new package
-git submodule add <repo-url> packages/<name>
-# Add "build <name>" line to scripts/build in dependency order
+# Add new package (new orphan branch for the package)
+git worktree add --orphan -b <pkg>/slurm-<version> packages/<dir>
+# add the spec file, commit, push, then add a line to packages.lock
+# Add "build <dir>" line to scripts/build in dependency order
 ```
 
 ## Troubleshooting
@@ -86,5 +99,8 @@ gpg --list-secret-keys
 
 ## Git Branching
 
-- **Main branch**: `virgo-3-el8` (base for PRs)
-- Each major Slurm version has its own branch (e.g., `slurm-25.05`, `slurm-25.11`)
+Branch names: `<component>/slurm-<version>[-<variant>]`
+
+- `builder/slurm-<version>[-testing]`: build scripts and `packages.lock`
+- `<pkg>/slurm-<version>[-<variant>]`: one package, e.g. `slurm/slurm-26.05`, `pmix/slurm-26.05-v5`
+- Package branches do not share history with the builder or with other packages
