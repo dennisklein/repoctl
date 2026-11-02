@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>repoctl design record</title>
+<link rel="stylesheet" href="mockups/shared/repoctl-base.css"><link rel="stylesheet" href="mockups/ui-shell/base-fixes.css">
+<style>body{max-width:860px;margin:0 auto;padding:24px 16px;font-size:15px;line-height:1.6}h1{font-size:24px}h2{font-size:18px;margin-top:1.6em}.table{margin:8px 0}</style>
+</head><body>
+<h1>repoctl design record</h1>
+<p>repoctl builds signed RPM repositories from a package set. It calls git, mock with rpmautospec, rpmsign and createrepo_c. It has a CLI, a local web UI and an MCP server. These documents record the design decisions of 2026-11-02. Read them in order. A later document wins over an earlier one.</p>
+<table class="table">
+<tr><th>Document</th><th>Content</th></tr>
+<tr><td><a href="01-tooling-decision.html">01 Tooling decision</a></td><td>Why a Go tool on go-clikit, and not Dagger, BuildKit or agent skills only. The real build graph of the Slurm set.</td></tr>
+<tr><td><a href="02-repoctl.html">02 repoctl core</a></td><td>Package set, <code>repoctl.yaml</code> and <code>repoctl.lock</code>, user config, XDG directories, many targets, external package repos, where agent skills live.</td></tr>
+<tr><td><a href="03-build-state.html">03 Build state</a></td><td>The published repo is the build state. Rebuilds are commits. Advisories. Keep all versions and prune. Snapshots as OCI artifacts in GHCR. LLM in the UI. Changes to 02 and 04.</td></tr>
+<tr><td><a href="04-cli-ui.html">04 CLI and web UI</a></td><td>Signing keys, CLI reference, terminal look, JSON and event log contract, MCP tools, web UI pages with screenshots.</td></tr>
+<tr><td><a href="mockups/index.html">Mockups</a></td><td>Static HTML mockups of the web UI and the terminal output.</td></tr>
+<tr><td><a href="contract/">Contract files</a></td><td>JSON Schemas of the output, the event journal and the MCP tools, with examples.</td></tr>
+</table>
+<h2>Main decisions</h2>
+<ul>
+<li>One Go binary, <code>repoctl</code>, on <code>GSI-HPC/go-clikit</code>. mock stays the build isolation.</li>
+<li>The tool lives on the orphan branch <code>main</code>. Each <code>builder/slurm-&lt;version&gt;</code> branch is one package set (data only).</li>
+<li>The published repo carries a manifest and is the input of the next build. Only new commits build. A rebuild is an empty commit (<code>repoctl rebuild</code>).</li>
+<li>Advisories (soname, repoclosure, buildroot drift, upstream releases) suggest rebuilds. The person decides.</li>
+<li>Personal signing keys. Clients trust all team keys. One signature per file.</li>
+<li>Snapshots of each target repo go to <code>ghcr.io/dennisklein/slurm-repo</code> as OCI artifacts, one blob per file.</li>
+<li>Agent skills ship with repoctl. Package facts live in <code>repoctl.yaml</code>. The web UI has advisory buttons that run a local agent, no chat.</li>
+</ul>
+<p class="muted">Screenshots are light mode only. The mockups show dark mode with the browser setting.</p>
+</body></html>
