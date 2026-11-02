@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# Write the current HEAD of the package worktrees into packages.lock.
+# Without arguments, pin all packages. With arguments, pin only the given dirs.
+
+set -euo pipefail
+
+repodir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+lock=${repodir}/packages.lock
+remote=${REMOTE:-origin}
+tmp=$(mktemp)
+trap 'rm -f "${tmp}"' EXIT
+
+# selected <dir> [<wanted>...]: true if no dirs are wanted or <dir> is wanted
+selected() {
+  local dir=$1 d
+  shift
+  [[ $# -eq 0 ]] && return 0
+  for d in "$@"; do [[ ${d} == "${dir}" ]] && return 0; done
+  return 1
+}
+
+while IFS= read -r line; do
+  read -r dir branch sha <<< "${line}" || true
+  if [[ -z ${dir:-} || ${dir} == \#* ]] || ! selected "${dir}" "$@"; then
+    printf '%s\n' "${line}"
+    continue
+  fi
+  head=$(git -C "${repodir}/packages/${dir}" rev-parse HEAD)
+  if ! git -C "${repodir}" merge-base --is-ancestor "${head}" \
+      "refs/remotes/${remote}/${branch}" 2>/dev/null; then
+    echo "warning: ${dir} ${head:0:12} is not on ${remote}/${branch}, push it" >&2
+  fi
+  printf '%-24s %-36s %s\n' "${dir}" "${branch}" "${head}"
+done < "${lock}" > "${tmp}"
+
+cp "${tmp}" "${lock}"
