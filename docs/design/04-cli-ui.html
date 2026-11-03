@@ -232,22 +232,29 @@ main.content figure img{max-width:100%;height:auto;border:1px solid var(--c-bord
 main.content figcaption{font-size:13px;color:var(--c-text-3);margin-top:6px}
 .lead-meta{color:var(--c-text-3)}
 @media (max-width:900px){.doc{grid-template-columns:1fr}nav.toc{position:static;max-height:none}}
+
+.sup{display:inline-block;padding:0 6px;border-radius:var(--r-sm);font:600 10.5px var(--font-sans);background:var(--s-failed-bg);color:var(--s-failed);vertical-align:middle}
+.chg{display:inline-block;padding:0 6px;border-radius:var(--r-sm);font:600 10.5px var(--font-sans);background:var(--s-blocked-bg);color:var(--s-blocked);vertical-align:middle}
+.cls{display:inline-block;padding:0 8px;border-radius:999px;font:600 10.5px var(--font-sans);border:1px solid currentColor;white-space:nowrap;vertical-align:middle}
+.c-read{color:var(--s-ok)}.c-stage{color:var(--c-text-3)}.c-local{color:var(--c-primary-strong)}.c-shared{color:var(--s-failed)}
+main.content .banner.sup-note{margin:12px 0}
 </style></head><body>
 <div class="doc"><nav class="toc"><div class="brand"><span class="brand-mark">rc</span> repoctl design</div><a href="index.html">All design documents</a><a href="#intro">Summary and decisions</a><a href="#sign">Signing keys: shared key, personal keys, or many keys</a><a href="#cli-ref">CLI reference</a><a href="#cli-term">Terminal look of repoctl</a><a href="#contract">Machine contract: JSON output, event log, MCP server, skills</a><a href="#ui-shell">Web UI: information architecture, shell, components and Overview</a><a href="#ui-graph">Web UI: build graph and plan</a><a href="#ui-run">Web UI: runs and logs</a><a href="#ui-pkg">Web UI: packages, repository and publish</a><a href="#ui-graph-v2">Web UI: plan, advisories and rebuilds (build model v2)</a><a href="#ui-shell-v2">Web UI v2: Overview with advisories, agent buttons and the agent panel</a></nav>
 <main class="content"><section id="intro">
 <h1>repoctl: CLI and web UI design</h1>
-<p class="lead-meta">Date: 2026-11-02. Status: proposal for review. Follows <a href="02-repoctl.html">02-repoctl.html</a> (config, XDG, skills) and <a href="01-tooling-decision.html">01-tooling-decision.html</a>.</p>
+<p class="lead-meta">Date: 2026-11-02. Updated: 2026-11-03. Status: proposal for review. Follows <a href="02-repoctl.html">02-repoctl.html</a> (config, XDG, skills) and <a href="01-tooling-decision.html">01-tooling-decision.html</a>.</p>
 
 <h2>1. Summary</h2>
 <ul>
 <li>This document specifies the repoctl CLI, its machine contract (JSON, event log, MCP), its terminal look, and its local web UI. It also answers the signing-key question.</li>
-<li>Eight design agents wrote one area each from one shared brief. I reviewed all areas and fixed the conflicts in section 3. Where an area text differs from section 3, section 3 applies.</li>
+<li>Eight design agents wrote one area each from one shared brief. On 2026-11-03 this document was brought in line with <a href="03-build-state.html">03</a>, <a href="05-publish-snapshots-signing.html">05</a> and <a href="06-advisories-lifecycle.html">06</a>. Text that is no longer true carries the badge <span class="sup">superseded</span> and names its replacement. The table in <a href="#superseded">section 3a</a> lists all of them. I reviewed all areas and fixed the conflicts in section 3. Where an area text differs from section 3, section 3 applies.</li>
 <li>All screenshots come from static HTML mockups in the repoctl theme (copper on warm grey; sind uses blue). Light and dark mode are shown.</li>
-<li>Story in all mockups: Dennis bumps <code>ucx</code>. Run <code>r-20261102-1750-a3f</code> rebuilds 8 nodes on el9 and el10. <code>slurm@el10</code> fails (rocm-smi is el9 only), <code>slurm-singularity-exec@el10</code> is blocked.</li>
+<li>Story in the mockups: Dennis bumps <code>ucx</code> and adds rebuild commits for its dependents. Run <code>r-20261102-1750-a3f</code> builds 8 nodes on el9 and el10: 2 with reason <code>commit-changed</code>, 6 with reason <code>rebuild</code>. <code>slurm@el10</code> fails (rocm-smi is el9 only), <code>slurm-singularity-exec@el10</code> is blocked. The v2 pages show the same day when Dennis builds only <code>ucx</code>.</li>
 </ul>
 
 <h2>2. Decisions (Dennis, 2026-11-02)</h2>
 <div class="banner warn"><div><b>Update.</b> The build model changed after review. The published repo is now the build state. Only new commits and explicit rebuilds build. Dependency and upstream changes give advisories. Details: <a href="03-build-state.html">03-build-state.html</a>. Where this document still shows automatic dependent rebuilds, <code>bump-release</code> or <code>nvr.reused</code> on a normal run, the state design applies. Sections <a href="#ui-graph-v2">Plan v2</a> and <a href="#ui-shell-v2">Advisories and agent v2</a> show the new model.</div></div>
+<div class="banner warn"><div><b>Update 2026-11-03.</b> The answers of Dennis to the UX review and the documents <a href="05-publish-snapshots-signing.html">05</a> and <a href="06-advisories-lifecycle.html">06</a> change the publish path, the signing gates, the advisories and the package life cycle. This document now follows them. Where an old text remains, it carries the badge <span class="sup">superseded</span>. Rule: <b>06 and 05 win over 03, and 03 wins over this document.</b></div></div>
 <table class="table">
 <tr><th>#</th><th>Topic</th><th>Decision</th></tr>
 <tr><td>D1</td><td>Signing</td><td>Personal keys. Clients trust all team keys. One signature per file.</td></tr>
@@ -257,28 +264,45 @@ main.content figcaption{font-size:13px;color:var(--c-text-3);margin-top:6px}
 <tr><td>D6</td><td>Retention</td><td>Keep all, granular pruning. Snapshots as OCI artifacts in GHCR of this repo.</td></tr>
 <tr><td>D7</td><td>MCP rebuild tool</td><td>Yes: <code>repoctl_rebuild</code> (local commit, no push).</td></tr>
 <tr><td>LLM in UI</td><td>Buttons or chat</td><td>Advisory buttons that run a local agent with a fixed skill. No chat in v1.</td></tr>
+<tr><td>D8</td><td>Publish path (Q1, Q2, Q12)</td><td>GHCR is the authority. An HTTP server serves the clients. A mirror job pulls <code>latest</code>. Admins publish from their own user or host. No lease between admins. See 05.</td></tr>
+<tr><td>D9</td><td>Signing gates (Q3, Q13)</td><td>Gate 2 needs a deployment record that a person confirms (<code>repoctl sign deployed</code>). No second reviewer. See 05.</td></tr>
+<tr><td>D10</td><td>Advisories (Q9, Q10)</td><td>One id form <code>CODE/SUBJECT</code>. A required advisory blocks only a publish that changes its closure. Dismissals are per team, in a committed file. See 06.</td></tr>
+<tr><td>D11</td><td>Packages (Q5, Q6, Q7)</td><td>All old versions stay. Removal is explicit. A new set forks from the previous set. No adopt command: a runbook for an agent imports the old repos.</td></tr>
+<tr><td>D12</td><td>Agent (Q11)</td><td>The UI agent is read-only. <code>repoctl mcp start --tools read</code> enforces it. Each task has its own tool list. <code>bump-package</code> has two modes: <code>draft</code> and <code>apply</code>.</td></tr>
+<tr><td>D13</td><td>Runs (Q14)</td><td>No build queue. A second build of the same user on the same host stops with exit 7 on all surfaces.</td></tr>
+<tr><td>D14</td><td>Web UI access (Q15)</td><td>The web UI is for the local user only. No remote recipe.</td></tr>
+<tr><td>D15</td><td>Host (Q16)</td><td>repoctl runs on Fedora only. The mock chroots are EL9 and EL10. Install from the Fedora repo on GitHub Pages or from the release RPMs.</td></tr>
+<tr><td>D16</td><td>Publish confirmation (UX-48)</td><td>The CLI and the UI both ask for the set name. <code>--yes</code> stays for unattended jobs.</td></tr>
 </table>
 
 <h2>3. Reconciliation (this section wins over the area sections)</h2>
 <table class="table">
 <tr><th>Topic</th><th>Conflict</th><th>Decision</th></tr>
-<tr><td>Web UI shell</td><td>graph, run and pkg mockups use an early sidebar (Overview, Graph, Runs, Packages, Repository, Publish, Targets).</td><td>The ui-shell sidebar is the reference: Overview, Graph, Plan, Runs, Packages, Upstream; Repository el9, el10, Publish; Host: Config and lock, Doctor, All sets. The top bar has the search box and the live run chip.</td></tr>
+<tr><td>Web UI shell</td><td>graph, run and pkg mockups use an early sidebar (Overview, Graph, Runs, Packages, Repository, Publish, Targets).</td><td>The ui-shell sidebar is the reference: Overview, Graph, Plan, Runs, Packages, <b>Advisories</b>, Upstream; Repository el9, el10, Publish, <b>Signing</b>; Host: Config and lock, Doctor, All sets. Advisories shows the count of required advisories. Upstream stays as a table page (<code>repoctl upstream</code>). The top bar has the search box and the live run chip. <i>Changed 2026-11-03: Advisories and Signing added (06, 05).</i></td></tr>
 <tr><td>URL scheme</td><td>Logs at <code>/runs/&lt;run&gt;/logs/&lt;node&gt;</code> (ui-graph) and <code>/runs/&lt;run&gt;/nodes/&lt;node&gt;</code> (ui-shell, ui-run).</td><td>ui-shell scheme. Logs: <code>/s/&lt;set&gt;/runs/&lt;run&gt;/nodes/&lt;dir&gt;@&lt;target&gt;</code>. All server endpoints are under the reserved <code>/-/</code> segment.</td></tr>
 <tr><td>SSE endpoint</td><td>Three forms: <code>/s/&lt;set&gt;/-/events?page=</code> (ui-shell), <code>/s/&lt;set&gt;/events?topic=</code> (ui-graph, ui-run).</td><td>One connection per tab: <code>/s/&lt;set&gt;/-/events?page=&lt;page&gt;[&amp;run=][&amp;node=][&amp;target=]</code>. Event names from ui-shell (<code>node:&lt;dir&gt;@&lt;target&gt;</code>, <code>run:&lt;run&gt;</code>, <code>graph:&lt;target&gt;</code>, <code>log:&lt;node&gt;</code>, ...). The graph and run event names map one to one onto them.</td></tr>
 <tr><td>SSE reconnect</td><td>Full snapshot on connect (ui-shell, ui-graph) or <code>Last-Event-ID</code> replay (ui-run).</td><td>State regions: full snapshot on each connect. Log streams only: <code>Last-Event-ID</code> = byte offset, with a <code>resync</code> event when the gap is too large.</td></tr>
-<tr><td>Run states</td><td>ui-run adds <code>queued</code> (waiting for the set lock). The contract has no such state.</td><td>Add <code>queued</code> to RunState: <code>queued planning running ok failed canceled abandoned</code>.</td></tr>
-<tr><td>"blocked" in the live tree</td><td>go-clikit shows a skipped span as "canceled".</td><td>repoctl output says "blocked". Ask go-clikit for a custom end-state word (kit change). Until then the tree says "canceled".</td></tr>
+<tr><td>Run states</td><td>ui-run adds <code>queued</code> (waiting for the set lock). The contract has no such state.</td><td><span class="sup">superseded</span> There is no build queue (Q14). RunState stays <code>planning running ok failed canceled abandoned</code>. A second build of the same user on the same host stops with exit 7 (<code>set.busy</code>) and names the running run. Cancel acts on the runs of this user on this host.</td></tr>
+<tr><td>Node words: waiting, blocked, canceled</td><td>go-clikit counts a waiting node as "queued" and a blocked node as "canceled". The contract, 04c and 04e use the words in different ways.</td><td>One definition for all surfaces. <b>waiting</b>: a dependency is not done. <b>queued</b>: all dependencies are done and the node waits for a job slot. <b>blocked</b>: a dependency failed. <b>canceled</b>: a person, a signal or <code>--fail-fast</code> stopped the node. Until go-clikit has a custom end-state word, the tree shows a blocked node as "canceled" and prints the note <code>canceled in this tree = blocked by a failed dependency</code> under the tree. MCP progress comes from <code>journal.Fold</code>, not from the kit log.</td></tr>
 <tr><td>Story numbers</td><td>Step times, jobs (3 or 4) and the 2026-09-12 publish ids differ between mockups.</td><td>The contract schedule is the reference (jobs 3, 11m02s snapshot, 41m07s end, exit 3). Other numbers in the mockups are illustrations.</td></tr>
 <tr><td>Happy-path run <code>r-20261102-1938-7d2</code></td><td>ui-pkg shows openmpi and slurm-singularity-exec with the old NVR.</td><td>After D2 they are <code>5.0.11-2</code> and <code>3.2.0-2</code> (cli-term is correct). slurm is <code>26.05.4-2</code>.</td></tr>
 <tr><td>Publish contents</td><td>ui-pkg replaces the repo contents.</td><td>See D3.</td></tr>
-<tr><td>Signing config</td><td>Brief: <code>sign.gpg_name</code>. Signing study: <code>sign.keys[]</code> in the set, <code>sign.key</code> and <code>sign.backend</code> in the user config.</td><td>Signing study. <code>sign.gpg_name</code> stays as an alias. Add <code>repoctl sign offboard</code> (prints commands only) and the <code>sign.*</code> doctor checks to the CLI reference.</td></tr>
+<tr><td>Signing config</td><td>Brief: <code>sign.gpg_name</code>. Signing study: <code>sign.keys[]</code> in the set, <code>sign.key</code> and <code>sign.backend</code> in the user config.</td><td>Signing study as changed by 05. <code>sign.key</code> and <code>REPOCTL_SIGN_KEY</code> select the key of this person. <code>sign.gpg_name</code> and <code>REPOCTL_GPG_NAME</code> stay as aliases. The CLI reference has the <code>sign</code> group and the <code>sign.*</code> doctor checks (done 2026-11-03).</td></tr>
 <tr><td>Event files</td><td>-</td><td>Two files per run: journal <code>runs/&lt;run&gt;.jsonl</code> (repoctl events) and <code>runs/&lt;run&gt;.progress.jsonl</code> (go-clikit, unchanged). One reader: <code>journal.Fold</code>.</td></tr>
 <tr><td>Base CSS</td><td>21 of 70 color pairs fail WCAG; no navigation below 760px.</td><td>Adopt ui-shell <code>base-fixes.css</code> (F1 to F8). This document uses it.</td></tr>
-<tr><td>Agent skills for buttons</td><td>ui-shell v2: <code>rebuild-advice</code>; ui-graph v2: <code>rebuild-check</code>.</td><td><code>rebuild-check</code>. Agent start: <code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code>, SSE <code>agent:&lt;id&gt;</code>.</td></tr>
+<tr><td>Agent skills for buttons</td><td>ui-shell v2: <code>rebuild-advice</code>; ui-graph v2: <code>rebuild-check</code>.</td><td><code>rebuild-check</code>. Agent start: <code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code>, SSE <code>agent:&lt;id&gt;</code>. Each task has its own tool list (section <a href="#c-skills">C.7</a>).</td></tr>
 <tr><td>Passed soname check</td><td>ui-graph v2 shows it as <code>soname.removed</code> with result "unchanged".</td><td>New info code <code>soname.ok</code>.</td></tr>
-<tr><td>Dismiss a required advisory</td><td>ui-shell v2 shows Dismiss on every row.</td><td>Only info and warn can be dismissed. A required advisory needs <code>--accept-advisory</code> at publish, with a reason in the journal.</td></tr>
+<tr><td>Dismiss a required advisory</td><td>ui-shell v2 shows Dismiss on every row.</td><td>Only info and warn can be dismissed. A required advisory needs <code>--accept-advisory ID --reason TEXT</code> at publish, with the reason in the journal and in the snapshot annotations. The UI row has no Dismiss button. A dismissal is a committed file (06).</td></tr>
 <tr><td>Story error text</td><td><code>pkgconfig(rocm_smi64)</code> in v1 mockups.</td><td>The real slurm.spec requires <code>rocm-smi-devel</code>. The error text says that package.</td></tr>
-<tr><td>Pages without mockups</td><td>Upstream, Config and lock, Doctor have URLs but no mockup.</td><td>Next round, if needed. Their content equals <code>repoctl upstream</code>, <code>config show</code>, <code>doctor</code>.</td></tr>
+<tr><td>Pages without mockups</td><td>Upstream, Config and lock, Doctor, Advisories (full page), Signing have URLs but no mockup, except Signing (publish-v2 set).</td><td>Their content equals <code>repoctl upstream</code>, <code>config show</code>, <code>doctor</code>, <code>advisories ls</code>, <code>sign ls</code> and <code>sign onboard</code>. Section <a href="#ui-shell">sitemap</a> gives the sections, actions and CLI equivalent of each page.</td></tr>
+<tr><td>Id of an advisory</td><td>04k uses <code>closure.broken:pmix@el9</code>, 04l uses <code>soname.removed/ucx</code>.</td><td>One form: <code>CODE/SUBJECT</code>, for example <code>closure.broken/pmix@el9</code> (06 section 2.1).</td></tr>
+<tr><td>Hint form</td><td>04c: <code>hint: … run: CMD</code>. Mockups: <code>hint: To …, run CMD.</code></td><td>The 04c form. <code>hint: WHAT TO DO. run: CMD</code> (section 16 of the CLI reference). The <code>Next:</code> line is computed by <code>repoctl status</code> and printed at the end of <code>pin</code>, <code>rebuild</code>, <code>build</code>, <code>publish</code>.</td></tr>
+<tr><td>Snapshot reference</td><td>ui-shell v2 shows <code>registry.gsi.de/hpc/slurm-repo:slurm-26.05-el9-latest</code>.</td><td><code>ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9</code>, tag <code>latest</code> or <code>p-…</code> (05 section 6). The UI shows it with a copy button. Snapshot list and restore are CLI only in v1.</td></tr>
+<tr><td>Remote UI access</td><td>04c, 04d and 04g describe <code>ssh -L</code> in three incompatible ways.</td><td><span class="sup">superseded</span> The UI is for the local user only (Q15). No remote recipe, no TCP forward. One launch URL form: <code>/-/auth?t=TOKEN</code>. pinentry shows on the local desktop.</td></tr>
+<tr><td>Build host</td><td>The mockups show the EL9 host <code>hpc-build01</code> over ssh.</td><td>repoctl runs on Fedora only (Q16). The mockups show the Fedora host <code>hpc-a1</code>. The mock chroots are EL9 and EL10.</td></tr>
+<tr><td>Publish pages</td><td>ui-pkg publish pages (v1): one run, replace the repo, no advisory, no snapshot, no partial publish.</td><td><span class="sup">superseded</span> by the publish v2 pages (section <a href="#ui-pkg-v2">Publish v2</a>). The v1 pages carry a banner.</td></tr>
+<tr><td>v1 mockups</td><td>18 mockups use the early sidebar, topic SSE and old routes.</td><td>Each v1 mockup has a banner "superseded". The reconciliation rows above name the right routes and event names. Only the v2 and publish-v2 pages are the reference for new work.</td></tr>
+<tr><td>Story runs</td><td>The v1 pages show run <code>r-20261102-1750-a3f</code> with 8 nodes. The v2 pages show it with 2 nodes.</td><td>Two views of one story. v1 and cli-term: Dennis adds rebuild commits, so 8 nodes build. v2: only <code>ucx</code> builds and the rest is <code>current</code>. The failure of <code>slurm@el10</code> exists in both.</td></tr>
 </table>
 
 <h2>4. Contents</h2>
@@ -293,11 +317,32 @@ main.content figcaption{font-size:13px;color:var(--c-text-3);margin-top:6px}
 <li><a href="#ui-pkg">Web UI: packages, repository, publish</a></li>
 <li><a href="#ui-graph-v2">v2: plan and graph under the new build model</a></li>
 <li><a href="#ui-shell-v2">v2: advisories and agent panel</a></li>
+<li><a href="#ui-pkg-v2">v2: publish, signing and snapshots</a></li>
 </ol>
 <p class="muted">The clickable HTML mockups are in the folder <a href="mockups/index.html">mockups/</a>.</p>
+
+<h2 id="superseded">3a. Superseded text, and what replaces it</h2>
+<p>This table lists each part of this document that 03, 05 or 06 replaced. The part stays in the document as a record. It has the badge <span class="sup">superseded</span> at its place. Findings are the ids of the <a href="../review/ux-review.html">UX review</a>.</p>
+<table class="table">
+<tr><th>Part of this document</th><th>State</th><th>Replaced by</th><th>Findings</th></tr>
+<tr><td>CLI: node key, <code>cached</code>, <code>dep-key-changed</code>, <code>bump-release</code>, <code>help keys</code>, <code>--allow-same-nvr</code></td><td><span class="sup">removed</span></td><td><code>rebuild</code>, plan actions <code>build current staged skip</code>, <code>help build-state</code> (03)</td><td>UX-02</td></tr>
+<tr><td>CLI: publish of one run, swap into the publish path, <code>published.yaml</code>, <code>--rollback</code></td><td><span class="sup">removed</span></td><td>Publish order, push and tag, <code>repo pull|push|snapshots|restore</code> (05)</td><td>UX-01, UX-10, UX-11, UX-13</td></tr>
+<tr><td>CLI: one signing key, <code>sign.gpg_name</code>, <code>repo verify</code> with one key</td><td><span class="chg">changed</span></td><td><code>sign</code> group, gates 1 to 3, <code>repo verify</code> with the client trust set (05)</td><td>UX-40, UX-41</td></tr>
+<tr><td>Signing study 04b, options A to E, sections 9.1 to 9.3, figure 3</td><td><span class="chg">changed in part</span></td><td>05 sections 10 to 12 (gate 2 record, re-sign rules, verify in the EL chroot)</td><td>UX-04, UX-22 to UX-26, UX-35, UX-67</td></tr>
+<tr><td>CLI: <code>mcp start</code> without flags, MCP tool lists in three places</td><td><span class="chg">changed</span></td><td><code>mcp start --tools read</code>, one tool table (section C.6, <code>mcp-tools.json</code>)</td><td>UX-02, UX-15</td></tr>
+<tr><td>CLI: <code>init</code>, <code>checkout --create</code>, <code>migrate</code> Next lines</td><td><span class="chg">changed</span></td><td>06 sections 9 and 13, import runbook</td><td>UX-57, UX-58</td></tr>
+<tr><td>CLI: <code>ui --listen unix</code> with <code>ssh -L</code></td><td><span class="sup">removed</span></td><td>Local user only (Q15)</td><td>UX-36</td></tr>
+<tr><td>Run state <code>queued</code>, retry that queues, <code>cancel</code> of a queued run</td><td><span class="sup">removed</span></td><td>No queue (Q14), exit 7</td><td>UX-37, UX-49</td></tr>
+<tr><td>Contract: <code>Key</code>, <code>KeyInputs</code>, node state <code>cached</code>, plan reasons <code>dep-key-changed macros-changed mock-config-changed not-in-cache</code></td><td><span class="sup">removed</span></td><td>Commit identity, node states <code>current staged</code>, reasons <code>commit-changed rebuild new-package new-target forced</code> (03)</td><td>UX-02</td></tr>
+<tr><td>Contract: advisory id <code>CODE:NODE</code>, dismiss in the browser only</td><td><span class="sup">removed</span></td><td><code>Advisory</code> kind, id <code>CODE/SUBJECT</code>, committed dismissals (06)</td><td>UX-03, UX-38</td></tr>
+<tr><td>UI v1 pages: graph, runs, packages with the early sidebar</td><td><span class="sup">superseded</span></td><td>Shell sidebar of section 3, v2 pages</td><td>UX-52</td></tr>
+<tr><td>UI publish pages (04j section 4 and 5), blocked page, same-NVR row</td><td><span class="sup">superseded</span></td><td>Section <a href="#ui-pkg-v2">Publish v2</a></td><td>UX-10</td></tr>
+<tr><td>UI agent: one tool list for all tasks, <code>bump-package</code> that edits</td><td><span class="chg">changed</span></td><td>Tool list per task, modes <code>draft</code> and <code>apply</code> (C.7, 04l)</td><td>UX-15 to UX-18</td></tr>
+</table>
 </section>
 <section id="sign">
 <h2>Signing keys: shared key, personal keys, or many keys</h2>
+<div class="banner warn sup-note"><div><b>Changed 2026-11-03.</b> The decision of this study stands: personal keys, many trusted keys, one signature per file. <a href="05-publish-snapshots-signing.html">05</a> replaces these parts: gate 2 (a deployment record that a person confirms, not "the key is in the published release"), the re-sign rule (only <code>repoctl repo resign</code> re-signs old RPMs), the publish steps (check, sign, repodata, verify, verify-el, push, tag, cache), the verify in the EL mock chroot (UX-67), the release package (in-tree, <code>repoctl release write</code>), the key state <code>removed</code> and <code>key_min_validity</code>. The sections 9.1 to 9.4 below show the new text and mark the old text <span class="sup">superseded</span>.</div></div>
 
 <style>
 /* sign area: scoped styles, tokens from ../shared/repoctl-base.css */
@@ -593,7 +638,7 @@ sign:
     - id: hpc-repo
       file: keys/hpc-repo.asc            # armored public key, in the set repo
       fingerprint: 9B1E5D07A2C46F38E0B9D4A12E6F8C557C3A19F2
-      state: retiring                    # active | retiring (no new signatures)
+      state: retiring                    # active | retiring | removed (05 section 12)
     - id: d.klein
       file: keys/d.klein.asc
       fingerprint: 4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E
@@ -603,8 +648,10 @@ sign:
   release:
     keyfile: RPM-GPG-KEY-slurm           # one file with all keys, path stays stable
   checks:
-    signer_deployed: true                # signer key must be in the published release pkg
-    key_expiry_warn: 180d</code></pre>
+    key_expiry_warn: 180d
+    key_min_validity: 30d                # gate 1 refuses a signer that expires sooner
+  # keys/deployed.yaml (committed) is the deployment record that gate 2 reads.
+  # signer_deployed is removed: it checked the published release, not the clients.</code></pre>
 <pre><code># ~/.config/repoctl/config.yaml (user)
 sign:
   key: d.klein                 # an id from the set's sign.keys, or a full fingerprint
@@ -613,9 +660,10 @@ sign:
     homedir: ~/.gnupg          # optional, default GNUPGHOME
   # backend: agent-ssh
   # agent_ssh: {host: hpc-sign01, remote_socket: /run/user/4711/gnupg/S.gpg-agent.extra}</code></pre>
-<p><code>sign.gpg_name</code> from the brief stays as a deprecated alias of <code>sign.key</code>. Fingerprints are always full (40 hex characters) in config, output and logs. Short key IDs are only for display.</p>
+<p><code>sign.gpg_name</code> from the brief stays as a deprecated alias of <code>sign.key</code>. The environment variable is <code>REPOCTL_SIGN_KEY</code>; <code>REPOCTL_GPG_NAME</code> is the alias. Fingerprints are always full (40 hex characters) in config, output and logs. Short key IDs are only for display.</p>
 
-<h4>9.2 Publish flow</h4>
+<h4>9.2 Publish flow <span class="chg">changed</span></h4>
+<p><span class="sup">superseded</span> Figure 3 and the steps below show the 04b flow. The flow of 05 section 5 and 11 applies: check (signer probe, gates 1 to 3, unknown signers), sign, repodata, verify, verify-el, push, tag, cache. Gate 2 needs a record in <code>keys/deployed.yaml</code>. A first publish skips gate 2 only when the registry has no snapshot of the target and the publish is not an import.</p>
 <figure>
 <svg viewBox="0 0 860 230" role="img" aria-labelledby="sg-f3-t sg-f3-d">
 <title id="sg-f3-t">Signing gates in repoctl publish</title>
@@ -659,29 +707,29 @@ sign:
 <rect x="150" y="152" width="700" height="62" rx="8" class="sg-badb"/>
 <text x="162" y="174" class="sg-tbad">refuse publish, exit status error, nothing swapped</text>
 <text x="162" y="194" class="sg-t">gate 2 hint: publish slurm-release signed by an active, deployed key first; deploy it; then retry.</text>
-<text x="162" y="208" class="sg-t3">First publish of a set (no release package yet) skips gate 2.</text>
+<text x="162" y="208" class="sg-t3"><tspan>Superseded: gate 2 reads keys/deployed.yaml (05). A first publish skips it only when the registry has no snapshot.</tspan></text>
 </svg>
 <figcaption>Figure 3. Signing in <code>repoctl publish</code>. Gate 2 enforces the onboarding rule. The final verify uses a temporary rpm keyring and a temporary GnuPG home with only the set keys, so it proves what a client sees.</figcaption>
 </figure>
 <ol class="sg-steps">
 <li>Sign every RPM of the run with <code>rpmsign --resign</code>. Pass both <code>%_gpg_name</code> (rpm 4.x) and <code>%_openpgp_sign_id</code> (rpm 6) as the full fingerprint (rpm 6.0 notes, "Package signing key configuration") <span class="pill st-ok">verified</span>.</li>
-<li>Also re-sign every RPM in the publish path whose signer is not an active key in <code>sign.keys</code>. The publish summary lists these RPMs before the confirm step.</li>
+<li><span class="sup">superseded</span> A normal publish never re-signs old RPMs. It keeps RPMs of active and retiring keys and refuses RPMs of removed or unknown signers. <code>repoctl repo resign --signer ID</code> re-signs, as its own publish (05 section 11.5).</li>
 <li>Run <code>createrepo_c</code>. Write <code>repomd.xml.asc</code> with one <code>gpg --detach-sign --armor -u &lt;FPR&gt;!</code>.</li>
 <li>Write <code>RPM-GPG-KEY</code> (all set keys) and <code>RPM-GPG-KEY-CHECKSUM.txt</code> at the repo root, as the scripts do today.</li>
 <li>Verify every RPM with <code>rpmkeys --checksig</code> against a temporary rpmdb that holds only the set keys. Verify <code>repomd.xml.asc</code> with <code>gpgv</code> and the set keys. Check that it holds one signature packet.</li>
-<li>Swap. Record the signer fingerprint per RPM in <code>published.yaml</code>.</li>
+<li>Verify again inside the EL mock chroot of each target with the client <code>rpm</code> and <code>dnf</code> and only the key file that the clients have. Then push the snapshot to GHCR and move the tag <code>latest</code>. The signer fingerprint is in the snapshot annotations. <span class="sup">superseded</span> Swap and <code>published.yaml</code> do not exist any more.</li>
 </ol>
-<p>MCP and the web UI never sign (brief, safety rules). <code>repoctl repo ls</code> shows a <em>signer</em> column (set key id, or <code>untrusted</code>).</p>
+<p>MCP never signs. The web UI signs only through <code>repoctl publish</code>, after the typed confirmation (05 section 11.1). <span class="sup">superseded</span> "MCP and the web UI never sign". <code>repoctl repo ls</code> shows a <em>signer</em> column (set key id, or <code>untrusted</code>).</p>
 
 <h4>9.3 Effect on the release package</h4>
 <ul class="sg-list">
-<li>With <code>release: {generate: true}</code>, repoctl writes <code>RPM-GPG-KEY-slurm</code> as the concatenation of all keys in <code>sign.keys</code>, sorted by id. State <code>retiring</code> keys stay in the file.</li>
+<li><code>repoctl release write</code> writes <code>RPM-GPG-KEY-slurm</code> in the in-tree release package as the concatenation of the keys in <code>sign.keys</code> with state <code>active</code> or <code>retiring</code>, sorted by id. <span class="sup">superseded</span> <code>release: {generate: true}</code>.</li>
 <li>The <code>.repo</code> file keeps one <code>gpgkey=</code> URL. It does not change when the team changes (F18).</li>
-<li><code>sign.keys</code> is an input of the release node key. A change rebuilds <code>slurm-release</code> (<code>build</code>, reason <code>sign.keys changed</code>).</li>
+<li>A key change is a commit on the path of the release package. Plan then says <code>build</code> with reason <code>commit-changed</code>. <span class="sup">superseded</span> "sign.keys is an input of the release node key".</li>
 <li><code>%changelog</code> names the added and removed key ids, so admins see the trust change in <code>rpm -q --changelog</code>.</li>
 <li>The release package cannot remove keys from clients (F16). repoctl prints the commands for config management:</li>
 </ul>
-<pre><code>$ repoctl sign offboard a.admin          # proposed helper, prints only
+<pre><code>$ repoctl sign offboard a.admin          # read class: prints only
 Key a.admin (C2F9 7713 05AB E4D6 18C3  9F2B 70DE A5C1 E93F 52A7) is not in sign.keys.
 Published RPMs signed by a.admin: 0 (re-signed in publish 2026-11-02 18:12 by d.klein)
 slurm-release with the new key file: slurm-release-26.05-3 (published)
@@ -698,12 +746,16 @@ sign.trusted      ok    d.klein is active in sign.keys of slurm-26.05
 sign.keyfiles     ok    3 key files parse, fingerprints match repoctl.yaml
 sign.expiry       warn  hpc-repo expires 2030-01-20; a.admin expires 2027-03-01 (119 days)
 sign.algorithm    ok    rsa4096 (3), no SHA-1 self-signatures
-sign.deployed     ok    d.klein is in published slurm-release-26.05-2 (el9, el10)
+sign.deployed     ok    d.klein: record in keys/deployed.yaml, slurm-release-26.05-2 (el9, el10), confirmed by d.klein 2026-10-20
 sign.release      ok    slurm-release key file = sign.keys (3 keys)
 sign.published    warn  el9/slurm: 4 RPMs signed by hpc-repo (retiring); next publish re-signs them
 sign.repomd       ok    6 repos: repomd.xml.asc has exactly 1 signature packet
-sign.agent        ok    gpg-agent socket path 41 bytes (limit 107)</code></pre>
-<p>The check names and the text format are a proposal. The cli-ref area owns the final doctor format.</p>
+sign.agent        ok    gpg-agent socket path 41 bytes (limit 107)
+sign.card         ok    OpenPGP card present, PIN retries 3
+sign.pinentry     ok    pinentry-gnome3 (local desktop)
+sign.keyfile      ok    key file of packages/slurm-release = sign.keys
+sign.verify-el    ok    verify root for el9 and el10 ready (repoctl mock update)</code></pre>
+<p>The check names are final. The doctor block in the CLI reference shows the format.</p>
 
 <h3 id="sign-tests">10. Verification plan (before we depend on option B)</h3>
 <p>Run in <code>rocky:9</code> and <code>rocky:10</code> containers, with a local repo over <code>file://</code>. Two test keys A and B (RSA 4096) and one Ed25519 key C.</p>
