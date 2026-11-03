@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Publish · slurm-26.05 · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../shared/repoctl-base.css">
+<link rel="stylesheet" href="../ui-shell/base-fixes.css">
+<link rel="stylesheet" href="../ui-shell/shell.css">
+<link rel="stylesheet" href="pkg.css">
+<link rel="stylesheet" href="publish-v2.css">
+<link rel="stylesheet" href="../shared/calm-v3.css">
+<link rel="stylesheet" href="pkg-v3.css">
+<!-- production: <script src="/-/static/3f9c1e/htmx.min.js"></script><script src="/-/static/3f9c1e/htmx-ext-sse.js"></script> -->
+</head>
+<body class="calm" data-set="slurm-26.05" data-target="el9" hx-ext="sse" sse-connect="/s/slurm-26.05/-/events?page=publish"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="sr-only" href="#main">Skip to content</a>
+<div class="app">
+<header class="topbar" role="banner">
+  <a class="brand" href="/" aria-label="repoctl: all sets"><span class="brand-mark">rc</span>repoctl<small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set (g s)"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span>slurm-26.05<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="/s/slurm-26.05/" aria-current="page"><span class="dot" style="color:var(--s-running)"></span><b class="mono">slurm-26.05</b><span class="pill st-running">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="/s/slurm-25.11/"><span class="dot" style="color:var(--s-ok)"></span><b class="mono">slurm-25.11</b><span class="pill st-ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="/s/slurm-25.11-testing/"><span class="dot" style="color:var(--s-blocked)"></span><b class="mono">slurm-25.11-testing</b><span class="pill st-blocked">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="/"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">Add a set: run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump hide-sm"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/s/slurm-26.05/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" sse-swap="chip" hx-swap="outerHTML" title="Run r-20261102-1750-a3f of slurm-26.05: 2 of 8 builds done, 1 failed (slurm@el10). Started 17:50 by d.klein.">
+    <span class="spin" aria-hidden="true"></span><span class="mono">r-…a3f</span>
+    <span class="n">2/8 builds · <span>1 failed</span> · 11m02s</span><span class="sr-only">Run in progress</span></a>
+  <span class="live hide-sm" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="t"></span></span>
+  <span class="meta hide-md mono">d.klein@hpc-a1</span>
+  <button class="icon-btn" type="button" aria-label="Keyboard shortcuts (?)" onclick="document.getElementById('help').showModal()">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+<nav class="sidebar" aria-label="Set navigation">
+  <div class="nav-label">Set <span class="set-name">slurm-26.05</span></div>
+  <a class="nav-item" href="/s/slurm-26.05/"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+  <a class="nav-item" href="/s/slurm-26.05/graph?target=el9"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/></svg>Graph</a>
+  <a class="nav-item" href="/s/slurm-26.05/plan"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M4 18h3"/></svg>Plan<span class="count">2 build</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/advisories"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>Advisories<span class="count bad">1 required</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/runs"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Runs<span class="count hot" sse-swap="nav-runs">1 running</span></a>
+  <a class="nav-item" href="/s/slurm-26.05/packages"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>Packages<span class="count">11</span></a>
+  
+  <div class="nav-label">Repository</div>
+  <a class="nav-item" href="/s/slurm-26.05/repo/el9"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el9</a>
+  <a class="nav-item" href="/s/slurm-26.05/repo/el10"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el10</a>
+  <a class="nav-item active" aria-current="page" href="/s/slurm-26.05/publish"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>Publish</a>
+  <div class="nav-label">Host</div>
+  <a class="nav-item" href="/s/slurm-26.05/config"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>Config and lock</a>
+  <a class="nav-item" href="/doctor"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Doctor<span class="count">ok</span></a>
+  <a class="nav-item" href="/"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>All sets<span class="count">3</span></a>
+  <div class="side-foot"><span>Press <kbd>?</kbd> for shortcuts</span><span class="mono">repoctl v0.1.0</span></div>
+</nav>
+<main class="main" id="main">
+<p class="v3-note">v3 (calm). Before: <a href="publish-v2-review.html">publish-v2-review</a> (and <a href="publish-v2-accepted.html">publish-v2-accepted</a>).</p>
+<!-- Accepted state (publish-v2-accepted.html) differs from this page in four places only:
+     1. The checkbox "Accept for this publish" is ticked and the reason field shows with the typed text.
+     2. The pill changes from "required" (st-failed) to "accepted" (st-blocked, warn). The red left border of the block stays:
+        an accepted risk is still a risk until the publish is done. Rebuild... moves into the "..." menu.
+     3. The CLI toggle in the page head shows the real reason in the - -accept-advisory command (no CLI line under the field).
+     4. The footer says "Next: type the set name to confirm." and Continue is enabled. The confirm dialog repeats the accepted advisory. -->
+<div class="v3w pv3">
+<div class="page-head">
+  <div><h1>Publish slurm-26.05</h1>
+    <div class="stepper" aria-label="Steps"><div class="s on"><span class="n">1</span>Review</div><span class="line"></span><div class="s"><span class="n">2</span>Confirm</div><span class="line"></span><div class="s"><span class="n">3</span>Sign and publish</div></div></div>
+  <div class="actions">
+    <details class="cli-toggle"><summary class="btn btn-sm btn-ghost" title="Show the same steps as CLI commands">CLI</summary>
+      <div class="cli-pop">repoctl publish --target el9 --dry-run
+repoctl publish --target el9 --accept-advisory closure.broken/pmix@el9 --reason "…"</div></details>
+  </div>
+</div>
+
+<div class="stack">
+<!-- 1. Target choice -->
+<section class="card targets" aria-labelledby="tg-t" sse-swap="publish-targets" hx-swap="outerHTML">
+  <div class="card-head"><h2 class="sec" id="tg-t">Targets</h2><span class="right small muted">Tick the targets to publish</span></div>
+  <div class="tgt-row">
+    <label class="tick"><input class="check" type="checkbox" name="target" value="el9" checked><b>el9</b></label>
+    <span class="qs ok">ready</span>
+    <div class="statline"><span><b>27</b> new RPMs to sign</span><span><b>170</b> kept from latest</span><span><b>197</b> after publish</span></div>
+  </div>
+  <!-- el10 is outside this publish: neutral, one line (R11). The reasons stay one click away. -->
+  <details class="tgt-row off">
+    <summary><input class="check" type="checkbox" name="target" value="el10" disabled aria-label="el10 cannot be ticked">
+      <span><b>el10</b> is not in this publish: slurm@el10 failed.</span><span class="right small muted">Why</span></summary>
+    <div class="tgt-why">
+      <ul>
+        <li><a class="mono" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10">slurm@el10</a> failed: rocm-smi-devel is needed. <a href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10/log">Log</a></li>
+        <li><span class="mono">slurm-singularity-exec@el10</span> is blocked: it needs slurm@el10.</li>
+      </ul>
+      <p>Fix the spec, commit and push. Then run <code>repoctl pin slurm</code> and build again. el10 stays as it is. The el9 publish does not wait for this.</p>
+    </div>
+  </details>
+</section>
+
+<!-- 2. The one blocker, right under the target choice. The only red on the page (R11). -->
+<section class="card blocker" id="advisories" aria-labelledby="adv-t" sse-swap="advisories" hx-swap="outerHTML">
+  <article class="adv required" id="adv-closure.broken-pmix-el9" data-advisory-id="closure.broken/pmix@el9" sse-swap="advisory:closure.broken/pmix@el9" hx-swap="outerHTML">
+    <div class="adv-top"><span class="pill st-failed">required</span><h2 id="adv-t">pmix cannot be installed on a new el9 host</h2></div>
+    <p class="adv-body"><span class="mono">pmix-6.1.0-1.el9</span> needs <span class="mono">libhwloc.so.15</span>. EPEL now has <span class="mono">hwloc-libs-2.11.2</span>, which gives only <span class="mono">libhwloc.so.16</span>. This publish stops until you accept this advisory or fix it.</p>
+    <p class="code-sub">closure.broken/pmix@el9 · el9 · repoctl check, today 06:00</p>
+    <div class="acc-row">
+      <label class="ck"><input class="check" type="checkbox" name="accept" value="closure.broken/pmix@el9"
+        hx-post="/s/slurm-26.05/-/actions/advisory-accept" hx-target="#adv-closure\.broken-pmix-el9" hx-swap="outerHTML">Accept for this publish</label>
+      <span class="grow"></span>
+      <button class="btn btn-sm" type="button" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=pmix&amp;advisory=closure.broken/pmix@el9" hx-target="#modal">Rebuild…</button>
+      <details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions">⋯</summary>
+        <div class="more-pop">
+          <a href="/s/slurm-26.05/advisories#adv-closure.broken-pmix-el9">Show closure</a>
+          <button class="btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/rebuild-check" hx-vals='{"advisory":"closure.broken/pmix@el9"}' hx-target="#drawer" hx-swap="outerHTML"
+            title="Runs claude -p with the skill rebuild-check. Tool list: read only. Changes nothing."><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Is a rebuild necessary?</button>
+        </div></details>
+    </div>
+    <div class="reason" hidden>
+      <label class="small muted" for="why">Reason (8 or more characters). It goes to the journal and the snapshot.</label>
+      <textarea class="input" id="why" rows="2" name="reason"></textarea>
+    </div>
+  </article>
+  <p class="adv-foot">3 info advisories and 1 dismissed advisory do not block. <a href="/s/slurm-26.05/advisories">Open the list</a></p>
+</section>
+
+<!-- 3. What changes for clients. The source run and the base are constant: said once, in the header (R4). -->
+<section class="card" aria-labelledby="chg-t">
+  <div class="card-head"><h2 class="sec" id="chg-t">Changes in el9</h2>
+    <span class="right small muted">against latest <a class="id" href="/s/slurm-26.05/runs/p-20260912-1403-c21" title="p-20260912-1403-c21 · d.klein@hpc-a1 · 2026-09-12 14:03">c21</a> · from run <a class="id" href="/s/slurm-26.05/runs/r-20261102-1750-a3f" title="r-20261102-1750-a3f. Each RPM comes from the run that built it.">a3f</a></span></div>
+  <ul class="chg3">
+    <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">ucx</b> <span class="evr">1.22.0-2</span> <span class="arrow">&rarr;</span> <span class="evr"><b>1.22.1-1</b></span></span><span class="n">14 RPMs</span></li>
+    <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">slurm</b> <span class="evr">26.05.4-1</span> <span class="arrow">&rarr;</span> <span class="evr"><b>26.05.4-2</b></span></span><span class="n">17 RPMs</span></li>
+    <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">openmpi</b> <span class="evr">5.0.11-1</span> <span class="arrow">&rarr;</span> <span class="evr"><b>5.0.11-2</b></span></span><span class="n">6 RPMs</span></li>
+    <li><span class="d d-upd" aria-label="updated">&uarr;</span><span><b class="mono">slurm-singularity-exec</b> <span class="evr">3.2.0-1</span> <span class="arrow">&rarr;</span> <span class="evr"><b>3.2.0-2</b></span></span><span class="n">1 RPM</span></li>
+    <!-- A removed package, when there is one, is a row of its own, listed by name, in warn colour:
+         <li class="rem"><span class="d d-rem3" aria-label="removed">&minus;</span><span><b class="mono">NAME</b> <span class="evr">V-R</span> removed</span><span class="n">N RPMs</span></li>
+         Zero counts ("0 packages removed") are not shown (R3). -->
+  </ul>
+  <details><summary class="rest"><b>7 packages</b> do not change</summary>
+    <div class="rest-body">munge, pmix, pmix_v5, pmix_v4, prrte, rocm-smi, slurm-release. Publish adds. All old versions stay.</div></details>
+  <div class="card-foot small"><a href="/s/slurm-26.05/repo/el9?view=run&amp;run=r-20261102-1750-a3f&amp;diff=1">Full diff against latest for el9</a></div>
+</section>
+
+<!-- 4. Reference: folds with a one-line summary. A failing check renders <details open> and its row comes first (R13).
+     Inputs and source runs: merged into check 2 (inputs) and the Changes header (source run).
+     Trust: no block, because this publish does not change the trusted keys (04 publish v2, step 1). "Trust: no change" is one line
+     in Signing, and the confirm dialog says "Trust change: none". When trust changes, a Trust card with the fingerprints of the
+     added and removed keys shows under the blocker, and step 2 asks for the typed key id. -->
+<section class="card folds">
+  <details class="fold" id="checks">
+    <summary><b>Checks</b><span class="sum">9 checks passed · gates 1–3 ok</span></summary>
+    <div class="fold-body">
+      <ul class="ck3">
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Base is current. <span class="muted">latest equals the local copy and the served tree.</span></span><span class="code-sub">state.behind</span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Inputs are committed and pushed. <span class="muted">Set commit <span class="id" title="9a0c4e2 on builder/slurm-26.05">9a0c4e2</span> is on origin. yaml, lock and macros are clean. 4 package commits are on origin.</span></span><span class="code-sub">lock.dirty</span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Signer key is active, valid and in the right format. <span class="muted">d.klein expires 2029-11-01.</span></span><span class="code-sub">gate 1 · gate 3</span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Signer is deployed. <span class="muted">keys/deployed.yaml has slurm-release-26.05-2, confirmed by d.klein 2026-10-20.</span></span><span class="code-sub">gate 2</span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Key file matches <span class="mono">sign.keys</span>. <span class="muted">The in-tree release package is current.</span></span><span class="code-sub">sign.keyfile-stale</span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>No NVR comes back with other content. <span class="muted">All 4 changed packages have a new NVR.</span></span><span class="code-sub">nvr.removed</span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Registry login and scope. <span class="muted">ghcr.io · write:packages · slurm-26.05-el9 is public.</span></span><span class="code-sub"></span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Verify roots for el9. <span class="muted">The mock verify root is ready. verify-el runs in step 5.</span></span><span class="code-sub"></span></li>
+        <li><span class="ic" aria-label="passed">&#10003;</span><span>Disk. <span class="muted">182 GiB free in ~/.local/share/repoctl.</span></span><span class="code-sub"></span></li>
+      </ul>
+    </div>
+  </details>
+  <details class="fold" id="signing">
+    <summary><b>Signing</b><span class="sum">d.klein signs with <span class="id">…41D8 0B6E</span> · probe passed · trust: no change</span></summary>
+    <div class="fold-body">
+      <dl class="signer">
+        <dt>Signer</dt><dd>d.klein <span class="muted">Dennis Klein &lt;d.klein@gsi.de&gt;</span></dd>
+        <dt>Key</dt><dd class="fpr">4E7A 0C93 B85D 21F6 9A0E 3C47 D1B2 66F0 <b>41D8 0B6E</b></dd>
+        <dt>Probe</dt><dd>passed <span class="muted">A test signature was made.</span></dd>
+        <dt>Kept RPMs</dt><dd>d.klein 120 · hpc-repo 50 <span class="pill st-blocked">retiring</span></dd>
+        <dt>Trust</dt><dd>no change <span class="muted">The key file of slurm-release-26.05-2 trusts d.klein and hpc-repo.</span></dd>
+      </dl>
+      <p class="fold-note">Kept RPMs keep their signature. <code>repoctl repo resign --signer hpc-repo</code> signs them again. The browser never asks for a PIN: the pinentry of this host asks. Keys and deployment: <a href="/s/slurm-26.05/signing">Signing page</a>.</p>
+    </div>
+  </details>
+  <details class="fold" id="steps">
+    <summary><b>What happens</b><span class="sum">8 steps · latest does not change before step 7</span></summary>
+    <div class="fold-body">
+      <p class="fold-note" style="margin-top:0">Publish signs the new RPMs, pushes a snapshot for each ticked target and moves <code>latest</code>. Only a person can start it.</p>
+      <ol class="steps3">
+        <li><b>check</b>: base, inputs, gates, advisories.</li>
+        <li><b>sign</b>: the new RPMs, then 3 repomd.xml.</li>
+        <li><b>repodata</b>: <code>createrepo_c</code> for 3 sub-repos.</li>
+        <li><b>verify</b>: signatures and checksums.</li>
+        <li><b>verify-el</b>: install test in an el9 chroot.</li>
+        <li><b>push</b>: new blobs go to GHCR.</li>
+        <li><b>tag</b>: <code>latest</code> and <code>p-…</code>.</li>
+        <li><b>cache</b>: update the local copy.</li>
+      </ol>
+    </div>
+  </details>
+</section>
+</div>
+
+<!-- Sticky: the gate sentence and the one primary button stay in view (R5). -->
+<div class="footer-bar sticky-foot">
+  <span class="gate">Continue is off: accept the required advisory with a reason, or fix it.</span><span class="grow"></span>
+  <a class="btn" href="/s/slurm-26.05">Cancel</a>
+  <button class="btn btn-primary" disabled hx-get="/s/slurm-26.05/publish/confirm" hx-target="body" hx-swap="beforeend">Continue</button>
+</div>
+</div>
+</main>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="steps">Esc closes</span></header>
+  <div class="body"><table class="table">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Advisories</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Browse the repository (current target)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+  </table><p class="muted" style="margin:0;font-size:12.5px">No shortcut starts a build or a publish.</p></div>
+</dialog>
+<script src="../ui-shell/shell.js"></script>
+</body>

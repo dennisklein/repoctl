@@ -1,0 +1,140 @@
+/* repoctl pkg-v3.css: page CSS for the calm v3 pages of ui-pkg
+   (publish-v3-review.html, repo-published-v3.html).
+   Link order: repoctl-base.css, base-fixes.css, shell.css, pkg.css, publish-v2.css, calm-v3.css, pkg-v3.css.
+   Tokens only, no new colours. */
+
+/* pkg.css carries an older shell. Put the ui-shell frame back where pkg.css differs. */
+.calm .nav-item svg{opacity:1}
+.calm .card-head .right{gap:6px}
+
+/* one calm column; the table page uses a wider one */
+.v3w{max-width:960px}
+.v3w.wide{max-width:1120px}
+.calm .page-head{align-items:flex-start;margin-bottom:18px}
+.calm .page-head h1{margin:0;font-size:22px;line-height:1.3}
+.calm .page-head .sub{margin-top:2px;color:var(--c-text-2)}
+.calm .page-head .actions{position:relative;padding-top:2px}
+.calm .cli-toggle{position:relative}
+.calm .cli-toggle .cli-pop{right:0;top:100%;width:max-content}
+.calm .cli-toggle[open]>summary{background:var(--c-surface-2);border-color:var(--c-border)}
+.calm .stepper{margin:10px 0 0}
+.calm .stepper .s .n{width:22px;height:22px;font:600 11.5px var(--font-sans)}
+.calm .stepper .line{flex-basis:32px;margin:0 10px}
+.calm .card-foot{display:flex;gap:8px;align-items:center}
+.calm .small.muted,.calm .card-head .right.muted{color:var(--c-text-3)}
+
+/* ---------- publish review ---------- */
+/* target choice: one row per target */
+.tgt-row{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding:12px 16px}
+.tgt-row .tick{gap:10px;font-size:15px}
+.tgt-row .statline{margin-left:auto}
+details.tgt-row{display:block;padding:0;border-top:1px solid var(--c-border)}
+details.tgt-row>summary{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;list-style:none;font-size:13.5px;color:var(--c-text-2)}
+details.tgt-row>summary::-webkit-details-marker{display:none}
+details.tgt-row>summary b{color:var(--c-text-2);font-weight:600}
+details.tgt-row>summary .right{margin-left:auto;display:inline-flex;align-items:center;gap:6px}
+details.tgt-row>summary .right::after{content:"";border:4px solid transparent;border-left:6px solid var(--c-text-3);transition:transform .15s}
+details.tgt-row[open]>summary .right::after{transform:rotate(90deg)}
+details.tgt-row .check[disabled]{opacity:.55}
+.tgt-why{padding:0 16px 12px 44px;font-size:13px;color:var(--c-text-2)}
+.tgt-why ul{margin:0 0 6px;padding-left:16px;display:grid;gap:4px}
+.tgt-why p{margin:0;color:var(--c-text-3)}
+@media (prefers-reduced-motion:reduce){details.tgt-row>summary .right::after{transition:none}}
+
+/* the one blocker */
+.blocker{padding:0}
+.blocker .adv{border:0;border-left:4px solid var(--s-failed);border-radius:var(--r-lg) 0 0 0;padding:14px 16px 14px 16px}
+.blocker .adv-top{margin-bottom:4px}
+.blocker .adv-top h2{font-size:15px;font-weight:600;margin:0}
+.blocker .adv-body{margin:0 0 4px;font-size:13.5px;color:var(--c-text-2)}
+.blocker .adv-body .mono{font-size:12.5px;color:var(--c-text)}
+.blocker .code-sub{margin:0}
+.acc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--c-border-strong)}
+.acc-row .grow{flex:1}
+.acc-row .ck{display:inline-flex;gap:8px;align-items:center;font-weight:600;font-size:14px;cursor:pointer}
+.acc-row .ck .check{width:18px;height:18px}
+.blocker .reason{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.blocker .reason[hidden]{display:none}
+.adv-foot{margin:0;padding:10px 16px;border-top:1px solid var(--c-border);font-size:13px;color:var(--c-text-3)}
+.more-pop .btn-agent svg{fill:var(--c-primary);stroke:none;flex:none}
+.more-pop .btn-agent::before{content:none}
+
+/* changes list */
+.chg3{list-style:none;margin:0;padding:6px 0}
+.chg3 li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;padding:5px 16px;font-size:13px}
+.chg3 .evr{font-size:12.5px}
+.chg3 .arrow{color:var(--c-text-3)}
+.chg3 .n{color:var(--c-text-3);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chg3 .d{width:18px;height:18px;font-size:12px}
+.chg3 li.rem{font-weight:600}
+.d-rem3{color:var(--s-blocked);background:var(--s-blocked-bg)}
+details>.rest{border-top:1px solid var(--c-border)}
+.rest-body{padding:0 16px 12px 32px;font-size:13px;color:var(--c-text-2)}
+
+/* folds card */
+.folds details.fold:first-child{border-top:0}
+.folds details.fold>summary{padding:12px 16px;font-size:13.5px}
+.folds details.fold>summary b{color:var(--c-text);font-weight:600;min-width:96px}
+.folds details.fold>summary .id{font-size:12.5px}
+.ck3{list-style:none;margin:0;padding:0}
+.ck3 li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--c-border)}
+.ck3 li:first-child{border-top:0}
+.ck3 .ic{color:var(--s-ok);font-weight:700;font-size:12px}
+.ck3 .ic.fail{color:var(--s-failed)}
+.ck3 .muted{color:var(--c-text-3)}
+.ck3 .code-sub{white-space:nowrap}
+.folds .signer{font-size:13px;gap:8px 16px}
+.folds .signer dd{gap:6px 10px}
+.folds .signer .fpr{font-size:12.5px}
+.fold-note{margin:10px 0 0;font-size:12.5px;color:var(--c-text-3)}
+.steps3{margin:6px 0 0;padding-left:20px;line-height:1.75}
+
+/* sticky footer with the gate sentence and the one primary button */
+.sticky-foot{position:sticky;bottom:12px;z-index:15;margin-top:var(--gap-card);box-shadow:var(--shadow-2)}
+.sticky-foot .gate{font-size:13.5px;color:var(--c-text-2)}
+.calm .footer-bar .btn[disabled]{opacity:.55}
+
+/* ---------- repository page ---------- */
+.calm .tabs{margin-bottom:var(--gap-card)}
+.snap .card-body{display:grid;gap:10px}
+.snap .line1{font-size:14px}
+.snap .line1 .muted{color:var(--c-text-3)}
+.snap .signed{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;font-size:13px;margin:0}
+.snap .signed dt{color:var(--c-text-3)}
+.snap .signed dd{margin:0;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.snap .signed .fpr{font-size:12.5px}
+.snap .help-text{margin:0}
+.snap .kv{font-size:13px}
+.compare{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;font-size:13px;color:var(--c-text-2)}
+.compare .grow{flex:1}
+.calm .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0}
+.calm .toolbar .search{flex:0 1 300px;min-width:220px}
+.calm .toolbar .search .input{width:100%}
+
+/* source package list: one row per source package, each opens to its RPMs */
+.srpms .colh,.srpm>summary,.srpm .rpms li{display:grid;grid-template-columns:18px minmax(160px,1.3fr) minmax(130px,1fr) 80px 96px;gap:12px;align-items:center;padding:9px 16px}
+.srpms .colh{font-size:12px;color:var(--c-text-3);padding-top:10px;padding-bottom:8px;border-bottom:1px solid var(--c-border)}
+.srpms .num{text-align:right;font-variant-numeric:tabular-nums}
+.srpm{border-top:1px solid var(--c-border)}
+.srpm:first-of-type{border-top:0}
+.srpm>summary{list-style:none;cursor:pointer;font-size:13.5px}
+.srpm>summary::-webkit-details-marker{display:none}
+.srpm>summary::before{content:"";justify-self:center;border:4px solid transparent;border-left:6px solid var(--c-text-3);transition:transform .15s}
+.srpm[open]>summary::before{transform:rotate(90deg) translateX(2px)}
+.srpm>summary:hover{background:var(--c-surface-2)}
+.srpm>summary .nm{font-weight:600;font-family:var(--font-mono);font-size:13px}
+.srpm>summary .vr{font-family:var(--font-mono);font-size:12.5px;color:var(--c-text-2)}
+.srpm>summary .q{color:var(--c-text-3);font-size:13px}
+.srpm>summary .dt{color:var(--c-text-3);font-size:13px;white-space:nowrap}
+.srpm .rpms{list-style:none;margin:0 0 6px;padding:0;font-size:13px}
+.srpm .rpms li{padding-top:4px;padding-bottom:4px}
+.srpm .rpms .nm{font-family:var(--font-mono);font-size:12.5px;padding-left:14px;color:var(--c-text-2)}
+.srpm .rpms .num{color:var(--c-text-3);font-size:12.5px}
+.srpm .ar{font-family:var(--font-mono);font-size:12px;color:var(--c-text-2)}
+.srpms .list-foot{padding:10px 16px;border-top:1px solid var(--c-border);font-size:12.5px;color:var(--c-text-3)}
+@media (prefers-reduced-motion:reduce){.srpm>summary::before{transition:none}}
+@media (max-width:900px){
+  .srpms .colh,.srpm>summary,.srpm .rpms li{grid-template-columns:18px minmax(0,1fr) auto auto}
+  .srpms .colh .hide-n,.srpm>summary .hide-n{display:none}
+}
+.topbar .meta{white-space:nowrap}
