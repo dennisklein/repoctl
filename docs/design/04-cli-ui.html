@@ -2696,7 +2696,7 @@ publish stops with state.behind (exit 13): run "repoctl repo pull".</pre>
     <tr><td>selector args</td><td>package dirs; after <code>dir@</code>, the targets of that package; after <code>@</code>, all target ids; after <code>!</code>, the same as without</td><td>version and lock state: <code>26.05.4 · in-sync</code></td></tr>
     <tr><td>package-only args (<code>checkout</code>, <code>pin</code>, <code>rebuild</code>, <code>upstream</code>)</td><td>package dirs; <code>pin</code> puts packages that are <code>ahead</code> first</td><td>lock state</td></tr>
     <tr><td><code>--target</code></td><td>target ids</td><td>mock config</td></tr>
-    <tr><td><code>--run</code>, <code>runs RUN</code>, <code>logs RUN</code>, <code>cancel RUN</code></td><td>run ids, newest first, and <code>latest</code>; <code>cancel</code> only running runs; <code>publish --run</code> only publishable runs</td><td><code>running 11m · 2/8 built</code></td></tr>
+    <tr><td><code>--run</code>, <code>runs RUN</code>, <code>logs RUN</code>, <code>cancel RUN</code></td><td>run ids, newest first, and <code>latest</code>; <code>cancel</code> only running runs</td><td><code>running 11m · 2/8 built</code></td></tr>
     <tr><td><code>logs RUN NODE</code></td><td>the nodes of that run, failed nodes first</td><td>node state</td></tr>
     <tr><td><code>--from</code>, <code>--format</code>, <code>--progress</code>, <code>--repo</code>, <code>--file</code>, <code>--step</code>, <code>--state</code></td><td>the enum values</td><td></td></tr>
     <tr><td><code>advisories show|dismiss|undismiss ID</code>, <code>publish --accept-advisory</code></td><td>advisory ids of the last check (only blocking ones for <code>--accept-advisory</code>)</td><td>level and subject</td></tr>
@@ -8169,7 +8169,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <ul>
 <li><b>Tiles</b>: runs in the last 30 days by result, median duration of ok runs, the published run, and a target health tile (el10 is not complete: slurm@el10 failed in every el10 run).</li>
 <li><b>Filters</b> (one row): text search (run id, package, user), result segments with counts, by, target, since, published only. A change sends <code>GET /s/&lt;set&gt;/runs/f/table</code> and pushes the URL.</li>
-<li><b>Columns</b>: select box, run id, start and user (<code>d.klein · mcp</code> marks a run started by an agent through MCP), selection with its reason, targets, built · cached · failed (plus blocked, canceled, open), duration with sparkline, result, published.</li>
+<li><b>Columns</b>: select box, run id, start and user (<code>d.klein · mcp</code> marks a run started by an agent through MCP), selection with its reason, targets, built · current · failed (plus blocked, canceled, open), duration with sparkline, result, in latest. A publish run (id <code>p-…</code>, label <i>publish</i>) shows its signed RPM count in place of the counts, and an <i>abandoned</i> run shows the grey state with the note that its process is gone. The filter <i>Kind</i> selects build, publish or check runs.</li>
 <li><b>Sparkline</b>: jobs busy over the run time, as a step area (0 to <code>jobs</code>). The x axis is the time of that run. The text next to it gives the absolute duration. One series, so no legend. The SVG has a <code>&lt;title&gt;</code> with the peak. The run page is the table view of this data.</li>
 <li><b>Compare</b>: select two rows. A bar above the table shows both ids and a "Compare" button. Each row also has a "compare with previous run" icon. The header has "Compare with published".</li>
 <li><b>Published</b>: "yes · live" for the run that is the published repo now, "yes · superseded" for older ones. Publish runs (<code>p-…</code>) are not rows here. The Publish page lists them.</li>
@@ -8184,7 +8184,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <li>The run is finished. No node is failed, blocked or canceled.</li>
 <li>The plan covers every node of every target (no <code>skip</code>).</li>
 <li><code>repoctl.lock</code> is committed, and the worktrees match it.</li>
-<li>No plan problem <code>nvr.reused</code>.</li>
+<li>No <code>nvr.removed</code> check fails.</li>
 <li>The user signing key is in <code>sign.keys</code> with state active.</li>
 </ul>
 <p>The button links to <code>/s/&lt;set&gt;/publish?run=&lt;run&gt;</code>. The publish page owns the two-step confirm and the per-target choice.</p>
@@ -8269,9 +8269,9 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <li>Error rules, fingerprints and the "same error before" link come from the core (also useful for the CLI, MCP and the triage skill). The <code>--json</code> output of <code>repoctl logs RUN NODE</code> includes the problems list.</li>
 <li>SSE: one endpoint <code>/s/&lt;set&gt;/events?topic=</code>, HTML fragments with OOB swaps, ids = event log line (run topics) or byte offset (log topics). A JSON event stream for tools is the contract area.</li>
 <li>Node element ids: <code>node-&lt;dir&gt;-&lt;target&gt;</code> (the <code>@</code> becomes <code>-</code>). The graph page can use the same ids for its SVG nodes.</li>
-<li>The success example uses <code>r-20261102-1938-7d2</code> (slurm 26.05.4-2, openmpi and slurm-singularity-exec after <code>bump-release</code>). Its counts (6 built, 15 cached, 34m18s) are mine. The publish area may change them.</li>
+<li>The success example uses <code>r-20261102-1938-7d2</code> (slurm 26.05.4-2, openmpi and slurm-singularity-exec after <code>repoctl rebuild</code> commits). Its counts (6 built, 15 current, 34m18s) are mine. The publish area may change them.</li>
 <li>History rows before today are invented to fit the story: el10 was added on 2026-10-20, slurm@el10 never built ok, and later runs used <code>--target el9</code>.</li>
-<li>The run page shows plan problems (<code>nvr.reused</code>) in a warning banner under the staging note.</li>
+<li>The run page shows what is publishable (<i>el9 can be published while el10 is open</i>) in a banner under the staging note.</li>
 </ul>
 
 <h3>Open questions</h3>
@@ -8369,7 +8369,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <tr><td><code>&uarr;</code></td><td>updated: same name, higher EVR</td><td><code>--s-running</code></td></tr>
 <tr><td><code>&#8635;</code></td><td>rebuilt: same NVR, other payload (only for hand-made input; publish refuses it)</td><td><code>--s-cached</code></td></tr>
 <tr><td><code>&#9676;</code></td><td>pending: node not finished in this run (dashed)</td><td><code>--s-waiting</code></td></tr>
-<tr><td><code>=</code></td><td>unchanged: same node key as published (hidden by default)</td><td>neutral border</td></tr>
+<tr><td><code>=</code></td><td>unchanged: same NVR and content as in <code>latest</code> (hidden by default)</td><td>neutral border</td></tr>
 </tbody>
 </table>
 <p>Summary chips count files (+7, &minus;7) and packages (1 updated, 0 rebuilt, 3 pending, 7 unchanged). Package rows show old and new EVR. A row expands to its file pair (&minus; old file, + new file). Pending rows show the node state and the expected change. Each pending row has <code>hx-trigger="sse:node-&lt;dir&gt;-&lt;target&gt;"</code>, so it swaps itself when the node finishes. A note explains same-NVR rebuilds: <code>dnf upgrade</code> does not install them.</p>
@@ -8427,10 +8427,10 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 
 <h3>Assumptions</h3>
 <ul>
-<li><b>Run <code>r-20261102-1938-7d2</code></b> (invented) is the publish happy path: Dennis committed the slurm el10 guard (slurm becomes <code>26.05.4-2</code>), pinned ucx and slurm, and committed the lock at builder <code>5c1e0a9</code>. 21 nodes: 4 ok (slurm, slurm-singularity-exec on 2 targets), 17 cached. ui-run and cli-term may reuse it.</li>
-<li><b>Builds use the worktree HEAD</b> (committed files only, never uncommitted changes). The node key uses the commit, so a later pin does not change the key. Publish requires worktree = lock, a committed lock, and pinned commits on the remote.</li>
-<li><b>Staging is complete</b>: cached nodes are linked into the staging repo of the run. Staging RPMs are unsigned. Publish signs.</li>
-<li><b>Signed RPM reuse</b>: publish reuses signed RPMs from the published repo when the node key (from <code>published.yaml</code>) and the signer key are unchanged. Sample counts: el9 60 to sign, 38 reused, 98 total; el10 60, 33, 93.</li>
+<li><b>Run <code>r-20261102-1938-7d2</code></b> (invented) is the publish happy path: Dennis committed the slurm el10 guard (slurm becomes <code>26.05.4-2</code>), pinned ucx and slurm, and committed the lock at builder <code>5c1e0a9</code>. 21 nodes: 4 ok (slurm, slurm-singularity-exec on 2 targets), 17 current. <span class="sup">superseded</span> for publish: the publish pages use the story of Publish v2 (run <code>r-20261102-1750-a3f</code>, target el9). ui-run and cli-term may reuse it.</li>
+<li><b>Builds use the worktree HEAD</b> (committed files only, never uncommitted changes). The build identity is the commit plus the target, so a later pin of the same commit does not change it. Publish requires worktree = lock, a committed and pushed lock, and package commits on the remote.</li>
+<li><b>Staging is complete</b>: <code>current</code> nodes are linked into the staging repo of the run. Staging RPMs are unsigned. Publish signs.</li>
+<li><b>Signed RPM reuse</b>: publish signs only the new RPMs and keeps the signed RPMs of <code>latest</code> with their signatures (all keys). Sample counts of the v1 pages: el9 60 to sign, 38 reused, 98 total; el10 60, 33, 93. <span class="sup">superseded</span> by the counts in Publish v2 (el9: 27 new, 170 kept).</li>
 <li><b>Publish replaces the repo content</b> with the staging content (no accumulation of old versions, unlike today&rsquo;s <code>createrepo --update</code>). The previous repo directory stays as <code>.&lt;target&gt;.&lt;timestamp&gt;</code> until the next publish.</li>
 <li><b>One atomic swap for all targets</b> at the end. Cancel is possible until the swap.</li>
 <li><b>Publish events</b> go into the event log of the run (<code>runs/&lt;run&gt;.jsonl</code>, span <code>publish</code>).</li>
@@ -8744,7 +8744,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 </ol>
 <figure><img src="img/ui-shell-agent-panel-running-light-v2.webp" alt="Agent panel while it runs: header with state running and a Stop button, tools used with one call in progress, a cause text that grows"><figcaption>Explain failure on slurm@el10, running (light). Text arrives over SSE.</figcaption></figure>
 
-<figure><img src="img/ui-shell-agent-panel-done-light-v2.webp" alt="Agent panel when done: cause with two fixes, evidence lines with links, a spec diff that puts rocm-smi-devel in an %if 0%{?rhel} &lt; 10 block, buttons Open package, Copy diff, Rebuild after fix, and the claude --resume command"><figcaption>Done (light). Proposed actions are normal buttons.</figcaption></figure>
+<figure><img src="img/ui-shell-agent-panel-done-light-v2.webp" alt="Agent panel when done: cause with two fixes, evidence lines with links, a spec diff that puts rocm-smi-devel in an %if 0%{?rhel} &lt; 10 block, buttons Open package, Copy diff, Pin fix and build, and the claude --resume command"><figcaption>Done (light). Proposed actions are normal buttons.</figcaption></figure>
 
 <p>Proposed actions in the example:</p>
 <ul>
