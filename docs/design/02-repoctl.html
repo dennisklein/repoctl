@@ -16,11 +16,15 @@ svg .b{fill:var(--bg);stroke:var(--acc);stroke-width:1.5}svg .bm{fill:var(--bg);
 svg .bh{fill:var(--hi);stroke:var(--acc);stroke-width:2}svg .bg{fill:var(--hi2);stroke:var(--ok);stroke-width:1.5}
 svg .l{stroke:var(--mut);stroke-width:1.4;fill:none;marker-end:url(#a)}svg .ah{fill:var(--mut)}
 .note{border-left:4px solid var(--acc);padding:6px 12px;background:var(--box);margin:12px 0}
+.sup{display:inline-block;font-size:.72rem;font-weight:600;padding:0 6px;border-radius:9px;border:1px solid var(--warn);color:var(--warn);vertical-align:middle}
+.sup-note{border-left-color:var(--warn)}
+s.strike,del{color:var(--mut)}
 </style></head><body>
 <svg aria-hidden="true" style="position:absolute;width:0;height:0;margin:0"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ah"/></marker></defs></svg>
 
 <h1>repoctl: design</h1><p class="note">Design record. Later documents change parts of this one. <a href="03-build-state.html">03-build-state.html</a> section 9 lists the changes. Index: <a href="index.html">index.html</a>.</p>
-<p>Date: 2026-11-02 (updated 18:00). Follows <a href="01-tooling-decision.html">01-tooling-decision.html</a>. Status: proposal. No code yet.</p>
+<div class="note sup-note"><b>Updated 2026-11-03.</b> Sections 3.2 to 3.5, 4, 5 and 6 follow <a href="03-build-state.html">03</a>, <a href="05-publish-snapshots-signing.html">05</a> and <a href="06-advisories-lifecycle.html">06</a>: the build identity is the package commit plus the target (no node key, no node cache), GHCR is the authority and the HTTP server is a mirror (<code>store.oci</code>, <code>repo.url</code>; no publish path), the release package is in the set tree, and advisories replace automatic rebuilds. Text that these documents replace is marked <span class="sup">superseded</span>.</div>
+<p>Date: 2026-11-02 (updated 2026-11-03). Follows <a href="01-tooling-decision.html">01-tooling-decision.html</a>. Status: proposal. No code yet.</p>
 
 <h2>1. Summary</h2>
 <div class="note">
@@ -28,7 +32,8 @@ svg .l{stroke:var(--mut);stroke-width:1.4;fill:none;marker-end:url(#a)}svg .ah{f
 <li><b>Name:</b> <code>repoctl</code>. Binary, RPM and Go module use this name.</li>
 <li><b>Unit of work: a "package set".</b> One <code>repoctl.yaml</code> describes one set: its packages, its build targets, its output repos. <code>builder/slurm-26.05</code> is one set. Other sets (for example Lustre or Apptainer) use the same tool with a different file.</li>
 <li><b>Three config files.</b> <code>repoctl.yaml</code> (what to build, committed), <code>repoctl.lock</code> (pinned commits, written by the tool), and a user file in <code>$XDG_CONFIG_HOME</code> (how to build on this machine).</li>
-<li><b>XDG directories</b> hold all temporary and generated files. The set directory holds only committed files and the package worktrees.</li>
+<li><b>XDG directories</b> hold all temporary and generated files. The set directory holds only committed files and the package worktrees. Clones of external package repositories are in the data directory.</li>
+<li><b>GHCR is the authority.</b> A publish makes a snapshot in an OCI registry (<code>store.oci</code>). The HTTP server that clients use (<code>repo.url</code>) is a mirror that a separate job fills. The set has no publish path.</li>
 <li><b>LLM skills: logic ships with repoctl, data ships with the set.</b> Generic skills are versioned with the CLI that they call. Package facts (upstream repo, tag filter, notes) go into <code>repoctl.yaml</code>. A set can add its own skills for local policy. See section 6.</li>
 </ul>
 </div>
@@ -72,13 +77,26 @@ repo:
   name: slurm                      # gives slurm, slurm-source, slurm-debuginfo
   debuginfo: true
   source: true
+  url: https://repo.example.org/slurm-26.05   # what clients use (the mirror); needed to publish
+
+store:
+  oci: ghcr.io/gsi-hpc/slurm-repo  # registry path; one package <set>-<target> per target
+
+sign:                              # trusted keys; "repoctl sign add" fills this
+  keys:
+    - {id: d.klein, file: keys/d.klein.asc, state: active}
+  release: {keyfile: RPM-GPG-KEY-slurm}
+  checks: {key_min_validity: 30d}
+
+retention:
+  snapshots: {keep: 10, keep_days: 90d}
 
 targets:                           # 1..n; each target is one mock chroot
   - id: el9
     mock: rocky+epel-9-x86_64
-    plugins: [rpmautospec]
+    plugins: [rpmautospec]         # required: a rebuild commit needs it
     macros: [rpm/macros]
-    path: el9                      # publish sub-path
+    path: el9                      # path below repo.url
   - id: el10
     mock: rocky+epel-10-x86_64
     plugins: [rpmautospec]
@@ -116,15 +134,17 @@ packages:
     upstream: {github: SchedMD/slurm, tags: '^slurm-', fedora: slurm}
   # ... prrte, pmix_v5, openmpi, slurm-singularity-exec
   - dir: slurm-release
-    path: packages/slurm-release   # in the set tree, no branch
-    role: release                  # repoctl links it as slurm-release.rpm
+    path: packages/slurm-release   # in the set tree, no branch; %autorelease in its spec
+    role: release                  # key file and .repo come from "repoctl release write"
 
 skills: [.claude/skills]           # optional set-local skills, section 6</pre>
 <p>Rules:</p>
 <ul>
 <li>An unknown key is an error. <code>apiVersion</code> lets the schema change later without silent errors.</li>
 <li>No build order in the file. repoctl makes the graph from <code>rpmspec --buildrequires</code> and the <code>Provides</code> of each package.</li>
-<li>No secrets and no host paths in the file.</li>
+<li>No secrets and no host paths in the file. The file has no publish path and no registry credentials. Credentials come from the container credential store of the user.</li>
+<li><span class="sup">superseded</span> <code>publish: {path: …}</code> and the publish backends (rsync, GitHub Pages). <code>store.oci</code> and <code>repo.url</code> replace them. A mirror job on the HTTP server pulls <code>latest</code> and serves it.</li>
+<li>Every target has <code>plugins: [rpmautospec]</code>. Without it a rebuild commit gives no new NVR (<code>config.invalid</code>).</li>
 <li><code>repoctl schema</code> prints a JSON Schema. Editors and agents use it to check the file.</li>
 </ul>
 
@@ -139,16 +159,15 @@ packages:
     url: https://git.gsi.de/SDE/packages/rocm-smi.git
     branch: slurm-26.05
     commit: cae3663bc5c9f97abb8e49c8adebfc4bedde98a0</pre>
-<p>The lock is a separate file, like <code>go.sum</code>. A version bump changes one line in the lock and nothing in <code>repoctl.yaml</code>. <code>repoctl migrate</code> converts <code>packages.lock</code> once.</p>
+<p>The lock is a separate file, like <code>go.sum</code>. A version bump changes one line in the lock and nothing in <code>repoctl.yaml</code>. <code>repoctl migrate</code> converts <code>packages.lock</code> once. A package in <code>repoctl.yaml</code> without a lock line is <code>unpinned</code>. A lock line without a package is <code>orphaned</code>. A missing lock file counts as an empty lock.</p>
 
 <h3>3.4 User config</h3>
 <pre># $XDG_CONFIG_HOME/repoctl/config.yaml
 jobs: 4
 sign:
-  gpg_name: d.klein@gsi.de         # else: rpm --eval %{_gpg_name}
-sets:                              # per-set values, by set name
-  slurm-26.05:
-    publish: {path: /srv/repos/slurm-26.05/el9}</pre>
+  key: d.klein@gsi.de              # your personal key: user id or fingerprint
+                                   # else: rpm --eval %{_gpg_name}</pre>
+<p>The user config holds values that belong to one person or one host: the job count, the signing key, the agent command. <span class="sup">superseded</span> <code>sets.&lt;set&gt;.publish.path</code>: a set has no publish path. <code>sign.gpg_name</code> stays as an alias of <code>sign.key</code>. Each admin has a personal key, and the set config lists the keys that clients trust (<code>sign.keys</code>).</p>
 
 <h3>3.5 Many targets and external package repos (v1)</h3>
 <svg viewBox="0 0 820 250" role="img" aria-label="Nodes are package times target">
@@ -161,35 +180,36 @@ sets:                              # per-set values, by set name
 <rect class="b" x="600" y="14" width="200" height="30" rx="6"/><text x="700" y="34" text-anchor="middle">publish el9/slurm…</text>
 <rect class="b" x="600" y="52" width="200" height="30" rx="6"/><text x="700" y="72" text-anchor="middle">publish el10/slurm…</text>
 <path class="l" d="M520,29 L598,29"/><path class="l" d="M520,67 L598,67"/><path class="l" d="M520,109 C560,109 560,35 598,33"/>
-<rect class="bm" x="20" y="160" width="380" height="70" rx="6"/><text x="36" y="184" class="t">external repo</text><text x="36" y="204" class="m">git.url -> mirror in $XDG_CACHE_HOME/repoctl/git/</text><text x="36" y="220" class="m">full history (rpmautospec), creds from git/ssh</text>
+<rect class="bm" x="20" y="160" width="380" height="70" rx="6"/><text x="36" y="184" class="t">external repo</text><text x="36" y="204" class="m">git.url -> clone in $XDG_DATA_HOME/repoctl/git/</text><text x="36" y="220" class="m">full history (rpmautospec), creds from git/ssh</text>
 <path class="l" d="M210,160 L150,122"/>
 <rect class="bm" x="420" y="160" width="380" height="70" rx="6"/><text x="436" y="184" class="t">graph per target</text><text x="436" y="204" class="m">SRPM built in that target's mock gives the</text><text x="436" y="220" class="m">BuildRequires for that target (handles %if %rhel)</text>
 </svg>
 <ul>
-<li><b>Node = package × target.</b> repoctl builds each package for each target in its <code>targets:</code> list (default: all targets).</li>
+<li><b>Node = package × target.</b> repoctl builds each package for each target in its <code>targets:</code> list (default: all targets). The build identity of a node is the package commit plus the target. There is no node key (03).</li>
 <li><b>One graph per target.</b> repoctl builds the SRPM in the mock chroot of the target and reads its requires. Thus, <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives correct edges. Dynamic BuildRequires (<code>%generate_buildrequires</code>) are not seen before the build. repoctl logs a warning for them.</li>
-<li><b>Missing dependency for a target.</b> If <code>slurm@el10</code> requires <code>rocm-smi</code>, but rocm-smi is el9 only, the plan shows the gap before the build: "slurm@el10 needs pkgconfig(rocm_smi64); rocm-smi is not built for el10".</li>
-<li><b>Staging and publish per target.</b> Each target has its own staging repo and its own publish path (<code>el9/slurm</code>, <code>el10/slurm</code>). A run can build all targets. Publish signs all targets of the run in one step.</li>
-<li><b>Extra RPM repos per target</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. Their URLs are part of the node key.</li>
-<li><b>External package repos.</b> <code>git.url</code> on a package (or in <code>defaults.git</code>) points to any git server. repoctl keeps one bare mirror per URL with full history, because rpmautospec needs it. <code>checkout</code> fetches the mirror and makes the worktree. The lock stores URL, branch and commit. The URL is part of the node key.</li>
+<li><b>Missing dependency for a target.</b> If <code>slurm@el10</code> requires <code>rocm-smi</code>, but rocm-smi is el9 only, the plan shows the gap before the build: "slurm@el10 needs rocm-smi-devel; rocm-smi is not built for el10".</li>
+<li><b>Staging and publish per target.</b> Each target has its own staging repo and its own OCI package (<code>&lt;set&gt;-el9</code>, <code>&lt;set&gt;-el10</code>). A run can build all targets. A publish takes the plan and covers the targets that are ready. A failed el10 node does not stop el9.</li>
+<li><b>Extra RPM repos per target</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. A change in these repos can change a build result. repoctl does not rebuild by itself. It shows an advisory (<code>buildroot.drift</code>), and the person decides.</li>
+<li><b>External package repos.</b> <code>git.url</code> on a package (or in <code>defaults.git</code>) points to any git server. repoctl keeps one bare clone per URL with full history in the data directory, because rpmautospec needs it. <code>checkout</code> fetches the clone and makes the worktree. The lock stores URL, branch and commit.</li>
 <li><b>Credentials</b> come from the user's git and ssh setup. The config never holds them. <code>repoctl doctor</code> checks that each external URL is reachable.</li>
 </ul>
 
 <h2>4. XDG directories</h2>
-<svg viewBox="0 0 820 330" role="img" aria-label="Where repoctl writes files">
+<svg viewBox="0 0 820 345" role="img" aria-label="Where repoctl writes files">
 <rect class="bh" x="20" y="16" width="250" height="110" rx="6"/><text x="36" y="40" class="t">set directory (git)</text>
 <text x="36" y="62" class="m">repoctl.yaml, repoctl.lock</text><text x="36" y="80" class="m">rpm/macros, packages/slurm-release</text><text x="36" y="98" class="m">packages/&lt;dir&gt;  (worktrees,</text><text x="36" y="114" class="m">   ignored by git)</text>
 <rect class="b" x="300" y="16" width="500" height="44" rx="6"/><text x="316" y="36" class="t">$XDG_CONFIG_HOME/repoctl/</text><text x="316" y="52" class="m">config.yaml</text>
-<rect class="b" x="300" y="68" width="500" height="58" rx="6"/><text x="316" y="88" class="t">$XDG_CACHE_HOME/repoctl/</text><text x="316" y="104" class="m">nodes/&lt;key&gt;/  SOURCES, SRPMS, RPMS of one build (shared by all sets)</text><text x="316" y="119" class="m">&lt;set&gt;/staging/&lt;run&gt;/  repo of one run</text>
-<rect class="b" x="300" y="134" width="500" height="58" rx="6"/><text x="316" y="154" class="t">$XDG_STATE_HOME/repoctl/&lt;set&gt;/</text><text x="316" y="170" class="m">runs/&lt;run&gt;.jsonl  event log, logs/&lt;run&gt;/&lt;dir&gt;.log</text><text x="316" y="185" class="m">published.yaml  keys of the published repo</text>
-<rect class="b" x="300" y="200" width="500" height="44" rx="6"/><text x="316" y="220" class="t">$XDG_DATA_HOME/repoctl/&lt;set&gt;/repo/</text><text x="316" y="236" class="m">default publish target (signed repos), if the user config sets no path</text>
-<rect class="b" x="300" y="252" width="500" height="44" rx="6"/><text x="316" y="272" class="t">$XDG_RUNTIME_DIR/repoctl/</text><text x="316" y="288" class="m">&lt;set&gt;.lock (one build per set), ui.sock (web UI)</text>
-<text x="20" y="318" class="m">/var/lib/mock and /var/cache/mock stay with mock. repoctl gives mock --resultdir in the cache and --uniqueext per job.</text>
+<rect class="b" x="300" y="68" width="500" height="58" rx="6"/><text x="316" y="88" class="t">$XDG_CACHE_HOME/repoctl/</text><text x="316" y="104" class="m">srpm/  SRPM and spec facts per commit;  upstream/  answers of the last hour</text><text x="316" y="119" class="m">mock/  mock work files.  Safe to delete.</text>
+<rect class="b" x="300" y="134" width="500" height="58" rx="6"/><text x="316" y="154" class="t">$XDG_STATE_HOME/repoctl/&lt;set&gt;/</text><text x="316" y="170" class="m">runs/&lt;run&gt;.jsonl  journal, logs/&lt;run&gt;/&lt;node&gt;/  node and mock logs</text><text x="316" y="185" class="m">snapshot.json  state of the local copy,  check.json  last advisory check</text>
+<rect class="b" x="300" y="200" width="500" height="72" rx="6"/><text x="316" y="220" class="t">$XDG_DATA_HOME/repoctl/</text><text x="316" y="238" class="m">git/&lt;hash&gt;.git  clones of external package repos</text><text x="316" y="253" class="m">&lt;set&gt;/staging/&lt;run&gt;/  staged nodes;  &lt;set&gt;/repo/  local copy of latest</text><text x="316" y="268" class="m">&lt;set&gt;/publishes/&lt;id&gt;/  signed tree of a publish</text>
+<rect class="b" x="300" y="280" width="500" height="44" rx="6"/><text x="316" y="300" class="t">$XDG_RUNTIME_DIR/repoctl/</text><text x="316" y="316" class="m">&lt;set&gt;.lock (one command at a time per set), ui.sock (web UI)</text>
+<text x="20" y="338" class="m">/var/lib/mock and /var/cache/mock stay with mock. repoctl gives mock --resultdir in the cache and --uniqueext per job.</text>
 </svg>
 <ul>
-<li><b>Cache is safe to delete.</b> <code>repoctl clean</code> deletes it. The next build is slower, not different.</li>
-<li><b>Shared node cache.</b> The key of a node is a hash of its commit, target, macros and the keys of its dependencies. <code>munge 3a244fd</code> is pinned in 25.11 and in 26.05. With the same target, it has the same key. repoctl builds it once.</li>
-<li><b>State is kept.</b> Event logs feed <code>repoctl logs</code>, the web UI and the agent.</li>
+<li><b>Only the cache is safe to delete.</b> <code>repoctl clean --cache</code> deletes it. The next build is slower, not different. The data directory holds staged nodes, clones of external packages and the local copy of <code>latest</code>. <code>repoctl clean</code> keeps staged nodes.</li>
+<li><span class="sup">superseded</span> <b>Shared node cache</b> with a node key (hash of commit, target, macros and dependency keys). There is no node key and no node cache. What is built is decided by the manifest of <code>latest</code> and by the staged nodes of the set (03).</li>
+<li><b>The registry decides what is published.</b> No file on this host does. <code>published.yaml</code> is <span class="sup">superseded</span> by the annotations of <code>latest</code>.</li>
+<li><b>State is kept.</b> Journals feed <code>repoctl logs</code>, the web UI and the agent. <code>repoctl config paths</code> prints the paths of this set with their sizes.</li>
 <li>Defaults follow the XDG spec when a variable is not set: <code>~/.config</code>, <code>~/.cache</code>, <code>~/.local/state</code>, <code>~/.local/share</code>.</li>
 </ul>
 
@@ -199,11 +219,12 @@ sets:                              # per-set values, by set name
 <tr><td>Targets</td><td>many mock chroots (el9, el10, ...), section 3.5</td><td>per-target overrides of more keys</td></tr>
 <tr><td>Package source</td><td>branch in this repo or in an external git repo, section 3.5</td><td>tarball-only sources, dist-git layouts</td></tr>
 <tr><td>Upstream check</td><td>GitHub tags and releases, Fedora version</td><td><code>upstream:</code> kinds: GitLab, PyPI, URL pattern</td></tr>
-<tr><td>Signing</td><td>local GPG</td><td><code>sign:</code> backends: no sign (CI), other key source</td></tr>
-<tr><td>Publish</td><td>local directory, atomic swap</td><td><code>publish:</code> backends: rsync, GitHub Pages</td></tr>
-<tr><td>Release package</td><td>spec in the set tree</td><td><code>release: {generate: true}</code>: repoctl writes key + <code>.repo</code> from the config</td></tr>
+<tr><td>Signing</td><td>personal keys, local GPG (YubiKey or file key), many trusted keys</td><td><code>sign:</code> backends: no sign (CI), sops, other key source</td></tr>
+<tr><td>Publish</td><td>snapshots in an OCI registry (<code>store.oci</code>). The HTTP server (<code>repo.url</code>) is a mirror.</td><td>Other registries; other mirror kinds</td></tr>
+<tr><td>Release package</td><td>spec in the set tree. <code>repoctl release write</code> writes the key file and the <code>.repo</code> baseurl.</td><td><code>release: {generate: true}</code>: repoctl writes the whole package</td></tr>
+<tr><td>Host</td><td>Fedora only. The mock chroots are EL9 and EL10.</td><td>repoctl on EL</td></tr>
 </table>
-<p><b>Test for "generic".</b> The <code>main</code> branch gets its own <code>repoctl.yaml</code>: set <code>repoctl</code>, target current Fedora, packages <code>repoctl</code> and <code>repoctl-release</code>. If repoctl can build its own Fedora repo for GitHub Pages, the design is not tied to slurm. This needs mock in a privileged container in CI. If this is a problem, CI can use plain <code>rpmbuild</code> for this small set.</p>
+<p><b>Test for "generic".</b> The <code>main</code> branch gets its own <code>repoctl.yaml</code>: set <code>repoctl</code>, target current Fedora, packages <code>repoctl</code> and <code>repoctl-release</code>. The v1 form of the test is: repoctl builds and publishes this set from a Fedora host with a personal key. The snapshot goes to GHCR, and the mirror job puts the repo on GitHub Pages. That repo is also the install source of repoctl for the build hosts (Fedora only, or the release RPMs). A CI job that signs without a person is a later feature. The release-version check of publish has a version only for sets whose name has one. For this set it is off. If mock in a privileged container in CI is a problem, CI can use plain <code>rpmbuild</code> for the check.</p>
 
 <h2>6. Where the LLM skills live</h2>
 <h3>6.1 Decision</h3>
@@ -212,7 +233,7 @@ sets:                              # per-set values, by set name
 </div>
 <svg viewBox="0 0 820 385" role="img" aria-label="Three places for skills and facts">
 <rect class="bh" x="20" y="16" width="380" height="150" rx="8"/><text x="36" y="40" class="t">A. Ships with repoctl (main branch)</text>
-<text x="36" y="62" class="m">skills/: repoctl, package-updates,</text><text x="36" y="80" class="m">bump-package, triage-build</text>
+<text x="36" y="62" class="m">skills/: repoctl, package-updates, bump-package,</text><text x="36" y="80" class="m">triage-build, rebuild-check</text>
 <text x="36" y="104" class="m">go:embed in the binary, same version</text><text x="36" y="122" class="m">as the CLI, JSON and MCP contract</text>
 <text x="36" y="146" class="m">generic: no package names inside</text>
 <rect class="bg" x="420" y="16" width="380" height="150" rx="8"/><text x="436" y="40" class="t">B. Ships with the set (builder branch)</text>
@@ -244,8 +265,8 @@ sets:                              # per-set values, by set name
 <tr><th>Today</th><th>After</th></tr>
 <tr><td><code>package-info</code> (bash script + skill)</td><td>The script becomes <code>repoctl upstream [dir] --json</code>. The skill is not necessary any more.</td></tr>
 <tr><td><code>list-package-updates</code></td><td>Generic skill <code>package-updates</code> in repoctl. It calls <code>repoctl upstream --json</code>, reads release notes, writes the table.</td></tr>
-<tr><td>(new) <code>bump-package</code>, <code>triage-build</code></td><td>Generic skills in repoctl, as in the decision report section 6.4.</td></tr>
-<tr><td>(new) <code>repoctl</code></td><td>Generic skill: how to use the CLI, the config schema and the safety rules (never call mock or rpmsign directly, never run <code>publish</code> without the person's OK).</td></tr>
+<tr><td>(new) <code>bump-package</code>, <code>triage-build</code>, <code>rebuild-check</code></td><td>Generic skills in repoctl. <code>bump-package</code> has two modes: <i>draft</i> (a diff and a message, no commit; the UI button) and <i>apply</i> (commits on a package branch; the terminal). <code>rebuild-check</code> answers "is a rebuild necessary?" for an advisory. Tool lists per task are in <a href="04-cli-ui.html#c-skills">04, C.7</a>.</td></tr>
+<tr><td>(new) <code>repoctl</code></td><td>Generic skill: how to use the CLI, the config schema and the safety rules (never call mock or rpmsign directly, never run <code>publish</code>, <code>repo push</code> or any other shared-state command without the person's OK). The MCP server has a read-only mode (<code>--tools read</code>) for the UI agent.</td></tr>
 </table>
 
 <h2>7. Decisions (Dennis, 2026-11-02)</h2>
@@ -256,5 +277,15 @@ sets:                              # per-set values, by set name
 <tr><td>Set-local skills shadow repoctl skills</td><td>No. Set-local skills may only add.</td></tr>
 <tr><td>Name</td><td><code>repoctl</code>. Fedora has no package with this name (checked by Dennis).</td></tr>
 </table>
+<h3>Decisions of 2026-11-03</h3>
+<table>
+<tr><th>Point</th><th>Decision</th></tr>
+<tr><td>Publish store</td><td>GHCR is the authority. The HTTP server is a mirror. The set holds <code>store.oci</code> and <code>repo.url</code>, not a publish path. Public repo, packages and registry; the project moves to GSI-HPC.</td></tr>
+<tr><td>Build identity</td><td>Package commit plus target. No node key. A rebuild is an empty commit.</td></tr>
+<tr><td>Host</td><td>Fedora only. Every admin builds on their own user and host. There is no race handling between two admins.</td></tr>
+<tr><td>Web UI</td><td>Local user only. No remote UI over ssh.</td></tr>
+<tr><td>Old versions</td><td>A repo keeps all earlier package versions. Removal is opt-in and explicit.</td></tr>
+</table>
+<p>The full list is in <a href="04-cli-ui.html#decisions">04, decisions</a>.</p>
 <p>Next: CLI and web UI design, and the signing key study. See <a href="04-cli-ui.html">04-cli-ui.html</a>.</p>
 </body></html>
