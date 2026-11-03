@@ -19,6 +19,8 @@ The design record is in [`docs/design/`](docs/design/index.html):
 5. [Publish, snapshots and signing](docs/design/05-publish-snapshots-signing.html) (proposal)
 6. [Advisories and package lifecycle](docs/design/06-advisories-lifecycle.html) (proposal)
 
+Runbook for an agent: [import the bash-era repos](docs/runbooks/import-bash-era-repos.html).
+
 Review of the design from six user journeys: [UX review](docs/review/ux-review.html).
 
 ## Branches in this repository
