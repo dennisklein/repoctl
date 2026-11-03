@@ -788,7 +788,7 @@ sign.verify-el    ok    verify root for el9 and el10 ready (repoctl mock update)
 <h3>Assumptions</h3>
 <ul class="sg-list">
 <li><code>sign</code> block split: set config <code>sign.keys[]</code> (<code>id</code>, <code>file</code>, <code>fingerprint</code>, <code>state</code>), <code>sign.release.keyfile</code>, <code>sign.checks</code>; user config <code>sign.key</code>, <code>sign.backend</code> (<code>gpg</code> | <code>agent-ssh</code>), <code>sign.gpg.homedir</code>. <code>sign.gpg_name</code> is a deprecated alias of <code>sign.key</code>. The contract and cli-ref areas should use these names.</li>
-<li>Key identity in all output (JSON <code>signature</code> field in <code>output.schema.json</code>, <code>published.yaml</code>, UI) is the full 40-hex fingerprint plus the set key <code>id</code>. Short IDs are for display only.</li>
+<li>Key identity in all output (JSON <code>signature</code> field in <code>output.schema.json</code>, the snapshot manifest, UI) is the full 40-hex fingerprint plus the set key <code>id</code>. Short IDs are for display only.</li>
 <li><code>sign.keys</code> is an input of the key of the <code>role: release</code> node.</li>
 <li><code>repoctl publish</code> re-signs published RPMs whose signer is not an active set key, and shows them in the confirm summary. Publish steps (contract events) stay <code>sign</code>, <code>repodata</code>, <code>verify</code>, <code>swap</code>.</li>
 <li>Doctor check ids <code>sign.*</code> as listed in 9.4. New helper <code>repoctl sign offboard &lt;id&gt;</code> (prints only, changes nothing).</li>
