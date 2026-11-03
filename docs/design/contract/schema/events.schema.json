@@ -197,6 +197,42 @@
       "then": {
         "$ref": "#/$defs/PublishFinished"
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "advisory"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/AdvisoryEvent"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "advisory.gone"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/AdvisoryGone"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "advisory.accepted"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/AdvisoryAccepted"
+      }
     }
   ],
   "$defs": {
@@ -215,7 +251,10 @@
         "run.finished",
         "publish.started",
         "publish.step",
-        "publish.finished"
+        "publish.finished",
+        "advisory",
+        "advisory.gone",
+        "advisory.accepted"
       ]
     },
     "RunStarted": {
@@ -232,7 +271,8 @@
         "kind": {
           "enum": [
             "build",
-            "publish"
+            "publish",
+            "check"
           ]
         },
         "trace": {
@@ -278,31 +318,40 @@
         "repoctl": {
           "type": "string"
         },
-        "fromRun": {
-          "$ref": "output.json#/$defs/RunId"
+        "publishKind": {
+          "enum": [
+            "publish",
+            "restore",
+            "prune",
+            "resign"
+          ]
         }
       }
     },
     "PlanReady": {
-      "description": "Sets every node's first state: build nodes whose deps are all done start queued, other build nodes start waiting, cached nodes are cached. No node.state line is written for these first states.",
+      "description": "Sets every node first state: build nodes start waiting (a node with all dependencies done starts when a job slot is free), current and staged nodes keep their plan state. No node.state line is written for these first states.",
       "required": [
         "summary",
         "build",
-        "cached"
+        "current"
       ],
       "properties": {
         "summary": {
           "type": "object",
           "required": [
             "build",
-            "cached",
+            "current",
+            "staged",
             "skip"
           ],
           "properties": {
             "build": {
               "type": "integer"
             },
-            "cached": {
+            "current": {
+              "type": "integer"
+            },
+            "staged": {
               "type": "integer"
             },
             "skip": {
@@ -338,7 +387,13 @@
             }
           }
         },
-        "cached": {
+        "current": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/NodeId"
+          }
+        },
+        "staged": {
           "type": "array",
           "items": {
             "$ref": "output.json#/$defs/NodeId"
@@ -575,14 +630,17 @@
     },
     "PublishStarted": {
       "required": [
-        "fromRun",
         "targets",
         "by",
         "signer"
       ],
       "properties": {
-        "fromRun": {
-          "$ref": "output.json#/$defs/RunId"
+        "fromRuns": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/RunId"
+          },
+          "description": "Build runs whose staged nodes this publish takes."
         },
         "targets": {
           "type": "array",
@@ -598,6 +656,16 @@
         },
         "signer": {
           "$ref": "output.json#/$defs/Signer"
+        },
+        "base": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/Digest"
+          },
+          "description": "Per target: latest when the publish started."
+        },
+        "unattended": {
+          "type": "boolean"
         }
       }
     },
@@ -620,7 +688,10 @@
             "sign",
             "repodata",
             "verify",
-            "swap"
+            "verify-el",
+            "push",
+            "tag",
+            "cache"
           ]
         },
         "phase": {
@@ -640,8 +711,8 @@
         "count": {
           "type": "integer"
         },
-        "path": {
-          "type": "string"
+        "digest": {
+          "$ref": "output.json#/$defs/Digest"
         }
       }
     },
@@ -666,6 +737,89 @@
         },
         "exitCode": {
           "type": "integer"
+        },
+        "snapshots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "tag": {
+                "type": "string"
+              },
+              "digest": {
+                "$ref": "output.json#/$defs/Digest"
+              }
+            }
+          },
+          "description": "Per target: the new snapshot."
+        }
+      }
+    },
+    "AdvisoryEvent": {
+      "description": "An advisory appeared or changed state. Journal of a check or a build.",
+      "required": [
+        "id",
+        "state",
+        "level"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "open",
+            "dismissed"
+          ]
+        },
+        "level": {
+          "enum": [
+            "info",
+            "warn",
+            "required"
+          ]
+        },
+        "factsDigest": {
+          "$ref": "output.json#/$defs/Digest"
+        }
+      }
+    },
+    "AdvisoryGone": {
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "AdvisoryAccepted": {
+      "description": "A person accepted a blocking advisory for one publish.",
+      "required": [
+        "id",
+        "factsDigest",
+        "reason",
+        "user",
+        "host"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "factsDigest": {
+          "$ref": "output.json#/$defs/Digest"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 8
+        },
+        "user": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
         }
       }
     }

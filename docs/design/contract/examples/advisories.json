@@ -1,0 +1,91 @@
+{
+  "apiVersion": "repoctl/v1alpha1",
+  "kind": "AdvisoryList",
+  "metadata": {
+    "set": "slurm-26.05",
+    "setDir": "/home/dklein/src/slurm-repo",
+    "command": "advisories ls",
+    "generatedAt": "2026-11-03T14:05:21.220Z",
+    "repoctl": {
+      "version": "v0.4.0",
+      "commit": "3f9a1c2"
+    },
+    "targets": [
+      "el9",
+      "el10"
+    ]
+  },
+  "items": [
+    {
+      "advisories": [
+        {
+          "id": "soname.removed/ucx@el9",
+          "code": "soname.removed",
+          "level": "required",
+          "subject": "ucx@el9",
+          "targets": [
+            "el9"
+          ],
+          "state": "open",
+          "title": "libucp.so.0 removed; slurm and openmpi require it",
+          "facts": {
+            "soname": "libucp.so.0",
+            "removedIn": "ucx-1.22.1-1.el9",
+            "provides": "libucp.so.1",
+            "requiredBy": [
+              "slurm",
+              "openmpi"
+            ]
+          },
+          "factsDigest": "sha256:58a5c6634a4f6c79e0d515a01e919ff564c333ff2a1344168a335d0d15e8274c",
+          "closure": [
+            "slurm",
+            "openmpi"
+          ],
+          "suggestion": {
+            "text": "Rebuild the dependents into the same publish.",
+            "command": "repoctl rebuild slurm openmpi --reason \"ucx: libucp.so.0 -> .so.1\""
+          },
+          "source": "plan",
+          "seen": "2026-11-03T14:05:20.100Z"
+        },
+        {
+          "id": "upstream.release/slurm-singularity-exec",
+          "code": "upstream.release",
+          "level": "info",
+          "subject": "slurm-singularity-exec",
+          "targets": [
+            "el9",
+            "el10"
+          ],
+          "state": "dismissed",
+          "title": "3.2.1 is released",
+          "facts": {
+            "upstream": "3.2.1",
+            "current": "3.2.0",
+            "releaseNotes": "https://github.com/sylabs/singularity-exec/releases/tag/v3.2.1"
+          },
+          "factsDigest": "sha256:c46b67447d068a2c48f02396bc5ac7070185177fefa56a41eb69902ca1499aab",
+          "source": "check",
+          "seen": "2026-11-03T08:00:03.700Z",
+          "dismissal": {
+            "by": "d.klein",
+            "at": "2026-11-03T09:12:00.000Z",
+            "note": "3.2.1 is a Windows-only fix",
+            "stale": false
+          }
+        }
+      ],
+      "check": {
+        "at": "2026-11-03T08:00:03.700Z",
+        "by": "timer",
+        "ok": true,
+        "failed": [],
+        "stale": false,
+        "timer": "active"
+      }
+    }
+  ],
+  "warnings": [],
+  "errors": []
+}
