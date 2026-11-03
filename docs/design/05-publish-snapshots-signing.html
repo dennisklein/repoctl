@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>repoctl publish and signing</title>
+<style>
+:root{--bg:#faf8f6;--fg:#231d18;--mut:#6b6158;--line:#ddd5cd;--acc:#b4581f;--box:#f2eeea;--ok:#2f7d4a;--warn:#8a5f00;--err:#b8322a;--hi:rgba(180,88,31,.10);--hi2:rgba(47,125,74,.10);--hi3:rgba(184,50,42,.09);--hi4:rgba(138,95,0,.11)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15120f;--fg:#efe9e3;--mut:#bfb4a9;--line:#3a312a;--acc:#e08a4f;--box:#241f1a;--ok:#6cc58a;--warn:#e6b84a;--err:#ff7a6e;--hi:rgba(224,138,79,.14);--hi2:rgba(108,197,138,.14);--hi3:rgba(255,122,110,.13);--hi4:rgba(230,184,74,.14)}}
+:root[data-theme="dark"]{--bg:#15120f;--fg:#efe9e3;--mut:#bfb4a9;--line:#3a312a;--acc:#e08a4f;--box:#241f1a;--ok:#6cc58a;--warn:#e6b84a;--err:#ff7a6e;--hi:rgba(224,138,79,.14);--hi2:rgba(108,197,138,.14);--hi3:rgba(255,122,110,.13);--hi4:rgba(230,184,74,.14)}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif;max-width:960px;margin:0 auto;padding:24px 16px 80px}
+a{color:var(--acc)}
+h1{font-size:1.65rem;margin-bottom:.2rem}h2{margin-top:2.4rem;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin-top:1.5rem}h4{margin:1.1rem 0 .3rem}
+.sub{color:var(--mut);margin-top:0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{background:var(--box)}
+code{background:var(--box);padding:1px 4px;border-radius:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;overflow-wrap:anywhere}
+pre{background:var(--box);padding:10px;border-radius:6px;overflow-x:auto;font-size:.8rem;line-height:1.45}
+pre code{background:none;padding:0;overflow-wrap:normal}
+svg.fig{width:100%;height:auto;background:var(--box);border-radius:8px;margin:8px 0}
+svg text{fill:var(--fg);font:13px system-ui,sans-serif}svg text.m{fill:var(--mut);font-size:12px}svg text.t{font-weight:600}svg text.s{font-size:11px;fill:var(--mut)}
+svg text.e{fill:var(--err);font-size:12px;font-weight:600}svg text.g{fill:var(--ok);font-size:12px;font-weight:600}
+svg .b{fill:var(--bg);stroke:var(--acc);stroke-width:1.5}svg .bm{fill:var(--bg);stroke:var(--mut);stroke-width:1.2;stroke-dasharray:4 3}
+svg .bh{fill:var(--hi);stroke:var(--acc);stroke-width:2}svg .bg{fill:var(--hi2);stroke:var(--ok);stroke-width:1.5}svg .bw{fill:var(--hi3);stroke:var(--err);stroke-width:1.5}svg .by{fill:var(--hi4);stroke:var(--warn);stroke-width:1.5}
+svg .l{stroke:var(--mut);stroke-width:1.4;fill:none;marker-end:url(#a)}svg .lw{stroke:var(--err);stroke-width:1.6;fill:none;marker-end:url(#a)}svg .lq{stroke:var(--mut);stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#a)}svg .ah{fill:var(--mut)}
+svg .div{stroke:var(--mut);stroke-width:1;stroke-dasharray:3 4}
+.note{border-left:4px solid var(--acc);padding:6px 14px;background:var(--box);margin:12px 0;border-radius:0 6px 6px 0}
+.note.w{border-left-color:var(--warn);background:var(--hi4)}
+.rule{background:var(--hi2);border-radius:6px;padding:6px 12px;margin:.6rem 0}
+.rule b{color:var(--ok)}
+.cmd{border:1px solid var(--line);border-radius:8px;padding:4px 14px 8px;margin:14px 0;background:var(--bg)}
+.cmd h4{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.98rem}
+.kv{display:grid;grid-template-columns:7.5em 1fr;gap:2px 10px;font-size:.9rem;margin:.4rem 0}
+.kv>b{color:var(--mut);font-weight:600}
+.cls{display:inline-block;padding:0 8px;border-radius:999px;font-size:.76rem;font-weight:600;line-height:1.6;border:1px solid currentColor;white-space:nowrap}
+.c-read{color:var(--ok)}.c-local{color:var(--acc)}.c-stage{color:var(--mut)}.c-shared{color:var(--err)}
+.small{font-size:.86rem}.mut{color:var(--mut)}
+.toc{columns:2;column-gap:28px;font-size:.92rem}@media(max-width:640px){.toc{columns:1}.kv{grid-template-columns:1fr}}
+.explainer{margin:12px 0 20px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg)}
+.explainer svg.fig{margin:4px 0}
+.explainer [data-f]{transition:opacity .45s ease}
+.explainer .off{opacity:0}
+.excap{min-height:3.2em;font-size:.95rem;margin:4px 2px}
+.exctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.exctl button{font:inherit;font-size:.86rem;padding:3px 12px;border-radius:6px;border:1px solid var(--line);background:var(--box);color:var(--fg);cursor:pointer}
+.exctl button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.exstep{color:var(--mut);font-size:.85rem}
+@media (prefers-reduced-motion:reduce){.explainer [data-f]{transition:none}}
+</style></head><body><svg aria-hidden="true" style="position:absolute;width:0;height:0"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ah"/></marker></defs></svg>
+
+<h1>repoctl: publish, snapshots and signing</h1>
+<p class="sub">Date: 2026-11-03. Status: proposal for review. This document is work packages WP2 and WP4 of the <a href="../review/ux-review.html">UX review</a>. It uses the answers of Dennis to Q1 to Q16. Where it differs from <a href="03-build-state.html">03</a> or <a href="04-cli-ui.html">04</a>, this document applies. Section 14 lists the changes.</p>
+
+<h2 id="s1">1. Summary</h2>
+<div class="note">
+<ul>
+<li><b>GHCR is the authority.</b> The tag <code>latest</code> of each set and target says what is published. All other records are copies or caches.</li>
+<li><b>Publish has one fixed order:</b> check, sign, repodata, verify, verify in the EL chroot, push, tag, cache. Until the tag moves, nothing that other people see changes. A failed push or tag leaves the signed tree, and <code>repoctl repo push</code> completes it.</li>
+<li><b>An HTTP server serves the clients.</b> A mirror job on that server pulls <code>latest</code>, verifies it with the keys that the clients have, and swaps the tree. It uses only curl, jq, gpgv and rpmkeys. repoctl does not run there.</li>
+<li><b>No lease between admins.</b> Publish compares <code>latest</code> two times: in the check step and just before the tag moves. The team coordinates in its own channel.</li>
+<li><b>A person confirms a key deployment.</b> <code>repoctl sign deployed</code> writes a committed record. Gate 2 passes only with this record. Config management gives no feedback, so a person must check the clients.</li>
+<li><b>Re-sign is explicit.</b> A normal publish never re-signs old RPMs. <code>repoctl repo resign</code> does it as its own publish. Publish refuses RPMs from unknown signers.</li>
+<li><b>The client rpm verifies.</b> Publish verifies every target inside its EL mock chroot, with the EL rpm and dnf, and only with the keys that the clients have.</li>
+<li><b>Every command that changes shared state has one safety class</b>, with a dry run, a summary, a terminal confirmation and no MCP tool.</li>
+</ul>
+</div>
+
+<h3>Contents</h3>
+<ol class="toc">
+<li><a href="#s1">Summary</a></li>
+<li><a href="#s2">Scope</a></li>
+<li><a href="#s3">Topology</a></li>
+<li><a href="#s4">Records: where the truth lives</a></li>
+<li><a href="#s5">Publish order</a></li>
+<li><a href="#s6">Snapshot format and names</a></li>
+<li><a href="#s7">Safety classes</a></li>
+<li><a href="#s8">Repository commands</a></li>
+<li><a href="#s9">Registry access</a></li>
+<li><a href="#s10">Client trust chain</a></li>
+<li><a href="#s11">Signing gates and re-sign rules</a></li>
+<li><a href="#s12">Key lifecycle and sign commands</a></li>
+<li><a href="#s13">Contract, MCP and UI</a></li>
+<li><a href="#s14">Changes to 02, 03 and 04</a></li>
+<li><a href="#s15">Verification plan</a></li>
+<li><a href="#s16">Findings covered</a></li>
+<li><a href="#s17">Assumptions and open questions</a></li>
+</ol>
+
+<h2 id="s2">2. Scope</h2>
+<p>This document specifies the publish path from the admin host to the clients, the snapshot commands, the registry, the signing gates and the key lifecycle. It closes the blockers <a href="../review/ux-review.html#UX-01">UX-01</a> and <a href="../review/ux-review.html#UX-04">UX-04</a>, and the findings of WP2 and WP4 (section 16).</p>
+<table>
+<tr><th>In this document</th><th>In other documents</th></tr>
+<tr><td>Publish order, push, tag, mirror job, <code>repo.url</code>, <code>store</code></td><td>Advisory gate, <code>repoctl check</code>, dismissals: 06 (WP3)</td></tr>
+<tr><td><code>repo push</code>, <code>pull</code>, <code>snapshots</code>, <code>restore</code>, <code>prune</code>, <code>gc</code>, <code>resign</code></td><td>Retire flow of a package, <code>prune --package NAME --all</code>: 06 (WP5)</td></tr>
+<tr><td>Signing gates, deployment record, key lifecycle, re-sign, expiry</td><td>Import of today's repos: runbook in <code>docs/runbooks/</code> (WP5)</td></tr>
+<tr><td>Client trust chain, verify in the EL chroot</td><td>Publish pages, agent modes, removal of the v1 text in 04: thread C (WP1, WP6)</td></tr>
+</table>
+<p>Words in this document: <b>set</b> = a package set (<code>builder/slurm-26.05</code>). <b>Target</b> = el9 or el10. <b>Snapshot</b> = one OCI manifest that holds all files of one set and target. <b>Base</b> = the snapshot that a publish starts from. <b>Served</b> = the tree that the HTTP server gives to the clients.</p>
+
+<h2 id="s3">3. Topology</h2>
+<p>Decisions: clients read from an HTTP server (Q1). GHCR is the authority (Q2). The repo, the packages and GHCR are public in GSI-HPC (Q4). Each admin builds as an own user and/or on an own host (Q12). The web UI is for the local user only (Q15). repoctl runs on Fedora only (Q16).</p>
+<svg class="fig" viewBox="0 0 900 340" role="img" aria-label="Topology: admin hosts push to GHCR, a mirror job on the HTTP server pulls, clients read over HTTP">
+<rect class="b" x="20" y="20" width="240" height="92" rx="8"/><text x="34" y="44" class="t">Admin host (Fedora)</text><text x="34" y="66" class="m">own user, CLI and local web UI</text><text x="34" y="86" class="m">build, publish, verify in EL chroots</text><text x="34" y="104" class="s">XDG state: runs, staging, local copy</text>
+<rect class="b" x="20" y="132" width="240" height="80" rx="8"/><text x="34" y="156" class="t">Second admin host</text><text x="34" y="178" class="m">same tools, own XDG state</text><text x="34" y="198" class="m">repo pull gets the same base</text>
+<rect class="bg" x="330" y="20" width="240" height="80" rx="8"/><text x="344" y="44" class="t">Git remote (GitHub)</text><text x="344" y="66" class="m">repoctl.yaml, repoctl.lock, keys/</text><text x="344" y="86" class="m">keys/deployed.yaml, branches</text>
+<rect class="bh" x="330" y="122" width="240" height="96" rx="8"/><text x="344" y="146" class="t">GHCR: the authority</text><text x="344" y="168" class="m">&lt;store&gt;/&lt;set&gt;-&lt;target&gt;</text><text x="344" y="188" class="m">tags: latest, p-&lt;publish id&gt;</text><text x="344" y="208" class="m">public pull, team push</text>
+<rect class="b" x="640" y="122" width="240" height="96" rx="8"/><text x="654" y="146" class="t">HTTP server</text><text x="654" y="168" class="m">mirror job, timer, every 5 min</text><text x="654" y="188" class="m">pull latest, verify, swap</text><text x="654" y="208" class="m">curl, jq, gpgv, rpmkeys</text>
+<rect class="bg" x="640" y="250" width="240" height="72" rx="8"/><text x="654" y="274" class="t">EL9 and EL10 clients</text><text x="654" y="296" class="m">dnf reads repo.url</text><text x="654" y="314" class="s">keys from slurm-release</text>
+<rect class="bm" x="330" y="250" width="240" height="72" rx="8"/><text x="344" y="274" class="t">Config management</text><text x="344" y="296" class="m">installs slurm-release</text><text x="344" y="314" class="s">no feedback to repoctl (Q3)</text>
+<rect class="by" x="20" y="250" width="240" height="72" rx="8"/><text x="34" y="274" class="t">A person confirms</text><text x="34" y="296" class="m">new release is on all clients</text><text x="34" y="314" class="s">repoctl sign deployed (UI: Signing)</text>
+<path class="l" d="M262,50 L328,50"/><text x="276" y="42" class="s">git</text>
+<path class="l" d="M262,100 L328,146"/><text x="292" y="116" class="s">1 push, tag</text>
+<path class="l" d="M328,186 L262,186"/><text x="270" y="204" class="s">pull</text>
+<path class="l" d="M572,170 L638,170"/><text x="578" y="162" class="s">2 pull</text>
+<path class="l" d="M760,220 L760,248"/><text x="768" y="240" class="s">3 dnf over HTTP</text>
+<path class="l" d="M572,286 L638,286"/>
+<path class="lq" d="M262,268 C300,240 300,120 330,98"/><text x="276" y="240" class="s">commit</text>
+</svg>
+<p class="small mut">Figure 1. The publish path. Numbers give the order of one publish. The admin hosts share only the git remote and GHCR.</p>
+
+<h3>3.1 Paths and URLs</h3>
+<table>
+<tr><th>Thing</th><th>Value</th><th>Set by</th></tr>
+<tr><td>Snapshot store</td><td><code>store.oci</code> in <code>repoctl.yaml</code>. Example: <code>ghcr.io/gsi-hpc/slurm-repo</code>. Until the move to GSI-HPC: <code>ghcr.io/dennisklein/slurm-repo</code>.</td><td>set</td></tr>
+<tr><td>One OCI package</td><td><code>&lt;store.oci&gt;/&lt;set&gt;-&lt;target&gt;</code>, for example <code>ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9</code></td><td>repoctl</td></tr>
+<tr><td>Client URL</td><td><code>repo.url</code> in <code>repoctl.yaml</code>. Clients use <code>&lt;repo.url&gt;/&lt;target.path&gt;/{slurm,slurm-source,slurm-debuginfo}/</code></td><td>set</td></tr>
+<tr><td>Served tree</td><td>A directory on the HTTP server that serves <code>repo.url</code>. Only the mirror job writes it.</td><td>mirror job config</td></tr>
+<tr><td>Local copy</td><td><code>$XDG_DATA_HOME/repoctl/&lt;set&gt;/repo/&lt;target&gt;/</code>: a copy of one snapshot. Build input (<code>--addrepo</code>) and base of the next publish. Clients never read it.</td><td>repoctl</td></tr>
+</table>
+<p>The user setting <code>sets.&lt;set&gt;.publish.path</code> is removed. No admin writes the served tree. Thus nobody can publish to a path that no client reads (<a href="../review/ux-review.html#UX-08">UX-08</a>), and two Unix users need no shared directory.</p>
+
+<h3>3.2 Mirror job</h3>
+<p>The mirror job is a shell script with systemd units. It ships in the repoctl repo as <code>contrib/mirror/</code> and in the release RPMs (Q16). It runs on the HTTP server as an own system user.</p>
+<pre><code># /etc/repoctl-mirror.conf: one line per set and target
+# set          target  package                                         served path
+slurm-26.05    el9     ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9      /srv/repos/slurm-repo/slurm-26.05/el9
+slurm-26.05    el10    ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el10     /srv/repos/slurm-repo/slurm-26.05/el10
+KEYRING=/etc/pki/rpm-gpg/RPM-GPG-KEY-slurm   # from slurm-release on this host
+KEEP_TREES=2</code></pre>
+<p>Each run of the job does these steps for each line:</p>
+<ol>
+<li>Get an anonymous pull token and the manifest of <code>latest</code> (OCI distribution API, curl). If the digest equals the served digest, stop.</li>
+<li>Download the missing blobs into <code>.objects/sha256/</code>. Check the sha256 of each blob.</li>
+<li>Make a new tree <code>.trees/&lt;set&gt;-&lt;target&gt;/&lt;digest&gt;/</code> from hard links. Each file gets its path from the annotation <code>org.opencontainers.image.title</code>.</li>
+<li>Verify the tree with <code>KEYRING</code>: <code>gpgv</code> on each <code>repomd.xml.asc</code> (exactly one signature), the checksums in <code>repomd.xml</code>, and <code>rpmkeys --checksig</code> on each RPM with a temporary rpmdb.</li>
+<li>Write <code>repoctl-snapshot.json</code> into the tree: set, target, digest, publish id, time of the pull.</li>
+<li>Swap: replace the symlink of the served path in one <code>rename</code>. Keep <code>KEEP_TREES</code> old trees. Delete objects that no tree uses.</li>
+</ol>
+<div class="rule"><b>Rule.</b> If a step fails, the job keeps the old tree, writes the error to the journal and exits with a failure. The next run tries again. The job never serves a tree that its keyring does not verify.</div>
+<p>The keyring of the job is the key file of the slurm-release that config management installed on the HTTP server. Thus the job has the same trust as a client. A snapshot that a key signs before that key is deployed stays unserved. This is a second guard behind gate 2 (section 11).</p>
+<p><code>repoctl status</code> reads <code>&lt;repo.url&gt;/&lt;target.path&gt;/repoctl-snapshot.json</code> and shows <b>served: same</b>, <b>served: behind</b> or <b>served: unknown</b>.</p>
+
+<h2 id="s4">4. Records: where the truth lives</h2>
+<p>Before this document, three records said what is published, and each command read a different one (<a href="../review/ux-review.html#UX-19">UX-19</a>). Now one record is the authority. The others are copies, and each copy says from which snapshot it comes.</p>
+<svg class="fig" viewBox="0 0 900 250" role="img" aria-label="One authority and its copies">
+<rect class="bh" x="330" y="20" width="240" height="84" rx="8"/><text x="344" y="44" class="t">GHCR tag latest</text><text x="344" y="66" class="m">manifest digest + annotations</text><text x="344" y="86" class="m">the only authority</text>
+<rect class="b" x="20" y="150" width="250" height="80" rx="8"/><text x="34" y="174" class="t">Local copy (each admin)</text><text x="34" y="196" class="m">files of one snapshot</text><text x="34" y="216" class="s">written by repo pull and publish</text>
+<rect class="b" x="325" y="150" width="250" height="80" rx="8"/><text x="339" y="174" class="t">snapshot.json (each admin)</text><text x="339" y="196" class="m">cache of the annotations</text><text x="339" y="216" class="s">replaces published.yaml</text>
+<rect class="b" x="630" y="150" width="250" height="80" rx="8"/><text x="644" y="174" class="t">Served tree (HTTP)</text><text x="644" y="196" class="m">files of one snapshot</text><text x="644" y="216" class="s">written by the mirror job only</text>
+<path class="l" d="M380,106 L160,148"/><path class="l" d="M450,106 L450,148"/><path class="l" d="M520,106 L750,148"/>
+<text x="640" y="40" class="m">plan, build, status, publish:</text><text x="640" y="58" class="m">one HEAD request on latest,</text><text x="640" y="76" class="m">then compare with the copy</text>
+</svg>
+<table>
+<tr><th>Record</th><th>Where</th><th>Written by</th><th>Read by</th><th>Role</th></tr>
+<tr><td><code>latest</code> tag and its manifest</td><td>GHCR</td><td>publish, repo push, restore, prune, resign</td><td>all</td><td>authority</td></tr>
+<tr><td>RepoManifest (03 section 3.2)</td><td>a file in the snapshot, listed in the signed <code>repomd.xml</code></td><td>publish</td><td>plan, build, publish</td><td>part of the snapshot</td></tr>
+<tr><td>Local copy and <code>snapshot.json</code></td><td><code>$XDG_DATA_HOME/repoctl/&lt;set&gt;/repo/&lt;target&gt;/</code></td><td>repo pull, publish (after the tag)</td><td>plan, build, repo ls, repo diff</td><td>cache</td></tr>
+<tr><td>Served tree</td><td>HTTP server</td><td>mirror job</td><td>clients, status</td><td>copy for dnf</td></tr>
+<tr><td>Runs, staging, journals, logs</td><td><code>$XDG_STATE_HOME</code>, <code>$XDG_CACHE_HOME</code></td><td>build, publish</td><td>the same user</td><td>personal, not shared</td></tr>
+<tr><td><code>keys/deployed.yaml</code></td><td>set repo (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
+</table>
+<p><code>published.yaml</code> is removed. Status, the Overview card "Last publish", the default key of <code>repo verify</code> and the signed-RPM reuse read the annotations of <code>latest</code>. After a lost host, <code>repoctl repo pull</code> gives back all of this. Runs and journals of the lost host are lost. They are personal, and nothing depends on them.</p>
+
+<h3>4.1 Freshness check</h3>
+<p>plan, build, status and publish read the digest of <code>latest</code> with one HEAD request per target. They compare it with the digest in the local <code>snapshot.json</code>.</p>
+<table>
+<tr><th>Result</th><th>plan, build</th><th>status</th><th>publish</th></tr>
+<tr><td>same</td><td>continue</td><td>local: same</td><td>continue</td></tr>
+<tr><td>registry has no snapshot of this target</td><td>continue (first publish)</td><td>not published</td><td>continue; gate 2 does not apply (except for an import, section 8)</td></tr>
+<tr><td><code>latest</code> is newer than the local copy, or no local copy</td><td>stop: <code>state.behind</code>, exit 13</td><td>local: behind</td><td>stop: <code>state.behind</code>, exit 13</td></tr>
+<tr><td>local copy has a signed publish that is not in the registry</td><td>warn: <code>state.unpushed</code></td><td>local: unpushed</td><td>stop: <code>state.unpushed</code>, exit 13</td></tr>
+<tr><td>registry not reachable</td><td>warn: <code>registry.unreachable</code>, use the local copy</td><td>registry: unknown</td><td>stop, exit 13</td></tr>
+</table>
+<p>Hints: <code>state.behind</code> gives <code>run: repoctl repo pull</code>. <code>state.unpushed</code> gives <code>run: repoctl repo push p-…</code>. Offline work stays possible for plan and build, but not for publish.</p>
+<pre><code>$ repoctl status
+set      slurm-26.05  (builder/slurm-26.05 at 9a0c4e2, pushed)
+store    ghcr.io/gsi-hpc/slurm-repo
+TARGET  LATEST                 BY               LOCAL   SERVED
+el9     p-20261103-1412-5e1    d.klein@hpc-a1   same    behind (p-20261102-2011-8b4)
+el10    p-20261102-2011-8b4    d.klein@hpc-a1   same    same
+hint: the mirror job on the HTTP server runs every 5 min</code></pre>
+
+<h2 id="s5">5. Publish order</h2>
+<p>This order replaces the publish steps of 04 (check, sign, repodata, verify, swap) and the two orders in the figures of 03 (<a href="../review/ux-review.html#UX-01">UX-01</a>).</p>
+<figure class="explainer" data-ex="1">
+<svg class="fig" viewBox="0 0 900 360" role="img" aria-label="Explainer: the publish order and what each failure leaves">
+<rect class="b" x="20" y="16" width="230" height="28" rx="6"/><text x="32" y="35">1 check</text>
+<rect class="b" x="20" y="50" width="230" height="28" rx="6"/><text x="32" y="69">2 sign</text>
+<rect class="b" x="20" y="84" width="230" height="28" rx="6"/><text x="32" y="103">3 repodata</text>
+<rect class="b" x="20" y="118" width="230" height="28" rx="6"/><text x="32" y="137">4 verify (host)</text>
+<rect class="b" x="20" y="152" width="230" height="28" rx="6"/><text x="32" y="171">5 verify-el (EL chroot)</text>
+<path class="div" d="M14,190 L460,190"/><text x="262" y="186" class="s">above: local only</text><text x="262" y="204" class="s">below: shared state</text>
+<rect class="b" x="20" y="198" width="230" height="28" rx="6"/><text x="32" y="217">6 push (blobs, manifest)</text>
+<rect class="b" x="20" y="232" width="230" height="28" rx="6"/><text x="32" y="251">7 tag (compare, move latest)</text>
+<rect class="b" x="20" y="266" width="230" height="28" rx="6"/><text x="32" y="285">8 cache (local copy)</text>
+<rect class="bm" x="20" y="310" width="230" height="28" rx="6"/><text x="32" y="329">mirror job (HTTP server)</text>
+<g data-f="1"><rect class="bh" x="20" y="16" width="230" height="28" rx="6"/><text x="32" y="35">1 check</text></g>
+<g data-f="2"><rect class="bh" x="20" y="50" width="230" height="130" rx="6"/><text x="32" y="69">2 sign</text><text x="32" y="103">3 repodata</text><text x="32" y="137">4 verify (host)</text><text x="32" y="171">5 verify-el (EL chroot)</text></g>
+<g data-f="3"><rect class="bh" x="20" y="198" width="230" height="28" rx="6"/><text x="32" y="217">6 push (blobs, manifest)</text></g>
+<g data-f="4"><rect class="bh" x="20" y="232" width="230" height="28" rx="6"/><text x="32" y="251">7 tag (compare, move latest)</text></g>
+<g data-f="5"><rect class="bh" x="20" y="266" width="230" height="28" rx="6"/><text x="32" y="285">8 cache (local copy)</text></g>
+<g data-f="6-7"><rect class="bh" x="20" y="310" width="230" height="28" rx="6"/><text x="32" y="329">mirror job (HTTP server)</text></g>
+<rect class="b" x="480" y="16" width="400" height="64" rx="8"/><text x="494" y="38" class="t">GHCR</text>
+<rect class="b" x="480" y="96" width="400" height="64" rx="8"/><text x="494" y="118" class="t">Local copy (admin host)</text>
+<rect class="b" x="480" y="176" width="400" height="64" rx="8"/><text x="494" y="198" class="t">Served tree (HTTP server)</text>
+<text x="494" y="64" class="m" data-f="0-2">latest = S1</text><text x="494" y="64" class="m" data-f="3">latest = S1 · S2 uploaded, tag p-2 only</text><text x="494" y="64" class="m" data-f="4">latest still S1? yes → latest = S2</text><text x="494" y="64" class="g" data-f="5-7">latest = S2</text>
+<text x="494" y="144" class="m" data-f="0-1">S1</text><text x="494" y="144" class="m" data-f="2-4">S1, plus new tree p-2 (signed, verified)</text><text x="494" y="144" class="g" data-f="5-7">S2</text>
+<text x="494" y="224" class="m" data-f="0-5">S1 (served: behind after step 7)</text><text x="494" y="224" class="g" data-f="6-7">S2, verified with the client keys</text>
+<rect class="bg" x="480" y="256" width="400" height="88" rx="8" data-f="0-1"/><text x="494" y="280" class="m" data-f="0">Start: all three records hold snapshot S1.</text>
+<text x="494" y="280" class="m" data-f="1">Inputs pushed · base S1 = latest · gates ok</text><text x="494" y="300" class="m" data-f="1">advisory gate ok · signer probe ok</text>
+<rect class="bw" x="480" y="256" width="400" height="88" rx="8" data-f="2-4"/>
+<text x="494" y="280" class="e" data-f="2">A failure here: exit 9, 10 or 12.</text><text x="494" y="300" class="m" data-f="2">Nothing shared changed. Clients see S1.</text>
+<text x="494" y="280" class="e" data-f="3">Push fails: snapshot.push-failed, exit 13.</text><text x="494" y="300" class="m" data-f="3">latest is still S1. The signed tree stays.</text><text x="494" y="320" class="m" data-f="3">hint: run: repoctl repo push p-2</text>
+<text x="494" y="280" class="e" data-f="4">latest moved: snapshot.diverged, exit 13.</text><text x="494" y="300" class="m" data-f="4">S2 stays as tag p-2. Nobody serves it.</text><text x="494" y="320" class="m" data-f="4">hint: repo pull, plan, publish again</text>
+<rect class="bg" x="480" y="256" width="400" height="88" rx="8" data-f="5-7"/>
+<text x="494" y="280" class="m" data-f="5">Tag done: the publish is a success.</text><text x="494" y="300" class="m" data-f="5">A failed cache write is only a warning.</text>
+<text x="494" y="280" class="m" data-f="6">The mirror job pulls S2 and swaps the tree.</text><text x="494" y="300" class="m" data-f="6">A failure keeps S1 and retries.</text>
+<text x="494" y="280" class="g" data-f="7">All three records hold S2.</text><text x="494" y="300" class="m" data-f="7">Clients get the new packages with dnf.</text>
+</svg>
+<figcaption class="excap" aria-live="polite"></figcaption>
+<div class="exctl"><button type="button" data-act="prev">◀ Back</button><button type="button" data-act="play">▶ Play</button><button type="button" data-act="next">Next ▶</button><span class="exstep"></span></div>
+<script type="application/json" class="excaps">[
+"Start. GHCR, the local copy and the served tree all hold snapshot S1.",
+"Step 1, check. All checks run before the first signature. The base S1 must equal latest.",
+"Steps 2 to 5 make a new signed tree beside the local copy. They change nothing that other people see. A failure here leaves the published state as it was.",
+"Step 6 uploads the new blobs and the manifest S2 with the tag p-2. latest does not move yet. If the push fails, repoctl keeps the signed tree and gives the repo push hint.",
+"Step 7 reads latest again. If it is still S1, repoctl moves latest to S2 and reads it back. If another admin published in the meantime, repoctl stops. S2 stays as an unserved tag.",
+"Step 8 makes S2 the local copy. The publish is now a success. The HTTP server still serves S1, so status says served: behind.",
+"The mirror job on the HTTP server pulls S2, verifies it with the keys of the clients and swaps the tree in one rename.",
+"End. All records hold S2. A failed step at any point leaves one consistent state, and one command completes it."
+]</script>
+</figure>
+
+<h3>5.1 Steps</h3>
+<table>
+<tr><th>#</th><th>Step (event name)</th><th>What it does</th><th>On failure</th></tr>
+<tr><td>1</td><td><code>check</code></td><td>All checks of section 5.2. Signer probe (section 11.1).</td><td>exit 5, 9, 10, 12 or 13. Nothing written.</td></tr>
+<tr><td>2</td><td><code>sign</code></td><td>Copy the base to a new tree <code>publishes/p-…/tree/</code> (hard links). Add the new RPMs. <code>rpmsign --resign</code> the new RPMs only.</td><td>exit 9 or 1. Delete the new tree.</td></tr>
+<tr><td>3</td><td><code>repodata</code></td><td><code>createrepo_c --update</code>, add the RepoManifest (<code>modifyrepo_c --mdtype=repoctl</code>), sign <code>repomd.xml</code> with one signature.</td><td>exit 1. Delete the new tree.</td></tr>
+<tr><td>4</td><td><code>verify</code></td><td>Checksums, one signature packet, <code>rpmkeys --checksig</code> on the host with only the set keys.</td><td>exit 10. Keep the tree for inspection.</td></tr>
+<tr><td>5</td><td><code>verify-el</code></td><td>Per target, the same checks inside the EL mock chroot with the client trust set (section 11.4).</td><td>exit 10, problem <code>verify.el-failed</code>. Keep the tree.</td></tr>
+<tr><td>6</td><td><code>push</code></td><td>Upload the blobs that GHCR does not have. Upload the manifest with the tag <code>p-…</code>.</td><td>exit 13, <code>snapshot.push-failed</code> or <code>registry.denied</code>. Keep the tree.</td></tr>
+<tr><td>7</td><td><code>tag</code></td><td>Read <code>latest</code>. If it equals the base, move it to the new digest. Read it back.</td><td>exit 13, <code>snapshot.diverged</code> (latest moved) or <code>snapshot.push-failed</code> (tag write failed).</td></tr>
+<tr><td>8</td><td><code>cache</code></td><td>Make the new tree the local copy. Write <code>snapshot.json</code>. Close the journal.</td><td>warning only, exit 0. Hint: <code>repoctl repo pull</code>.</td></tr>
+</table>
+<div class="rule"><b>Rule.</b> Steps 1 to 5 change only files of the person who publishes. Step 7 is the only step that changes what other people see. A publish is a success when step 7 is done.</div>
+<p>A second Ctrl-C during step 6 or 7 stops repoctl at once. The signed tree stays. <code>repoctl repo push p-…</code> completes the publish, or <code>repoctl clean --publish p-…</code> deletes it.</p>
+
+<h3>5.2 Checks before the first signature</h3>
+<table>
+<tr><th>Check</th><th>Problem code, exit</th><th>Finding</th></tr>
+<tr><td>Set inputs are committed: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, each <code>targets[].macros</code> file, each in-tree package path, <code>keys/</code>.</td><td><code>lock.dirty</code>, 5</td><td><a href="../review/ux-review.html#UX-30">UX-30</a></td></tr>
+<tr><td>The set commit and each pinned package commit are on their remote branch (<code>git fetch</code>, then <code>merge-base --is-ancestor</code>).</td><td><code>lock.unpushed</code>, 5</td><td><a href="../review/ux-review.html#UX-09">UX-09</a></td></tr>
+<tr><td>The local copy equals <code>latest</code> (section 4.1).</td><td><code>state.behind</code>, <code>state.unpushed</code>, 13</td><td><a href="../review/ux-review.html#UX-07">UX-07</a></td></tr>
+<tr><td>Each node of each selected target is current or staged for the current lock (section 5.3).</td><td><code>publish.not-ready</code>, 12</td><td><a href="../review/ux-review.html#UX-11">UX-11</a></td></tr>
+<tr><td>No node keeps a published or removed NVR with new content.</td><td><code>nvr.reused</code>, <code>nvr.removed</code>, 12</td><td><a href="../review/ux-review.html#UX-13">UX-13</a></td></tr>
+<tr><td>Advisory gate: as specified in 06.</td><td><code>advisory.open</code>, 12</td><td>UX-12 (06)</td></tr>
+<tr><td>Gates 1 to 3, unknown and removed signers, key file (section 11).</td><td>see section 11</td><td>UX-04, UX-23, UX-35, UX-67</td></tr>
+<tr><td>Trust change: the summary shows the trust block. The person types the key id (section 11.3).</td><td><code>sign.trust-change</code>, 6</td><td><a href="../review/ux-review.html#UX-22">UX-22</a></td></tr>
+</table>
+
+<h3>5.3 What a publish takes</h3>
+<p>Publish works on the plan, not on one run (<a href="../review/ux-review.html#UX-11">UX-11</a>). For each selected target, publish takes every node whose plan action is <b>staged</b>: built for the current lock in any unpublished run of this user. The summary lists the source run of each node. <code>--run RUN</code> limits the publish to the nodes of one run.</p>
+<p>A target is publishable when every node of the target is <b>current</b> (in the base) or <b>staged</b>. The soname rule of 03 changes from "in the same run" to "in the same publish".</p>
+
+<h3>5.4 Two admins</h3>
+<p>Changes are rare, and the team coordinates in its own channel. Thus repoctl has no lease in the registry (<a href="../review/ux-review.html#UX-06">UX-06</a>). The set lock stays a local lock. It protects the processes of one user on one host.</p>
+<div class="rule"><b>Rule.</b> Publish compares <code>latest</code> with its base two times: in step 1 and in step 7, just before it moves the tag. If <code>latest</code> moved, publish stops with <code>snapshot.diverged</code>. The race window is the time between the read and the write of the tag in step 7, less than one second.</div>
+<p>This rule replaces the sentence "the set lock convention covers it for a small team" in 03 section 6.</p>
+
+<h3>5.5 Summary and confirmation</h3>
+<pre><code>$ repoctl publish --target el9
+publish  p-20261103-1412-5e1  set slurm-26.05  target el9
+base     latest = p-20261102-2011-8b4 (sha256:4be1…), local copy same
+store    ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9
+signer   d.klein  4E7A 0C93 B85D 21F6 9A0E  3C47 D1B2 66F0 41D8 0B6E
+         deployed with slurm-release-26.05-2 (confirmed by d.klein 2026-10-20)
+inputs   set commit 9a0c4e2 pushed · yaml, lock, macros clean · 4 package commits on origin
+
+TARGET  PACKAGE  PUBLISHED      NEW            FROM RUN             RPMS
+el9     ucx      1.22.0-2.el9   1.22.1-1.el9   r-20261102-1750-a3f  14  staged
+el9     slurm    26.05.4-1.el9  26.05.4-2.el9  r-20261103-1330-0c7  17
+        9 packages unchanged · 0 removed (all old versions stay)
+
+trust    no change (key file of slurm-release-26.05-2)
+sign     31 new RPMs with d.klein · keep 170 (d.klein 120, hpc-repo 50) · re-sign 0
+checks   advisory gate ok · gates 1 to 3 ok · signer probe ok
+note     50 RPMs carry the retiring key hpc-repo; run "repoctl repo resign --signer hpc-repo"
+
+Sign 31 RPMs and publish el9 of slurm-26.05? [y/N] y
+✓ check      0.6s
+✓ sign       41s   31 ok
+✓ repodata   2.4s  3 ok
+✓ verify     1.9s  3 ok
+✓ verify-el  6.2s  el9 chroot: 201 RPMs, 3 repomd ok
+✓ push       38s   34 new blobs (412 MiB), 170 known
+✓ tag        0.3s  latest: p-20261102-2011-8b4 → p-20261103-1412-5e1
+✓ cache      0.2s
+published  el9  p-20261103-1412-5e1  sha256:9d07…  served: behind (mirror job: every 5 min)</code></pre>
+<p>The summary always shows: base, store, signer with its deployment, inputs, per-package NVR changes with the source run, removed packages, the trust block, the sign counts per key, and the checks. The confirmation rules of 04 section 12 do not change.</p>
+
+<h2 id="s6">6. Snapshot format and names</h2>
+<p>The format of 03 section 6 stays: an OCI artifact with one blob per file. This section fixes the names and adds annotations.</p>
+<table>
+<tr><th>Item</th><th>Value</th></tr>
+<tr><td>Package</td><td><code>&lt;store.oci&gt;/&lt;set&gt;-&lt;target&gt;</code></td></tr>
+<tr><td>Tags</td><td><code>latest</code>; one tag per publish id, for example <code>p-20261103-1412-5e1</code>. The set and target are in the package name, so the tags do not repeat them.</td></tr>
+<tr><td>artifactType</td><td><code>application/vnd.repoctl.repo.v1</code></td></tr>
+<tr><td>Layers</td><td>One blob per file. Annotation <code>org.opencontainers.image.title</code> = path in the tree, for example <code>slurm/Packages/u/ucx-1.22.1-1.el9.x86_64.rpm</code>.</td></tr>
+<tr><td>Annotations</td><td><code>org.opencontainers.image.source</code> (the GitHub repo), <code>io.repoctl.set</code>, <code>.target</code>, <code>.publish</code>, <code>.kind</code> (publish, restore, prune, resign, import), <code>.parent</code> (digest of the base), <code>.set-commit</code>, <code>.signer</code> (full fingerprint), <code>.user</code>, <code>.host</code>, <code>.created</code>, <code>.repoctl-version</code></td></tr>
+</table>
+<p>The annotation <code>.parent</code> makes a chain of snapshots. <code>repoctl repo snapshots</code> shows this chain. The user and host of the publisher are in the annotations (<a href="../review/ux-review.html#UX-19">UX-19</a>).</p>
+<p>The RepoManifest of 03 section 3.2 is in the repodata of the binary repository (<code>slurm/</code>) only. Its entries list the source RPM and the debuginfo RPMs, so <code>slurm-source</code> and <code>slurm-debuginfo</code> need no manifest. One snapshot holds all three repositories of a target.</p>
+<p>The RepoManifest gets one new list, <code>removed[]</code>. Each entry has <code>nvr</code>, <code>sha256</code> of each RPM, <code>publish</code> and <code>reason</code> (prune, restore). Each new snapshot copies the list from its base. Thus plan and publish know every NVR that clients can still have, also when the repo no longer holds it.</p>
+
+<h2 id="s7">7. Safety classes</h2>
+<p>Each command has one safety class (<a href="../review/ux-review.html#UX-14">UX-14</a>). The class sets the rules. Thread C adds a class column to the command tree of 04.</p>
+<table>
+<tr><th>Class</th><th>Commands</th><th>Rules</th></tr>
+<tr><td><span class="cls c-read">read</span></td><td>status, plan, repo ls, repo diff, repo verify, repo snapshots, sign ls, sign onboard, sign offboard, doctor</td><td>No lock or a shared lock. MCP tools are allowed.</td></tr>
+<tr><td><span class="cls c-stage">staging</span></td><td>build, cancel</td><td>Set lock. Writes only the staging of this user.</td></tr>
+<tr><td><span class="cls c-local">local write</span></td><td>pin, checkout, rebuild, repo pull, release write, sign add, sign retire, sign remove</td><td>Set lock. Changes files or commits on this host only. Never pushes. The hint gives the push command.</td></tr>
+<tr><td><span class="cls c-shared">shared state</span></td><td>publish, repo push, repo restore, repo prune --apply, repo gc --apply, repo resign, sign deployed</td><td>The rules below.</td></tr>
+</table>
+<div class="rule"><b>Rules for shared state.</b>
+<ol>
+<li>Show a summary first. <code>--dry-run</code> shows only the summary. For prune and gc, the dry run is the default and <code>--apply</code> acts.</li>
+<li>Ask in the terminal. The default answer is no. Without a terminal, exit 6.</li>
+<li><code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code> allows publish, repo push, restore, prune and resign without a person. It never allows gc and sign deployed, because they delete history or state a fact about the clients.</li>
+<li>Take the set lock. Write a journal (<code>runs/p-….jsonl</code>).</li>
+<li>No MCP tool. Add the commands to <code>notExposed</code> in <code>mcp-tools.json</code> and to the deny list of the skills.</li>
+<li>A skill that reaches such a step stops and gives the person the command (<code>humanAction</code>).</li>
+</ol></div>
+<p>Deny list additions: <code>Bash(repoctl repo push:*)</code>, <code>Bash(repoctl repo restore:*)</code>, <code>Bash(repoctl repo prune:*)</code>, <code>Bash(repoctl repo gc:*)</code>, <code>Bash(repoctl repo resign:*)</code>, <code>Bash(repoctl sign:*)</code>, <code>Bash(repoctl release:*)</code>. New <code>humanAction</code> values: <code>repo-push</code>, <code>restore</code>, <code>prune</code>, <code>gc</code>, <code>resign</code>, <code>sign-deployed</code>, <code>trust-change</code>.</p>
+
+<h2 id="s8">8. Repository commands</h2>
+<p>The blocks use the form of 04 section 11. All commands take the global <code>--target</code>. The default is all targets of the set.</p>
+
+<div class="cmd"><h4>repoctl repo pull <span class="cls c-local">local write</span></h4>
+<pre><code>repoctl repo pull [REF] [--target ID]...</code></pre>
+<p>Make the local copy equal to a snapshot. REF is <code>latest</code> (default), a publish id or a digest. Pull downloads the missing blobs, checks their sha256 and verifies every RPM and <code>repomd.xml.asc</code> against <code>sign.keys</code> (all states) before it writes the local copy (<a href="../review/ux-review.html#UX-23">UX-23</a>). Then it writes <code>snapshot.json</code>.</p>
+<div class="kv"><b>Lock</b><span>set lock</span><b>Writes</b><span><code>$XDG_DATA_HOME/repoctl/&lt;set&gt;/repo/&lt;target&gt;/</code> (swap in one rename)</span><b>Output</b><span>Kind <code>Snapshot</code> per target</span><b>Exit</b><span>0; 1; 10 a file does not verify (nothing written); 13 registry problem</span></div>
+<pre><code>$ repoctl repo pull
+el9   p-20261103-1412-5e1  sha256:9d07…  34 blobs new (412 MiB), 170 known, verified
+el10  p-20261102-2011-8b4  sha256:71c2…  same as local copy</code></pre></div>
+
+<div class="cmd"><h4>repoctl repo push <span class="cls c-shared">shared state</span></h4>
+<pre><code>repoctl repo push [PUBLISH] [--target ID]... [--dry-run] [--yes]
+repoctl repo push --from DIR --manifest FILE --target ID [--dry-run] [--yes]</code></pre>
+<p>Complete a publish that stopped in step 6 or 7. PUBLISH is the publish id. The default is the newest signed publish that is not in the registry. Push runs steps 6 to 8 of section 5.1, with the same compare of <code>latest</code>. If <code>latest</code> moved since the base of that publish, push refuses with <code>snapshot.diverged</code>.</p>
+<p>With <code>--from DIR</code>, push makes the first snapshot of a target from an existing signed tree. This is for the import runbook. It works only when the registry has no snapshot of that target. It verifies every RPM against <code>sign.keys</code> and keeps the RPM signatures. It adds the RepoManifest from FILE with <code>modifyrepo_c</code>, signs the new <code>repomd.xml</code> with the key of the person (one signature), runs verify and verify-el, and pushes. The publish id is <code>p-import-&lt;date&gt;</code>.</p>
+<div class="rule"><b>Rule.</b> Gate 2 applies to an import, because clients of the old repo exist. Before the import, the person records the deployment of the old key: <code>repoctl sign deployed hpc-repo --release slurm-release-26.05-1 --path DIR</code>. Only a target that no client uses yet skips gate 2.</div>
+<div class="kv"><b>Lock</b><span>set lock</span><b>Writes</b><span>GHCR blobs, manifest, tags; local copy</span><b>Output</b><span>Kind <code>Run</code> with <code>kind: publish</code></span><b>Exit</b><span>0; 1; 6; 10; 13</span></div></div>
+
+<div class="cmd"><h4>repoctl repo snapshots <span class="cls c-read">read</span></h4>
+<pre><code>repoctl repo snapshots [--target ID]... [--limit N] [--all]</code></pre>
+<p>List the snapshots of each target, newest first, along the <code>.parent</code> chain of <code>latest</code>. <code>--all</code> also lists tags that are not on the chain, for example a diverged publish.</p>
+<div class="kv"><b>Lock</b><span>none</span><b>Output</b><span>Kind <code>SnapshotList</code></span><b>Exit</b><span>0; 1; 13</span></div>
+<pre><code>$ repoctl repo snapshots --target el9 --limit 4
+el9  ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9
+  PUBLISH               KIND     DIGEST        CREATED           BY               SIGNER    FILES  NEW
+* p-20261103-1412-5e1   publish  sha256:9d07…  2026-11-03 14:15  d.klein@hpc-a1   d.klein   204    34
+  p-20261102-2011-8b4   publish  sha256:4be1…  2026-11-02 20:14  d.klein@hpc-a1   d.klein   173    38
+  p-20261020-0912-11a   publish  sha256:2a90…  2026-10-20 09:15  a.admin@hpc-a2   a.admin   135    6
+  p-import-20261019     import   sha256:e3f4…  2026-10-19 16:02  d.klein@hpc-a1   hpc-repo  129    129
+* = latest</code></pre></div>
+
+<div class="cmd"><h4>repoctl repo restore <span class="cls c-shared">shared state</span></h4>
+<pre><code>repoctl repo restore REF [--target ID]... [--dry-run] [--yes]</code></pre>
+<p>Make a new snapshot with the files of an older snapshot REF, and move <code>latest</code> to it (<a href="../review/ux-review.html#UX-13">UX-13</a>). <code>latest</code> moves forward to a new digest. It never moves back to the old digest. Restore is a publish run: steps 1 to 8, gates 1 and 2, verify and verify-el. RPMs in REF that a removed key signed get a new signature from the current signer (section 11.5).</p>
+<p>The summary lists each NVR that leaves the repo and says: <b>clients keep it, because dnf does not downgrade</b>. These NVRs go into <code>removed[]</code>. After a restore, publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</p>
+<div class="note w">Restore is for a broken repo, for example bad repodata. To take back a bad build, fix forward: make a new commit or a rebuild, so that the release goes up, and publish. Clients then update to the fix.</div>
+<div class="kv"><b>Lock</b><span>set lock</span><b>Writes</b><span>as publish</span><b>Exit</b><span>as publish</span></div></div>
+
+<div class="cmd"><h4>repoctl repo prune <span class="cls c-shared">shared state with --apply</span></h4>
+<pre><code>repoctl repo prune [--target ID]... [--repo binary|source|debuginfo] [--package NAME]
+                   [--keep-last N] [--older-than D] [--nvr NVR]... [--apply]</code></pre>
+<p>The selectors and the safety rules of 03 section 5 stay. All old versions stay by default (Q6). Prune changes the repo only with <code>--apply</code>. Then it is a publish run of kind <code>prune</code>: a new snapshot without the selected NVRs, and the NVRs go into <code>removed[]</code>. 06 adds the selector <code>--package NAME --all</code> for a package that left the set.</p>
+<div class="kv"><b>Exit</b><span>0; 4 nothing to prune; 6; 12 a safety rule refuses (newest NVR, closure); 13</span></div></div>
+
+<div class="cmd"><h4>repoctl repo gc <span class="cls c-shared">shared state with --apply</span></h4>
+<pre><code>repoctl repo gc [--target ID]... [--keep N] [--keep-days D] [--apply]</code></pre>
+<p>Delete old snapshots (package versions) in GHCR with the GitHub REST API. GitHub then frees the blobs that no version uses. The dry run is the default.</p>
+<div class="rule"><b>Keep rules.</b> gc never deletes: <code>latest</code>; the newest N snapshots of the chain (default 10); snapshots younger than D (default 90d); for each entry of <code>removed[]</code>, the newest snapshot that still holds it. Thus each RPM that a client can have stays in at least one snapshot.</div>
+<div class="kv"><b>Needs</b><span>token scope <code>delete:packages</code>, admin access to the package</span><b>Exit</b><span>0; 4 nothing to delete; 6; 13</span></div>
+<p>Config: <code>retention: {snapshots: {keep: 10, keep_days: 90d}}</code> in <code>repoctl.yaml</code>.</p></div>
+
+<div class="cmd"><h4>repoctl repo resign <span class="cls c-shared">shared state</span></h4>
+<pre><code>repoctl repo resign --signer ID [--target ID]... [--repo binary|source|debuginfo] [--dry-run] [--yes]</code></pre>
+<p>Give a new signature to each RPM that the key ID signed, with the key of the person who runs the command. It is a publish run of kind <code>resign</code>. Use it to retire a key (section 12). The summary shows the count per target and per repository, debuginfo included, and the size of the new blobs. <code>--repo</code> splits the work.</p>
+<div class="kv"><b>Exit</b><span>as publish; 4 when no RPM carries the key</span></div></div>
+
+<div class="cmd"><h4>repoctl repo verify (changed) <span class="cls c-read">read</span></h4>
+<pre><code>repoctl repo verify [--snapshot REF | --run RUN | --path DIR | --served] [--el] [--key FPR]</code></pre>
+<p>Default: the local copy. <code>--snapshot</code> verifies a registry snapshot in a temporary directory. <code>--served</code> verifies the served tree over HTTP. <code>--el</code> adds the EL chroot check of section 11.4. The default key set is the client trust set, not <code>published.yaml</code>.</p></div>
+
+<h2 id="s9">9. Registry access</h2>
+<p>Decision Q4: after the design, the repo moves to GSI-HPC. The repo, the packages and GHCR are public (<a href="../review/ux-review.html#UX-20">UX-20</a>).</p>
+<table>
+<tr><th>Topic</th><th>Rule</th></tr>
+<tr><td>Namespace</td><td><code>ghcr.io/gsi-hpc/&lt;repo&gt;/&lt;set&gt;-&lt;target&gt;</code>. A new repository (for example Lustre) uses its own <code>&lt;repo&gt;</code>. Until the move: <code>ghcr.io/dennisklein/slurm-repo</code>.</td></tr>
+<tr><td>Pull</td><td>Public. No token. The mirror job and <code>repo pull</code> use an anonymous token.</td></tr>
+<tr><td>Push</td><td>A classic personal access token with <code>write:packages</code>. <code>gh auth token</code> does not have this scope by default. Fix: <code>gh auth refresh -s write:packages</code>, then <code>gh auth token | oras login ghcr.io -u USER --password-stdin</code>. repoctl reads the container credential store (<code>~/.config/containers/auth.json</code> or <code>~/.docker/config.json</code>). Never from <code>repoctl.yaml</code>.</td></tr>
+<tr><td>gc</td><td>Also <code>delete:packages</code>, and admin access to the package.</td></tr>
+<tr><td>Team access</td><td>A GitHub team (for example <code>slurm-repo-admins</code>) has write access to the repo. Each package has "Inherit access from source repository" on. Thus the team has write access to all packages.</td></tr>
+<tr><td>New set or target</td><td>The first push creates the package. Then an org owner sets it to public and turns on the inherited access. <code>repoctl doctor</code> shows this step until it is done (<code>registry.public</code>).</td></tr>
+</table>
+<p>New doctor checks:</p>
+<pre><code>$ repoctl doctor --only registry
+registry.login   ok    ghcr.io: credentials for dklein (container auth file)
+registry.scope   ok    token scopes: repo, write:packages (delete:packages missing: repo gc cannot run)
+registry.write   ok    write access to slurm-26.05-el9, slurm-26.05-el10
+registry.public  warn  slurm-26.05-el10 is private; set it to public in the package settings
+                       https://github.com/orgs/GSI-HPC/packages/container/slurm-repo%2Fslurm-26.05-el10/settings</code></pre>
+<p>Problem <code>registry.denied</code> (exit 13): the hint names the scope that is missing and the settings page of the package. Onboarding and offboarding (section 12) include the team membership.</p>
+
+<h2 id="s10">10. Client trust chain</h2>
+<p>A client installs a package only when two checks pass: dnf checks <code>repomd.xml.asc</code> (<code>repo_gpgcheck=1</code>), and rpm checks the RPM signature (<code>gpgcheck=1</code>). Both use keys that the client got from <code>slurm-release</code>. The figure shows where each key comes from and who checks what.</p>
+<svg class="fig" viewBox="0 0 900 360" role="img" aria-label="Client trust chain: from sign.keys to the client check">
+<text x="20" y="28" class="t">What defines trust</text>
+<rect class="b" x="20" y="40" width="190" height="72" rx="8"/><text x="34" y="64" class="t">sign.keys + keys/</text><text x="34" y="84" class="m">in the set repo (git)</text><text x="34" y="102" class="s">sign add, retire, remove</text>
+<rect class="b" x="250" y="40" width="190" height="72" rx="8"/><text x="264" y="64" class="t">key file</text><text x="264" y="84" class="m">RPM-GPG-KEY-slurm</text><text x="264" y="102" class="s">repoctl release write</text>
+<rect class="b" x="480" y="40" width="190" height="72" rx="8"/><text x="494" y="64" class="t">slurm-release RPM</text><text x="494" y="84" class="m">key file + .repo</text><text x="494" y="102" class="s">signed by a deployed key</text>
+<rect class="bg" x="710" y="40" width="170" height="72" rx="8"/><text x="724" y="64" class="t">client keyrings</text><text x="724" y="84" class="m">rpmdb gpg-pubkey</text><text x="724" y="102" class="m">dnf repo pubring</text>
+<path class="l" d="M212,76 L248,76"/><path class="l" d="M442,76 L478,76"/><path class="l" d="M672,76 L708,76"/>
+<text x="672" y="132" class="s">installed by config management</text>
+<text x="20" y="168" class="t">What checks the files of a publish</text>
+<rect class="b" x="20" y="180" width="190" height="80" rx="8"/><text x="34" y="204" class="t">4 verify</text><text x="34" y="224" class="m">Fedora rpm, set keys</text><text x="34" y="244" class="s">admin host</text>
+<rect class="bh" x="250" y="180" width="190" height="80" rx="8"/><text x="264" y="204" class="t">5 verify-el</text><text x="264" y="224" class="m">EL rpm and dnf</text><text x="264" y="244" class="s">client trust set, mock chroot</text>
+<rect class="b" x="480" y="180" width="190" height="80" rx="8"/><text x="494" y="204" class="t">mirror job</text><text x="494" y="224" class="m">gpgv, rpmkeys</text><text x="494" y="244" class="s">installed key file</text>
+<rect class="bg" x="710" y="180" width="170" height="80" rx="8"/><text x="724" y="204" class="t">client dnf</text><text x="724" y="224" class="m">repomd.xml.asc</text><text x="724" y="244" class="m">each RPM</text>
+<path class="l" d="M212,220 L248,220"/><path class="l" d="M442,220 L478,220"/><path class="l" d="M672,220 L708,220"/>
+<path class="lq" d="M795,114 L795,178"/>
+<rect class="by" x="20" y="286" width="450" height="58" rx="8"/><text x="34" y="308" class="t">Bootstrap (once per client)</text><text x="34" y="328" class="m">config mgmt installs the key file (pinned sha256), then slurm-release</text>
+<rect class="bw" x="490" y="286" width="390" height="58" rx="8"/><text x="504" y="308" class="t">Key removal</text><text x="504" y="328" class="m">only config management: rpm -e gpg-pubkey-…, rm pubring</text>
+</svg>
+<p class="small mut">Figure 2. Trust flows from the set repo to the clients through slurm-release. Four checks see each publish. Only check 5 and the mirror job use the client rpm.</p>
+<table>
+<tr><th>Link</th><th>Fact (04 signing study)</th><th>Rule</th></tr>
+<tr><td>Set → key file</td><td>One file can hold many keys (F14).</td><td><code>repoctl release write</code> writes the key file from the keys in state active and retiring, sorted by id. Publish and doctor refuse a key file that differs (<code>sign.keyfile-stale</code>, exit 5).</td></tr>
+<tr><td>Key file → client</td><td>The key file is not <code>%config</code>. An update replaces it (F18). dnf imports every key from <code>gpgkey=</code> when it meets an unknown key (F1, F13).</td><td>The <code>.repo</code> file keeps one <code>gpgkey=</code> line. Its <code>baseurl</code> comes from <code>repo.url</code> (section 11.6).</td></tr>
+<tr><td>Client → new key</td><td>A client reads the new key only from an installed slurm-release (04 option B rules).</td><td>Gate 2 (section 11.2).</td></tr>
+<tr><td>Client → removed key</td><td>A release package cannot remove a key (F16). rpm does not update an imported key (F12).</td><td>Re-sign first, then a new key file, then config management removes the key (section 12).</td></tr>
+<tr><td>Bootstrap</td><td>A new client has no key.</td><td><code>repoctl sign keyfile --checksum</code> prints the sha256 of the key file. Config management installs the key file with this pinned sum, then installs slurm-release with <code>gpgcheck</code> on. This is today's <code>RPM-GPG-KEY-CHECKSUM.txt</code>, made explicit.</td></tr>
+</table>
+
+<h2 id="s11">11. Signing gates and re-sign rules</h2>
+<p>This section replaces Figure 3 and the re-sign sentence of 04 section 9.2, and section 5 of the publish page text in 04 (the 04j rule). All gates run in step 1, before the first signature.</p>
+<svg class="fig" viewBox="0 0 900 250" role="img" aria-label="Signing gates in the check step">
+<rect class="b" x="20" y="20" width="150" height="76" rx="8"/><text x="32" y="44" class="t">probe</text><text x="32" y="64" class="m">card, PIN, touch</text><text x="32" y="84" class="s">sign.locked · 9</text>
+<rect class="b" x="190" y="20" width="150" height="76" rx="8"/><text x="202" y="44" class="t">gate 1</text><text x="202" y="64" class="m">active, valid</text><text x="202" y="84" class="s">sign.not-active · 12</text>
+<rect class="bh" x="360" y="20" width="150" height="76" rx="8"/><text x="372" y="44" class="t">gate 2</text><text x="372" y="64" class="m">deployment record</text><text x="372" y="84" class="s">sign.not-deployed · 12</text>
+<rect class="b" x="530" y="20" width="150" height="76" rx="8"/><text x="542" y="44" class="t">gate 3</text><text x="542" y="64" class="m">key format</text><text x="542" y="84" class="s">sign.key-format · 9</text>
+<rect class="b" x="700" y="20" width="180" height="76" rx="8"/><text x="712" y="44" class="t">base signers</text><text x="712" y="64" class="m">no unknown, no removed</text><text x="712" y="84" class="s">sign.unknown-signer · 10</text>
+<path class="l" d="M172,58 L188,58"/><path class="l" d="M342,58 L358,58"/><path class="l" d="M512,58 L528,58"/><path class="l" d="M682,58 L698,58"/>
+<rect class="by" x="20" y="130" width="420" height="96" rx="8"/><text x="34" y="154" class="t">Trust change (this publish has a new key file)</text><text x="34" y="176" class="m">summary shows the trust block</text><text x="34" y="196" class="m">the person types the key id of each added key</text><text x="34" y="216" class="s">sign.trust-change · 6 without the answer</text>
+<rect class="bg" x="460" y="130" width="420" height="96" rx="8"/><text x="474" y="154" class="t">Then: sign the new RPMs only</text><text x="474" y="176" class="m">keep RPMs of active and retiring keys</text><text x="474" y="196" class="m">re-sign only with repoctl repo resign</text><text x="474" y="216" class="s">verify, then verify-el with the client trust set</text>
+</svg>
+<p class="small mut">Figure 3. Checks of the signer in step 1. Each box gives its problem code and exit code.</p>
+
+<h3>11.1 Signer probe</h3>
+<p>The probe signs a random 32-byte value with <code>gpg --detach-sign -u &lt;FPR&gt;!</code> and verifies it. Thus gpg-agent asks for the PIN or passphrase at the start, and not in the middle of the sign step (<a href="../review/ux-review.html#UX-25">UX-25</a>).</p>
+<ul>
+<li>CLI: pinentry asks in the terminal or on the desktop. repoctl suspends the progress display.</li>
+<li>Web UI: the UI is local only (Q15), so pinentry shows on the local desktop. The browser never asks for a PIN. Step 1 of the publish page shows the probe state: <b>card missing</b>, <b>waiting for PIN on the desktop</b>, <b>touch your key</b>, <b>ready</b>. If a signature takes more than 1 s, the UI shows "touch your key" over SSE.</li>
+<li>If the probe fails or the person cancels pinentry: <code>sign.locked</code>, exit 9. The hint gives <code>gpg --card-status</code>.</li>
+</ul>
+<p>The 04 sentence "MCP and the web UI never sign" changes to: <b>MCP never signs. The web UI signs only through repoctl publish, after the typed confirmation.</b></p>
+
+<h3>11.2 Gates 1 to 3</h3>
+<table>
+<tr><th>Gate</th><th>Passes when</th><th>Problem, exit</th></tr>
+<tr><td>1 active and valid</td><td>The signer key is in <code>sign.keys</code> with <code>state: active</code>, and it is valid for at least <code>sign.checks.key_min_validity</code> (default 30d).</td><td><code>sign.not-active</code>, <code>sign.key-expiring</code>, 12</td></tr>
+<tr><td>2 deployed</td><td>For each selected target: <code>keys/deployed.yaml</code> at the publish set commit has an entry for the signer, and the release NVR of that entry is in the base snapshot and its key file holds the signer fingerprint.</td><td><code>sign.not-deployed</code>, 12. Hint: <code>repoctl sign onboard ID</code></td></tr>
+<tr><td>3 key format</td><td>OpenPGP v4 key, RSA 2048 or more, or Ed25519. No SHA-1 self-signature. repoctl never passes <code>--rpmv6</code>.</td><td><code>sign.key-format</code>, 9</td></tr>
+</table>
+<div class="rule"><b>Rule for a first publish.</b> Gate 2 does not apply when the registry has no snapshot of the target and the publish is not an import. No client uses such a target yet. The summary then says "first publish of el9: no clients yet; the signer must be in the key file of this release". A key that a publish adds can never sign that publish.</div>
+<p>Gate 2 reads only the committed record (<a href="../review/ux-review.html#UX-04">UX-04</a>). The old check <code>signer_deployed</code> ("the key is in the published release") is removed. The record is in the pushed set commit (section 5.2), so all admins see the same record.</p>
+
+<h3>11.3 Trust block</h3>
+<p>When the release package of a publish has a new key file, the summary shows the trust block (<a href="../review/ux-review.html#UX-22">UX-22</a>). No second admin reviews the change (Q13). The block is for the person who publishes.</p>
+<pre><code>trust    slurm-release-26.05-3 changes the key file of all clients
+         + a.admin  C2F9 7713 05AB E4D6 18C3  9F2B 70DE A5C1 E93F 52A7
+                    added in set commit 7e21d0a by A. Admin &lt;a.admin@gsi.de&gt;
+         - none
+         a.admin cannot sign until "repoctl sign deployed a.admin" (gate 2)
+Type the key id of each added key to continue: a.admin</code></pre>
+
+<h3>11.4 Verify in the EL chroot</h3>
+<p>repoctl runs on Fedora, with rpm 6 and rpm-sequoia. The clients use EL9 rpm 4.16 and EL10 rpm 4.19. Thus step 4 alone can pass while a client fails (<a href="../review/ux-review.html#UX-67">UX-67</a>). Step 5 checks each target with the client tools.</p>
+<ol>
+<li><code>repoctl mock update</code> also makes one verify root per target: the mock config of the target, plus <code>rpm</code>, <code>dnf</code> and <code>gnupg2</code>.</li>
+<li>Step 5 mounts the new tree and the key file read-only into that root (mock <code>bind_mount</code> plugin).</li>
+<li>Inside the root: import the key file into a temporary rpmdb, then <code>rpmkeys --checksig</code> on each RPM.</li>
+<li>Inside the root: <code>dnf makecache</code> on a temporary installroot with the new tree as a <code>file://</code> repo, <code>gpgcheck=1</code>, <code>repo_gpgcheck=1</code> and <code>gpgkey=</code> the key file. This runs the librepo signature check of the client.</li>
+</ol>
+<p><b>Client trust set.</b> Step 5 uses the key file of the release that the clients have: the release of the deployment record of the signer. It does not use the key file of a release that this publish adds. For a first publish, it uses the key file of this publish.</p>
+<p>The signer host is always Fedora. The 04 text about a Rocky 9 signer host is removed.</p>
+
+<h3>11.5 Re-sign rules</h3>
+<p>One rule set replaces the two rules of 04 (<a href="../review/ux-review.html#UX-23">UX-23</a>, <a href="../review/ux-review.html#UX-24">UX-24</a>):</p>
+<table>
+<tr><th>RPM in the base, signed by</th><th>Normal publish</th><th>repo resign --signer ID</th></tr>
+<tr><td>a key in state active</td><td>keep</td><td>re-sign if ID is that key</td></tr>
+<tr><td>a key in state retiring</td><td>keep; the summary shows the count and the resign hint</td><td>re-sign if ID is that key</td></tr>
+<tr><td>a key in state removed</td><td>refuse: <code>sign.removed-signer</code>, 12</td><td>re-sign if ID is that key</td></tr>
+<tr><td>an unknown key, or no signature</td><td>refuse: <code>sign.unknown-signer</code>, 10, with the file names</td><td>refuse</td></tr>
+</table>
+<p>repoctl re-signs an RPM only when both conditions are true: its signature verifies with a key in <code>sign.keys</code>, and its sha256 is in the base snapshot, which has a valid <code>repomd.xml.asc</code>. RPMs of different admins stay side by side. A change of the person who publishes never re-signs old RPMs.</p>
+
+<h3>11.6 Release package in v1</h3>
+<p>v1 has one form of the release package (<a href="../review/ux-review.html#UX-21">UX-21</a>): an in-tree package in the set repo, for example <code>packages/slurm-release/</code>, with <code>role: release</code>.</p>
+<ul>
+<li><b>Build identity</b> of an in-tree package = the last set commit that changed its path, plus the target. repoctl builds it from a checkout of that commit. A key change is a commit on that path, so plan says <code>build</code> with reason <code>commit-changed</code>.</li>
+<li><b>Release</b>: the spec uses <code>%autorelease</code> and <code>%autochangelog</code>. The changelog then shows the commit message of each key change, for example "Trust key a.admin C2F9…52A7".</li>
+<li><b><code>repoctl release write</code></b> <span class="cls c-local">local write</span> writes the key file from <code>sign.keys</code> and the <code>baseurl</code> lines of the <code>.repo</code> file from <code>repo.url</code>. It does not commit. <code>sign add</code>, <code>sign retire</code> and <code>sign remove</code> call it and commit both files with the key change. <code>init --release</code> (06) calls it for a new set.</li>
+<li>doctor checks <code>sign.release</code> (key file = <code>sign.keys</code>) and <code>release.url</code> (<code>baseurl</code> = <code>repo.url</code>).</li>
+</ul>
+
+<h3>11.7 Key expiry</h3>
+<p>rpm does not update an imported key (F12). EL10 does not trust an expired key (F6). Thus a new expiry date does not help the clients (<a href="../review/ux-review.html#UX-35">UX-35</a>).</p>
+<div class="rule"><b>Rule.</b> Treat an expiring key as a key change. Add a new key, deploy it, retire the old key, re-sign, remove the old key (section 12). Do not extend the expiry date of a key that clients already have.</div>
+<ul>
+<li>doctor <code>sign.expiry</code> warns inside <code>key_expiry_warn</code> (180d). Its fix line: <code>repoctl sign onboard NEW-ID</code>, then <code>repoctl sign retire OLD-ID</code>.</li>
+<li>Gate 1 refuses a signer inside <code>key_min_validity</code> (30d).</li>
+<li><code>repoctl check</code> reports published RPMs whose signer expires inside the warn window. The advisory code is <code>sign.expiring</code>, level warn (06 defines the kind).</li>
+</ul>
+
+<h2 id="s12">12. Key lifecycle and sign commands</h2>
+<svg class="fig" viewBox="0 0 900 230" role="img" aria-label="Key states and the commands that change them">
+<rect class="b" x="20" y="30" width="190" height="96" rx="8"/><text x="34" y="54" class="t">added</text><text x="34" y="76" class="m">state: active</text><text x="34" y="96" class="m">in key file: yes</text><text x="34" y="116" class="e">may sign: no (gate 2)</text>
+<rect class="bg" x="250" y="30" width="190" height="96" rx="8"/><text x="264" y="54" class="t">deployed</text><text x="264" y="76" class="m">state: active + record</text><text x="264" y="96" class="m">in key file: yes</text><text x="264" y="116" class="g">may sign: yes</text>
+<rect class="by" x="480" y="30" width="190" height="96" rx="8"/><text x="494" y="54" class="t">retiring</text><text x="494" y="76" class="m">state: retiring</text><text x="494" y="96" class="m">in key file: yes</text><text x="494" y="116" class="e">may sign: no</text>
+<rect class="bm" x="710" y="30" width="170" height="96" rx="8"/><text x="724" y="54" class="t">removed</text><text x="724" y="76" class="m">state: removed</text><text x="724" y="96" class="m">in key file: no</text><text x="724" y="116" class="s">kept to check old files</text>
+<path class="l" d="M212,78 L248,78"/><path class="l" d="M442,78 L478,78"/><path class="l" d="M672,78 L708,78"/>
+<text x="20" y="160" class="s">sign add ID</text><text x="20" y="176" class="s">(set commit, push)</text>
+<text x="214" y="160" class="s">publish release,</text><text x="214" y="176" class="s">deploy, sign deployed</text>
+<text x="444" y="160" class="s">sign retire ID</text>
+<text x="640" y="160" class="s">repo resign --signer ID,</text><text x="640" y="176" class="s">sign remove ID, publish release</text>
+<text x="20" y="212" class="m">Then config management removes a removed key from the clients: repoctl sign offboard ID prints the commands.</text>
+</svg>
+<p class="small mut">Figure 4. Key states. <code>sign.keys[].state</code> has three values: active, retiring, removed. "Deployed" is an active key with a record in <code>keys/deployed.yaml</code>.</p>
+
+<h3>12.1 Onboarding</h3>
+<p>The explainer plays the onboarding of a second admin with the deployment record (<a href="../review/ux-review.html#UX-04">UX-04</a>, <a href="../review/ux-review.html#UX-26">UX-26</a>).</p>
+<figure class="explainer" data-ex="2">
+<svg class="fig" viewBox="0 0 900 330" role="img" aria-label="Explainer: onboarding of a new signing key">
+<text x="20" y="46" class="t">a.admin (key B)</text><text x="20" y="106" class="t">Dennis (key A)</text><text x="20" y="166" class="t">GHCR, mirror</text><text x="20" y="226" class="t">Clients</text><text x="20" y="286" class="t">A person</text>
+<path d="M150,310 L880,310" style="stroke:var(--line);stroke-width:1"/>
+<g data-f="0-6"><rect class="b" x="160" y="24" width="140" height="40" rx="6"/><text x="168" y="42" class="s">sign add a.admin</text><text x="168" y="57" class="s">commit, push</text></g>
+<g data-f="1-6"><rect class="b" x="310" y="84" width="140" height="40" rx="6"/><text x="318" y="102" class="s">publish release-3</text><text x="318" y="117" class="s">signed by A, trust block</text><rect class="bg" x="310" y="144" width="140" height="40" rx="6"/><text x="318" y="168" class="s">latest holds release-3</text></g>
+<g data-f="2"><rect class="bw" x="460" y="24" width="140" height="40" rx="6"/><text x="468" y="42" class="s">publish signed by B</text><text x="468" y="57" class="e" style="font-size:11px">gate 2: no record</text></g>
+<g data-f="3-6"><rect class="b" x="460" y="204" width="140" height="40" rx="6"/><text x="468" y="222" class="s">config mgmt rolls</text><text x="468" y="237" class="s">out release-3</text></g>
+<g data-f="4-6"><rect class="by" x="610" y="264" width="140" height="40" rx="6"/><text x="618" y="282" class="s">checks clients, runs</text><text x="618" y="297" class="s">sign deployed a.admin</text></g>
+<g data-f="5-6"><rect class="bg" x="760" y="24" width="120" height="40" rx="6"/><text x="768" y="42" class="s">publish by B</text><text x="768" y="57" class="g" style="font-size:11px">gates pass</text><rect class="bg" x="760" y="144" width="120" height="40" rx="6"/><text x="768" y="168" class="s">mirror verifies</text></g>
+<g data-f="6"><rect class="bg" x="760" y="204" width="120" height="40" rx="6"/><text x="768" y="222" class="s">dnf accepts</text><text x="768" y="237" class="s">B signatures</text></g>
+</svg>
+<figcaption class="excap" aria-live="polite"></figcaption>
+<div class="exctl"><button type="button" data-act="prev">◀ Back</button><button type="button" data-act="play">▶ Play</button><button type="button" data-act="next">Next ▶</button><span class="exstep"></span></div>
+<script type="application/json" class="excaps">[
+"a.admin makes key B on a YubiKey and runs repoctl sign add a.admin. This adds B to sign.keys, writes the key file and makes one set commit. a.admin pushes it.",
+"Dennis builds slurm-release-3 and publishes it with key A, which clients trust. The summary shows the trust block, and Dennis types a.admin to confirm.",
+"a.admin tries to publish with key B. Gate 2 refuses: keys/deployed.yaml has no record for B. The hint gives repoctl sign onboard a.admin.",
+"Config management rolls out slurm-release-3 to the clients. It gives no feedback to repoctl.",
+"A person checks that release-3 is on all clients and runs repoctl sign deployed a.admin --release slurm-release-26.05-3. repoctl writes the record and makes a set commit. The person pushes it.",
+"a.admin publishes again. Gate 2 passes. verify-el uses the key file of release-3, which the clients have. The mirror job also verifies with release-3.",
+"Clients accept the files that key B signed."
+]</script>
+</figure>
+
+<h3>12.2 Offboarding and rotation</h3>
+<ol>
+<li><code>repoctl sign retire ID</code>: state retiring, set commit. The key cannot sign any more.</li>
+<li><code>repoctl repo resign --signer ID</code> per target, by an active admin. All RPMs of that key get a new signature.</li>
+<li><code>repoctl sign remove ID</code>: refuses while <code>latest</code> of a target holds an RPM of that key. Then state removed, a new key file without it, set commit.</li>
+<li>Build and publish the new slurm-release. Config management rolls it out.</li>
+<li>Config management removes the key on each client. <code>repoctl sign offboard ID</code> prints the commands (04 section 9.3).</li>
+<li>Remove the person from the GitHub team. The record in <code>keys/deployed.yaml</code> can stay, because gate 1 refuses a removed key.</li>
+</ol>
+
+<h3>12.3 Command blocks</h3>
+<div class="cmd"><h4>repoctl sign ls <span class="cls c-read">read</span></h4>
+<pre><code>$ repoctl sign ls
+ID        FINGERPRINT (short)  STATE     DEPLOYED (release, by, date)               EXPIRES     RPMS el9/el10
+hpc-repo  …7C3A 19F2           retiring  slurm-release-26.05-1  d.klein 2026-10-19  2030-01-20   50/48
+d.klein   …41D8 0B6E           active    slurm-release-26.05-2  d.klein 2026-10-20  2029-11-01  154/150
+a.admin   …E93F 52A7           active    no record                                  2028-03-01    0/0</code></pre></div>
+
+<div class="cmd"><h4>repoctl sign add <span class="cls c-local">local write</span></h4>
+<pre><code>repoctl sign add ID --fingerprint FPR [--from-gpg | --file FILE]</code></pre>
+<p>Export the public key from the local gpg or card (or read FILE) to <code>keys/ID.asc</code>. Check the fingerprint and gate 3. Add the entry with state active. Run <code>release write</code>. Make one set commit "Trust key ID FPR". Next line: <code>git push</code>, then the onboarding steps.</p></div>
+
+<div class="cmd"><h4>repoctl sign onboard <span class="cls c-read">read</span></h4>
+<pre><code>$ repoctl sign onboard a.admin
+1 ✓ key in sign.keys, state active          set commit 7e21d0a (pushed)
+2 ✓ key in the key file                     packages/slurm-release/RPM-GPG-KEY-slurm
+3 ✓ release with the key is published       slurm-release-26.05-3 (el9, el10)
+4 ✗ deployed on all clients                 no record
+5 ✓ GHCR write access                       team slurm-repo-admins
+Next: when config management has installed slurm-release-26.05-3 on all clients, run
+      repoctl sign deployed a.admin --release slurm-release-26.05-3</code></pre>
+<p>It only prints and checks. It changes nothing. The same list is the Signing page of the UI.</p></div>
+
+<div class="cmd"><h4>repoctl sign deployed <span class="cls c-shared">shared state</span></h4>
+<pre><code>repoctl sign deployed ID --release NVR [--target ID]... [--path DIR] [--note TEXT]</code></pre>
+<p>Record that config management installed the release NVR on all clients. repoctl checks that the release is in <code>latest</code> of each target (or in DIR with <code>--path</code>, for an import) and that its key file holds the key. Then it asks the person to type the key id, writes <code>keys/deployed.yaml</code> and makes a set commit. The person pushes it.</p>
+<pre><code>keys/deployed.yaml
+apiVersion: repoctl/v1alpha1
+kind: KeyDeployments
+deployments:
+  - key: a.admin
+    fingerprint: C2F9771305ABE4D618C39F2B70DEA5C1E93F52A7
+    release: {el9: slurm-release-26.05-3.el9, el10: slurm-release-26.05-3.el10}
+    confirmedBy: d.klein
+    at: 2026-11-05T09:12:00Z
+    note: "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters"</code></pre>
+<p>It needs a terminal or the UI dialog. No unattended mode, no MCP tool. The UI dialog shows the release NVR, the key fingerprint and a typed key id.</p></div>
+
+<div class="cmd"><h4>repoctl sign retire, sign remove <span class="cls c-local">local write</span></h4>
+<p>Change the state, run <code>release write</code>, make one set commit. <code>sign remove</code> refuses while a snapshot <code>latest</code> holds an RPM of the key (<code>sign.key-in-use</code>, exit 12, hint <code>repoctl repo resign --signer ID</code>).</p></div>
+
+<p>New help topics: <code>repoctl help signing</code> (this section) and <code>repoctl help team</code> (new host: doctor, checkout, repo pull, status; onboarding). The old <code>help keys</code> text describes node keys of the old model. WP1 renames it.</p>
+
+<h2 id="s13">13. Contract, MCP and UI</h2>
+<table>
+<tr><th>Item</th><th>Change</th></tr>
+<tr><td>Publish steps (events)</td><td><code>check</code>, <code>sign</code>, <code>repodata</code>, <code>verify</code>, <code>verify-el</code>, <code>push</code>, <code>tag</code>, <code>cache</code></td></tr>
+<tr><td>Run kinds</td><td><code>publish</code> with <code>publishKind</code>: publish, restore, prune, resign, import</td></tr>
+<tr><td>New kinds</td><td><code>Snapshot</code>, <code>SnapshotList</code>, <code>SignerList</code>, <code>OnboardReport</code></td></tr>
+<tr><td>Status</td><td>Per target: <code>latest</code> (publish, digest, user, host, time), <code>local</code> (same, behind, unpushed, none), <code>served</code> (same, behind, unknown)</td></tr>
+<tr><td>Exit code</td><td><code>13 ExitStateConflict</code>: the registry or the snapshot state stops the command</td></tr>
+<tr><td>HumanAction</td><td>Section 7</td></tr>
+<tr><td>MCP read tools</td><td><code>repoctl_snapshots</code>, <code>repoctl_sign_ls</code>, <code>repoctl_sign_onboard</code></td></tr>
+<tr><td>MCP notExposed</td><td>repo push, repo restore, repo prune, repo gc, repo resign, sign add, sign retire, sign remove, sign deployed, release write</td></tr>
+<tr><td>Config schema</td><td><code>store.oci</code>, <code>repo.url</code>, <code>sign.keys[].state: removed</code>, <code>sign.checks.key_min_validity</code>, <code>retention.snapshots</code>. Removed: <code>sign.checks.signer_deployed</code>, user key <code>sets.&lt;set&gt;.publish.path</code></td></tr>
+</table>
+<h3>13.1 Problem codes</h3>
+<table>
+<tr><th>Code</th><th>Exit</th><th>Hint</th></tr>
+<tr><td><code>state.behind</code></td><td>13</td><td>run: repoctl repo pull</td></tr>
+<tr><td><code>state.unpushed</code></td><td>13</td><td>run: repoctl repo push p-…</td></tr>
+<tr><td><code>snapshot.push-failed</code></td><td>13</td><td>run: repoctl repo push p-…</td></tr>
+<tr><td><code>snapshot.diverged</code></td><td>13</td><td>run: repoctl repo pull, then plan and publish again</td></tr>
+<tr><td><code>registry.denied</code></td><td>13</td><td>names the missing scope and the package settings page</td></tr>
+<tr><td><code>registry.unreachable</code></td><td>13 (publish), warning (plan, build)</td><td>check the network; plan and build use the local copy</td></tr>
+<tr><td><code>lock.dirty</code>, <code>lock.unpushed</code></td><td>5</td><td>the exact git add, commit or push commands</td></tr>
+<tr><td><code>publish.not-ready</code></td><td>12</td><td>names the nodes that are not current or staged</td></tr>
+<tr><td><code>nvr.removed</code></td><td>12</td><td>run: repoctl rebuild DIR --reason "…"</td></tr>
+<tr><td><code>sign.locked</code>, <code>sign.key-format</code></td><td>9</td><td>gpg --card-status; key requirements</td></tr>
+<tr><td><code>sign.not-active</code>, <code>sign.key-expiring</code>, <code>sign.not-deployed</code>, <code>sign.removed-signer</code>, <code>sign.key-in-use</code></td><td>12</td><td>sign onboard, sign ls, repo resign</td></tr>
+<tr><td><code>sign.unknown-signer</code>, <code>verify.el-failed</code></td><td>10</td><td>names the files and the target</td></tr>
+<tr><td><code>sign.keyfile-stale</code></td><td>5</td><td>run: repoctl release write, then commit</td></tr>
+<tr><td><code>sign.trust-change</code></td><td>6</td><td>answer the key id question in a terminal or in the UI</td></tr>
+</table>
+<h3>13.2 Web UI</h3>
+<p>Thread C draws the pages (WP6). This document gives the content:</p>
+<ul>
+<li>Publish, step 1 Review: base and freshness, inputs, per-node source run, trust block, sign counts per key, signer probe state, checks. Step 2 Confirm: typed set name, plus the typed key id for a trust change. Step 3: the eight steps with live state, and "served: behind" at the end.</li>
+<li>Signing page (<code>/s/&lt;set&gt;/signing</code>): the table of <code>sign ls</code>, the onboarding list per key, and the dialog "Confirm deployment" (release NVR, fingerprint, typed key id, note).</li>
+<li>Overview and Sets: Last publish from the annotations of <code>latest</code>; chips <b>local: behind</b> and <b>served: behind</b>.</li>
+</ul>
+
+<h2 id="s14">14. Changes to 02, 03 and 04</h2>
+<table>
+<tr><th>Where</th><th>Before</th><th>Now</th></tr>
+<tr><td>02 section 3.4, 5</td><td><code>publish: {path: …}</code>; publish backends rsync, GitHub Pages</td><td><code>store.oci</code> and <code>repo.url</code>. The mirror job serves. No publish path.</td></tr>
+<tr><td>02 section 5</td><td>Release package: spec in the set tree; <code>release.generate</code> later</td><td>In-tree release package with <code>%autorelease</code>; <code>repoctl release write</code> in v1</td></tr>
+<tr><td>03 section 3, 6 figures</td><td>Two orders: push after the repo update; mirror written by publish</td><td>One order (section 5). The mirror job pulls <code>latest</code>.</td></tr>
+<tr><td>03 section 5</td><td>Prune makes a new snapshot</td><td>Also: kind prune, <code>removed[]</code>, safety class shared state</td></tr>
+<tr><td>03 section 6</td><td>Tags <code>slurm-26.05-el9-latest</code>, <code>…-p-…</code></td><td>Tags <code>latest</code>, <code>p-…</code> in the package <code>&lt;set&gt;-&lt;target&gt;</code></td></tr>
+<tr><td>03 section 6</td><td>Registry <code>ghcr.io/dennisklein/slurm-repo</code></td><td><code>ghcr.io/gsi-hpc/slurm-repo</code> after the move</td></tr>
+<tr><td>03 section 6</td><td>"the set lock convention covers it"</td><td>Compare <code>latest</code> in step 1 and step 7. No lease.</td></tr>
+<tr><td>03 section 6</td><td>restore = publish an old snapshot to the mirror</td><td>restore = new snapshot, <code>latest</code> moves forward</td></tr>
+<tr><td>04 signing 9.1</td><td><code>signer_deployed: true</code>; states active, retiring</td><td>Deployment record; states active, retiring, removed; <code>key_min_validity</code></td></tr>
+<tr><td>04 signing 9.2, Figure 3</td><td>Gate 2 = key in the published release; first publish from local state skips it</td><td>Gate 2 = record; first publish = no snapshot in the registry and no import</td></tr>
+<tr><td>04 signing 9.2</td><td>Re-sign every RPM whose signer is not active</td><td>Re-sign only with <code>repo resign</code>; unknown signers refuse</td></tr>
+<tr><td>04 signing 9.2</td><td>"MCP and the web UI never sign"</td><td>"MCP never signs. The web UI signs only through repoctl publish, after the typed confirmation."</td></tr>
+<tr><td>04 signing 9.2</td><td>Steps check, sign, repodata, verify, swap</td><td>check, sign, repodata, verify, verify-el, push, tag, cache</td></tr>
+<tr><td>04 signing 9.3</td><td><code>sign.keys</code> is an input of the release node key</td><td>A key change is a commit on the release path</td></tr>
+<tr><td>04 signing 5, 10</td><td>A Rocky 9 signer host</td><td>Fedora signer only; never <code>--rpmv6</code></td></tr>
+<tr><td>04 CLI publish</td><td>One run, the newest publishable</td><td>All staged nodes of the plan; <code>--run</code> limits</td></tr>
+<tr><td>04 CLI publish</td><td>Writes the publish path and <code>published.yaml</code></td><td>Writes GHCR and the local copy; <code>snapshot.json</code> cache</td></tr>
+<tr><td>04 CLI publish</td><td>Refuses an uncommitted lock</td><td>Refuses uncommitted or unpushed set inputs and package commits</td></tr>
+<tr><td>04 CLI repo verify</td><td><code>--key</code> default from <code>published.yaml</code></td><td>Default: client trust set; new <code>--snapshot</code>, <code>--served</code>, <code>--el</code></td></tr>
+<tr><td>04 CLI exit codes</td><td>0 to 12, 130</td><td>Add 13</td></tr>
+<tr><td>04 publish page 5 (04j)</td><td>Another signer re-signs all RPMs</td><td>Section 11.5</td></tr>
+<tr><td>04 CLI, 04j</td><td><code>publish --rollback</code>, kept old tree</td><td>Removed. Use <code>repo restore</code> or fix forward.</td></tr>
+</table>
+
+<h2 id="s15">15. Verification plan</h2>
+<p>These tests add to section 10 of the signing study in 04. Run them before implementation depends on them.</p>
+<table>
+<tr><th>#</th><th>Test</th><th>Expect</th></tr>
+<tr><td>V1</td><td>Mirror job on EL9 with curl and jq only: anonymous token, manifest, blobs of a public GHCR artifact.</td><td>Pull works without a login.</td></tr>
+<tr><td>V2</td><td>First push of an org package with a classic token; set public; turn on inherited access.</td><td>A team member can push. Anonymous pull works.</td></tr>
+<tr><td>V3</td><td>Push with a fine-grained token.</td><td>Find out if GHCR accepts it. If not, the docs say classic token.</td></tr>
+<tr><td>V4</td><td>Fedora host: mock verify root for EL9 and EL10, <code>bind_mount</code>, <code>rpmkeys --checksig</code>, <code>dnf makecache</code> with <code>repo_gpgcheck=1</code>.</td><td>Pass with the right key; fail with a missing key.</td></tr>
+<tr><td>V5</td><td><code>rpmsign --resign</code> on Fedora (rpm 6) of v4 packages; install on EL9 and EL10.</td><td>One v4 signature. EL9 and EL10 install.</td></tr>
+<tr><td>V6</td><td>rpmautospec on an in-tree package in the set repo: which commits it counts.</td><td>The release goes up for a commit on the path. Note the effect of other set commits.</td></tr>
+<tr><td>V7</td><td>EL10 client, RPM signed by a key that expired.</td><td>Install fails. After <code>repo resign</code> with a valid key, it works.</td></tr>
+<tr><td>V8</td><td>Time of <code>repo resign</code> for a full target, debuginfo included, with a YubiKey (touch cached).</td><td>A number for the summary estimate.</td></tr>
+<tr><td>V9</td><td>Signer probe with pinentry-gnome3 and pinentry-curses.</td><td>One PIN prompt at the start, none in the sign step.</td></tr>
+</table>
+
+<h2 id="s16">16. Findings covered</h2>
+<table>
+<tr><th>Finding</th><th>WP</th><th>Decided here</th><th>Section</th></tr>
+<tr><td><a href="../review/ux-review.html#UX-01">UX-01</a> blocker</td><td>2</td><td>GHCR authority, one publish order, push and tag steps, exit 13</td><td>4, 5</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-04">UX-04</a> blocker</td><td>4</td><td>Gate 2 on a committed deployment record; first publish from the registry</td><td>11.2, 12</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-06">UX-06</a></td><td>2</td><td>No lease; compare <code>latest</code> two times</td><td>5.4</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-07">UX-07</a></td><td>2</td><td>Freshness check in plan, build, status, publish</td><td>4.1</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-08">UX-08</a></td><td>2</td><td>Mirror job, <code>repo.url</code>, no publish path</td><td>3</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-09">UX-09</a></td><td>2</td><td>Refuse unpushed commits</td><td>5.2</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-11">UX-11</a></td><td>2</td><td>Publish from the plan, source run per node</td><td>5.3</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-13">UX-13</a></td><td>2</td><td>restore moves forward, <code>removed[]</code>, fix forward</td><td>6, 8</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-14">UX-14</a></td><td>2</td><td>Safety classes</td><td>7</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-19">UX-19</a></td><td>2</td><td>Annotations replace <code>published.yaml</code></td><td>4, 6</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-20">UX-20</a></td><td>2</td><td>Namespace, scopes, team, doctor checks</td><td>9</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-30">UX-30</a></td><td>2</td><td>Set inputs committed and pushed</td><td>5.2</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-21">UX-21</a></td><td>4</td><td>In-tree release package, <code>release write</code></td><td>11.6</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-22">UX-22</a></td><td>4</td><td>Trust block, typed key id</td><td>11.3</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-23">UX-23</a></td><td>4</td><td>Unknown signers refuse; pull verifies</td><td>8, 11.5</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-24">UX-24</a></td><td>4</td><td>One re-sign rule, <code>repo resign</code></td><td>11.5</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-25">UX-25</a></td><td>4</td><td>Signer probe, local pinentry, touch prompt</td><td>11.1</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-26">UX-26</a></td><td>4</td><td><code>sign add</code>, <code>onboard</code>, <code>deployed</code>, <code>retire</code>, <code>remove</code></td><td>12</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-35">UX-35</a></td><td>4</td><td>Expiry as a key change, <code>key_min_validity</code></td><td>11.7</td></tr>
+<tr><td><a href="../review/ux-review.html#UX-67">UX-67</a></td><td>4</td><td>verify-el in the EL chroot, client trust set</td><td>11.4</td></tr>
+</table>
+
+<h2 id="s17">17. Assumptions and open questions</h2>
+<h3>Assumptions</h3>
+<ul>
+<li>The HTTP server can run a systemd timer and has curl, jq, gnupg2 and rpm. Config management installs slurm-release on it, as on a client.</li>
+<li>The mirror interval is 5 minutes. A shorter interval only adds HEAD requests.</li>
+<li>GHCR has no tag compare-and-swap. The window in step 7 is acceptable after Dennis's rule on races.</li>
+<li>The publish id format <code>p-YYYYMMDD-HHMM-xxx</code> of 04 stays. Imports use <code>p-import-YYYYMMDD</code>.</li>
+<li>Host names, the server path <code>/srv/repos/slurm-repo</code>, the team name and the fingerprints in the examples are placeholders.</li>
+</ul>
+<h3>Open questions (no blocker)</h3>
+<ul>
+<li>Which host is the HTTP server, and who owns the mirror job?</li>
+<li>Which name has the GitHub team in GSI-HPC?</li>
+<li>Is 30 days a good default for <code>key_min_validity</code>?</li>
+</ul>
+
+<script>
+(function(){
+function inSet(spec,n){return spec.split(',').some(function(p){var r=p.split('-');var a=+r[0],b=r.length>1?+r[1]:a;return n>=a&&n<=b;});}
+document.querySelectorAll('figure.explainer').forEach(function(fig){
+  var caps=JSON.parse(fig.querySelector('.excaps').textContent);
+  var els=fig.querySelectorAll('[data-f]');var cap=fig.querySelector('.excap');var st=fig.querySelector('.exstep');
+  var playBtn=fig.querySelector('[data-act=play]');var n=0,timer=null;
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function show(k){n=(k+caps.length)%caps.length;
+    els.forEach(function(el){var on=inSet(el.getAttribute('data-f'),n);el.classList.toggle('off',!on);el.setAttribute('aria-hidden',on?'false':'true');});
+    cap.textContent=caps[n];st.textContent='Step '+(n+1)+' of '+caps.length;}
+  function stop(){if(timer){clearInterval(timer);timer=null;}playBtn.textContent='▶ Play';}
+  function play(){if(timer){stop();return;}if(n===caps.length-1)show(0);playBtn.textContent='❚❚ Pause';
+    timer=setInterval(function(){if(n>=caps.length-1){stop();return;}show(n+1);},reduce?6000:4200);}
+  fig.querySelector('[data-act=prev]').addEventListener('click',function(){stop();show(n-1);});
+  fig.querySelector('[data-act=next]').addEventListener('click',function(){stop();show(n+1);});
+  playBtn.addEventListener('click',play);
+  show(0);
+});})();
+</script>
+</body></html>
