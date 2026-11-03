@@ -37,7 +37,7 @@
     <span class="n">4/8</span><span class="bad">1 failed</span><span class="n el">11m</span>
     <span class="sr-only">Run in progress</span></a>
   <span class="live hide-sm" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="t"></span></span>
-  <span class="meta hide-md mono">d.klein@hpc-build01</span>
+  <span class="meta hide-md mono">d.klein@hpc-a1</span>
   <button class="icon-btn" type="button" aria-label="Keyboard shortcuts (?)" onclick="document.getElementById('help').showModal()">?</button>
   <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
 </header>
@@ -60,6 +60,8 @@
   <div class="side-foot"><span>Press <kbd>?</kbd> for shortcuts</span><span class="mono">repoctl v0.1.0</span></div>
 </nav>
 <main class="main" id="main">
+<div class="banner warn sup-banner" role="note" style="margin-bottom:16px"><div><b>Superseded 2026-11-03.</b> Overview of build model v1 (same-NVR warning, <code>bump-release</code>, Upstream item). See <a href="overview-v2.html">overview-v2.html</a>.</div></div>
+
 <div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
   <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
   <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
@@ -89,8 +91,8 @@
       <span class="kind">Run</span>
       <div class="what">
         <div class="t"><a class="node-chip st-failed" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10" title="slurm@el10: failed"><b>slurm</b>@el10</a> failed in run <a class="mono" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">r-20261102-1750-a3f</a></div>
-        <pre class="errline">error: Failed build dependencies: pkgconfig(rocm_smi64) is needed</pre>
-        <div class="hint"><b>Hint:</b> <code>rocm-smi</code> provides <code>pkgconfig(rocm_smi64)</code>, but it has <code>targets: [el9]</code>. The slurm spec needs an <code>%if</code> guard for el10. This failure blocks <a class="node-chip st-blocked" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm-singularity-exec@el10" title="slurm-singularity-exec@el10: blocked"><b>slurm-singularity-exec</b>@el10</a>.</div>
+        <pre class="errline">error: Failed build dependencies: rocm-smi-devel is needed</pre>
+        <div class="hint"><b>Hint:</b> <code>rocm-smi</code> provides <code>rocm-smi-devel</code>, but it has <code>targets: [el9]</code>. The slurm spec needs an <code>%if</code> guard for el10. This failure blocks <a class="node-chip st-blocked" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm-singularity-exec@el10" title="slurm-singularity-exec@el10: blocked"><b>slurm-singularity-exec</b>@el10</a>.</div>
       </div>
       <div class="acts"><a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10">Show log</a><a class="btn btn-sm" href="/s/slurm-26.05/packages/slurm">Open slurm</a></div>
     </li>

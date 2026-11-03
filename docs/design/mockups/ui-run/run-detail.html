@@ -45,7 +45,7 @@
 
     <dl class="meta-strip" id="run-meta">
       <div><dt>State</dt><dd>running</dd></div>
-      <div><dt>Started by</dt><dd>d.klein <span class="muted">on</span> hpc-build01</dd></div>
+      <div><dt>Started by</dt><dd>d.klein <span class="muted">on</span> hpc-a1</dd></div>
       <div><dt>Started</dt><dd class="mono">17:50:04 <span class="muted" style="font-family:var(--font-sans)">today</span></dd></div>
       <div><dt>Elapsed</dt><dd class="mono" data-since="2026-11-02T17:50:04+01:00">11m02s</dd></div>
       <div><dt>Jobs</dt><dd>4 <span class="muted">(3 busy)</span></dd></div>
@@ -60,12 +60,12 @@
         <span class="sub">Builds: 2 of 8 done · 3 running · 1 failed · 1 blocked · 1 waiting</span>
         <span class="right">Estimated end ~18:31, from typical node times</span>
       </div>
-      <div class="stackbar" role="img" aria-label="ok 2, cached 13, failed 1, blocked 1, running 3, waiting 1"><span class="seg st-ok" style="flex:2" title="ok: 2"></span><span class="seg st-cached" style="flex:13" title="cached: 13"></span><span class="seg st-failed" style="flex:1" title="failed: 1"></span><span class="seg st-blocked" style="flex:1" title="blocked: 1"></span><span class="seg st-running" style="flex:3" title="running: 3"></span><span class="seg st-waiting" style="flex:1" title="waiting: 1"></span></div>
-      <div class="legend"><span class="pill st-ok">ok <b>2</b></span><span class="pill st-cached">cached <b>13</b></span><span class="pill st-running">running <b>3</b></span><span class="pill st-waiting">waiting <b>1</b></span><span class="pill st-queued zero">queued <b>0</b></span><span class="pill st-failed">failed <b>1</b></span><span class="pill st-blocked">blocked <b>1</b></span><span class="pill st-canceled zero">canceled <b>0</b></span></div>
+      <div class="stackbar" role="img" aria-label="ok 2, current 13, failed 1, blocked 1, running 3, waiting 1"><span class="seg st-ok" style="flex:2" title="ok: 2"></span><span class="seg st-cached" style="flex:13" title="current: 13"></span><span class="seg st-failed" style="flex:1" title="failed: 1"></span><span class="seg st-blocked" style="flex:1" title="blocked: 1"></span><span class="seg st-running" style="flex:3" title="running: 3"></span><span class="seg st-waiting" style="flex:1" title="waiting: 1"></span></div>
+      <div class="legend"><span class="pill st-ok">ok <b>2</b></span><span class="pill st-cached">current <b>13</b></span><span class="pill st-running">running <b>3</b></span><span class="pill st-waiting">waiting <b>1</b></span><span class="pill st-failed">failed <b>1</b></span><span class="pill st-blocked">blocked <b>1</b></span><span class="pill st-canceled zero">canceled <b>0</b></span></div>
     </div>
 
     <div class="stage-note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="8" cy="3.5" rx="5.5" ry="2"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/></svg><span><strong>Results go to staging. Publish is a separate step.</strong> Staging repo: <code>~/.cache/repoctl/slurm-26.05/staging/r-20261102-1750-a3f/</code> (unsigned).</span><a href="/s/slurm-26.05/repo?staging=r-20261102-1750-a3f">Browse staging ›</a></div>
-    <div class="banner warn" style="font-size:12.5px;margin:-6px 0 16px"><span><b>Plan problem nvr.reused:</b> slurm, openmpi and slurm-singularity-exec rebuild with an unchanged NVR (dependency changed, commit did not). Publish refuses such a run. Fix: commit the slurm el10 fix, run <code>repoctl bump-release openmpi slurm-singularity-exec</code>, then build again. <a href="/s/slurm-26.05/plan?run=r-20261102-1750-a3f">Plan details ›</a></span></div>
+    <div class="banner warn" style="font-size:12.5px;margin:-6px 0 16px"><span><b>el9 can be published while el10 is open.</b> slurm@el10 failed (<code>rocm-smi-devel is needed</code>). When the el9 nodes finish, run <code>repoctl publish --target el9</code>. Fix the spec for el10, then <code>repoctl pin slurm</code> and build again. <a href="/s/slurm-26.05/plan?run=r-20261102-1750-a3f">Plan details ›</a></span></div>
 
     <div id="run-failures" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/f/failures" hx-trigger="sse:resync" hx-swap="innerHTML">
     <div class="card fail-card" id="fail-slurm-el10">
@@ -77,18 +77,18 @@
       <div class="card-body fail-grid">
         <div>
           <div class="lbl">Extracted error <span class="muted">rule missing-buildrequires</span></div>
-          <div class="err-head">error: Failed build dependencies: pkgconfig(rocm_smi64) is needed by slurm-26.05.4-1.el10.x86_64</div>
+          <div class="err-head">error: Failed build dependencies: rocm-smi-devel is needed by slurm-26.05.4-1.el10.x86_64</div>
           <div class="lbl">Evidence <a href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10?step=rpm&amp;file=root.log#L214">rpm/root.log:214 ›</a></div>
           <pre class="log excerpt"><span class="ln">212</span><span class="dim">DEBUG util.py:446:  Package pkgconf-pkg-config-2.1.1-3.el10.x86_64 is already installed.</span>
 <span class="ln">213</span><span class="dim">DEBUG util.py:446:  Package ucx-devel-1.22.1-1.el10.x86_64 is already installed.</span>
-<span class="hl"><span class="ln">214</span><span class="err">DEBUG util.py:446:  No matching package to install: 'pkgconfig(rocm_smi64)'</span></span>
+<span class="hl"><span class="ln">214</span><span class="err">DEBUG util.py:446:  No matching package to install: 'rocm-smi-devel'</span></span>
 <span class="ln">215</span>DEBUG util.py:446:  Not all dependencies satisfied
 <span class="hl"><span class="ln">216</span><span class="err">DEBUG util.py:446:  Error: Some packages could not be found.</span></span>
 <span class="ln">217</span>DEBUG util.py:631:  Child return code was: 1</pre>
         </div>
         <div>
           <div class="lbl">Diagnosis</div>
-          <div class="hint">No repo of target <code>el10</code> provides <code>pkgconfig(rocm_smi64)</code>. In this set, only <code>rocm-smi</code> provides it, and <code>rocm-smi</code> has <code>targets: [el9]</code>. The slurm spec has no <code>%if</code> guard for this BuildRequires.
+          <div class="hint">No repo of target <code>el10</code> provides <code>rocm-smi-devel</code>. In this set, only <code>rocm-smi</code> provides it, and <code>rocm-smi</code> has <code>targets: [el9]</code>. The slurm spec has no <code>%if</code> guard for this BuildRequires.
             <ol><li>Guard the BuildRequires in <code>slurm.spec</code> for el10, or</li><li>add <code>el10</code> to the targets of <code>rocm-smi</code>.</li></ol>
           </div>
           <div class="seen"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg> Same error in <a class="mono" href="/s/slurm-26.05/runs/r-20261020-1530-f3e/nodes/slurm@el10">r-20261020-1530-f3e</a>. slurm@el10 never built ok.</div>
@@ -96,7 +96,7 @@
       </div>
       <div class="fail-foot">
         <a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10?step=rpm&amp;file=root.log#L214"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h7l3 3v8H3z"/><path d="M5.5 7.5h5M5.5 10h5"/></svg>Open log</a>
-        <button class="btn btn-sm" type="button" data-copy="error: Failed build dependencies: pkgconfig(rocm_smi64) is needed by slurm-26.05.4-1.el10.x86_64"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M3 10.5V3.5a1 1 0 0 1 1-1h6.5"/></svg>Copy error</button>
+        <button class="btn btn-sm" type="button" data-copy="error: Failed build dependencies: rocm-smi-devel is needed by slurm-26.05.4-1.el10.x86_64"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M3 10.5V3.5a1 1 0 0 1 1-1h6.5"/></svg>Copy error</button>
         <button class="btn btn-sm" type="button" data-copy="repoctl logs r-20261102-1750-a3f slurm@el10 --json"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M4.5 6l2 2-2 2M8 10.5h3.5"/></svg>Copy for agent</button>
         <span class="note">Retry uses the inputs from <code>repoctl.lock</code>. slurm is still at <code>d42f66a</code>, so a retry fails the same way. Fix the spec, pin, then retry.</span>
       </div>
@@ -125,7 +125,7 @@
 
     <div class="card tree" id="run-tree" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/f/tree" hx-trigger="sse:resync" hx-swap="outerHTML">
         <div class="card-head"><b>Progress</b><span class="muted">run › target › node › steps</span>
-          <div class="tools"><label class="chk"><span class="box"></span>Show cached nodes</label><a class="btn btn-sm" href="/s/slurm-26.05/graph?run=r-20261102-1750-a3f"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="4" cy="12" r="2"/><path d="M6 4.8 10 7.2M6 11.2l4-2.4"/></svg>Graph view</a></div>
+          <div class="tools"><label class="chk"><span class="box"></span>Show current nodes</label><a class="btn btn-sm" href="/s/slurm-26.05/graph?run=r-20261102-1750-a3f"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="4" cy="12" r="2"/><path d="M6 4.8 10 7.2M6 11.2l4-2.4"/></svg>Graph view</a></div>
         </div>
       <div class="trow head">
         <span>node</span><span>state</span><span class="c-steps">steps</span>
@@ -135,7 +135,7 @@
       <div class="trow run">
         <div class="tname"><span class="name">r-20261102-1750-a3f</span><span class="why">slurm-26.05 · repoctl build ucx</span></div>
         <span class="pill st-running">running</span>
-        <div class="note c-steps">8 build · 13 cached</div>
+        <div class="note c-steps">8 build · 13 current</div>
         <div class="c-tl"><div class="tl"><span class="bar st-running" style="left:0.33%;width:73.56%;opacity:.25"><i style="flex:1"></i></span><span class="now" style="left:74.00%"></span></div></div>
         <span class="dur" data-since="2026-11-02T17:50:04+01:00">11m02s</span><span class="lnk"></span>
       </div>
@@ -179,8 +179,8 @@
         <span class="lnk"></span>
       </div>
       <div class="trow" id="cached-el9" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/f/tree?target=el9&amp;cached=expand" hx-target="this" hx-swap="outerHTML">
-        <div class="tname"><span class="g">│  └─ </span><span class="name" style="color:var(--c-text-2)">7 nodes cached</span></div>
-        <span class="pill st-cached">cached</span>
+        <div class="tname"><span class="g">│  └─ </span><span class="name" style="color:var(--c-text-2)">7 nodes current</span></div>
+        <span class="pill st-cached">current</span>
         <div class="cached-list c-steps" style="grid-column:span 2"><span class="tag" title="munge@el9 · key in cache">munge</span><span class="tag" title="rocm-smi@el9 · key in cache">rocm-smi</span><span class="tag" title="pmix@el9 · key in cache">pmix</span><span class="tag" title="pmix_v5@el9 · key in cache">pmix_v5</span><span class="tag" title="pmix_v4@el9 · key in cache">pmix_v4</span><span class="tag" title="prrte@el9 · key in cache">prrte</span><span class="tag" title="slurm-release@el9 · key in cache">slurm-release</span></div>
         <span class="dur">0s</span>
         <span class="lnk"><a href="#" title="Expand"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></a></span>
@@ -225,8 +225,8 @@
         <span class="lnk"></span>
       </div>
       <div class="trow" id="cached-el10" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/f/tree?target=el10&amp;cached=expand" hx-target="this" hx-swap="outerHTML">
-        <div class="tname"><span class="g">   └─ </span><span class="name" style="color:var(--c-text-2)">6 nodes cached</span></div>
-        <span class="pill st-cached">cached</span>
+        <div class="tname"><span class="g">   └─ </span><span class="name" style="color:var(--c-text-2)">6 nodes current</span></div>
+        <span class="pill st-cached">current</span>
         <div class="cached-list c-steps" style="grid-column:span 2"><span class="tag" title="munge@el10 · key in cache">munge</span><span class="tag" title="pmix@el10 · key in cache">pmix</span><span class="tag" title="pmix_v5@el10 · key in cache">pmix_v5</span><span class="tag" title="pmix_v4@el10 · key in cache">pmix_v4</span><span class="tag" title="prrte@el10 · key in cache">prrte</span><span class="tag" title="slurm-release@el10 · key in cache">slurm-release</span></div>
         <span class="dur">0s</span>
         <span class="lnk"><a href="#" title="Expand"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></a></span>
@@ -257,8 +257,8 @@
             <li><span class="t">17:54:54</span><span class="ev">node.step</span><span class="what">slurm@el9 rpm</span></li>
             <li><span class="t">17:54:24</span><span class="ev">node.step</span><span class="what">openmpi@el9 rpm</span></li>
             <li><span class="t">17:53:46</span><span class="ev">node.state</span><span class="what">ucx@el9 → ok</span></li>
-            <li><span class="t">17:50:09</span><span class="ev">plan.ready</span><span class="what">21 nodes · 8 build · 13 cached</span></li>
-            <li><span class="t">17:50:04</span><span class="ev">run.started</span><span class="what">d.klein@hpc-build01 · jobs 4</span></li>
+            <li><span class="t">17:50:09</span><span class="ev">plan.ready</span><span class="what">21 nodes · 8 build · 13 current</span></li>
+            <li><span class="t">17:50:04</span><span class="ev">run.started</span><span class="what">d.klein@hpc-a1 · jobs 4</span></li>
           </ul>
         </div>
       </div>
