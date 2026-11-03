@@ -17,7 +17,6 @@
   --s-running:#b4581f;  --s-running-bg:#fbe9dc;
   --s-ok:#2f7d4a;       --s-ok-bg:#e1f1e6;
   --s-cached:#5b6b8c;   --s-cached-bg:#e6eaf2;
-  --s-staged:#1f7a73;   --s-staged-bg:#dcefed;
   --s-failed:#c0362c;   --s-failed-bg:#fbe3e0;
   --s-blocked:#9a6a00;  --s-blocked-bg:#fbf0d4;
   --s-canceled:#8a7f74; --s-canceled-bg:#efebe7;
@@ -38,7 +37,6 @@
     --s-queued:#9b9086; --s-queued-bg:#2a241f; --s-waiting:#9b9086; --s-waiting-bg:#221d19;
     --s-running:#f0a36d; --s-running-bg:#3a2516; --s-ok:#6cc58a; --s-ok-bg:#16301f;
     --s-cached:#9fb0d4; --s-cached-bg:#1f2635; --s-failed:#ff7a6e; --s-failed-bg:#3a1a17;
-    --s-staged:#6fcfc6; --s-staged-bg:#12302d;
     --s-blocked:#e6b84a; --s-blocked-bg:#352a10; --s-canceled:#9b9086; --s-canceled-bg:#2a241f;
     --s-skip:#6f655c;
     --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.5);
@@ -52,7 +50,6 @@
   --s-queued:#9b9086; --s-queued-bg:#2a241f; --s-waiting:#9b9086; --s-waiting-bg:#221d19;
   --s-running:#f0a36d; --s-running-bg:#3a2516; --s-ok:#6cc58a; --s-ok-bg:#16301f;
   --s-cached:#9fb0d4; --s-cached-bg:#1f2635; --s-failed:#ff7a6e; --s-failed-bg:#3a1a17;
-  --s-staged:#6fcfc6; --s-staged-bg:#12302d;
   --s-blocked:#e6b84a; --s-blocked-bg:#352a10; --s-canceled:#9b9086; --s-canceled-bg:#2a241f;
   --s-skip:#6f655c;
   --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.5);
@@ -116,7 +113,6 @@ h1,h2,h3{line-height:1.25;margin:0 0 .5em}h1{font-size:20px;font-weight:600}h2{f
 .st-running::before{animation:pulse 1.2s ease-in-out infinite}
 .st-ok{color:var(--s-ok);background:var(--s-ok-bg)}
 .st-cached{color:var(--s-cached);background:var(--s-cached-bg)}
-.st-staged{color:var(--s-staged);background:var(--s-staged-bg)}
 .st-failed{color:var(--s-failed);background:var(--s-failed-bg)}
 .st-blocked{color:var(--s-blocked);background:var(--s-blocked-bg)}
 .st-canceled{color:var(--s-canceled);background:var(--s-canceled-bg)}
@@ -243,7 +239,7 @@ main.content figcaption{font-size:13px;color:var(--c-text-3);margin-top:6px}
 .c-read{color:var(--s-ok)}.c-stage{color:var(--c-text-3)}.c-local{color:var(--c-primary-strong)}.c-shared{color:var(--s-failed)}
 main.content .banner.sup-note{margin:12px 0}
 </style></head><body>
-<div class="doc"><nav class="toc"><div class="brand"><span class="brand-mark">rc</span> repoctl design</div><a href="index.html">All design documents</a><a href="#intro">Summary and decisions</a><a href="#sign">Signing keys: shared key, personal keys, or many keys</a><a href="#cli-ref">CLI reference</a><a href="#cli-term">Terminal look of repoctl</a><a href="#contract">Machine contract: JSON output, event log, MCP server, skills</a><a href="#ui-shell">Web UI: information architecture, shell, components and Overview</a><a href="#ui-graph">Web UI: build graph and plan</a><a href="#ui-run">Web UI: runs and logs</a><a href="#ui-pkg">Web UI: packages, repository and publish</a><a href="#ui-graph-v2">Web UI: plan, advisories and rebuilds (build model v2)</a><a href="#ui-shell-v2">Web UI v2: Overview with advisories, agent buttons and the agent panel</a></nav>
+<div class="doc"><nav class="toc"><div class="brand"><span class="brand-mark">rc</span> repoctl design</div><a href="index.html">All design documents</a><a href="#intro">Summary and decisions</a><a href="#sign">Signing keys: shared key, personal keys, or many keys</a><a href="#cli-ref">CLI reference</a><a href="#cli-term">Terminal look of repoctl</a><a href="#contract">Machine contract: JSON output, event log, MCP server, skills</a><a href="#ui-shell">Web UI: information architecture, shell, components and Overview</a><a href="#ui-graph">Web UI: build graph and plan</a><a href="#ui-run">Web UI: runs and logs</a><a href="#ui-pkg">Web UI: packages, repository and publish</a><a href="#ui-graph-v2">Web UI: plan, advisories and rebuilds (build model v2)</a><a href="#ui-shell-v2">Web UI v2: Overview with advisories, agent buttons and the agent panel</a><a href="#ui-pkg-v2">Web UI v2: publish, signing and snapshots</a></nav>
 <main class="content"><section id="intro">
 <h1>repoctl: CLI and web UI design</h1>
 <p class="lead-meta">Date: 2026-11-02. Updated: 2026-11-03. Status: proposal for review. Follows <a href="02-repoctl.html">02-repoctl.html</a> (config, XDG, skills) and <a href="01-tooling-decision.html">01-tooling-decision.html</a>.</p>
@@ -1599,7 +1595,7 @@ el10  10 nodes · 13 edges · 4 levels
      slurm                                       &lt;- munge ucx pmix pmix_v5 pmix_v4
   3  openmpi                                     &lt;- ucx pmix prrte
      slurm-singularity-exec                      &lt;- slurm
-<span class="warn">Warning:</span> slurm@el10 needs pkgconfig(rocm_smi64); in this set only rocm-smi@el9 provides it
+<span class="warn">Warning:</span> slurm@el10 needs rocm-smi-devel; in this set only rocm-smi@el9 provides it
 <span class="dim">$</span> repoctl graph --target el9 --format dot | dot -Tsvg &gt; el9.svg</pre>
 </article>
 
@@ -1824,13 +1820,13 @@ slurm-singularity-exec@el10   blocked                slurm@el10 failed
 </dl>
 <pre class="log"><span class="dim">$</span> repoctl logs slurm@el10 --tail 7
 <span class="dim">==&gt; r-20261102-1750-a3f slurm@el10 rpm (failed, 1m48s) ~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/slurm@el10/root.log</span>
-DEBUG util.py:459:  No match for argument: pkgconfig(rocm_smi64)
-DEBUG util.py:459:  Error: Unable to find a match: pkgconfig(rocm_smi64)
+DEBUG util.py:459:  No match for argument: rocm-smi-devel
+DEBUG util.py:459:  Error: Unable to find a match: rocm-smi-devel
 DEBUG util.py:461:  Child return code was: 1
 <span class="err">ERROR: Command failed:</span>
 <span class="err"> # /usr/bin/dnf5 builddep --installroot /var/lib/mock/rocky+epel-10-x86_64-r1750a3f-3/root/ … slurm-26.05.4-1.el10.src.rpm</span>
 <span class="err">error: Failed build dependencies:</span>
-<span class="err">	pkgconfig(rocm_smi64) is needed by slurm-26.05.4-1.el10.x86_64</span></pre>
+<span class="err">	rocm-smi-devel is needed by slurm-26.05.4-1.el10.x86_64</span></pre>
 </article>
 
 <article class="cmd" id="cmd-cancel">
@@ -2371,8 +2367,8 @@ repoctl mock clean [--lock-wait D]</pre>
 <pre class="log"><span class="dim">$</span> repoctl mock update
 updated  el9   rocky+epel-9-x86_64   14 packages  1m31s
 updated  el10  rocky+epel-10-x86_64  9 packages   1m12s
-<span class="dim">$</span> repoctl mock shell el10 -- rpm -q --whatprovides 'pkgconfig(rocm_smi64)'
-no package provides pkgconfig(rocm_smi64)</pre>
+<span class="dim">$</span> repoctl mock shell el10 -- rpm -q --whatprovides 'rocm-smi-devel'
+no package provides rocm-smi-devel</pre>
 </article>
 
 <article class="cmd" id="cmd-config">
@@ -2857,13 +2853,13 @@ hint: then check again: run: repoctl publish --target el9 --dry-run</pre>
 <tr><td>running</td><td><code>▸</code></td><td><code>&gt;</code></td><td>copper <code>--s-running</code></td><td>173 / 33</td><td>running</td></tr>
 <tr><td>ok</td><td><code>✓</code></td><td><code>+</code></td><td>green <code>--s-ok</code></td><td>71 / 32</td><td>ok</td></tr>
 <tr><td>current</td><td><code>≡</code></td><td><code>=</code></td><td>slate-blue <code>--s-current</code></td><td>110 / 34</td><td>not a target (resolved in the plan step)</td></tr>
-<tr><td>staged</td><td><code>●</code></td><td><code>*</code></td><td>teal <code>--s-staged</code></td><td>109 / 36</td><td>not a target (resolved in the plan step); a node of the last build that waits for publish</td></tr>
+<tr><td>staged</td><td><code>●</code></td><td><code>*</code></td><td>green <code>--s-ok</code> (no new colour; the mark differs from ok)</td><td>71 / 32</td><td>not a target (resolved in the plan step); a node of the last build that waits for publish</td></tr>
 <tr><td>failed</td><td><code>✗</code></td><td><code>x</code></td><td>red <code>--s-failed</code></td><td>203 / 31</td><td>failed</td></tr>
 <tr><td>blocked</td><td><code>⊘</code></td><td><code>!</code></td><td>amber <code>--s-blocked</code></td><td>179 / 35</td><td>canceled</td></tr>
 <tr><td>canceled</td><td><code>⊖</code></td><td><code>~</code></td><td>grey <code>--s-canceled</code></td><td>245 / 90</td><td>canceled</td></tr>
 <tr><td>skip (filter)</td><td><code>–</code></td><td><code>-</code></td><td>faint <code>--s-skip</code></td><td>242 / 90</td><td>skipped</td></tr>
 </tbody></table>
-<p>Plan actions use their own marks: <code>◆ build</code> (copper), <code>≡ current</code> (slate-blue), <code>● staged</code> (teal) and <code>– skip</code> (faint). <span class="sup">superseded</span> <code>≡ cached</code>. Sub-steps of a running node are the words <code>srpm</code>, <code>rpm</code> and <code>stage</code>.</p>
+<p>Plan actions use their own marks: <code>◆ build</code> (copper), <code>≡ current</code> (slate-blue), <code>● staged</code> (green) and <code>– skip</code> (faint). <span class="sup">superseded</span> <code>≡ cached</code>. Sub-steps of a running node are the words <code>srpm</code>, <code>rpm</code> and <code>stage</code>.</p>
 
 <h4>Streams and colour</h4>
 <ul>
@@ -3260,7 +3256,7 @@ bumps <code>v</code>; an added key or value does not.</p>
     <tr><td>NodeState</td><td>
       <span class="pill st-waiting">waiting</span>
       <span class="pill st-running">running</span> <span class="pill st-ok">ok</span>
-      <span class="pill st-cached">current</span> <span class="pill st-staged">staged</span> <span class="pill st-failed">failed</span>
+      <span class="pill st-cached">current</span> <span class="pill st-ok">staged</span> <span class="pill st-failed">failed</span>
       <span class="pill st-blocked">blocked</span> <span class="pill st-canceled">canceled</span></td>
       <td>CSS class <code>st-&lt;state&gt;</code> (<code>st-cached</code> keeps its slate-blue for <code>current</code>). waiting = a dependency is not done, or all dependencies are done and no job slot is free. blocked = a dependency failed. current and staged are plan states: a node has them at <code>plan.ready</code> and never leaves them. <span class="sup">superseded</span> <code>queued</code> (there is no queue) and <code>cached</code>.</td></tr>
     <tr><td>Step</td><td><code>srpm</code> <code>rpm</code> <code>stage</code></td><td>Sub-steps of
@@ -5890,7 +5886,7 @@ a step with <code>human: true</code> (publish) is for the person only. Humans ta
 </table></div>
 
 <!-- ======================================================================= -->
-<h3>C.7 Skill interface</h3>
+<h3 id="c-skills">C.7 Skill interface</h3>
 
 <p><span class="chg">changed</span> Five generic skills ship in the binary (<code>go:embed</code>), in the Claude Code plugin and in
 <code>/usr/share/repoctl/skills/</code>: <code>repoctl</code>, <code>package-updates</code>, <code>bump-package</code>, <code>triage-build</code> and <code>rebuild-check</code> (the skill behind the button "Is a rebuild necessary?"). Each skill works with the CLI (<code>Bash</code>) or with the MCP
@@ -7472,6 +7468,7 @@ nodes have no <code>nvrs</code> here.</p>
 </section>
 <section id="ui-shell">
 <h2>Web UI: information architecture, shell, components and Overview</h2>
+<div class="banner warn sup-note"><div><b>Updated 2026-11-03.</b> The UI is for the <strong>local user only</strong> (Q15): no ssh recipe, no unix socket for a remote browser, no host in the path of the session text. One server per user, loopback only. The sidebar has <b>Advisories</b> (replaces Upstream, section <a href="#ui-shell-v2">Advisories and agent v2</a>) and <b>Signing</b>; Publish takes the <em>plan</em>, not a run (section <a href="#ui-pkg-v2">Publish v2</a>). Run states have no <code>queued</code>. Old text carries <span class="sup">superseded</span>.</div></div>
 
 <p>This section defines the frame of <code>repoctl ui</code>. The pages of ui-graph, ui-run and ui-pkg plug into this frame.
 It gives the URL scheme, the app shell, the SSE and fragment rules, the shared components, the Overview page and the sets page.
@@ -7504,10 +7501,13 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <tr><td>Raw log (download)</td><td><code>/s/&lt;set&gt;/runs/&lt;run&gt;/nodes/&lt;dir&gt;@&lt;target&gt;/log.txt</code></td><td>ui-run</td><td>–</td><td></td></tr>
 <tr><td>Packages</td><td><code>/s/&lt;set&gt;/packages</code></td><td>ui-pkg</td><td>Packages</td><td><kbd>g p</kbd></td></tr>
 <tr><td>Package detail</td><td><code>/s/&lt;set&gt;/packages/&lt;dir&gt;[?target=el9&amp;tab=history|spec|upstream]</code></td><td>ui-pkg</td><td>Packages</td><td><kbd>t</kbd></td></tr>
-<tr><td>Upstream</td><td><code>/s/&lt;set&gt;/upstream</code></td><td>ui-pkg (proposed)</td><td>Upstream</td><td><kbd>g u</kbd></td></tr>
+<tr><td>Upstream</td><td><code>/s/&lt;set&gt;/upstream</code> (a filter of Advisories: <code>advisories?code=upstream.release</code>)</td><td>ui-pkg (proposed)</td><td>Advisories</td><td><kbd>g u</kbd></td></tr>
 <tr><td>Repository browser</td><td><code>/s/&lt;set&gt;/repo/&lt;target&gt;[?repo=slurm-debuginfo&amp;staging=&lt;run&gt;&amp;q=]</code></td><td>ui-pkg</td><td>Repository › el9, el10</td><td><kbd>g b</kbd>, <kbd>t</kbd></td></tr>
-<tr><td>Repo diff (staging vs published)</td><td><code>/s/&lt;set&gt;/repo/&lt;target&gt;/diff?run=&lt;run&gt;</code></td><td>ui-pkg</td><td>Repository</td><td></td></tr>
-<tr><td>Publish</td><td><code>/s/&lt;set&gt;/publish[?run=&lt;run&gt;&amp;target=el9]</code></td><td>ui-pkg</td><td>Repository › Publish</td><td>none (on purpose)</td></tr>
+<tr><td>Repo diff (staging vs latest)</td><td><code>/s/&lt;set&gt;/repo/&lt;target&gt;/diff?run=&lt;run&gt;</code></td><td>ui-pkg</td><td>Repository</td><td></td></tr>
+<tr><td>Publish</td><td><code>/s/&lt;set&gt;/publish[?target=el9]</code> <span class="sup">superseded</span> <code>?run=</code></td><td>ui-pkg (Publish v2)</td><td>Repository › Publish</td><td>none (on purpose)</td></tr>
+<tr><td>Signing</td><td><code>/s/&lt;set&gt;/signing</code></td><td>ui-pkg (Publish v2)</td><td>Host › Signing</td><td><kbd>g k</kbd></td></tr>
+<tr><td>Advisories</td><td><code>/s/&lt;set&gt;/advisories[?dismissed=1]</code>, one row <code>#adv-&lt;id&gt;</code></td><td>ui-shell-v2</td><td>Advisories <span class="chg">changed</span></td><td><kbd>g a</kbd></td></tr>
+<tr><td>Snapshots</td><td>no page in v1: the Overview and the Publish result show the snapshot ref with a copy button; list and restore are CLI only (<code>repoctl repo snapshots</code>, <code>repoctl repo restore</code>)</td><td>ui-pkg (Publish v2)</td><td>–</td><td></td></tr>
 <tr><td>Config and lock</td><td><code>/s/&lt;set&gt;/config</code> (<code>#lock</code> shows the lock diff)</td><td>ui-shell (spec only)</td><td>Host › Config and lock</td><td></td></tr>
 <tr><td>Session ended</td><td><code>/-/session?next=&lt;path&gt;</code></td><td>ui-shell</td><td>– (no shell)</td><td></td></tr>
 </tbody></table>
@@ -7531,7 +7531,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <tr><td><code>/s/&lt;set&gt;/-/events?page=&lt;page&gt;[&amp;run=&lt;run&gt;][&amp;node=&lt;dir@target&gt;][&amp;target=&lt;id&gt;]</code></td><td>GET (SSE)</td><td>Stream for a set page. Extra parameters add run, log or target events.</td></tr>
 <tr><td><code>/s/&lt;set&gt;/-/frag/&lt;region&gt;</code></td><td>GET</td><td>One region as HTML (same HTML as the SSE event). Used on <code>refresh</code> and for lazy parts.</td></tr>
 <tr><td><code>/s/&lt;set&gt;/-/dialog/&lt;name&gt;</code></td><td>GET</td><td>A <code>&lt;dialog&gt;</code> into <code>#modal</code>: <code>build</code>, <code>cancel</code>, <code>publish</code> (ui-pkg). Shows the CLI command.</td></tr>
-<tr><td><code>/s/&lt;set&gt;/-/actions/&lt;verb&gt;</code></td><td>POST</td><td><code>build</code>, <code>cancel</code>, <code>upstream-check</code>, <code>checkout</code>, <code>pin</code>, <code>publish</code>. CSRF header required. Answers with <code>HX-Location</code> or a fragment and an <code>HX-Trigger</code> toast.</td></tr>
+<tr><td><code>/s/&lt;set&gt;/-/actions/&lt;verb&gt;</code></td><td>POST</td><td><code>build</code>, <code>cancel</code>, <code>check</code>, <code>checkout</code>, <code>pin</code>, <code>rebuild</code>, <code>publish</code>, <code>repo-push</code>, <code>advisory-dismiss</code>, <code>advisory-undismiss</code>, <code>sign-deployed</code>. <span class="sup">superseded</span> <code>upstream-check</code>, <code>bump-release</code>. Shared-state verbs need the typed set name in the dialog. CSRF header required. Answers with <code>HX-Location</code> or a fragment and an <code>HX-Trigger</code> toast.</td></tr>
 <tr><td><code>/-/frag/set-menu</code>, <code>/-/go?set=&lt;set&gt;&amp;from=&lt;path&gt;</code></td><td>GET</td><td>Set switcher contents; switch set and keep the page kind.</td></tr>
 <tr><td><code>/-/sets/&lt;set&gt;</code></td><td>DELETE</td><td>Remove a set from the list. Files stay.</td></tr>
 </tbody></table>
@@ -7546,9 +7546,9 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
   <li><b>Jump box</b> (<kbd>/</kbd>): packages, nodes (<code>slurm@el10</code>), runs (prefix match on the id), pages. Results come from <code>/s/&lt;set&gt;/-/frag/jump?q=</code>.</li>
   <li><b>Run chip</b> (SSE <code>chip</code>): spinner, set name, mini progress bar, <code>done/total</code>, failed count, elapsed time. It links to the run. It shows the current set's run first, else the run of another set. Two or more runs in different sets show “2 running” and link to <code>/</code>. With no run the chip is hidden.</li>
   <li><b>Live indicator</b>: green “live” or red “offline” (from shell.js).</li>
-  <li><b>User and host</b> (<code>d.klein@hpc-build01</code>), <b>?</b> (shortcut help) and the <b>theme</b> button (auto → light → dark, stored in the cookie <code>repoctl_theme</code>, so the server renders <code>&lt;html data-theme&gt;</code> with no flash).</li>
+  <li><b>User and host</b> (<code>d.klein@hpc-a1</code>, the Fedora host of the person; the UI is not reached over ssh), <b>?</b> (shortcut help) and the <b>theme</b> button (auto → light → dark, stored in the cookie <code>repoctl_theme</code>, so the server renders <code>&lt;html data-theme&gt;</code> with no flash).</li>
 </ol>
-<p>Sidebar groups: <b>Set</b> (Overview, Graph, Plan, Runs, Packages, Upstream), <b>Repository</b> (one entry per target, Publish), <b>Host</b> (Config and lock, Doctor, All sets). Counts on the right are live (<code>nav-runs</code> and others). Below 760 px the sidebar becomes one row of tabs under the top bar that scrolls sideways.</p>
+<p>Sidebar groups: <b>Set</b> (Overview, Graph, Plan, Runs, Packages, <b>Advisories</b>), <b>Repository</b> (one entry per target, Publish), <b>Host</b> (Config and lock, <b>Signing</b>, Doctor, All sets). <span class="sup">superseded</span> Upstream as an entry of the group Set. Counts on the right are live (<code>nav-runs</code> and others). Below 760 px the sidebar becomes one row of tabs under the top bar that scrolls sideways.</p>
 <figure><img src="img/ui-shell-setmenu-light.webp" alt="The set switcher open, listing slurm-26.05 running, slurm-25.11 ok and slurm-25.11-testing not published"><figcaption>Set switcher. One server serves all sets that the user opened.</figcaption></figure>
 
 <p>Page skeleton that every page uses (see <code>gen-shell.js</code> for the full markup):</p>
@@ -7580,7 +7580,9 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph of the current target</td></tr>
 <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
 <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
-<tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Upstream</td></tr>
+<tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Advisories</td></tr>
+<tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Advisories, filter upstream releases</td></tr>
+<tr><td><kbd>g</kbd> <kbd>k</kbd></td><td>Signing (keys)</td></tr>
 <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Browse the repository of the current target</td></tr>
 <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
 <tr><td><kbd>t</kbd></td><td>Next target on per-target pages (the page renders <code>&lt;a data-next-target href=…&gt;</code>)</td></tr>
@@ -7597,7 +7599,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
   <li>On connect and on every reconnect the server sends the current HTML of each region of the page. So no client logic is needed to catch up. The server sends <code>retry: 5000</code>.</li>
   <li>The server sends <code>hb</code> every 15 s. shell.js marks the page offline after 30 s without a message or after an SSE error.</li>
   <li>Global events on every stream: <code>chip</code>, <code>sets</code>, <code>nav-runs</code>, <code>toast</code>, <code>hb</code>, <code>reload</code> (layout changed, for example a new target: the page reloads), <code>bye</code> (the server stops: the offline banner says so).</li>
-  <li>Set events: <code>set-head</code>, <code>attention</code>, <code>current-run</code>, <code>recent-runs</code>, <code>last-publish</code>, <code>upstream</code>, <code>node:&lt;dir&gt;@&lt;target&gt;</code>, <code>run:&lt;run&gt;</code> (progress of one run), <code>plan:&lt;target&gt;</code>, <code>graph:&lt;target&gt;</code>, <code>log:&lt;dir&gt;@&lt;target&gt;</code> (only with <code>node=</code>, swap <code>beforeend</code>).</li>
+  <li>Set events: <code>set-head</code>, <code>attention</code>, <code>current-run</code>, <code>recent-runs</code>, <code>last-publish</code> (the snapshot ref, local and served state), <code>advisories</code>, <code>advisory:&lt;id&gt;</code>, <code>signing</code>, <code>upstream</code>, <code>node:&lt;dir&gt;@&lt;target&gt;</code>, <code>run:&lt;run&gt;</code> (progress of one run), <code>plan:&lt;target&gt;</code>, <code>graph:&lt;target&gt;</code>, <code>log:&lt;dir&gt;@&lt;target&gt;</code> (only with <code>node=</code>, swap <code>beforeend</code>).</li>
   <li>Each live region has <code>data-live</code>, <code>hx-get</code> to its fragment and <code>hx-trigger="refresh"</code>. The offline state dims all <code>[data-live]</code> regions.</li>
 </ul>
 
@@ -7634,7 +7636,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
   <li>Each request checks <code>Host</code> (loopback and the port only). POST requests also check <code>Origin</code> and the CSRF header. The CSRF token is in <code>&lt;meta name="csrf-token"&gt;</code> and in <code>hx-headers</code> on <code>&lt;body&gt;</code>.</li>
   <li>No valid session: a page GET gets 303 to <code>/-/session?next=…</code> (status 401 there). An htmx request gets 401 and <code>HX-Redirect</code>. An SSE stream gets 401; shell.js calls <code>/-/ping</code> and redirects.</li>
 </ol>
-<figure><img src="img/ui-shell-session-light.webp" alt="Session ended page: a card that says the session has ended and tells the user to run repoctl ui on hpc-build01"><figcaption>Session ended (light). It shows no set data and no shell.</figcaption></figure>
+<figure><img src="img/ui-shell-session-light.webp" alt="Session ended page: a card that says the session has ended and tells the user to run repoctl ui again"><figcaption>Session ended (light). It shows no set data and no shell.</figcaption></figure>
 
 <h3>Component sheet</h3>
 <p><code>ui-shell/components.html</code> shows every shared part. Classes are in <code>shell.css</code>. Other pages use these classes and do not define new state colors.</p>
@@ -7648,11 +7650,11 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <tr><td>Node chip</td><td><code>&lt;a class="node-chip st-running"&gt;&lt;b&gt;slurm&lt;/b&gt;@el9&lt;/a&gt;</code></td><td>The square has the state color. Text stays in text colors. Links to the node in its run.</td></tr>
 <tr><td>Target badge</td><td><code>&lt;span class="target" title="rocky+epel-9-x86_64"&gt;&lt;b&gt;el9&lt;/b&gt;&lt;span&gt;rocky+epel-9-x86_64&lt;/span&gt;&lt;/span&gt;</code></td><td>Long form in headers, short form (only <code>b</code>) in tables.</td></tr>
 <tr><td>NVR</td><td><code>.nvr</code> with <code>.n .v .r .d</code></td><td>Version is bold. Dist and arch are muted. Never cut an NVR; let the table scroll.</td></tr>
-<tr><td>Hash</td><td><code>.hashc</code> + <code>button.copy[data-copy]</code></td><td>7 characters for commits, 12 for keys. Full value in <code>title</code> and in the copy.</td></tr>
+<tr><td>Hash</td><td><code>.hashc</code> + <code>button.copy[data-copy]</code></td><td>7 characters for commits, 12 for digests and key fingerprints. Full value in <code>title</code> and in the copy.</td></tr>
 <tr><td>Command</td><td><code>.cmd &gt; code</code> + copy</td><td>Every dialog shows the CLI equivalent of its action.</td></tr>
-<tr><td>Run progress</td><td><code>.progress &gt; i.p-ok|p-cached|p-failed|p-blocked|p-canceled|p-running|p-todo</code> + <code>.legend</code></td><td>Fixed segment order. Counts only nodes that build. Legend names the cached ones.</td></tr>
+<tr><td>Run progress</td><td><code>.progress &gt; i.p-ok|p-current|p-failed|p-blocked|p-canceled|p-running|p-waiting</code> + <code>.legend</code> + <code>role="progressbar"</code></td><td>Fixed segment order. Counts only nodes that build. Legend names the current ones.</td></tr>
 <tr><td>Sparkline</td><td><code>svg.spark</code>, one <code>rect.ok|failed|running|canceled</code> per run</td><td>Height = duration, one linear scale from 0. Each bar has a <code>&lt;title&gt;</code>. A table with the numbers is next to it.</td></tr>
-<tr><td>Node strip</td><td><code>.strip &gt; i.ok|running|failed|blocked|waiting|queued</code></td><td>Compact health of a run (sets page). Always next to a text summary.</td></tr>
+<tr><td>Node strip</td><td><code>.strip &gt; i.ok|running|failed|blocked|waiting</code></td><td>Compact health of a run (sets page). Always next to a text summary.</td></tr>
 <tr><td>Banner</td><td><code>.banner.info|warn|err</code> + <code>svg.ic</code></td><td>One sentence of what, one of what to do.</td></tr>
 <tr><td>Toast</td><td><code>.toast.ok|err|info</code></td><td>See Toasts.</td></tr>
 <tr><td>Empty state</td><td><code>.empty</code></td><td>Says what the thing is and how to make the first one.</td></tr>
@@ -7662,12 +7664,12 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <h3>Overview page</h3>
 
 <figure><img src="img/ui-shell-overview-mobile.webp" alt="Overview at 390 pixels wide: tabs under the top bar, then Needs you, current run, a reduced matrix, recent runs, last publish and upstream" style="max-width:390px"><figcaption>Overview at 390 px. The matrix keeps package, el9 and el10.</figcaption></figure>
-<p>The story: Dennis bumped <code>ucx</code> to <code>4b1e9c2</code> and pinned it. The lock is not committed. Run <code>r-20261102-1750-a3f</code> (<code>repoctl build</code>, keep-going is the default, 3 jobs) rebuilds ucx, slurm, slurm-singularity-exec and openmpi on both targets. At the mockup moment (11m02s): 2 ok, 3 running (openmpi@el10 in srpm), 1 waiting, 1 failed, 1 blocked. <code>slurm@el10</code> failed on <code>pkgconfig(rocm_smi64)</code>. repoctl shows a hint: rocm-smi provides that, but has <code>targets: [el9]</code>. The plan problem <code>nvr.reused</code> is a Needs you item with the <code>repoctl bump-release</code> command, and the matrix tags the cells “same NVR”.</p>
+<p>The story: Dennis bumped <code>ucx</code> to <code>4b1e9c2</code> and pinned it. The lock is not committed. Run <code>r-20261102-1750-a3f</code> (<code>repoctl build</code>, keep-going is the default, 3 jobs) rebuilds ucx (new commit) and slurm, slurm-singularity-exec and openmpi (rebuild commits made with <code>repoctl rebuild</code>) on both targets. At the mockup moment (11m02s): 2 ok, 3 running (openmpi@el10 in srpm), 1 waiting, 1 failed, 1 blocked. <code>slurm@el10</code> failed on <code>rocm-smi-devel</code>. repoctl shows a hint: rocm-smi provides that, but has <code>targets: [el9]</code>. <span class="sup">superseded</span> The plan problem <code>nvr.reused</code> with the <code>repoctl bump-release</code> command and the matrix tag “same NVR”: a rebuild is an empty commit now, so the NVR is new (03 section 4). Needs you shows advisories instead (Advisories v2).</p>
 <table>
 <thead><tr><th>Region</th><th>Content</th><th>Fragment</th><th>SSE event</th></tr></thead>
 <tbody>
 <tr><td>Set header</td><td>Name, workspace, branch, lock state, targets; Plan, Build…, Publish…</td><td><code>/s/&lt;set&gt;/-/frag/set-head</code></td><td><code>set-head</code> (lock or HEAD changes)</td></tr>
-<tr><td>Needs you</td><td>Ranked list: failed nodes (with error line and hint), plan problems (<code>nvr.reused</code>), lock dirty, worktree dirty, upstream updates, stale publish, doctor failures</td><td><code>…/-/frag/attention</code></td><td><code>attention</code></td></tr>
+<tr><td>Needs you</td><td>Ranked list: failed nodes (with error line and hint), required advisories (they block a publish), lock dirty or unpushed, worktree dirty, <code>staged</code> nodes that wait for publish, <code>latest</code> moved (local: behind), stale or failed check, doctor failures, and the open steps of a new set</td><td><code>…/-/frag/attention</code></td><td><code>attention</code></td></tr>
 <tr><td>Current run</td><td>Progress, legend, start, command, jobs, active nodes, Cancel run…</td><td><code>…/-/frag/current-run</code></td><td><code>current-run</code> (whole card on state change), <code>run:&lt;run&gt;</code> (bar and times)</td></tr>
 <tr><td>Packages and targets</td><td>Matrix: package, version, commit, one cell per target (state, step or reason, NVR, staged tag), upstream</td><td><code>…/-/frag/matrix</code></td><td><code>node:&lt;dir&gt;@&lt;target&gt;</code> per cell (<code>innerHTML</code>)</td></tr>
 <tr><td>Recent runs</td><td>Sparkline of 12 runs, 5 rows: id, start, source (cli, ui, mcp), nodes, result, duration</td><td><code>…/-/frag/recent-runs</code></td><td><code>recent-runs</code></td></tr>
@@ -7678,7 +7680,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 
 <h3>Sets page</h3>
 <figure><img src="img/ui-shell-sets-light.webp" alt="Sets page with three cards: slurm-26.05 running with 4 items that need attention, slurm-25.11 ok, slurm-25.11-testing not published"><figcaption>Sets (light).</figcaption></figure>
-<p>One card per set: name, state pill, path, branch, targets, node count, node strip of the newest run, last run, last publish, Needs you summary. Health pill rule: running if a run is active; failed if the newest run failed; amber if Needs you has a lock, doctor or “not published” item; else ok. SSE event <code>set:&lt;set&gt;</code> replaces one card. A host card shows the shared node cache and the server address.</p>
+<p>One card per set: name, state pill, path, branch, targets, node count, node strip of the newest run, last run, snapshot ref of <code>latest</code> per target with the chips <code>local</code> and <code>served</code>, Needs you summary. A set with zero packages or targets shows an empty state with the steps of <code>repoctl help new-set</code>. Health pill rule: running if a run is active; failed if the newest run failed; amber if Needs you has a lock, doctor or “not published” item; else ok. SSE event <code>set:&lt;set&gt;</code> replaces one card. A host card shows the cache and data directories and the server address.</p>
 
 <h3>Accessibility</h3>
 <p>Contrast was computed with <code>ui-shell/contrast.js</code> (WCAG 2.x relative luminance) from the tokens in <code>repoctl-base.css</code>. Text needs 4.5:1 (pills are 11.5 px). Focus ring and control borders need 3:1. Base: 21 of 70 pairs fail, mostly in the light theme. With the token changes in <code>base-fixes.css</code> (F1), all text pairs pass.</p>
@@ -7776,7 +7778,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
   <li>Color is never the only signal: pills have labels, chips have the node id, bars have titles, the matrix has text.</li>
   <li>Skip link to <code>#main</code>. Landmarks: <code>header</code>, <code>nav</code>, <code>main</code>. Each card has <code>aria-labelledby</code> on its heading.</li>
   <li>The toast stack is <code>role="status" aria-live="polite"</code>; error toasts and the offline banner use <code>role="alert"</code>. The live indicator is a polite status.</li>
-  <li>The run progress bar is a <code>role="progressbar"</code> with <code>aria-valuenow</code> and a label (“4 of 8 builds done”). SSE swaps of whole regions do not move focus.</li>
+  <li>The run progress bar is a <code>role="progressbar"</code> with <code>aria-valuenow</code> and a label (“4 of 8 builds done”). SSE swaps of whole regions do not move focus. The progress bar updates the label, not the focus. A change of an advisory is announced in an <code>aria-live="polite"</code> status line; a toast with <code>role="alert"</code> is only for errors.</li>
   <li>Dialogs are native <code>&lt;dialog&gt;</code> with <code>showModal()</code>: focus trap, <kbd>Esc</kbd> and backdrop come from the browser.</li>
   <li>Motion (pulse, spinner, stripes) stops with <code>prefers-reduced-motion</code>. <code>forced-colors</code> gives pills a border.</li>
   <li>Touch targets in the top bar are 30 px or more. At 390 px no page scrolls sideways; wide tables scroll inside <code>.table-wrap</code>.</li>
@@ -7815,7 +7817,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
   <li>The set list of the server is in <code>$XDG_STATE_HOME/repoctl/ui/sets.yaml</code>. Sessions end when the server stops, or after 7 days.</li>
   <li>repoctl can say why a BuildRequires is missing: it knows which package in the set provides it and for which targets. The Needs you hint needs this from the graph code.</li>
   <li>Lock “modified” means <code>repoctl.lock</code> differs from git HEAD of the set; publish refuses it (exit 5). “Worktree dirty” is a separate Needs you item.</li>
-  <li>The plan exposes its problems (for example <code>nvr.reused</code>) to the UI, so Needs you and the matrix can show them before the run ends.</li>
+  <li>The plan exposes its problems and advisories (for example <code>dep.not-for-target</code>, <code>soname.removed</code>) to the UI, so Needs you and the matrix can show them before the run ends.</li>
   <li>The mockups use the token values of <code>base-fixes.css</code> (F1).</li>
 </ul>
 
@@ -7828,6 +7830,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 </section>
 <section id="ui-graph">
 <h2>Web UI: build graph and plan</h2>
+<div class="banner warn sup-note"><div><b>Updated 2026-11-03.</b> The build model of 03 replaces the node key. The Graph and the Plan page now show the plan actions <code>build</code>, <code>current</code>, <code>staged</code>, <code>skip</code> and the five reasons (section <a href="#ui-graph-v2">Plan v2</a> has the full text and the mockups). In this section the card, the drawer, the reasons table and the plan text are changed; the layout algorithm, the routes of the graph and the SSE model stand. <span class="sup">superseded</span>: node key and key inputs, the reasons <code>dep-key-changed</code>, <code>macros-changed</code>, <code>mock-config-changed</code> and <code>not-in-cache</code>, the plan problem <code>nvr.reused</code> on a normal run, the action <i>Bump release</i>, <code>published.yaml</code>, and the rule that only one run per set can exist. The v1 mockups carry a banner.</div></div>
 
 <p>This section covers two pages. The <b>Graph</b> page shows the per-target dependency graph with the live state of the current run. The <b>Plan</b> page shows what a build does, and why, before the user starts it. Both pages are server-rendered <code>html/template</code> pages. They use htmx for interaction and SSE for live state. The Go server lays out the graph and sends it as inline SVG. The client JS (<code>graph.js</code>, about 90 lines) only adds hover highlight, zoom, timers and an edge state mirror.</p>
 
@@ -7847,7 +7850,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <tr><td><code>/s/&lt;set&gt;/graph.dot</code>, <code>graph.json</code></td><td>Same data as <code>repoctl graph --format dot|json</code>.</td></tr>
 <tr><td><code>/s/&lt;set&gt;/plan?pkg=…&amp;target=…&amp;with_deps=1&amp;rdeps=1&amp;force=1&amp;fail_fast=1&amp;jobs=N</code></td><td>Plan page. The form state is in the URL (htmx <code>hx-push-url</code>).</td></tr>
 <tr><td><code>POST /s/&lt;set&gt;/runs</code></td><td>Starts a build to staging. Returns <code>HX-Redirect</code> to the run page.</td></tr>
-<tr><td><code>GET|POST /s/&lt;set&gt;/bump-release?pkg=…</code></td><td>GET: confirm dialog (commits to add, new NVRs). POST: same as <code>repoctl bump-release</code>, then pin. Plan refreshes.</td></tr>
+<tr><td><code>GET|POST /s/&lt;set&gt;/rebuild?pkg=…</code></td><td>GET: dialog with a reason field (8 characters or more) and the command <code>repoctl rebuild DIR --reason "…"</code>. POST: runs it. It makes the empty commit in the package branch. The dialog then shows the push command and <code>repoctl pin</code>. <span class="sup">superseded</span> <code>bump-release</code>.</td></tr>
 <tr><td><code>GET /s/&lt;set&gt;/events?topic=…&amp;view=…&amp;target=…</code></td><td>SSE stream (see "SSE update model").</td></tr>
 </tbody>
 </table>
@@ -7860,7 +7863,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <ul>
 <li><b>Page head.</b> Title, node and edge count, the mock config that gave the edges. Actions: <i>Export DOT</i>, <i>Plan</i>.</li>
 <li><b>Toolbar.</b> Target tabs (<code>el9 | el10 | all</code>) with node count and a state dot (running or failed in the current run). Filter: <i>All · Changed only · Failed only</i>. Find box. View switch <i>DAG | Matrix</i>.</li>
-<li><b>Run strip.</b> Only when a run is active or the last run is less than 1 hour old. Run id, start, options, elapsed, a stacked bar, and one pill per state count. The strip swaps on SSE event <code>run:strip</code>. With no run, the cards show plan actions (<code>build</code> / <code>cached</code>) in place of run states.</li>
+<li><b>Run strip.</b> Only when a run is active or the last run is less than 1 hour old. Run id, start, options, elapsed, a stacked bar, and one pill per state count. The strip swaps on SSE event <code>run:strip</code>. With no run, the cards show plan actions (<code>build</code> / <code>current</code> / <code>staged</code>) in place of run states.</li>
 <li><b>Banners.</b> Target-specific facts, for example a failed node or a package that is not built for this target.</li>
 <li><b>Canvas.</b> One SVG. Level columns ("lanes") with a label: <code>LEVEL 0 · no deps in set</code>. Node cards. Orthogonal edges. Legend (bottom left). Zoom controls (bottom right): <i>− / 100% / + / Fit</i>.</li>
 </ul>
@@ -7870,9 +7873,9 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <thead><tr><th>Part</th><th>Content</th><th>Rule</th></tr></thead>
 <tbody>
 <tr><td>Left bar</td><td>State color</td><td>From the base CSS state tokens (<code>--s-*</code>). Failed cards also get <code>--s-failed-bg</code>, blocked cards <code>--s-blocked-bg</code>.</td></tr>
-<tr><td>Row 1</td><td>Δ (changed) · <code>dir</code> · cache icon + first 6 chars of the key</td><td>Δ shows when the plan action is <code>build</code>. The cache icon shows only for <code>cached</code>.</td></tr>
-<tr><td>Row 2</td><td>State pill · step + elapsed · version</td><td>Running: <code>rpm 6:12</code> (ticks on the client). Ok: total time. Failed: step + time of failure. Blocked: short hint (<code>slurm failed</code>). Queued: <code>no free job</code>.</td></tr>
-<tr><td>Tooltip</td><td><code>slurm@el9 · build: dep-key-changed (ucx@el9)</code></td><td>Native <code>title</code>. The drawer has the full facts.</td></tr>
+<tr><td>Row 1</td><td>Δ (changed) · <code>dir</code> · commit (7 characters)</td><td>Δ shows when the plan action is <code>build</code>. A <code>staged</code> card shows a dot and the run id. <span class="sup">superseded</span> The cache icon and the key.</td></tr>
+<tr><td>Row 2</td><td>State pill · step + elapsed · version</td><td>Running: <code>rpm 6:12</code> (ticks on the client). Ok: total time. Failed: step + time of failure. Blocked: short hint (<code>slurm failed</code>). Waiting: <code>waiting for a job slot</code> or the dependency (there is no queue between runs).</td></tr>
+<tr><td>Tooltip</td><td><code>slurm@el9 · build: rebuild (ucx 1.22.1)</code></td><td>Native <code>title</code>. The drawer has the full facts.</td></tr>
 </tbody>
 </table>
 <p>Fixed card size: 212 × 60 px (union view: 212 × 84). Long names get an ellipsis and a tooltip. The card is HTML inside a <code>foreignObject</code>, so it uses the normal <code>.pill .st-*</code> classes. The <code>foreignObject</code> is 4 px larger than the card on each side, so the focus ring is not clipped.</p>
@@ -7881,8 +7884,8 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <table>
 <thead><tr><th>Style</th><th>Meaning</th><th>Attribute</th></tr></thead>
 <tbody>
-<tr><td>Solid grey</td><td>Dependency done (<code>ok</code> or <code>cached</code>)</td><td><code>data-src-state="ok|cached"</code></td></tr>
-<tr><td>Dashed grey</td><td>Dependency pending (<code>running</code>, <code>waiting</code>, <code>queued</code>)</td><td><code>data-src-state="running|…"</code></td></tr>
+<tr><td>Solid grey</td><td>Dependency done (<code>ok</code>, <code>current</code> or <code>staged</code>)</td><td><code>data-src-state="ok|current|staged"</code></td></tr>
+<tr><td>Dashed grey</td><td>Dependency pending (<code>running</code>, <code>waiting</code>)</td><td><code>data-src-state="running|…"</code></td></tr>
 <tr><td>Dashed red</td><td>Dependency failed or blocked</td><td><code>data-src-state="failed|blocked"</code></td></tr>
 <tr><td>Copper, 2.5 px</td><td>Downstream of the selected node</td><td>class <code>is-down</code></td></tr>
 <tr><td>Dark, 2.5 px</td><td>Upstream of the selected node</td><td>class <code>is-up</code></td></tr>
@@ -7929,45 +7932,43 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 
 
 <h3>4. Node drawer (slurm@el9)</h3>
-<figure><img src="img/ui-graph-graph-el9-node-light.webp" alt="Drawer for slurm@el9: steps srpm 0:41 done and rpm running 6:12 with log tail, reason dep-key-changed, key inputs table with ucx key changed, deps and reverse deps, output NVR same as published"><figcaption>Drawer for <code>slurm@el9</code>, light. The graph scrolls so the selected node stays visible.</figcaption></figure>
+<figure><img src="img/ui-graph-graph-el9-node-light.webp" alt="Drawer for slurm@el9: steps srpm 0:41 done and rpm running 6:12 with log tail, reason dep-key-changed, key inputs table with ucx key changed, deps and reverse deps, output NVR same as published (v1 mockup: the v2 drawer shows the reason rebuild, the commit and advisories)"><figcaption>Drawer for <code>slurm@el9</code>, light. The graph scrolls so the selected node stays visible.</figcaption></figure>
 
 <p>The drawer is a fixed panel (460 px) on the right. The main column gets right padding, so the drawer does not cover the toolbar. Sections:</p>
 <ol>
 <li><b>Head:</b> node id, version, level, mock config, state pill, close (link back to the URL without <code>node=</code>).</li>
 <li><b>Actions:</b> <i>Open log</i> (<code>/s/&lt;set&gt;/runs/&lt;run&gt;/logs/&lt;dir&gt;@&lt;target&gt;</code>), <i>Package page</i> (<code>/s/&lt;set&gt;/packages/&lt;dir&gt;</code>), <i>In run</i>, <i>Plan this node</i>.</li>
 <li><b>Steps:</b> timeline <code>srpm</code> (done, 0:41) → <code>rpm</code> (running, 6:12, last 3 log lines) → <code>stage</code> (pending). Swaps on <code>drawer:&lt;dir&gt;@&lt;target&gt;</code>.</li>
-<li><b>Why it rebuilds:</b> the active reason code and one sentence. Below it, all six codes, with the active ones highlighted.</li>
-<li><b>Key inputs:</b> new key and previous key, then each input with "same" or "changed": commit (+ branch), git url, mock config hash, plugins and extra repos, macros hash, one row per dependency key. Changed rows have the copper background.</li>
+<li><b>Why it builds:</b> the active reason code and one sentence. Below it, all five codes, with the active ones highlighted. A node with action <code>current</code> shows the snapshot that holds it; a <code>staged</code> node shows the run.</li>
+<li><b>Build identity:</b> the package commit (+ branch) and the target, with the commit in <code>latest</code> next to it. <span class="sup">superseded</span> The key inputs table: a change of the mock config, the macros or a dependency is not part of the identity. The drawer shows the advisories for the node instead (<code>provider.changed</code>, <code>buildroot.drift</code>).</li>
 <li><b>Dependencies:</b> "Needs" and "Needed by" lists with state pills, plus the BuildRequires that matched a package in the set.</li>
-<li><b>Output:</b> NVR with the <code>nvr.reused</code> pill when the NVR does not change (plus the fix: <code>repoctl bump-release slurm</code>), cache path after success, staging path.</li>
+<li><b>Output:</b> the NVR after the build (always new: a rebuild is a commit), the staging path after success, and the button <i>Rebuild…</i> that opens the rebuild dialog.</li>
 </ol>
 
-<h4>Rebuild reasons (enum)</h4>
 <table>
-<thead><tr><th>Code</th><th>Condition (compared with the last key of this node)</th></tr></thead>
+<thead><tr><th>Code</th><th>Condition (compared with the commit in <code>latest</code> or in staging)</th></tr></thead>
 <tbody>
-<tr><td><code>commit-changed</code></td><td>The package commit or the git url changed.</td></tr>
-<tr><td><code>dep-key-changed</code></td><td>The key of one or more dependency nodes changed. The text names them.</td></tr>
-<tr><td><code>macros-changed</code></td><td>The hash of the target macros files changed.</td></tr>
-<tr><td><code>mock-config-changed</code></td><td>The hash of the mock config, its plugins or the extra repos (<code>targets[].repos</code>) changed.</td></tr>
-<tr><td><code>not-in-cache</code></td><td>The key is the same as before, but <code>nodes/&lt;key&gt;/</code> is missing (cleaned or never built on this host).</td></tr>
+<tr><td><code>commit-changed</code></td><td>The package commit in the lock is not the commit in <code>latest</code> and not the commit of the staged build.</td></tr>
+<tr><td><code>rebuild</code></td><td>The commit is an empty rebuild commit (<code>repoctl rebuild</code>). The text shows the reason of the person.</td></tr>
+<tr><td><code>new-package</code></td><td>The package is not in <code>latest</code> of any target.</td></tr>
+<tr><td><code>new-target</code></td><td>The package is in <code>latest</code>, but not for this target.</td></tr>
 <tr><td><code>forced</code></td><td>The user set <code>--force</code> and selected this node.</td></tr>
 </tbody>
 </table>
-<p>A node can have more than one reason. The UI shows all. "Previous key" means the key of the newest successful build of this node for this set (from <code>published.yaml</code> or the run logs). A node with no previous build gets <code>not-in-cache</code>.</p>
+<p>A node can have more than one reason. The UI shows all. <span class="sup">superseded</span> The reasons <code>dep-key-changed</code>, <code>macros-changed</code>, <code>mock-config-changed</code> and <code>not-in-cache</code>, and "previous key". A change of a dependency never makes a node build by itself: the plan shows an advisory.</p>
 
 <h3>5. Plan page</h3>
-<figure><img src="img/ui-graph-plan-light.webp" alt="Plan page: selection controls, 8 build 13 cached 0 skip, Start build button with staging note, two warnings, plan table grouped by el9 and el10 with action, reason and key, changes since last publish with lock diff and NVR table"><figcaption>Plan, light, at 17:49 before the run. Warnings <code>dep.not-for-target</code> and <code>nvr.reused</code> (with the <i>Bump release (3)…</i> action).</figcaption></figure>
+<figure><img src="img/ui-graph-plan-light.webp" alt="Plan page: selection controls, 8 build 13 cached 0 skip, Start build button with staging note, two warnings, plan table grouped by el9 and el10 with action, reason and key, changes since last publish with lock diff and NVR table"><figcaption>Plan, light, at 17:49 before the run. Warnings <code>dep.not-for-target</code> and <code>nvr.reused</code> (with the <i>Bump release (3)…</i> action). <span class="sup">superseded</span> v1 mockup; see Plan v2.</figcaption></figure>
 
 <ul>
 <li><b>Selection form:</b> packages (combobox, default "all"), <code>with deps</code> (<code>--with-deps</code>), <code>rdeps</code> (<code>--rdeps</code>), targets (one checkbox per target), <code>force</code>, <code>fail-fast</code> (off: keep-going is the default), <code>jobs</code>. A change sends <code>hx-get /s/&lt;set&gt;/plan?…</code> and swaps <code>#plan-body</code>. The same flags exist on <code>repoctl build</code>.</li>
-<li><b>Start build box:</b> counts per action, one note, estimated time from the last build times and the critical path, and the <i>Start build</i> button. Note text: "Start build runs 8 nodes into a new staging repo. It does not sign or publish. You publish later on the Publish page."</li>
+<li><b>Start build box:</b> counts per action, one note, estimated time from the last build times and the critical path, and the <i>Start build</i> button. Note text: "Start build runs 8 nodes into the staging repo. It does not sign or publish. 13 nodes are current and 0 are staged. You publish later on the Publish page."</li>
 <li><b>Stale plan guard:</b> the form sends a hidden <code>plan=sha256:…</code> (hash of the plan rows). The server computes the plan again. If the hash differs, it does not start the run. It returns the new plan with a banner "The plan changed. Check it and start again."</li>
-<li><b>Warnings</b> (plan problem codes): (1) <code>dep.not-for-target</code>: a BuildRequire that the set provides for other targets only (the rocm-smi gap, known before the build); (2) <code>nvr.reused</code>: slurm, slurm-singularity-exec and openmpi rebuild with no new commit, so rpmautospec keeps the published NVR and dnf does not update hosts. Publish refuses these nodes (exit 12). The banner action <i>Bump release (3)…</i> opens a confirm dialog. It then runs <code>repoctl bump-release</code>: one commit "Rebuild for ucx 1.22.1" per package branch, then pin. The NVRs become 26.05.4-2, 3.2.0-2, 5.0.11-2 and the warning goes away. Each affected row also shows <code>nvr.reused</code>. Start build stays enabled: the build to staging is useful to test.</li>
-<li><b>Plan table:</b> grouped by target. Columns: level, package, NVR after build, action (<code>build</code> / <code>cached</code> / <code>skip</code>), reason, key (new ← old, 8 chars), last build time. A target that does not build a package shows one muted row: "not a target for el10".</li>
-<li><b>Changes since last publish:</b> source is <code>published.yaml</code>. It shows the <code>repoctl.lock</code> diff, new commits per package, the other key inputs (config, mock configs, macros), and the RPM version change per package (new version or <code>nvr.reused</code>).</li>
-<li>Selection rule: packages outside the selection get <code>skip</code>. If a selected node needs a dependency that is not cached and is skipped, the plan shows an error row and disables <i>Start build</i>.</li>
-<li>One run per set at a time (set lock). While a run is active, <i>Start build</i> is disabled with the text "Run r-… is active."</li>
+<li><b>Warnings and advisories:</b> (1) <code>dep.not-for-target</code>: a BuildRequire that the set provides for other targets only (the rocm-smi gap: <code>rocm-smi-devel</code> is built for el9 only, known before the build). (2) Advisories of the plan (<code>soname.removed</code>, <code>provider.changed</code>, …) with the action <i>Rebuild…</i>; a <code>required</code> advisory blocks the publish of its closure, not the build. <span class="sup">superseded</span> <code>nvr.reused</code> with <i>Bump release</i> on a normal plan: slurm, slurm-singularity-exec and openmpi get the reason <code>rebuild</code> and a new release when the person runs <code>repoctl rebuild</code>.</li>
+<li><b>Plan table:</b> grouped by target. Columns: level, package, NVR after build, action (<code>build</code> / <code>current</code> / <code>staged</code> / <code>skip</code>), reason, commit (new ← old, 7 chars), last build time. A target that does not build a package shows one muted row: "not a target for el10".</li>
+<li><b>Changes since <code>latest</code>:</b> source is the snapshot <code>latest</code> of each target (its manifest). It shows the <code>repoctl.lock</code> diff, new commits per package, and the RPM version change per package. <span class="sup">superseded</span> <code>published.yaml</code> and the other key inputs.</li>
+<li>Selection rule: packages outside the selection get <code>skip</code>. If a selected node needs a dependency that is neither <code>current</code> nor <code>staged</code> and is skipped, the plan shows an error row and disables <i>Start build</i>.</li>
+<li>No build queue. While a run of this user is active on this host (set lock), <i>Start build</i> is disabled with the text "Run r-… is active." The UI never queues a second run.</li>
 </ul>
 
 <h3>Mobile (390 px)</h3>
@@ -8014,7 +8015,7 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <tbody>
 <tr><td><code>run</code> (all runs of the set)</td><td>run scheduler</td><td><code>run:summary</code> → top bar run pill (outerHTML)</td></tr>
 <tr><td><code>run:&lt;run-id&gt;</code></td><td>run scheduler, from the progress spans</td><td><code>node:&lt;dir&gt;@&lt;target&gt;</code> → card or matrix cell (outerHTML); <code>run:strip</code> → run strip; <code>drawer:&lt;dir&gt;@&lt;target&gt;</code> → open drawer; <code>run:done</code> → triggers <code>hx-get</code> of the page (state → plan actions)</td></tr>
-<tr><td><code>set:&lt;set&gt;</code></td><td>watcher on <code>repoctl.yaml</code>, <code>repoctl.lock</code>, worktree HEADs, node cache index</td><td><code>graph:stale</code> → banner "The graph changed. Reload."; <code>plan:stale</code> → banner on the Plan page and <i>Start build</i> disabled until refresh</td></tr>
+<tr><td><code>set:&lt;set&gt;</code></td><td>watcher on <code>repoctl.yaml</code>, <code>repoctl.lock</code>, worktree HEADs, <code>snapshot.json</code> (the local copy of <code>latest</code>) and the staging directory</td><td><code>graph:stale</code> → banner "The graph changed. Reload."; <code>plan:stale</code> → banner on the Plan page and <i>Start build</i> disabled until refresh</td></tr>
 <tr><td><code>publish:&lt;set&gt;</code></td><td>publish</td><td><code>publish:done</code> → Plan page diff becomes stale (same <code>plan:stale</code> banner)</td></tr>
 </tbody>
 </table>
@@ -8043,36 +8044,37 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <li>Node URLs: <code>/s/&lt;set&gt;/graph/node/&lt;dir&gt;@&lt;target&gt;</code> (drawer fragment), logs at <code>/s/&lt;set&gt;/runs/&lt;run&gt;/logs/&lt;dir&gt;@&lt;target&gt;</code>, package page <code>/s/&lt;set&gt;/packages/&lt;dir&gt;</code>. DOM ids: <code>n-&lt;target&gt;-&lt;dir&gt;</code> (card), <code>m-&lt;target&gt;-&lt;dir&gt;</code> (matrix cell).</li>
 <li>Story snapshot (per section 3): elapsed 11m02s, jobs 4. Running: slurm@el9 (rpm 6:12, srpm took 0:41), openmpi@el9 (rpm 5:51), openmpi@el10 (srpm 0:51). Waiting: slurm-singularity-exec@el9. Done: ucx@el9 ok 4:05, ucx@el10 ok 4:12, slurm@el10 failed after rpm 0:52, slurm-singularity-exec@el10 blocked. These sub-times are mine; ui-run may show other values.</li>
 <li>Last published run: <code>r-20260912-1420-7be</code> (other areas use other ids for the 2026-09-12 publish; the lead should pick one). Story keys: ucx@el9 <code>7c41e0a2d913 → 3b9d22f14a80</code>, slurm@el9 <code>51ab0f2e9c7d → 9e47c1d05b3a</code>. ucx new NVR <code>ucx-1.22.1-1.el9</code>.</li>
-<li>Plan actions get a "build" badge in copper (<code>.act-build</code>), not a state color. "cached" and "skip" use the state pills.</li>
+<li>Plan actions get a "build" badge in copper (<code>.act-build</code>), not a state color. "current", "staged" and "skip" use the state pills (<code>current</code> uses the slate-blue tokens, <code>staged</code> the green ones).</li>
 <li>Extra repo URLs and plugins count as <code>mock-config-changed</code>. A git url change counts as <code>commit-changed</code>.</li>
 <li>The Plan form maps 1:1 to <code>repoctl build</code> flags: <code>--with-deps</code>, <code>--rdeps</code>, <code>--force</code>, <code>--fail-fast</code>, <code>--jobs</code>, <code>--target</code>. The Plan page also accepts <code>from=lock|worktree</code> (not shown in the mockup; default <code>lock</code>).</li>
-<li>Plan problem codes shown in the UI: <code>dep.not-for-target</code>, <code>nvr.reused</code> (contract owns the list).</li>
+<li>Plan problem codes shown in the UI: <code>dep.not-for-target</code> and the advisories (contract owns the list).</li>
 </ul>
 
 <h3>Open questions</h3>
 <ul>
-<li>Bump release from the web UI writes commits to package branches. Should the UI also push them, or leave the push to the user? The mockup only commits and pins.</li>
-<li>Should a known target gap (rocm_smi64 on el10) block <i>Start build</i> for that node, or only warn as in the mockup?</li>
+<li><span class="chg">closed</span> Rebuild from the web UI writes an empty commit to the package branch. The UI never pushes (the push is a step of the person; the dialog shows the command). The mockup only commits and shows the push command.</li>
+<li>Should a known target gap (rocm-smi-devel on el10) block <i>Start build</i> for that node, or only warn as in the mockup?</li>
 <li>Error banner text: does repoctl parse known mock errors ("Failed build dependencies") from the log, or show the last non-empty error line? The mockup assumes a small set of known patterns.</li>
 <li>For a graph with many targets (more than 4), should "all" default to the matrix view?</li>
-<li>Does the node cache keep the build time per key? The Plan page uses it for "last time" and the estimate.</li>
+<li>Where does the build time per node come from? The Plan page uses it for "last time" and the estimate. The manifest of the snapshot does not hold it; the journals of the last runs do (<code>state.keepRuns</code>).</li>
 </ul>
 </section>
 <section id="ui-run">
 <h2>Web UI: runs and logs</h2>
+<div class="banner warn sup-note"><div><b>Updated 2026-11-03.</b> Run states are <code>planning</code>, <code>running</code>, <code>ok</code>, <code>failed</code>, <code>canceled</code> and <code>abandoned</code>. There is <strong>no <code>queued</code> state and no build queue</strong>: a second build of this user on this host is refused (<code>set.busy</code>). The runs list shows <strong>build and publish runs</strong> and filters them with <code>kind</code>. Node states have <code>current</code> and <code>staged</code> in place of <code>cached</code>; a failure of the class <code>host</code> says that a retry can help after the host fix. Old text carries <span class="sup">superseded</span>; the v1 mockups carry a banner.</div></div>
 
 <p>This area covers four pages: the run detail page, the node log page, the runs history and the finished-run summary. All pages use the shared shell (topbar, sidebar, live run pill). The server renders HTML with <code>html/template</code>. htmx swaps fragments. One SSE stream per page sends live updates as HTML fragments. The mockups are static HTML. They show the htmx attributes where the product has them.</p>
-<p>The mockups show the story run <code>r-20261102-1750-a3f</code> at 18:01:06 (elapsed 11m02s). At this time ucx is ok on both targets, slurm@el9 and openmpi@el9 build (step rpm), openmpi@el10 builds (step srpm), slurm@el10 failed and slurm-singularity-exec@el10 is blocked. The run will end with 6 ok, 1 failed, 1 blocked, 13 cached after 41m07s, exit 3.</p>
+<p>The mockups show the story run <code>r-20261102-1750-a3f</code> at 18:01:06 (elapsed 11m02s). At this time ucx is ok on both targets, slurm@el9 and openmpi@el9 build (step rpm), openmpi@el10 builds (step srpm), slurm@el10 failed and slurm-singularity-exec@el10 is blocked. The run will end with 6 ok, 1 failed, 1 blocked, 13 current after 41m07s, exit 3.</p>
 <p>Sources: <code>ui-run/gen_*.py</code> write the mockups (<code>run-detail.html</code>, <code>node-log-failed.html</code>, <code>node-log-live.html</code>, <code>runs.html</code>, <code>run-success.html</code>). <code>ui-run/run.css</code> extends the base stylesheet. <code>ui-run/shoot.js</code> makes the screenshots.</p>
 
 <h3>Pages and URLs</h3>
 <table>
 <thead><tr><th>Page</th><th>URL</th><th>Notes</th></tr></thead>
 <tbody>
-<tr><td>Runs history</td><td><code>/s/&lt;set&gt;/runs</code></td><td>Query: <code>q</code>, <code>result</code>, <code>by</code>, <code>target</code>, <code>since</code>, <code>published=1</code>, <code>cursor</code>. The URL keeps the filter (<code>hx-push-url</code>).</td></tr>
+<tr><td>Runs history</td><td><code>/s/&lt;set&gt;/runs</code></td><td>Query: <code>q</code>, <code>result</code>, <code>by</code>, <code>target</code>, <code>since</code>, <code>published=1</code>, <code>kind=build|publish|check</code>, <code>cursor</code>. The URL keeps the filter (<code>hx-push-url</code>). Publish runs (<code>p-…</code>) are rows with the badge <i>publish</i>, the targets and the new snapshot; they open the publish run page (section <a href="#ui-pkg-v2">Publish v2</a>).</td></tr>
 <tr><td>Run detail</td><td><code>/s/&lt;set&gt;/runs/&lt;run&gt;</code></td><td>Live while the run is active. Same layout after the end, with a summary card at the top.</td></tr>
 <tr><td>Node log</td><td><code>/s/&lt;set&gt;/runs/&lt;run&gt;/nodes/&lt;dir&gt;@&lt;target&gt;</code></td><td>Query: <code>step=srpm|rpm|stage</code>, <code>file=build.log|root.log|state.log|repoctl.log</code>, <code>q</code>, <code>follow=1</code>, <code>wrap=1</code>, <code>around=&lt;line&gt;</code>. Anchor <code>#L214</code> selects a line.</td></tr>
-<tr><td>Run compare</td><td><code>/s/&lt;set&gt;/runs/compare?a=&lt;run&gt;&amp;b=&lt;run|prev|published&gt;</code></td><td>Per node: key diff (which input changed), NVR diff, duration diff. Not mocked here.</td></tr>
+<tr><td>Run compare</td><td><code>/s/&lt;set&gt;/runs/compare?a=&lt;run&gt;&amp;b=&lt;run|prev|published&gt;</code></td><td>Per node: commit diff, NVR diff, duration diff. Not mocked here. <span class="sup">superseded</span> The key diff.</td></tr>
 <tr><td>Raw log</td><td><code>…/nodes/&lt;node&gt;/logs/&lt;step&gt;/&lt;file&gt;</code>, <code>…/nodes/&lt;node&gt;/logs.tar.gz</code></td><td><code>text/plain; charset=utf-8</code>. With <code>?download=1</code> the server adds <code>Content-Disposition: attachment</code>.</td></tr>
 </tbody>
 </table>
@@ -8085,22 +8087,22 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <p>Regions from top to bottom:</p>
 <ol>
 <li><b>Header.</b> Run id, run state pill, SSE status dot ("live"). Actions: Open in terminal, Retry failed, Cancel run.</li>
-<li><b>Meta strip.</b> State, started by (user on host), start time, elapsed, jobs (busy slots), targets, selection, command. The selection shows the directories the user gave and the count of dependents that rebuild because their key changed.</li>
-<li><b>Overall progress.</b> "17 of 21 nodes settled". Settled means ok, cached, failed, blocked or canceled. A second line counts only the build nodes. The stacked bar uses the state colors with a 2 px gap. Running segments have moving stripes (off with reduced motion). The legend pills give every count as text, so the bar does not depend on color alone. The estimated end uses the last ok duration of each node.</li>
+<li><b>Meta strip.</b> State, started by (user on host), start time, elapsed, jobs (busy slots), targets, selection, command. The selection shows the directories the user gave and the count of dependencies that the build adds because they are neither <code>current</code> nor <code>staged</code>.</li>
+<li><b>Overall progress.</b> "17 of 21 nodes settled". Settled means ok, current, staged, failed, blocked or canceled. The bar is a <code>role="progressbar"</code> with a label. A second line counts only the build nodes. The stacked bar uses the state colors with a 2 px gap. Running segments have moving stripes (off with reduced motion). The legend pills give every count as text, so the bar does not depend on color alone. The estimated end uses the last ok duration of each node.</li>
 <li><b>Staging note.</b> "Results go to staging. Publish is a separate step." It gives the staging path and a link to the staging repo browser.</li>
-<li><b>Plan problems.</b> A warning banner for plan problems that block publish. In the story: <code>nvr.reused</code> for slurm, openmpi and slurm-singularity-exec, with the <code>repoctl bump-release</code> fix.</li>
-<li><b>Failure cards.</b> One card per failed node, newest first. Content: node, step, mock exit code, time and duration, blocked nodes, extracted error, evidence excerpt (6 lines around the match), diagnosis, "same error before" link. Buttons: Open log (opens the evidence line), Copy error, Copy for agent (<code>repoctl logs RUN NODE --json</code>). The footer says when a retry cannot help: the inputs did not change since the failure.</li>
+<li><b>Plan problems and advisories.</b> A warning banner for plan problems and for required advisories that block the publish of a target. In the story: no <code>nvr.reused</code> (a rebuild is a commit, so the NVR is new); the banner shows <code>dep.not-for-target</code> for slurm@el10. <span class="sup">superseded</span> <code>nvr.reused</code> with the <code>repoctl bump-release</code> fix.</li>
+<li><b>Failure cards.</b> One card per failed node, newest first. Content: node, step, mock exit code, time and duration, blocked nodes, extracted error, evidence excerpt (6 lines around the match), diagnosis, "same error before" link. Buttons: Open log (opens the evidence line), Copy error, Copy for agent (<code>repoctl logs RUN NODE --json</code>). The footer says when a retry cannot help (the commit did not change since the failure) and when it can: a failure of the class <code>host</code> (no disk space, mock group missing) says "A retry can help after the host fix" and links to <code>repoctl doctor</code>.</li>
 <li><b>Now running.</b> One card per busy job slot: step pill, node, last log line (max 1 update per second), elapsed of typical time. An idle slot card tells why no node is ready.</li>
-<li><b>Progress tree.</b> The same structure as the CLI live tree: run, target, node, steps (srpm, rpm, stage) with durations. Cached nodes of a target fold into one row ("7 nodes cached"); the row expands on click. Each node row has its key reason ("commit 907c60d → 4b1e9c2", "dep key: ucx@el9"), a timeline bar on a shared time axis with a "now" line, the duration and a log link.</li>
-<li><b>Staging card</b> (<code>artifact.added</code>) with new files and nodes linked from the cache. <b>Events card</b>: the last 10 events, newest first.</li>
+<li><b>Progress tree.</b> The same structure as the CLI live tree: run, target, node, steps (srpm, rpm, stage) with durations. Current nodes of a target fold into one row ("7 nodes current"); the row expands on click. Each node row has its reason ("commit 907c60d → 4b1e9c2", "rebuild: ucx 1.22.1"), a timeline bar on a shared time axis with a "now" line, the duration and a log link.</li>
+<li><b>Staging card</b> (<code>artifact.added</code>) with new files in the staging directory of the run. <b>Events card</b>: the last 10 events, newest first.</li>
 </ol>
 
 <h4>Actions</h4>
 <table>
 <thead><tr><th>Action</th><th>Request</th><th>Behaviour</th></tr></thead>
 <tbody>
-<tr><td>Cancel run</td><td><code>POST /s/&lt;set&gt;/runs/&lt;run&gt;/cancel</code> (CSRF header)</td><td>The server shows a confirm dialog fragment first. repoctl sends SIGTERM to each mock process group, waits 20 s, then sends SIGKILL. Running, waiting and queued nodes become <code>canceled</code>. Nodes that are ok stay in staging. The run gets result <code>canceled</code>. A canceled run is never publishable. CLI: <code>repoctl cancel RUN</code>.</td></tr>
-<tr><td>Retry failed</td><td><code>POST …/retry</code>, body <code>nodes=failed,blocked</code></td><td>Starts a new run. Selection: the directories of the failed and blocked nodes, on the targets of the old run. Nodes with a key in the cache are cached. The plan reads <code>repoctl.lock</code> again, so committed fixes apply. The set allows one build at a time. If the old run is still active, the new run gets state <code>queued</code> and starts when the set lock is free. The response sends <code>HX-Location</code> to the new run. The button is hidden when no node failed or is blocked. CLI equivalent: <code>repoctl build slurm slurm-singularity-exec</code>.</td></tr>
+<tr><td>Cancel run</td><td><code>POST /s/&lt;set&gt;/runs/&lt;run&gt;/cancel</code> (CSRF header)</td><td>The server shows a confirm dialog fragment first. repoctl sends SIGTERM to each mock process group, waits 20 s, then sends SIGKILL. Running and waiting nodes become <code>canceled</code>. Nodes that are ok stay in staging. The run gets result <code>canceled</code>. A canceled run is never publishable. CLI: <code>repoctl cancel RUN</code>.</td></tr>
+<tr><td>Retry failed</td><td><code>POST …/retry</code>, body <code>nodes=failed,blocked</code></td><td>Starts a new run. Selection: the directories of the failed and blocked nodes, on the targets of the old run. Nodes that are <code>current</code> or <code>staged</code> are not built again. The plan reads <code>repoctl.lock</code> again, so committed fixes apply. There is no build queue: if the old run is still active, the button is disabled and shows "Run r-… is active". The response sends <code>HX-Location</code> to the new run. The button is hidden when no node failed or is blocked. CLI equivalent: <code>repoctl build slurm slurm-singularity-exec</code>.</td></tr>
 <tr><td>Open in terminal</td><td>none (client side)</td><td>Copies <code>repoctl -C ~/src/slurm-repo runs RUN --follow</code> to the clipboard. The button title shows the command. If the clipboard API is not available, a popover shows the command as selected text.</td></tr>
 </tbody>
 </table>
@@ -8190,9 +8192,10 @@ and Radar (keyboard first, <code>g</code> + letter, live updates over SSE). Colo
 <thead><tr><th>Run result</th><th>Exit</th><th>Summary card</th><th>Call to action</th></tr></thead>
 <tbody>
 <tr><td><span class="pill st-ok">ok</span></td><td>0</td><td>Counts, staging vs published diff, publish checks</td><td>Review publish (if all checks pass), else the first failed check with its fix</td></tr>
-<tr><td><span class="pill st-failed">failed</span></td><td>3</td><td>Counts (story: 6 ok, 1 failed, 1 blocked, 13 cached, 41m07s) and the failure cards</td><td>Retry failed, Open log</td></tr>
+<tr><td><span class="pill st-failed">failed</span></td><td>3</td><td>Counts (story: 6 ok, 1 failed, 1 blocked, 13 current, 41m07s) and the failure cards</td><td>Retry failed, Open log</td></tr>
 <tr><td><span class="pill st-canceled">canceled</span></td><td>130</td><td>"Canceled by d.klein at HH:MM". Staging is kept for inspection.</td><td>Build again</td></tr>
-<tr><td><span class="pill st-queued">queued</span></td><td>–</td><td>"Waits for run X (one build per set)"</td><td>Cancel</td></tr>
+<tr><td><span class="pill st-canceled">abandoned</span></td><td>–</td><td>"The process of this run ended without a result." The nodes that were ok stay staged.</td><td>Retry failed, Open log</td></tr>
+<tr><td><span class="pill st-ok">publish ok</span> / <span class="pill st-failed">publish failed</span></td><td>–</td><td>A publish run: eight steps, the new snapshot, <code>served: behind</code>. A failed push or tag leaves the signed tree; the card shows <code>repoctl repo push p-…</code>.</td><td>Open publish</td></tr>
 </tbody>
 </table>
 
@@ -8259,7 +8262,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 
 <h3>Assumptions</h3>
 <ul>
-<li>Run states: <code>queued</code>, <code>running</code>, <code>ok</code>, <code>failed</code>, <code>canceled</code>. <code>queued</code> is new: a retry or build that waits for the set lock. A run is <code>failed</code> if a node is failed or blocked.</li>
+<li>Run states: <code>planning</code>, <code>running</code>, <code>ok</code>, <code>failed</code>, <code>canceled</code>, <code>abandoned</code>. <span class="sup">superseded</span> <code>queued</code>: a retry or build that waits for the set lock does not exist. A run is <code>failed</code> if a node is failed or blocked.</li>
 <li>"Retry failed" = new run with the directories of the failed and blocked nodes, on the old run targets. CLI equivalent: <code>repoctl build &lt;dirs&gt;</code>. No new CLI flag.</li>
 <li>CLI hints: Open in terminal copies <code>repoctl -C &lt;dir&gt; runs RUN --follow</code>; node pages copy <code>repoctl logs RUN NODE</code>; cancel is <code>repoctl cancel RUN</code>.</li>
 <li>Log layout: <code>logs/&lt;run&gt;/&lt;node&gt;.log</code> (repoctl.log) plus <code>logs/&lt;run&gt;/&lt;node&gt;/&lt;step&gt;/{build,root,state,hw_info}.log</code>. mock result directories are under <code>~/.cache/repoctl/work/&lt;run&gt;/&lt;node&gt;/&lt;step&gt;/</code>. Each step (srpm, rpm) is one mock call with its own logs.</li>
@@ -8273,7 +8276,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 
 <h3>Open questions</h3>
 <ul>
-<li>mock exit code for a failed <code>dnf builddep</code>: the mockup shows 30. Check with the mock version on hpc-build01.</li>
+<li>mock exit code for a failed <code>dnf builddep</code>: the mockup shows 30. Check with the mock version on hpc-a1.</li>
 <li>Retention: how long do logs, event logs and staging repos of old runs stay? <code>repoctl clean</code> has no <code>--runs</code> option yet.</li>
 <li>Run compare page: owner and layout (this area only defines the URL).</li>
 <li>Should the run page offer per-node retry (one failed node), or only "Retry failed"?</li>
@@ -8282,6 +8285,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 </section>
 <section id="ui-pkg">
 <h2>Web UI: packages, repository and publish</h2>
+<div class="banner warn sup-note"><div><b>Updated 2026-11-03.</b> Packages and Repository follow the new model: lock states <code>unpinned</code> and <code>orphaned</code>, plan actions in place of node keys, the local copy of <code>latest</code> in place of the published directory. <span class="sup">superseded</span> <strong>The publish pages of this section (4. Publish flow, step 1 to step 3, blocked state)</strong>: one run, replace the repo, no advisory, no snapshot, no partial publish, same NVR as a warning. Section <a href="#ui-pkg-v2">Publish v2</a> replaces them. The v1 publish mockups carry a banner.</div></div>
 
 <p>This section covers three areas of the web UI. <b>Packages</b> shows the pinned state, worktree state and upstream state of each package. <b>Repository</b> shows the RPMs of a target, published or staging, and the diff between them. <b>Publish</b> is the only place in the UI that signs. All pages use the shared shell (topbar and sidebar) and the base stylesheet. Page CSS is in <code>ui-pkg/pkg.css</code>. The mockups are generated by <code>ui-pkg/build.py</code> and screenshot by <code>ui-pkg/shoot.js</code>.</p>
 
@@ -8293,11 +8297,11 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <tbody>
 <tr><td><code>/s/&lt;set&gt;/packages</code></td><td>Packages list</td><td><code>repoctl status</code>, <code>repoctl upstream --json</code></td></tr>
 <tr><td><code>/s/&lt;set&gt;/packages/&lt;dir&gt;</code></td><td>Package detail</td><td><code>repoctl show &lt;dir&gt; --json</code> (proposed), <code>repoctl upstream &lt;dir&gt;</code></td></tr>
-<tr><td><code>/s/&lt;set&gt;/repo/&lt;target&gt;?view=published&amp;repo=slurm</code></td><td>Repository, published</td><td><code>repoctl repo ls --target el9</code></td></tr>
-<tr><td><code>/s/&lt;set&gt;/repo/&lt;target&gt;?view=staging&amp;run=&lt;id&gt;[&amp;diff=1]</code></td><td>Repository, staging list or diff</td><td><code>repoctl repo ls --staging &lt;run&gt;</code>, <code>repoctl repo diff --run &lt;run&gt;</code></td></tr>
-<tr><td><code>/s/&lt;set&gt;/publish[?run=&lt;id&gt;]</code></td><td>Publish step 1 (review) or blocked state</td><td><code>repoctl publish --run &lt;id&gt; --dry-run</code></td></tr>
-<tr><td><code>/s/&lt;set&gt;/publish/confirm?run=&lt;id&gt;</code></td><td>Step 2 dialog fragment (htmx, appended to body)</td><td>TTY prompt of <code>repoctl publish</code></td></tr>
-<tr><td><code>POST /s/&lt;set&gt;/publish</code></td><td>Step 3 progress, then result</td><td><code>repoctl publish --run &lt;id&gt;</code></td></tr>
+<tr><td><code>/s/&lt;set&gt;/repo/&lt;target&gt;?view=latest&amp;repo=slurm</code></td><td>Repository, the local copy of <code>latest</code> (<span class="sup">superseded</span> <code>view=published</code>)</td><td><code>repoctl repo ls --target el9</code></td></tr>
+<tr><td><code>/s/&lt;set&gt;/repo/&lt;target&gt;?view=staging&amp;run=&lt;id&gt;[&amp;diff=1]</code></td><td>Repository, staging list or diff</td><td><code>repoctl repo ls --run &lt;run&gt;</code>, <code>repoctl repo diff --run &lt;run&gt;</code></td></tr>
+<tr><td><code>/s/&lt;set&gt;/publish[?target=el9]</code></td><td>Publish step 1 (review), per target. <span class="sup">superseded</span> <code>?run=</code> and the blocked page.</td><td><code>repoctl publish --target el9 --dry-run</code></td></tr>
+<tr><td><code>/s/&lt;set&gt;/publish/confirm?target=el9</code></td><td>Step 2 dialog fragment (htmx, appended to body)</td><td>The question of <code>repoctl publish</code>: type the set name</td></tr>
+<tr><td><code>POST /s/&lt;set&gt;/publish</code></td><td>Step 3 progress, then result</td><td><code>repoctl publish --target el9</code></td></tr>
 </tbody>
 </table>
 <p>Mutating endpoints (all <code>POST</code>, CSRF token from <code>localweb</code>): <code>/packages/&lt;dir&gt;/pin</code>, <code>/packages/&lt;dir&gt;/notes</code>, <code>/upstream/refresh</code>, <code>/checkout</code>, <code>/build?dir=</code>, <code>/publish</code>, <code>/publish/cancel</code>. Live updates come from one SSE stream per set, <code>/s/&lt;set&gt;/events</code>, and one per publish, <code>/s/&lt;set&gt;/publish/events</code>.</p>
@@ -8310,7 +8314,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <ul>
 <li><b>Package</b>: <code>dir</code> (link to detail) and a second line with the dependencies in the set (&ldquo;needs munge&rdquo;).</li>
 <li><b>Source</b>: a badge. A branch in this repo shows only the branch name (the default case has no label). An external repo shows an <code>EXT</code> label, a dashed copper border and the URL host and path. A path in the builder branch shows <code>IN TREE</code>.</li>
-<li><b>Pinned</b>: short commit from <code>repoctl.lock</code>. An in-tree package shows the builder commit.</li>
+<li><b>Pinned</b>: short commit from <code>repoctl.lock</code>. An in-tree package shows the builder commit. Two more states have a row each (UX-64): <b>new, not pinned</b> (<code>unpinned</code>: the package is in <code>repoctl.yaml</code> and has no lock line; next command <code>repoctl pin DIR</code>) and <b>not in repoctl.yaml</b> (<code>orphaned</code>: a lock line without a package; next steps in <code>repoctl help packages</code>). Each row has a copy button for its command. The UI does not edit the package list. An agent that is asked to add a package writes the YAML snippet and the commands, then stops with <code>humanAction edit-config</code>.</li>
 <li><b>Worktree</b>: &ldquo;&#10003; clean&rdquo; as quiet text. <code>ahead N</code> or <code>dirty</code> as an amber pill, with the HEAD commit or the changed file below.</li>
 <li><b>Version</b>: the spec version. If the worktree differs from the pin, it shows <code>1.22.0 &rarr; 1.22.1</code>.</li>
 <li><b>Targets</b>: one tag per set target. A target that the package excludes (<code>targets: [el9]</code>) is struck through.</li>
@@ -8329,11 +8333,11 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <li><b>Header</b>: <code>dir</code>, version (pinned &rarr; worktree), source badge, spec file, targets, spec <code>Summary</code>. Actions: &ldquo;Show in graph&rdquo; (graph focused on the package) and &ldquo;Build ucx + dependents&rdquo; (<code>repoctl build ucx</code>, to staging only).</li>
 <li><b>Pin strip</b>: pinned commit and message &rarr; worktree HEAD and message, a state pill and the &ldquo;Pin 4b1e9c2&rdquo; button with <code>repoctl pin ucx</code> beside it. The strip is amber when the worktree differs, and neutral when it matches. If HEAD is not on the remote, the strip says so. Pin still works, but the publish check &ldquo;Pinned commits are on the remote&rdquo; fails later. A dirty worktree disables Pin and shows the git command to commit (see slurm).</li>
 <li><b>Commits since pin</b>: <code>git log &lt;pin&gt;..HEAD</code> with hash, subject, author, date, files and line counts. The pinned commit follows with <code>pinned</code> and <code>published</code> tags, then older commits. &ldquo;Show older&rdquo; appends more rows with htmx.</li>
-<li><b>Builds per target</b>: one row per target. Published NVR, staging NVR of the current or last run, node state pill, node key (short) and the key change reason. A footer says when staging was built from an unpinned worktree.</li>
+<li><b>Builds per target</b>: one row per target. NVR in <code>latest</code>, NVR in staging (<code>staged</code>) or of the current run, plan action pill and the reason (commit-changed, rebuild, …). A footer says when staging was built from an unpinned worktree.</li>
 <li><b>Subpackages</b>: built subpackages with size. Subpackages switched off by <code>%bcond_with</code> show dashed and &ldquo;off&rdquo;. A line names the source RPM and the debuginfo packages and their sub-repos.</li>
 <li><b>Spec facts</b>: evaluated with <code>rpmspec</code> for one target. Source0, License, ExclusiveArch, BuildRequires in the set, BuildRequires from the target repos, Provides that other packages in the set use, Release macro.</li>
 <li><b>Upstream</b> (side): worktree version, pinned version, upstream latest with date, Fedora rawhide version, upstream source from <code>repoctl.yaml</code>, release-notes link, &ldquo;checked N min ago&rdquo; and <code>repoctl upstream ucx</code>.</li>
-<li><b>Dependents</b> (side): direct dependents with the matching BuildRequires, indirect dependents, and the rebuild cost (&ldquo;4 packages on 2 targets: 8 nodes&rdquo;).</li>
+<li><b>Dependents</b> (side): direct dependents with the matching BuildRequires, indirect dependents, and the advisories that name them (&ldquo;may need a rebuild&rdquo;). repoctl does not rebuild them by itself.</li>
 <li><b>Notes</b> (side): a text field. Save writes <code>packages[&lt;dir&gt;].notes</code> in <code>repoctl.yaml</code> with an atomic write. The user commits the change with git. The UI does not commit.</li>
 <li><b>Agent skills hint</b> (side, dashed box): generic skills that ship with repoctl, set-local skills from <code>.claude/skills/</code>, the rule &ldquo;may add, never replace&rdquo;, and the JSON commands that agents read.</li>
 </ul>
@@ -8363,14 +8367,15 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <tr><td><code>+</code></td><td>added: file or package name only in staging</td><td><code>--s-ok</code></td></tr>
 <tr><td><code>&minus;</code></td><td>removed: file or package name only in published (row text struck through)</td><td><code>--s-failed</code></td></tr>
 <tr><td><code>&uarr;</code></td><td>updated: same name, higher EVR</td><td><code>--s-running</code></td></tr>
-<tr><td><code>&#8635;</code></td><td>rebuilt: same NVR, other node key</td><td><code>--s-cached</code></td></tr>
+<tr><td><code>&#8635;</code></td><td>rebuilt: same NVR, other payload (only for hand-made input; publish refuses it)</td><td><code>--s-cached</code></td></tr>
 <tr><td><code>&#9676;</code></td><td>pending: node not finished in this run (dashed)</td><td><code>--s-waiting</code></td></tr>
 <tr><td><code>=</code></td><td>unchanged: same node key as published (hidden by default)</td><td>neutral border</td></tr>
 </tbody>
 </table>
 <p>Summary chips count files (+7, &minus;7) and packages (1 updated, 0 rebuilt, 3 pending, 7 unchanged). Package rows show old and new EVR. A row expands to its file pair (&minus; old file, + new file). Pending rows show the node state and the expected change. Each pending row has <code>hx-trigger="sse:node-&lt;dir&gt;-&lt;target&gt;"</code>, so it swaps itself when the node finishes. A note explains same-NVR rebuilds: <code>dnf upgrade</code> does not install them.</p>
 
-<h3>4. Publish flow</h3>
+<h3>4. Publish flow <span class="sup">superseded</span></h3>
+<div class="banner warn sup-note"><div>Replaced by <a href="#ui-pkg-v2">Publish v2</a>. The text below is the first version; the mockups in this part are marked <i>superseded</i>.</div></div>
 <p>Publish is the only place that signs. It has three steps: Review, Confirm, Sign and publish. Each step shows its CLI equivalent.</p>
 
 <h4>Step 1: Review</h4>
@@ -8404,12 +8409,12 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <p>For run <code>r-20261102-1750-a3f</code> the page shows an error banner with the first reason as its title and links to the failed node and the package. The checks list shows every reason: 1 failed node, 1 blocked node, run not finished, ucx not pinned, slurm dirty. A terminal box shows the same refusal from <code>repoctl publish</code>. Continue is disabled. The UI does not offer a partial publish.</p>
 
 <h3>5. Signer identity (multi-key)</h3>
-<p>The signing design is still open. A set can use one shared repo key or a personal key per person. The UI stays neutral:</p>
+<p>The signing design is decided (D8 to D16): <strong>a personal key per admin</strong>, many trusted keys, one signature per file. The UI shows the signer in every place:</p>
 <ul>
 <li>Every place that shows a signature shows a <b>Signer</b> value: the key uid name and the last 8 hex digits, for example &ldquo;GSI HPC Slurm Repo &middot; &hellip;7C3A 19F2&rdquo; or &ldquo;d.klein (key &hellip;19F2)&rdquo;. The UI never says &ldquo;the repo key&rdquo;.</li>
 <li>The published RPM table has a Signer column and a signer filter. The Repository page has a &ldquo;Signers in this repo&rdquo; card with a count per key.</li>
 <li>The publish signing card shows the key that will sign, and compares it with the key of the last publish (&ldquo;same key&rdquo; or &ldquo;other key than last publish&rdquo;).</li>
-<li>Reuse of signed RPMs is allowed only when the node key and the signer key are both unchanged. With another signer key, publish signs all RPMs again.</li>
+<li><span class="sup">superseded</span> Reuse of signed RPMs when the node key and the signer key are unchanged. Publish signs only the new RPMs. It keeps the signatures of the old RPMs, also those of other keys. It re-signs only with <code>repoctl repo resign</code>.</li>
 </ul>
 
 <h3>Interaction and accessibility notes</h3>
@@ -8448,6 +8453,103 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <li><b>Signer policy.</b> With personal keys, must the release package ship all allowed public keys? Should publish refuse a key that is not in the release package?</li>
 </ul>
 </section>
+<section id="ui-pkg-v2">
+<h2>Web UI: publish, signing and snapshots (publish v2)</h2>
+
+<p>This section replaces the publish pages of <a href="#ui-pkg">Packages, repository and publish</a>. It follows <code>05-publish-snapshots-signing.html</code> (sections 5, 11 and 13.2) and <code>06-advisories-lifecycle.html</code> (section 7.3). It closes UX-10, UX-25, UX-41, UX-47 and UX-53.</p>
+
+<h3>1. What changes</h3>
+<table>
+<thead><tr><th>Topic</th><th>v1 pages</th><th>Publish v2</th></tr></thead>
+<tbody>
+<tr><td>Input</td><td>One run. <code>?run=&lt;id&gt;</code>.</td><td>The plan. One card per target. The person ticks the targets to publish. <code>?target=el9</code>.</td></tr>
+<tr><td>Partial publish</td><td>Not offered. One failed node blocks all.</td><td>A target is ready when all its nodes are <code>current</code> or <code>staged</code>. A failed target does not block the other target.</td></tr>
+<tr><td>Output</td><td>Replace the repo. Keep the previous directory.</td><td>A new snapshot. <code>latest</code> moves forward. The result shows the snapshot ref.</td></tr>
+<tr><td>Same NVR</td><td>A warning.</td><td>A refusal (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason</code>.</td></tr>
+<tr><td>Advisories</td><td>Not checked.</td><td>A required advisory blocks, unless the person accepts it for this publish with a reason.</td></tr>
+<tr><td>Signing</td><td>One signer. Re-sign all RPMs for another key.</td><td>Personal keys. Publish signs only new RPMs. Re-signing is <code>repoctl repo resign</code>.</td></tr>
+<tr><td>Steps</td><td>5 sub-steps and one swap.</td><td>8 steps: check, sign, repodata, verify, verify-el, push, tag, cache.</td></tr>
+<tr><td>Rollback</td><td><code>publish --rollback</code></td><td>Removed. Use <code>repoctl repo restore</code> or fix forward.</td></tr>
+</tbody>
+</table>
+
+<h3>2. Routes</h3>
+<table>
+<thead><tr><th>Route</th><th>Result</th><th>CLI equivalent</th></tr></thead>
+<tbody>
+<tr><td><code>/s/&lt;set&gt;/publish[?target=el9]</code></td><td>Step 1, Review. Blocked cards stay on the page with their reasons.</td><td><code>repoctl publish --dry-run</code></td></tr>
+<tr><td><code>/s/&lt;set&gt;/publish/confirm</code></td><td>Step 2 dialog fragment</td><td>The question of <code>repoctl publish</code></td></tr>
+<tr><td><code>POST /s/&lt;set&gt;/publish</code></td><td>Step 3, progress, then result</td><td><code>repoctl publish --target el9</code></td></tr>
+<tr><td><code>/s/&lt;set&gt;/signing</code></td><td>Signing page</td><td><code>repoctl sign ls</code>, <code>repoctl sign onboard</code></td></tr>
+<tr><td><code>POST /s/&lt;set&gt;/-/actions/sign-deployed</code></td><td>The dialog &ldquo;Confirm deployment&rdquo;</td><td><code>repoctl sign deployed KEYID</code></td></tr>
+<tr><td><code>POST /s/&lt;set&gt;/-/actions/advisory-accept</code></td><td>Holds the accept state for this publish in the form. It writes nothing to the set.</td><td><code>--accept-advisory ID --reason TEXT</code></td></tr>
+</tbody>
+</table>
+<p>There is no page for snapshots in v1. List and restore are CLI only (<code>repoctl repo snapshots</code>, <code>repoctl repo restore</code>) because they change shared state. The Overview and the result page show the snapshot ref with a copy button.</p>
+
+<h3>3. Step 1: Review</h3>
+<figure><img src="img/ui-pkg-publish-v2-review-light.webp" alt="Publish v2, review: el9 card ticked with ucx staged, el10 card not ticked with ucx failed; required advisory soname.removed/ucx@el9 with an Accept for this publish checkbox, a reason field and the equivalent command; trust block, signing card with one key, checks list"><figcaption>Step 1, Review, light. The el10 card is not ticked because ucx failed there. The required advisory blocks Continue until the person accepts it with a reason.</figcaption></figure>
+<p>CLI: <code>repoctl publish --target el9 --dry-run</code>. The page has these parts, from top to bottom:</p>
+<ul>
+<li><b>Base and freshness</b>: the snapshot that is the base (<code>latest</code>, digest short form, user, host, time). A pill shows <code>local: same</code> or <code>local: behind</code>. When the local copy is behind, the page shows <code>state.behind</code> and the command <code>repoctl repo pull</code>. Continue stays disabled.</li>
+<li><b>Target cards</b> (one per target): a checkbox, the target name and the publish state. A target is ticked when it is publishable. A target that is not publishable cannot be ticked. Its card shows the reasons, each with a link: the failed node, a node that is <code>build</code> in the plan, an unpinned package, an unpushed lock. The card lists the changes per source package (&uarr; ucx 1.22.0-2 &rarr; 1.22.1-1, 15 RPMs; + added; &minus; removed). A package with the same NVR and other content is not a change. It is a refusal (<code>nvr.removed</code>).</li>
+<li><b>Inputs</b>: the set commit, the lock commit and the builder commits. repoctl refuses uncommitted or unpushed inputs (<code>lock.dirty</code>, <code>lock.unpushed</code>). The reason shows the exact <code>git</code> commands.</li>
+<li><b>Source run per node</b>: each RPM comes from the run that built it. The list shows run id and node. Two nodes can come from two runs.</li>
+<li><b>Advisories</b>: one row for each open advisory that names this publish. See section 4.</li>
+<li><b>Trust block</b>: shown only when the publish changes the trusted keys. It lists the keys added or removed, with fingerprints (UX-22). A trust change needs the typed key id in step 2.</li>
+<li><b>Signing card</b>: the signer (uid, key id), the number of RPMs to sign for each key, and the result of the signer probe. The probe does a test signature. If the key is locked, the card shows <code>sign.locked</code> with the commands <code>gpg --card-status</code> and the YubiKey requirements. Continue stays disabled. The browser never asks for a PIN or passphrase. The pinentry of the host asks for it (UX-25, UX-41).</li>
+<li><b>Checks</b> (doctor format): <code>sign.not-active</code>, <code>sign.key-expiring</code>, <code>sign.not-deployed</code>, <code>sign.keyfile-stale</code>, <code>registry.denied</code>, <code>registry.unreachable</code>, <code>snapshot.diverged</code>. Each line has a result and a hint.</li>
+<li><b>Footer</b>: Cancel and Continue. Continue is disabled until every ticked target is ready, every required advisory is accepted with a reason, and the signer probe passes.</li>
+</ul>
+
+<h3>4. Advisory rows</h3>
+<figure><img src="img/ui-pkg-publish-v2-advisory-light.webp" alt="Required advisory soname.removed/ucx@el9: libucp.so.0 removed, slurm and openmpi require it; buttons Pin fix and build, Accept for this publish; the reason field is open and the command repoctl publish --target el9 --accept-advisory shows below"><figcaption>An open required advisory in the Review step, light. The accept checkbox opens the reason field.</figcaption></figure>
+<p>Each row shows the id (<code>CODE/SUBJECT</code>), the level, the title, the closure and the two ways out:</p>
+<ul>
+<li><b>Fix it</b>: the button <i>Pin fix and build…</i> or <i>Rebuild…</i> opens the plan with the suggested command. It does not publish.</li>
+<li><b>Accept for this publish</b>: a checkbox. When ticked, it opens a field for the reason. The reason needs 8 or more characters. Under the field the page shows the equivalent command: <code>repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 --reason "…"</code>. The reason goes to the journal and to the snapshot annotations.</li>
+</ul>
+<p>Only a required advisory blocks. A warning or an info advisory shows as a row without a checkbox. It is not a check. <code>--yes</code> and the dialog do not accept an advisory by themselves (exit 6).</p>
+
+<h3>5. Step 2: Confirm</h3>
+<figure><img src="img/ui-pkg-publish-v2-confirm-light.webp" alt="Confirm dialog: target el9, 15 RPMs to sign with key D2A4 7C3A, one advisory accepted with its reason, delay until hosts see the change; text field to type the set name slurm-26.05; the button Sign and publish is disabled"><figcaption>Step 2, Confirm, light. CLI: <code>repoctl publish --target el9</code> asks the same question on a TTY.</figcaption></figure>
+<p>A modal <code>&lt;dialog&gt;</code> repeats the facts that matter: the targets, the number of RPMs to sign for each key, the accepted advisories with their reasons, the trust change if any, and the delay until hosts see the change (<code>metadata_expire</code> of the release package). The person types the set name. For a trust change the person also types the key id. The button <i>Sign and publish</i> stays disabled until the text matches. The server checks the names again, with the CSRF token. It sends the plan digest from step 1. If the plan changed since step 1, the server refuses and shows the Review again.</p>
+
+<h3>6. Step 3: Progress</h3>
+<figure><img src="img/ui-pkg-publish-v2-progress-light.webp" alt="Publish progress: the eight steps check, sign, repodata, verify, verify-el, push, tag, cache; sign is active with 41 of 60 and the text Touch your key; the next steps wait"><figcaption>Step 3, progress, light. The topbar indicator shows &ldquo;publish &middot; sign el9&rdquo;.</figcaption></figure>
+<p>The eight steps run in this order for each ticked target: <b>check</b>, <b>sign</b>, <b>repodata</b>, <b>verify</b>, <b>verify-el</b>, <b>push</b>, <b>tag</b>, <b>cache</b>. The list is an SSE target (<code>sse-swap="publish-step"</code>). Each line shows a state, a count and a time. While <b>sign</b> runs with a YubiKey, the line shows &ldquo;Touch your key&rdquo; (the field <code>detail</code> of the <code>publish-step</code> event). A person at the host answers the pinentry. Signing is serial, because one smartcard signs one file at a time. Cancel works until the step <b>push</b>. After <b>push</b> the snapshot is in the registry. repoctl then runs <b>tag</b> and <b>cache</b>.</p>
+
+<h4>Failed state</h4>
+<figure><img src="img/ui-pkg-publish-v2-failed-light.webp" alt="Publish failed at step push: error banner, nothing tagged, latest unchanged; the steps check to verify-el are done; terminal box with the recovery command repoctl repo push p-20261103-1432-b7e"><figcaption>Failed at step 6 of 8 (push), light.</figcaption></figure>
+<p>The banner names the failed step and the code (<code>snapshot.push-failed</code>, <code>verify.el-failed</code>, <code>sign.locked</code>, …). It says what is true now: <i>Nothing is tagged. latest is unchanged.</i> before <b>tag</b>, or <i>The snapshot is in the registry. latest is unchanged.</i> after <b>push</b>. It shows the recovery command in a terminal box with a copy button: <code>repoctl repo push p-20261103-1432-b7e</code>. The UI has no retry button for a push. Recovery uses the CLI because it changes shared state. The failed run stays in <a href="#ui-run">Runs</a> with its kind <code>publish</code>.</p>
+
+<h3>7. Result</h3>
+<figure><img src="img/ui-pkg-publish-v2-done-light.webp" alt="Publish result: success banner, snapshot ref ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9 with a copy button, chips latest p-20261103-1432-b7e and served behind, counts per target, the key used, the hint that the mirror job serves the new latest"><figcaption>Result, light. The page shows <code>served: behind</code> until the mirror job pulls the new <code>latest</code>.</figcaption></figure>
+<p>The result shows the time, the duration, the RPM counts signed and reused, the signers, and per target the snapshot ref, the digest, the new <code>p-…</code> tag and the change counts. The ref is <code>ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9</code> and has a copy button. Two chips show the state: <code>latest</code> (published) and <code>served</code> (<code>behind</code> until the mirror job serves the new snapshot). repoctl does not know whether a host has installed the new RPMs. The page says so (Q3): the person confirms in the config management.</p>
+
+<h3>8. Blocked state</h3>
+<figure><img src="img/ui-pkg-publish-v2-blocked-light.webp" alt="Publish blocked: both cards unticked and disabled; el9 has ucx not pinned and a dirty worktree; el10 has a failed node; the terminal box shows the same refusal with exit code 12"><figcaption>Blocked, light: no target is ready.</figcaption></figure>
+<p>When no target is ready, the page shows an error banner with the first reason as its title and the reasons per card. A terminal box shows the same refusal from <code>repoctl publish</code> and its exit code (12, <code>publish.not-ready</code>). Continue is disabled. When one target is ready, the page is the normal Review. It does not block the ready target.</p>
+
+<h3>9. Signing page</h3>
+<figure><img src="img/ui-pkg-signing-light.webp" alt="Signing page: table of keys with state active, retiring and removed, deployed flag, expiry and RPM counts; onboarding list per key; button Confirm deployment"><figcaption>Signing page <code>/s/slurm-26.05/signing</code>, light.</figcaption></figure>
+<p>The page shows the same data as <code>repoctl sign ls</code> and <code>repoctl sign onboard</code>.</p>
+<ul>
+<li><b>Keys table</b>: key id, uid, the state (<code>active</code>, <code>retiring</code>, <code>removed</code>), the deployed flag from <code>keys/deployed.yaml</code>, the expiry date with a warning for <code>sign.key-expiring</code>, and the number of RPMs signed by the key in <code>latest</code>.</li>
+<li><b>Onboarding list</b>: for each key the steps that remain: key in <code>repoctl.yaml</code>, key in the in-tree release package (<code>repoctl release write</code>), release package published, deployment confirmed. Each open step has its command with a copy button.</li>
+<li><b>Confirm deployment</b>: a dialog with the release NVR, the fingerprint, the typed key id and a note. It writes <code>keys/deployed.yaml</code> and asks the person to commit and push it. The person confirms that the release package is on the hosts. repoctl has no feedback from the config management (Q3).</li>
+<li>The page does not add, retire or remove a key. These commands change the trust list. They are CLI only (<code>repoctl sign add</code>, <code>repoctl sign retire</code>, <code>repoctl sign remove</code>).</li>
+</ul>
+
+<h3>10. Abandoned runs and the lock</h3>
+<p>When a publish run stops (Ctrl-C twice, a crash, a reboot), the Runs list shows the state <code>abandoned</code>. The run page names what is true (nothing tagged, <code>latest</code> unchanged, or the snapshot is pushed) and shows the next command: <code>repoctl repo push p-…</code> or <code>repoctl mock clean</code>. The set lock is held only while a command runs, so a stale lock goes away by itself (UX-47).</p>
+
+<h3>Open questions</h3>
+<ul>
+<li><b>Snapshots page.</b> Should a later version list snapshots and show a diff between two? The first version has none.</li>
+<li><b>Signer probe cost.</b> The probe signs a test file on every Review load. With a YubiKey this can need a touch. The page may probe only on a click. The decision waits for the first test with a real key.</li>
+</ul>
+</section>
 <section id="ui-graph-v2">
 <h2>Web UI: plan, advisories and rebuilds (build model v2)</h2>
 
@@ -8465,8 +8567,8 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <table>
 <thead><tr><th>Action</th><th>Pill</th><th>Meaning</th></tr></thead>
 <tbody>
-<tr><td><code>build</code></td><td><code>.pill.act-build</code> (shell)</td><td>The commit of this package is not in the manifest of the target repo, and no unpublished staging has it.</td></tr>
-<tr><td><code>current</code></td><td><code>.pill.st-cached</code>, text "current"</td><td>The commit is in the published repo of the target (repo manifest).</td></tr>
+<tr><td><code>build</code></td><td><code>.pill.act-build</code> (shell)</td><td>The commit of this package is not in the manifest of the target, and no unpublished staging has it.</td></tr>
+<tr><td><code>current</code></td><td><code>.pill.st-cached</code>, text "current"</td><td>The commit is in <code>latest</code> of the target (the manifest in the annotations of the snapshot).</td></tr>
 <tr><td><code>staged</code></td><td><code>.pill.st-ok</code>, text "staged"</td><td>An earlier, unpublished run built this commit with the same target config. The plan reuses its staging. A failed run does not build its good nodes again.</td></tr>
 <tr><td><code>skip</code></td><td><code>.pill.st-skip</code></td><td>Excluded by the package or target selection.</td></tr>
 </tbody>
@@ -8482,30 +8584,32 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <li><b>Form:</b> packages, targets, <code>from</code> (<code>lock</code> or <code>worktree</code>), <code>force</code>, <code>fail-fast</code>, <code>jobs</code>. The tooltip of <code>force</code> says that publish refuses a reused NVR (<code>nvr.reused</code>). This problem now occurs only with <code>--force</code>.</li>
 <li><b>Start box:</b> counts per action and one sentence. Before the run: "Start build runs 2 nodes into a new staging repo. It does not sign or publish. Dependents of ucx are not rebuilt." <i>Start build</i> opens the shell build dialog (<code>/s/&lt;set&gt;/-/dialog/build</code>). With 0 build and some staged nodes, the button is <i>Publish…</i>.</li>
 <li><b>Table:</b> per target group. Reason and advisory share one column: reason chip, commits, and the advisory mark of the node (<i>soname check: pending</i> → <i>sonames unchanged</i>).</li>
-<li><b>Changes since last publish:</b> lock diff, then the RPM change. Dependents show "unchanged · not rebuilt; see advisory". Publish adds ucx-1.22.1-1 next to ucx-1.22.0-2. Old versions stay until <code>repoctl repo prune</code>.</li>
+<li><b>Changes since latest:</b> lock diff, then the RPM change. Dependents show "unchanged · not rebuilt; see advisory". Publish adds ucx-1.22.1-1 next to ucx-1.22.0-2. Old versions stay until the person runs <code>repoctl repo prune</code>. Removal is opt-in.</li>
 </ul>
 
 <h3>Advisories panel</h3>
-<p>The panel is one region (<code>section#advisories</code>, SSE event <code>advisories</code>). Each advisory is an <code>article.adv</code> with its own event <code>advisory:&lt;id&gt;</code>. The id is <code>&lt;code&gt;/&lt;subject&gt;</code>, for example <code>soname.removed/ucx</code> or <code>buildroot.drift/pmix@el9</code>.</p>
+<p>The panel is one region (<code>section#advisories</code>, SSE event <code>advisories</code>). Each advisory is an <code>article.adv</code> with its own event <code>advisory:&lt;id&gt;</code>. The id is <code>CODE/SUBJECT</code> on every surface, for example <code>soname.removed/ucx@el9</code> or <code>buildroot.drift/pmix@el9</code>. In the DOM it is <code>article.adv[data-advisory-id="buildroot.drift/pmix@el9"]</code>. The element id is <code>adv-</code> plus the id with <code>/</code> and <code>@</code> changed to <code>-</code>.</p>
 <table>
 <thead><tr><th>Part</th><th>Content</th></tr></thead>
 <tbody>
-<tr><td>Left bar and level badge</td><td><code>required</code> (failed tokens), <code>warn</code> (blocked tokens), <code>info</code> (cached tokens, as <code>.banner.info</code> in shell.css), <code>pending</code> (queued tokens). The panel head counts each level.</td></tr>
+<tr><td>Left bar and level badge</td><td><code>required</code> (failed tokens), <code>warn</code> (blocked tokens), <code>info</code> (current tokens, as <code>.banner.info</code> in shell.css), <code>pending</code> (waiting tokens). The panel head counts each level.</td></tr>
 <tr><td>Code chip and title</td><td>The advisory code from the contract, then one line in plain words.</td></tr>
 <tr><td>Targets and source</td><td>Target badges, then where the check ran (<i>plan</i>, <i>after build</i>, <i>check</i>) and when.</td></tr>
 <tr><td>Body and facts</td><td>One or two sentences, then the evidence in mono: recorded buildroot vs repo, provided sonames old vs new, who requires them.</td></tr>
-<tr><td>Actions</td><td><i>Rebuild…</i> (opens the rebuild dialog with the suggested packages), <i>Dismiss</i>, and the agent button <i>Is a rebuild necessary?</i>. <code>upstream.release</code> has <i>Bump version…</i> in place of <i>Rebuild…</i> and also <i>Summarize release</i> (skill <code>package-updates</code>).</td></tr>
+<tr><td>Actions</td><td><i>Rebuild…</i> (opens the rebuild dialog with the suggested packages), <i>Show closure</i>, and the agent button <i>Is a rebuild necessary?</i>. A <code>required</code> row has no <i>Dismiss</i> button. The text names the dirs that a publish then refuses, and the person accepts the advisory at publish. A <code>warn</code> or <code>info</code> row has <i>Dismiss</i>. <code>upstream.release</code> has <i>Bump version…</i> in place of <i>Rebuild…</i> and also <i>Summarize release</i> (skill <code>package-updates</code>).</td></tr>
 <tr><td>Pending state</td><td>"pending: soname check runs after ucx builds." The actions are disabled. When the check finishes, the server sends <code>advisory:soname.removed/ucx</code> with the result.</td></tr>
 </tbody>
 </table>
-<p>A soname check with no removed soname shows as an <code>info</code> entry ("ucx: libucp.so.0, libuct.so.0, libucs.so.0 unchanged — rebuild of slurm, openmpi not necessary"). The person thus sees that the check ran. <i>Dismiss</i> stores the advisory id, user and time. A dismissed advisory comes back when its facts change. The panel foot links to the dismissed list.</p>
+<p>A soname check with no removed soname shows as an <code>info</code> entry ("ucx: libucp.so.0, libuct.so.0, libucs.so.0 unchanged — rebuild of slurm, openmpi not necessary"). The person thus sees that the check ran. </p>
+<h4>Dismiss dialog</h4>
+<p><i>Dismiss</i> opens a dialog. The dialog shows the CLI command first (<code>repoctl advisories dismiss ID --note "…"</code>), then a note field (8 characters or more). The browser sends <code>POST /s/&lt;set&gt;/-/actions/advisory-dismiss</code> with <code>id</code> and <code>note</code>. repoctl writes <code>.repoctl/advisories.yaml</code> with the id, the digest of the facts, the user, the time and the note. After the write the dialog says <i>Commit and push .repoctl/advisories.yaml</i>, with the commands and a copy button. A dismissal is a commit, so the whole team sees it. It stays until the facts change. Then the advisory comes back and the row says <i>dismissed, facts changed</i>. <code>POST …/advisory-undismiss</code> removes the entry. The panel foot links to the dismissed list.</p>
 
 <h3>Agent integration</h3>
 <ul>
-<li>The button sends <code>POST /s/&lt;set&gt;/-/actions/agent</code> with <code>skill</code> and <code>advisory</code> (CSRF header from the shell). repoctl starts the user's agent (<code>agent: {command: claude, args: […]}</code>) as <code>claude -p</code> with the fixed skill and <code>repoctl mcp start</code> (read and plan tools only).</li>
+<li>The button sends <code>POST /s/&lt;set&gt;/-/actions/agent</code> with <code>skill</code> and <code>advisory</code> (CSRF header from the shell). repoctl starts the user's agent (<code>agent: {command: claude, args: […]}</code>) as <code>claude -p</code> with the fixed skill and <code>repoctl mcp start --tools read</code>. The tool list of the task is in <a href="#c-skills">C.7</a>. Edit, Write and Bash are denied.</li>
 <li>The answer is an empty <code>div.agent</code> with <code>sse-swap="agent:&lt;session&gt;"</code>. The server streams the result into it: verdict, explanation, evidence list, proposed actions.</li>
-<li>Proposed actions are normal buttons (<i>Dismiss advisory</i>, <i>Rebuild pmix, prrte…</i>). Nothing runs until the person clicks. Text: "Proposed actions. Nothing runs until you click."</li>
-<li>The foot shows <i>Continue in terminal</i> with <code>claude --resume &lt;session&gt;</code>. The UI does not copy the chat.</li>
+<li>Proposed actions are normal buttons (<i>Dismiss advisory</i>, <i>Rebuild pmix, prrte…</i>, <i>Pin fix and build…</i>). Nothing runs until the person clicks. Text: "Proposed actions. Nothing runs until you click."</li>
+<li>The foot shows <i>Continue in terminal</i> with <code>claude --resume &lt;session&gt;</code>. The UI does not copy the chat. The note says that the terminal session has the permissions of the person's own agent configuration, not the tool list of the panel.</li>
 <li>With no agent configured, the agent buttons are not rendered.</li>
 </ul>
 
@@ -8543,17 +8647,17 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <tr><td><code>agent:&lt;session&gt;</code></td><td>Agent result panel, streamed.</td></tr>
 <tr><td><code>node:&lt;dir&gt;@&lt;target&gt;</code></td><td>Card, also when only its advisory marker changes.</td></tr>
 <tr><td><code>/s/&lt;set&gt;/-/dialog/rebuild</code>, <code>/-/actions/rebuild</code></td><td>Rebuild dialog and action.</td></tr>
-<tr><td><code>/-/actions/advisory-dismiss</code>, <code>/-/actions/agent</code></td><td>Dismiss an advisory; start an agent button.</td></tr>
-<tr><td><code>/s/&lt;set&gt;/advisories?dismissed=1</code></td><td>List of dismissed advisories.</td></tr>
+<tr><td><code>/-/actions/advisory-dismiss</code>, <code>/-/actions/advisory-undismiss</code>, <code>/-/actions/check</code>, <code>/-/actions/agent</code></td><td>Dismiss and undo (id, note; writes <code>.repoctl/advisories.yaml</code>); run <code>repoctl check</code>; start an agent button. The route <code>…/actions/dismiss</code> is <span class="sup">superseded</span>.</td></tr>
+<tr><td><code>/s/&lt;set&gt;/advisories?dismissed=1</code></td><td>List of dismissed advisories, with note, user and the stale mark.</td></tr>
 </tbody>
 </table>
 <p>The SSE stream is the shell stream (<code>/s/&lt;set&gt;/-/events?page=plan</code> or <code>page=graph&amp;target=el9</code>) on <code>&lt;body&gt;</code>.</p>
 
 <h3>Assumptions</h3>
 <ul>
-<li>A passed soname check is an <code>info</code> advisory with code <code>soname.removed</code> and the result "unchanged". Contract: please confirm, or add a code for a passed check.</li>
+<li>A passed soname check is an <code>info</code> entry in the check result with code <code>soname.removed</code> and the result "unchanged". The contract lists it under <code>check.passed</code>, not as an open advisory.</li>
 <li>The soname check runs at the end of step <code>rpm</code>, before <code>stage</code>. The graph shows its result while ucx@el9 is in <code>stage</code>.</li>
-<li>Agent skill for "Is a rebuild necessary?": <code>rebuild-check</code> (name invented; the state design does not name it). "Summarize release" uses <code>package-updates</code>.</li>
+<li>Agent skill for "Is a rebuild necessary?": <code>rebuild-check</code> (C.7). "Summarize release" uses <code>package-updates</code>.</li>
 <li>v2 run <code>r-20261102-1750-a3f</code> has 2 nodes. Snapshot: 4:51 elapsed, ucx@el10 ok 4:12, ucx@el9 running (stage 0:06). Publish ids <code>p-20260912-1431-4c2</code> (el9) and <code>p-20260912-1433-9d0</code> (el10) are invented.</li>
 <li><code>current</code> uses the <code>st-cached</code> color tokens. <code>staged</code> uses <code>st-ok</code>. No new state colors.</li>
 <li>A rebuild applies to all targets of the package, because the commit is per package.</li>
@@ -8561,8 +8665,8 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 
 <h3>Open questions</h3>
 <ul>
-<li>Should <i>Dismiss</i> need a short note, like the rebuild reason?</li>
-<li>Should <code>buildroot.drift</code> group packages that share the same drift (pmix and prrte here), or show one advisory per node?</li>
+<li><span class="chg">closed</span> <i>Dismiss</i> needs a note of 8 or more characters, and a dismissal is committed (06 section 2.5).</li>
+<li><span class="chg">closed</span> One advisory per subject (<code>buildroot.drift/pmix@el9</code>). The rows of one drift sit together, and one rebuild dialog takes all of them.</li>
 <li>Can the agent run before the soname check finishes, or only on a final result (the mockup disables it)?</li>
 </ul>
 </section>
@@ -8579,7 +8683,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <tr><td>Needs you</td><td>Run failure, same-NVR plan problem, lock, upstream, publish age</td><td>Run failure, a pointer to required advisories, lock, publish age. The same-NVR item is gone: every build has a new NVR.</td></tr>
 <tr><td>Advisories</td><td>–</td><td>New card. One row per advisory with level, code, node, text, command and actions. Upstream updates move here as <code>upstream.release</code>.</td></tr>
 <tr><td>Matrix</td><td>Run states and <code>cached</code></td><td>Plan action <code>current</code> (the commit is in the published repo), run states for nodes of a run, and advisory tags on the cells (<code>closure.broken</code>, <code>buildroot.drift</code>).</td></tr>
-<tr><td>Last publish</td><td>Per target</td><td>Per target, plus the OCI snapshot tag. Publish adds and never deletes.</td></tr>
+<tr><td>Last publish</td><td>Per target</td><td>Per target: the snapshot ref <code>ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9</code> with the tag <code>p-…</code> and a copy button, and the chips <code>local</code> and <code>served</code> (<code>same</code>, <code>behind</code>, <code>unknown</code>). Publish adds and never deletes.</td></tr>
 <tr><td>Sidebar</td><td>Upstream</td><td>Advisories (with the count of required ones) replaces Upstream. URL <code>/s/&lt;set&gt;/advisories</code>.</td></tr>
 </tbody></table>
 <figure><img src="img/ui-shell-overview-light-v2.webp" alt="Overview v2 in the light theme: Needs you, a current run with two ucx nodes, the Advisories card with one required and three info rows, the matrix with current cells"><figcaption>Overview v2 (light). The current run builds only ucx. slurm, openmpi and slurm-singularity-exec are current.</figcaption></figure>
@@ -8599,12 +8703,12 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <table>
 <thead><tr><th>Button</th><th>Shown for</th><th>What it does</th></tr></thead>
 <tbody>
-<tr><td>Rebuild…</td><td><code>closure.broken</code>, <code>soname.removed</code>, <code>buildroot.drift</code>, <code>mock.drift</code></td><td>Opens <code>GET /s/&lt;set&gt;/-/dialog/rebuild?dir=&lt;dir&gt;&amp;advisory=&lt;id&gt;</code>. The dialog shows <code>repoctl rebuild &lt;dir&gt; --reason "…"</code> with the reason filled in from the advisory, and the plan that follows. The button is primary only for <code>required</code>.</td></tr>
-<tr><td>Dismiss</td><td>all except <code>required</code> (see open questions)</td><td><code>POST /s/&lt;set&gt;/-/actions/dismiss</code>. The advisory stays hidden until its inputs change (for example a newer upstream version).</td></tr>
-<tr><td>Is a rebuild necessary?</td><td><code>closure.broken</code>, <code>soname.removed</code>, <code>abi.changed</code>, <code>buildroot.drift</code></td><td>Agent button. Skill <code>rebuild-advice</code>. Reads the advisory and the soname and ABI data.</td></tr>
+<tr><td>Rebuild…</td><td><code>closure.broken</code>, <code>soname.removed</code>, <code>buildroot.drift</code>, <code>mock.drift</code>, <code>nvr.removed</code></td><td>Opens <code>GET /s/&lt;set&gt;/-/dialog/rebuild?dir=&lt;dir&gt;&amp;advisory=&lt;id&gt;</code>. The dialog shows <code>repoctl rebuild &lt;dir&gt; --reason "…"</code> with the reason filled in from the advisory, and the plan that follows. The button is primary only for <code>required</code>.</td></tr>
+<tr><td>Dismiss</td><td><code>warn</code> and <code>info</code>. Not on a <code>required</code> row.</td><td>Opens the dismiss dialog (CLI command, note of 8 or more characters). <code>POST /s/&lt;set&gt;/-/actions/advisory-dismiss</code> writes <code>.repoctl/advisories.yaml</code>. The dialog then says <i>Commit and push .repoctl/advisories.yaml</i>. The advisory stays hidden until its facts change.</td></tr>
+<tr><td>Is a rebuild necessary?</td><td><code>closure.broken</code>, <code>soname.removed</code>, <code>abi.changed</code>, <code>buildroot.drift</code></td><td>Agent button. Skill <code>rebuild-check</code>. Reads the advisory and the soname and ABI data.</td></tr>
 <tr><td>Summarize release notes</td><td><code>upstream.release</code></td><td>Agent button. Skill <code>package-updates</code>.</td></tr>
 </tbody></table>
-<p>The advisory id is <code>&lt;code&gt;:&lt;node&gt;</code>, for example <code>closure.broken:pmix@el9</code>. The card has SSE event <code>advisories</code> and fragment <code>/s/&lt;set&gt;/-/frag/advisories</code>. The closure.broken row uses an example scenario: no such hwloc change is known.</p>
+<p>The advisory id is <code>CODE/SUBJECT</code>, for example <code>closure.broken/pmix@el9</code>. The card has SSE event <code>advisories</code> and fragment <code>/s/&lt;set&gt;/-/frag/advisories</code>. The closure.broken row uses an example scenario: no such hwloc change is known.</p>
 
 <h3>Agent buttons</h3>
 <p>An agent button runs a local agent with a fixed skill and fixed input. The result shows in a side panel. The agent cannot change anything. Each proposed action is a normal UI button that the person clicks.</p>
@@ -8612,15 +8716,15 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <thead><tr><th>Button</th><th>Where</th><th>Skill</th><th>Input</th></tr></thead>
 <tbody>
 <tr><td>Explain failure</td><td>Needs you (failed node), run page, node page</td><td><code>triage-build</code></td><td>run id, node id</td></tr>
-<tr><td>Is a rebuild necessary?</td><td>Advisories</td><td><code>rebuild-advice</code></td><td>advisory id</td></tr>
+<tr><td>Is a rebuild necessary?</td><td>Advisories</td><td><code>rebuild-check</code></td><td>advisory id</td></tr>
 <tr><td>Summarize release notes</td><td>Advisories (<code>upstream.release</code>), package page</td><td><code>package-updates</code></td><td>package dir, upstream version</td></tr>
-<tr><td>Draft version bump</td><td>Package page (ui-pkg)</td><td><code>bump-package</code></td><td>package dir, version. It stops before the commit.</td></tr>
+<tr><td>Draft version bump</td><td>Package page (ui-pkg)</td><td><code>bump-package</code> (draft mode)</td><td>package dir, version. It stops before the commit. It writes a diff and a message, no commit.</td></tr>
 </tbody></table>
 <ul>
   <li>Agent buttons have the class <code>.btn-agent</code> and a spark icon. They are always secondary. The title says which command and skill they run.</li>
   <li>The server renders agent buttons only when the user config has <code>agent: {command: claude, args: […]}</code>. With no agent, the server leaves them out of the HTML. It does not show disabled buttons. The Advisories foot has one line: “Agent buttons are off. How to turn them on”.</li>
   <li>The click is <code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code> with the input and the CSRF header. The server starts the agent and answers with the panel (<code>#drawer</code>).</li>
-  <li>The server runs: <code>&lt;agent.command&gt; &lt;agent.args&gt; -p "&lt;skill prompt&gt;" --output-format stream-json --mcp-config &lt;file&gt; --allowedTools &lt;list&gt;</code> in the set directory. The MCP config names <code>repoctl mcp start</code> with read and plan tools only. The allowed list is the repoctl read and plan tools plus <code>Read</code> and <code>Grep</code>. Edit, Bash, <code>repoctl_build</code> and <code>repoctl_rebuild</code> are not in the list.</li>
+  <li>The server runs: <code>&lt;agent.command&gt; &lt;agent.args&gt; -p "&lt;skill prompt&gt;" --output-format stream-json --mcp-config &lt;file&gt; --allowedTools &lt;list&gt;</code> in the set directory. The MCP config names <code>repoctl mcp start --tools read</code> and the flags <code>--strict-mcp-config</code> and <code>--disallowedTools Bash Edit Write NotebookEdit</code>. The allowed list is the tool list of the task (C.7), for example <code>repoctl_advisories, repoctl_advisory_show, repoctl_graph, repoctl_plan</code> and <code>Read</code>, <code>Grep</code>. A tool outside the list gives <code>mcp.tool-not-allowed</code>. Edit, Bash, <code>repoctl_build</code>, <code>repoctl_rebuild</code> and <code>repoctl_publish</code> are never in the list.</li>
   <li>repoctl reads the stream: tool calls go to “Tools used”, text goes to the result sections. The panel gets the updates through the SSE event <code>agent:&lt;id&gt;</code>. The page adds <code>&amp;agent=&lt;id&gt;</code> to its SSE URL.</li>
   <li>The result is kept in <code>$XDG_STATE_HOME/repoctl/&lt;set&gt;/agent/&lt;id&gt;.json</code> (agent id like <code>a-20261102-1812-7c1</code>). Any page with <code>?agent=&lt;id&gt;</code> opens the panel again.</li>
   <li>Stop sends <code>POST /s/&lt;set&gt;/-/agent/&lt;id&gt;/stop</code>. The server sends SIGINT to the agent process.</li>
@@ -8630,7 +8734,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <h3>Agent panel</h3>
 <p>The panel is a side drawer on the right, 600 px wide, under the top bar. It does not block the page. It has four parts:</p>
 <ol>
-  <li><b>Header</b>: task, node chip, close. State (running with time and Stop, or done with the duration), skill, agent command, start time and input run, tool policy (“read and plan only”).</li>
+  <li><b>Header</b>: task, node chip, close. State (running with time and Stop, or done with the duration), skill, agent command, start time and input run, and the tool policy line (“Tools: read only. Cannot edit files, build or publish.”).</li>
   <li><b>Tools used</b>: each tool call with a short argument. A spinner marks the call that runs now.</li>
   <li><b>Result</b>: Cause, Evidence (log and file lines; each line links to the log viewer or the file at that line), Proposed change (a diff; never applied by repoctl), Proposed actions (buttons), Continue in terminal (<code>claude --resume &lt;session&gt;</code> in the set directory, with copy).</li>
   <li><b>Foot</b>: “Suggestions only. repoctl changes nothing until you click.”</li>
@@ -8643,7 +8747,7 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <ul>
   <li><b>Open package</b> opens the spec tab of slurm.</li>
   <li><b>Copy diff</b> copies the diff. The person applies it in the package worktree.</li>
-  <li><b>Rebuild after fix…</b> is off until the slurm branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog. A new commit builds slurm on el9 and el10 with release 2.</li>
+  <li><b>Pin fix and build…</b> is off until the slurm branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog. A new commit builds slurm on el9 and el10 with release 2.</li>
 </ul>
 <p>The agent gives two fixes when it finds two. Fix A changes the spec. Fix B uses the ROCm repo that the el10 target already has. The person picks one.</p>
 
@@ -8665,9 +8769,9 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <tbody>
 <tr><td><code>/s/&lt;set&gt;/advisories</code></td><td>Page with all advisories, also the dismissed ones (filter).</td></tr>
 <tr><td><code>GET /s/&lt;set&gt;/-/frag/advisories</code>, SSE <code>advisories</code></td><td>The Advisories card.</td></tr>
-<tr><td><code>POST /s/&lt;set&gt;/-/actions/check</code>, <code>…/actions/dismiss</code>, <code>…/actions/rebuild</code></td><td>Run <code>repoctl check</code>; hide an advisory; make the rebuild commit, pin and plan.</td></tr>
+<tr><td><code>POST /s/&lt;set&gt;/-/actions/check</code>, <code>…/actions/advisory-dismiss</code>, <code>…/actions/advisory-undismiss</code>, <code>…/actions/rebuild</code></td><td>Run <code>repoctl check</code>; write or remove a dismissal in <code>.repoctl/advisories.yaml</code>; make the rebuild commit, pin and plan.</td></tr>
 <tr><td><code>GET /s/&lt;set&gt;/-/dialog/rebuild?dir=&amp;advisory=</code></td><td>Rebuild dialog with the command.</td></tr>
-<tr><td><code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code>, <code>POST …/agent/&lt;id&gt;/stop</code></td><td>Start or stop an agent. Tasks: <code>explain-failure</code>, <code>rebuild-advice</code>, <code>release-notes</code>, <code>draft-bump</code>.</td></tr>
+<tr><td><code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code>, <code>POST …/agent/&lt;id&gt;/stop</code></td><td>Start or stop an agent. Tasks: <code>explain-failure</code>, <code>rebuild-check</code>, <code>release-notes</code>, <code>draft-bump</code>.</td></tr>
 <tr><td>SSE <code>agent:&lt;id&gt;</code> (with <code>&amp;agent=&lt;id&gt;</code> on the SSE URL)</td><td>Panel updates: tool calls, text, final state.</td></tr>
 <tr><td><code>?agent=&lt;id&gt;</code> on any set page</td><td>Opens the panel for a stored result.</td></tr>
 </tbody></table>
@@ -8679,16 +8783,16 @@ data: &lt;div class="card fail-card" id="fail-slurm-el10" hx-swap-oob="afterbegi
 <ul>
   <li>The slurm@el10 failure comes from the earlier run <code>r-20261101-2140-5be</code> (yesterday 21:40). The current run <code>r-20261102-1750-a3f</code> builds only ucx. Thus slurm@el9 is current and slurm@el10 shows “failed”.</li>
   <li>The plan action <code>current</code> uses the colors of <code>cached</code> (class <code>.st-current</code>). Advisory levels use <code>.lvl-*</code> with state colors. No new colors.</li>
-  <li>The advisory id is <code>&lt;code&gt;:&lt;node&gt;</code> (or <code>&lt;code&gt;:&lt;dir&gt;</code> for package-level codes). The contract must give it.</li>
-  <li>A skill <code>rebuild-advice</code> exists for “Is a rebuild necessary?”. The state design names only its input.</li>
+  <li>The advisory id is <code>CODE/SUBJECT</code> (06 section 2.1). The subject is <code>dir@target</code> or <code>dir</code> for a package-level code.</li>
+  <li>The skill for “Is a rebuild necessary?” is <code>rebuild-check</code> (C.7). The name <code>rebuild-advice</code> in the first draft of this section is <span class="sup">superseded</span>.</li>
   <li>v1 reads the agent output in the <code>claude</code> stream-json format. The session id for “Continue in terminal” comes from that stream.</li>
-  <li>The MCP server has a read-and-plan mode for the agent (for example <code>repoctl mcp start --read-only</code>), so <code>repoctl_rebuild</code> is not in the tool list.</li>
+  <li><span class="chg">closed</span> The MCP server has the mode <code>repoctl mcp start --tools read</code> (C.6). <code>repoctl_rebuild</code> is not in the tool list of this mode. Each agent button has its own tool list (C.7).</li>
 </ul>
 
 <h3>Open questions</h3>
 <ul>
-  <li>The real <code>slurm.spec</code> line 84 asks for <code>rocm-smi-devel</code>. The story error says <code>pkgconfig(rocm_smi64) is needed</code>. mock names the BuildRequires as written in the spec. Change the story error to <code>rocm-smi-devel is needed</code>?</li>
-  <li>Can a person dismiss a <code>required</code> advisory, or only override it at publish (<code>--accept-advisory &lt;code&gt;</code>)? The mockup has Dismiss on all rows.</li>
+  <li><span class="chg">closed</span> The real <code>slurm.spec</code> line 84 asks for <code>rocm-smi-devel</code>. The story error says <code>rocm-smi-devel is needed</code> in all frames and examples.</li>
+  <li><span class="chg">closed</span> A <code>required</code> advisory has no Dismiss. The person accepts it at publish with <code>--accept-advisory ID --reason TEXT</code>, or fixes it.</li>
   <li>Must agent buttons also work with an agent other than claude (another stream format), or is claude the only v1 agent?</li>
   <li>Is one agent per set at a time enough, or does the team want parallel agents (for example release notes of two packages)?</li>
 </ul>
