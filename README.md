@@ -17,6 +17,7 @@ The design record is in [`docs/design/`](docs/design/index.html):
 3. [Build state, rebuilds, snapshots, LLM in the UI](docs/design/03-build-state.html)
 4. [CLI, contract and web UI](docs/design/04-cli-ui.html), with [mockups](docs/design/mockups/index.html)
 5. [Publish, snapshots and signing](docs/design/05-publish-snapshots-signing.html) (proposal)
+6. [Advisories and package lifecycle](docs/design/06-advisories-lifecycle.html) (proposal)
 
 Review of the design from six user journeys: [UX review](docs/review/ux-review.html).
 

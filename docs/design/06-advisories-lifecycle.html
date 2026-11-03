@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>repoctl advisories and lifecycle</title>
+<style>
+:root{--bg:#faf8f6;--fg:#231d18;--mut:#6b6158;--line:#ddd5cd;--acc:#b4581f;--box:#f2eeea;--ok:#2f7d4a;--warn:#9a6a00;--err:#c0362c;--hi:rgba(180,88,31,.10);--hi2:rgba(47,125,74,.10)}
+@media(prefers-color-scheme:dark){:root{--bg:#15120f;--fg:#efe9e3;--mut:#bfb4a9;--line:#352d26;--acc:#e08a4f;--box:#241f1a;--ok:#6cc58a;--warn:#e6b84a;--err:#ff7a6e;--hi:rgba(224,138,79,.14);--hi2:rgba(108,197,138,.14)}}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif;max-width:920px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.6rem}h2{margin-top:2.2rem;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin-top:1.4rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{background:var(--box)}
+code{background:var(--box);padding:1px 4px;border-radius:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.9em}
+pre{background:var(--box);padding:10px;border-radius:6px;overflow-x:auto;font-size:.82rem;line-height:1.45}
+svg{width:100%;height:auto;background:var(--box);border-radius:8px;margin:8px 0}
+svg text{fill:var(--fg);font:13px system-ui}svg text.m{fill:var(--mut);font-size:12px}svg text.t{font-weight:600}
+svg .b{fill:var(--bg);stroke:var(--acc);stroke-width:1.5}svg .bm{fill:var(--bg);stroke:var(--mut);stroke-width:1.2;stroke-dasharray:4 3}
+svg .bh{fill:var(--hi);stroke:var(--acc);stroke-width:2}svg .bg{fill:var(--hi2);stroke:var(--ok);stroke-width:1.5}svg .bw{fill:var(--bg);stroke:var(--err);stroke-width:1.5}
+svg .l{stroke:var(--mut);stroke-width:1.4;fill:none;marker-end:url(#a)}svg .lw{stroke:var(--err);stroke-width:1.6;fill:none;marker-end:url(#a)}svg .ah{fill:var(--mut)}
+.note{border-left:4px solid var(--acc);padding:6px 12px;background:var(--box);margin:12px 0}
+.req{color:var(--err);font-weight:600}.warn{color:var(--warn);font-weight:600}.info{color:var(--mut);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+dl.cmd dt{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;margin-top:10px}dl.cmd dd{margin-left:16px}
+ol.steps li{margin:4px 0}
+code{overflow-wrap:anywhere}pre code{overflow-wrap:normal}
+</style></head><body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;margin:0"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ah"/></marker></defs></svg>
+
+<h1>repoctl: advisories and package lifecycle</h1>
+<p>Date: 2026-11-03. Status: proposal. This document specifies work packages WP3 and WP5 of the <a href="../review/ux-review.html">UX review</a>. It uses the answers of Dennis to Q5, Q6, Q7, Q9 and Q10. It changes parts of <a href="02-repoctl.html">02</a>, <a href="03-build-state.html">03</a> and <a href="04-cli-ui.html">04</a>. Section 14 lists the changes. <a href="05-publish-snapshots-signing.html">05</a> specifies publish, snapshots and signing. This document refers to 05 for these topics.</p>
+<p>Part A (sections 2 to 7) is about advisories. Part B (sections 8 to 13) is about the life of a package in a set. The import of the bash-era repos is a separate runbook for an agent: <a href="../runbooks/import-bash-era-repos.html">import-bash-era-repos.html</a>.</p>
+
+<h2>1. Summary</h2>
+<div class="note">
+<ul>
+<li><b>An advisory is data with one id.</b> The id is <code>CODE/SUBJECT</code>, for example <code>closure.broken/pmix@el9</code>. The CLI, the contract, MCP, the UI routes, the DOM, SSE and the journal use the same id.</li>
+<li><b>repoctl computes advisories. It does not store them.</b> It stores only two things: dismissals (a committed file in the set, per team) and acceptances (in the journal and in the snapshot annotations).</li>
+<li><b>New commands:</b> <code>repoctl check</code>, <code>repoctl advisories ls|show|dismiss|undismiss</code> and <code>repoctl publish --accept-advisory ID --reason TEXT</code>.</li>
+<li><b>The gate is narrow.</b> A required advisory blocks a publish only when the run adds or replaces a package in its closure. A run that fixes the problem passes. Other publishes show the advisory in the summary (Q9).</li>
+<li><b>Each admin host runs its own daily check timer.</b> The check is read-only, so two timers do no harm. Doctor and status show a missing, failed or old check (Q10).</li>
+<li><b>Old package versions stay in the repo.</b> Removal is explicit: <code>repoctl repo prune --package NAME --all</code> for a retired package (Q6).</li>
+<li><b>A new set forks its branches from the previous set.</b> <code>repoctl init --from</code> and <code>repoctl checkout --create --from</code>. An orphan branch needs <code>--orphan</code>. <code>checkout --create</code> checks the remote first (Q7).</li>
+<li><b>Two new lock states:</b> <code>unpinned</code> and <code>orphaned</code>.</li>
+<li><b>Two new help topics:</b> <code>repoctl help new-set</code> and <code>repoctl help packages</code>, with ordered steps.</li>
+</ul>
+</div>
+
+<h1 style="margin-top:2.6rem">Part A. Advisories</h1>
+
+<h2>2. Advisory model</h2>
+<p>An advisory tells the person that a rebuild or another step can be necessary. It is the result of a deterministic check. It suggests a step. The person decides. The diagram shows where advisories come from and who reads them.</p>
+<svg viewBox="0 0 870 330" role="img" aria-label="Sources, the computed advisory list, its readers, and the two stored records">
+<rect class="b" x="20" y="20" width="200" height="40" rx="6"/><text x="34" y="45">repoctl plan</text>
+<rect class="b" x="20" y="70" width="200" height="40" rx="6"/><text x="34" y="95">node build (soname, abi)</text>
+<rect class="b" x="20" y="120" width="200" height="40" rx="6"/><text x="34" y="145">repoctl check (timer, UI)</text>
+<rect class="b" x="20" y="170" width="200" height="40" rx="6"/><text x="34" y="195">publish: advisory gate</text>
+<rect class="bh" x="290" y="60" width="270" height="110" rx="8"/><text x="306" y="86" class="t">Advisory list (computed)</text>
+<text x="306" y="108" class="m">id CODE/SUBJECT, level, facts,</text><text x="306" y="126" class="m">factsDigest, suggestion, state</text><text x="306" y="150" class="m">inputs: -latest snapshot, upstream repos</text>
+<path class="l" d="M220,40 L288,80"/><path class="l" d="M220,90 L288,100"/><path class="l" d="M220,140 L288,125"/><path class="l" d="M220,190 L288,150"/>
+<rect class="b" x="610" y="20" width="240" height="34" rx="6"/><text x="624" y="42">repoctl status, advisories ls</text>
+<rect class="b" x="610" y="62" width="240" height="34" rx="6"/><text x="624" y="84">--json kind AdvisoryList</text>
+<rect class="b" x="610" y="104" width="240" height="34" rx="6"/><text x="624" y="126">MCP repoctl_advisories</text>
+<rect class="b" x="610" y="146" width="240" height="34" rx="6"/><text x="624" y="168">UI badge, card, SSE advisory:ID</text>
+<path class="l" d="M560,90 L608,37"/><path class="l" d="M560,100 L608,79"/><path class="l" d="M560,115 L608,121"/><path class="l" d="M560,130 L608,163"/>
+<rect class="bg" x="20" y="250" width="330" height="62" rx="8"/><text x="36" y="274" class="t">.repoctl/advisories.yaml (committed)</text><text x="36" y="296" class="m">dismissals, per team, through git</text>
+<path class="l" d="M240,250 L340,172"/>
+<rect class="bg" x="400" y="250" width="440" height="62" rx="8"/><text x="416" y="274" class="t">journal + snapshot annotation</text><text x="416" y="296" class="m">accepted advisories of one publish, with the reason</text>
+<path class="l" d="M140,210 L460,248"/>
+</svg>
+
+<h3>2.1 Id and subject</h3>
+<ul>
+<li>The id is <code>CODE/SUBJECT</code>. There is no other form. The 04l form <code>closure.broken:pmix@el9</code> is superseded.</li>
+<li>The subject is <code>DIR@TARGET</code> for each code that depends on a target. It is <code>DIR</code> for <code>upstream.release</code>, because an upstream release does not depend on a target.</li>
+<li>The subject of a retired package is its source package name, because a retired package has no dir in <code>repoctl.yaml</code> (section 11).</li>
+<li>repoctl makes one advisory per code and node. It does not group nodes. The UI can show nodes with the same facts in one row. This answers the open question in 04 "Should buildroot.drift group packages?".</li>
+</ul>
+
+<h3>2.2 Codes</h3>
+<p>This table replaces the table in 03 section 4. New rows and changed cells are marked <b>new</b> or <b>changed</b>.</p>
+<table>
+<tr><th>Code</th><th>Level</th><th>Computed in</th><th>Check</th><th>Suggests</th></tr>
+<tr><td><code>soname.removed</code></td><td class="req">required</td><td>after a node build</td><td>A soname that the newest published build of the node provides is gone in the new build, and a kept set package requires it. A retired package does not count.</td><td><code>repoctl rebuild DEPENDENTS --reason "ucx: libucp.so.0 → .so.1"</code></td></tr>
+<tr><td><code>closure.broken</code></td><td class="req">required</td><td>plan, check, publish gate</td><td><b>changed:</b> <code>dnf repoclosure --newest</code> per target on the published repo plus the upstream repos. Only the newest NVR of each name counts. Section 4.</td><td>Rebuild the affected package, or change its spec.</td></tr>
+<tr><td><code>closure.broken</code> on a retired package</td><td class="warn">warn</td><td>plan, check</td><td><b>new:</b> as above, for a source package that no dir in <code>repoctl.yaml</code> builds.</td><td><code>repoctl repo prune --package NAME --all</code>. Never a rebuild.</td></tr>
+<tr><td><code>provider.changed</code></td><td class="warn">warn</td><td>plan, check</td><td><b>new:</b> A current node took a BuildRequires provider from outside the set. Now a set package provides it (for example, a new in-set <code>hwloc</code>). The recorded buildroot shows the old provider. (UX-32)</td><td><code>repoctl rebuild DEPENDENTS --reason "build against set hwloc"</code></td></tr>
+<tr><td><code>abi.changed</code></td><td class="warn">warn</td><td>after a node build (optional, needs libabigail)</td><td>abidiff of the shared libraries, old and new, same soname.</td><td>Review. Maybe rebuild the dependents.</td></tr>
+<tr><td><code>buildroot.drift</code></td><td class="info">info</td><td>plan, check</td><td>A BuildRequires provider in the upstream repos has a newer version than the recorded buildroot.</td><td>Nothing, or a rebuild.</td></tr>
+<tr><td><code>mock.drift</code></td><td class="info">info</td><td>plan, check</td><td><b>changed:</b> also in check. The mock config or macros hash of this host differs from the manifest.</td><td>Nothing, or a rebuild.</td></tr>
+<tr><td><code>upstream.release</code></td><td class="info">info</td><td>upstream, check</td><td>A new upstream version of the package.</td><td>Bump the version (skill bump-package).</td></tr>
+<tr><td><code>retired.published</code></td><td class="info">info</td><td>plan, check</td><td><b>new:</b> The published repo of a target holds RPMs of a source package that no dir in <code>repoctl.yaml</code> builds. Facts: NVRs, RPM count, size. (UX-05)</td><td>Nothing (default, Q6), or <code>repoctl repo prune --package NAME --all</code>.</td></tr>
+</table>
+<p>A soname check that finds no removed soname is not an advisory. The node build writes the result into the node record (<code>checks.soname: unchanged</code>). The UI shows it in the plan row ("sonames unchanged: rebuild not necessary"). This answers the open question in 04 "please confirm, or add a code for a passed check".</p>
+<p>An adopted manifest entry (from the import runbook) has no buildroot file. <code>buildroot.drift</code>, <code>mock.drift</code> and <code>provider.changed</code> skip such an entry. The next build of the node writes a buildroot.</p>
+
+<h3>2.3 States</h3>
+<svg viewBox="0 0 860 290" role="img" aria-label="Advisory states: pending, open, dismissed, gone; acceptance is a record of one publish">
+<rect class="bm" x="20" y="100" width="140" height="50" rx="8"/><text x="36" y="122" class="t">pending</text><text x="36" y="140" class="m">waits for a build</text>
+<rect class="bh" x="220" y="100" width="170" height="50" rx="8"/><text x="236" y="122" class="t">open</text><text x="236" y="140" class="m">computed, not dismissed</text>
+<rect class="bg" x="480" y="20" width="210" height="50" rx="8"/><text x="496" y="42" class="t">dismissed</text><text x="496" y="60" class="m">info or warn; digest matches</text>
+<rect class="bm" x="480" y="190" width="210" height="50" rx="8"/><text x="496" y="212" class="t">gone</text><text x="496" y="230" class="m">the check no longer finds it</text>
+<rect class="b" x="720" y="100" width="125" height="50" rx="8"/><text x="734" y="122" class="t">accepted</text><text x="734" y="140" class="m">one publish only</text>
+<path class="l" d="M160,125 L218,125"/><text x="168" y="116" class="m">result</text>
+<path class="l" d="M290,100 C290,50 400,40 478,40"/><text x="250" y="42" class="m">advisories dismiss</text>
+<path class="l" d="M540,70 C540,105 450,112 392,112"/><text x="452" y="96" class="m">facts change</text>
+<path class="l" d="M390,135 L718,135"/><text x="470" y="152" class="m">required: publish --accept-advisory</text>
+<path class="l" d="M300,150 C300,210 400,215 478,215"/><text x="250" y="200" class="m">not found</text>
+<text x="20" y="262" class="m">"accepted" is not a state of the advisory. It is a record in the journal and in the snapshot.</text>
+<text x="20" y="280" class="m">The advisory stays open, or another advisory replaces it (for example, closure.broken on the dependent).</text>
+</svg>
+<ul>
+<li><b>pending</b>: the check needs a build that did not finish. Example: <code>soname.removed</code> for a node that is still in the run. Only the UI and <code>advisories ls</code> during a run show this state.</li>
+<li><b>open</b>: the check found the problem now, and no dismissal matches.</li>
+<li><b>dismissed</b>: a dismissal in <code>.repoctl/advisories.yaml</code> has the same id and the same <code>factsDigest</code>. Only info and warn advisories can be dismissed (03 section 10).</li>
+<li><b>gone</b>: the check does not find the problem any more. repoctl does not keep gone advisories. The journal of the check records the change (event <code>advisory.gone</code>).</li>
+</ul>
+<p><code>factsDigest</code> is the SHA-256 of the canonical JSON of <code>facts</code>. When the facts change (for example, a newer upstream version), the digest changes. Thus, the dismissal does not match, and the advisory is open again.</p>
+
+<h3>2.4 Where repoctl keeps data</h3>
+<table>
+<tr><th>Data</th><th>Place</th><th>Scope</th><th>Who writes</th></tr>
+<tr><td>Last check result</td><td><code>$XDG_STATE_HOME/repoctl/sets/SET/check.json</code></td><td>user and host</td><td><code>repoctl check</code></td></tr>
+<tr><td>Advisories of a run</td><td>the run record and the journal of the run</td><td>user and host</td><td>plan, node build</td></tr>
+<tr><td>Dismissals</td><td><code>.repoctl/advisories.yaml</code> in the set, committed</td><td>team (through git)</td><td><code>repoctl advisories dismiss</code>, UI Dismiss; the person commits</td></tr>
+<tr><td>Acceptances</td><td>journal of the publish; annotation <code>io.repoctl.advisories.accepted</code> of the snapshot (05)</td><td>team (through GHCR)</td><td><code>repoctl publish</code></td></tr>
+</table>
+<p>Two admins compute the same advisories from the same inputs. The inputs are the <code>-latest</code> snapshot in GHCR (05) and the upstream repos. Thus, the check result can stay per user, and only dismissals must be shared.</p>
+
+<h3>2.5 Dismissal file</h3>
+<pre># .repoctl/advisories.yaml
+# Written by repoctl advisories dismiss. Commit and push it.
+apiVersion: repoctl/v1alpha1
+dismissed:
+  - id: buildroot.drift/pmix@el9
+    facts: sha256:1c9e4f…                 # factsDigest at dismiss time
+    note: hwloc-devel 2.11 adds nothing that pmix uses
+    by: d.klein@gsi.de                    # git config user.email
+    at: 2026-11-03T14:02:11Z
+  - id: upstream.release/pmix_v4
+    facts: sha256:77ab20…
+    note: 4.x is frozen, see notes in repoctl.yaml
+    by: a.admin@gsi.de
+    at: 2026-11-03T15:40:02Z</pre>
+<ul>
+<li>repoctl writes the file atomically and keeps the entries sorted by id. Thus, two dismissals of different ids seldom give a git conflict.</li>
+<li>repoctl does not commit the file. <code>dismiss</code> prints the commit and push command. <code>status</code> shows "advisories.yaml: not committed" when the file has changes.</li>
+<li>Publish does not require that this file is committed. The file does not change the output of a build.</li>
+<li>An entry whose id is gone, or whose digest does not match, is stale. <code>advisories ls --dismissed</code> marks it. <code>advisories undismiss --stale</code> removes all stale entries.</li>
+<li>A new set does not copy this file from the old set (section 9).</li>
+</ul>
+
+<h2>3. Commands</h2>
+<p>These commands go into 04c section 11. The format is the same as there.</p>
+
+<h3>3.1 repoctl check</h3>
+<pre>repoctl check [--target ID]... [--code CODE]... [--check] [--min-level L] [--quiet]
+repoctl check --install-timer | --remove-timer</pre>
+<p>Compute all advisories that do not need a build, for each target. Inputs: the manifest and repodata of the <code>-latest</code> snapshot (05; check pulls only the repodata, not the RPMs), the upstream repos of the target, the upstream release feeds, and the mock config of this host.</p>
+<table>
+<tr><th>Flag</th><th>Type</th><th>Default</th><th>Meaning</th></tr>
+<tr><td><code>--target</code></td><td>id, repeat</td><td>all</td><td>Check only these targets.</td></tr>
+<tr><td><code>--code</code></td><td>code, repeat</td><td>all</td><td>Run only these checks.</td></tr>
+<tr><td><code>--check</code></td><td>bool</td><td>false</td><td>Exit 11 when at least one open advisory has a level of <code>--min-level</code> or higher.</td></tr>
+<tr><td><code>--min-level</code></td><td>info|warn|required</td><td>warn</td><td>Level for <code>--check</code>.</td></tr>
+<tr><td><code>--quiet</code></td><td>bool</td><td>false</td><td>Print nothing on success. The timer uses it.</td></tr>
+<tr><td><code>--install-timer</code></td><td>bool</td><td>false</td><td>Write and start the user timer for this set (section 6). Do no check.</td></tr>
+<tr><td><code>--remove-timer</code></td><td>bool</td><td>false</td><td>Stop and remove the timer instance of this set.</td></tr>
+</table>
+<p><b>Lock:</b> none. The check is read-only. It runs while a build runs. <b>Writes:</b> <code>check.json</code> in the state dir, and a journal with <code>kind: check</code>. <b>Kind:</b> <code>AdvisoryList</code>. <b>Exit:</b> 0; 1 a check failed (for example, an upstream repo is not reachable; the other checks still run and <code>check.json</code> records the failure); 9 a required host tool is missing; 11 with <code>--check</code>; 13 the registry is not reachable (05).</p>
+<pre>$ repoctl check
+el9   closure.broken/pmix@el9       required  libevent-2.1.so.7 has no provider (EPEL 9)
+el9   buildroot.drift/prrte@el9     info      hwloc-devel 2.4.1 → 2.11.2
+el9   retired.published/rocm-smi    info      14 RPMs, 212 MiB still published
+-     upstream.release/slurm        info      26.05.3 → 26.05.4
+4 open (1 required, 0 warn, 3 info) · 1 dismissed · checked el9 in 41s
+Next: repoctl advisories show closure.broken/pmix@el9</pre>
+
+<h3>3.2 repoctl advisories</h3>
+<dl class="cmd">
+<dt>repoctl advisories [ls] [--target ID] [--level L] [--dismissed] [--refresh]</dt>
+<dd>List the advisories. The list is the last check result plus the advisories of the newest unpublished run. With <code>--dismissed</code>, list the dismissed and stale entries too. With <code>--refresh</code>, run <code>repoctl check</code> first. The head line gives the age and the source of the last check. Kind <code>AdvisoryList</code>. Exit 0.</dd>
+<dt>repoctl advisories show ID</dt>
+<dd>Show one advisory: level, state, facts, the closure (section 4), the suggested command, and the dismissal if there is one. Kind <code>Advisory</code>. Exit 0; 1 unknown id (<code>advisory.unknown</code>).</dd>
+<dt>repoctl advisories dismiss ID... --note TEXT</dt>
+<dd>Add a dismissal for each open id to <code>.repoctl/advisories.yaml</code>. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, code <code>advisory.not-dismissable</code>, hint <code>publish --accept-advisory</code>. An id that is not open: exit 1, <code>advisory.unknown</code>. Next line: <code>git add .repoctl/advisories.yaml && git commit -m "chore: dismiss ID" && git push</code>.</dd>
+<dt>repoctl advisories undismiss ID... | --stale</dt>
+<dd>Remove dismissals from the file. The advisory is open again at the next check.</dd>
+</dl>
+<p>No lock. <code>dismiss</code> and <code>undismiss</code> write only <code>.repoctl/advisories.yaml</code>.</p>
+
+<h3>3.3 repoctl publish --accept-advisory</h3>
+<pre>repoctl publish … [--accept-advisory ID]... [--reason TEXT]</pre>
+<ul>
+<li><code>--accept-advisory</code> takes an id, not a code. One flag accepts one advisory. It does not accept a later advisory with the same code.</li>
+<li><code>--reason</code> is required when <code>--accept-advisory</code> is given, with at least 8 characters. One reason covers all ids of the call.</li>
+<li>An id that does not block this publish is a usage error (exit 2). Thus, a person cannot accept an advisory in advance.</li>
+<li>The acceptance is valid for this publish only. repoctl writes the event <code>advisory.accepted</code> (id, factsDigest, reason, user, host) to the journal. It writes the same list to the snapshot annotation <code>io.repoctl.advisories.accepted</code> (05).</li>
+<li><code>--yes</code> does not accept an advisory. An unattended publish with a blocking advisory fails with exit 12.</li>
+</ul>
+
+<h3>3.4 repoctl status</h3>
+<p>status gets one advisories line and, if necessary, one check line:</p>
+<pre>advisories  1 required (closure.broken/pmix@el9) · 0 warn · 3 info · 1 dismissed
+check       last 2h ago (timer) · ok</pre>
+<p>The check line shows a problem in these words: <code>last check failed 5h ago: upstream.unreachable (EPEL 9)</code>, <code>last check 3 days ago: the timer is off</code>, or <code>never checked: run repoctl check --install-timer</code>. A check is old after 36 hours.</p>
+
+<h2>4. Publish gate (Q9, UX-12)</h2>
+<p>The gate runs in the check step of publish (05 calls it "advisory gate (06)"). It runs for each target of the publish.</p>
+<ol class="steps">
+<li>Make the result tree of the target: the published repo of <code>-latest</code>, plus the nodes of the run. A node of the run replaces the older NVRs of the same name as the newest.</li>
+<li>Run <code>dnf repoclosure --newest</code> on the result tree plus the upstream repos of the target. The result is a list of broken requirements: (RPM <i>p</i>, requirement <i>r</i>).</li>
+<li>For each broken requirement, find its <b>closure</b>: the dir that built <i>p</i>, plus the dir whose newest published build provided <i>r</i> and whose build in the run does not provide it.</li>
+<li>A required advisory <b>blocks</b> the target when its closure contains a dir of the run on that target, and the person did not accept it.</li>
+<li>A required advisory whose closure has no dir of the run does not block. The summary shows it as "open, not changed by this run".</li>
+<li>A broken requirement of an old NVR (not the newest of its name) is never a block. The summary shows it as info, with a prune suggestion.</li>
+<li>A retired package is never in a closure. Its broken requirements are <code>closure.broken</code> at level warn (section 2.2).</li>
+</ol>
+<p>The gate uses the result tree, not the last check result. Thus, a run that fixes the problem passes, and the advisory is gone after the publish.</p>
+<svg viewBox="0 0 860 330" role="img" aria-label="Three runs against the same open advisory: unrelated run passes, fixing run passes, run that removes a provider blocks">
+<text x="20" y="28" class="t">Published el9: pmix-6.0.1-1 needs libevent-2.1.so.7, EPEL 9 removed it → closure.broken/pmix@el9 (required, closure {pmix})</text>
+<rect class="b" x="20" y="50" width="250" height="70" rx="8"/><text x="34" y="74" class="t">Run 1: slurm only</text><text x="34" y="94" class="m">closure {pmix} ∩ run {slurm} = ∅</text><text x="34" y="110" class="m"></text>
+<rect class="bg" x="320" y="50" width="520" height="70" rx="8"/><text x="336" y="74" class="t">passes</text><text x="336" y="94" class="m">Summary: "closure.broken/pmix@el9: open, not changed by this run".</text><text x="336" y="110" class="m">The urgent slurm fix goes out.</text>
+<path class="l" d="M270,85 L318,85"/>
+<rect class="b" x="20" y="140" width="250" height="70" rx="8"/><text x="34" y="164" class="t">Run 2: repoctl rebuild pmix</text><text x="34" y="184" class="m">new pmix-6.0.1-2 links libevent .so.8</text>
+<rect class="bg" x="320" y="140" width="520" height="70" rx="8"/><text x="336" y="164" class="t">passes, advisory gone</text><text x="336" y="184" class="m">--newest sees only pmix-6.0.1-2: no broken requirement.</text><text x="336" y="200" class="m">Info: "pmix-6.0.1-1 stays broken; repoctl repo prune --nvr pmix-6.0.1-1.el9".</text>
+<path class="l" d="M270,175 L318,175"/>
+<rect class="b" x="20" y="230" width="250" height="80" rx="8"/><text x="34" y="254" class="t">Run 3: ucx 1.23 only</text><text x="34" y="274" class="m">libucp.so.0 → .so.1; slurm and</text><text x="34" y="292" class="m">openmpi need .so.0</text>
+<rect class="bw" x="320" y="230" width="520" height="80" rx="8"/><text x="336" y="254" class="t">blocks: exit 12, advisory.open, humanAction accept-advisory</text><text x="336" y="274" class="m">soname.removed/ucx@el9, closure {ucx, slurm, openmpi} ∩ run {ucx} ≠ ∅.</text><text x="336" y="292" class="m">Fix: rebuild slurm and openmpi into the same run. Or accept with a reason.</text>
+<path class="l" d="M270,270 L318,270"/>
+</svg>
+<p>A blocked publish fails with exit 12 (<code>ExitNotPublishable</code>). The problem code is <code>advisory.open</code>. Its humanAction is <code>accept-advisory</code> with the exact command:</p>
+<pre>error: publish of el9 refused: 1 required advisory changes with this run
+  soname.removed/ucx@el9  libucp.so.0 removed; slurm, openmpi require it
+hint: rebuild the dependents into this run:
+        repoctl rebuild slurm openmpi --reason "ucx: libucp.so.0 → .so.1"
+      or accept it for this publish:
+        repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 --reason "…"</pre>
+
+<h2>5. Recovery path</h2>
+<p>This text goes into <code>repoctl help advisories</code> (new topic). It gives the full path for a required advisory.</p>
+<pre>REQUIRED ADVISORIES
+  1. repoctl advisories show ID          read the facts and the closure
+  2. Fix the package:
+       repoctl rebuild DIR --reason "…"   when a rebuild is enough
+       or change the spec in packages/DIR and commit
+  3. git -C packages/DIR push origin BRANCH
+  4. repoctl pin DIR
+     git commit repoctl.lock && git push
+  5. repoctl build DIR
+  6. repoctl publish --target T          the gate checks the result tree
+  7. Optional: repoctl repo prune --nvr OLD-NVR   the old broken NVR
+An unrelated publish on the same target does not wait for this path.
+Only info and warn advisories can be dismissed.</pre>
+
+<h2>6. Check timer (Q10, UX-34)</h2>
+<p>Each admin host runs its own timer for each set that the admin works on. The check is read-only. Two timers thus give two equal results and do no harm. When an admin leaves, the timers of the other admins still run.</p>
+<svg viewBox="0 0 860 230" role="img" aria-label="Each admin host runs its own timer; inputs are shared; dismissals travel through git">
+<rect class="b" x="20" y="20" width="250" height="90" rx="8"/><text x="36" y="44" class="t">Host of Dennis</text><text x="36" y="66" class="m">repoctl-check@….timer (daily)</text><text x="36" y="86" class="m">→ ~/.local/state/…/check.json</text>
+<rect class="b" x="20" y="125" width="250" height="90" rx="8"/><text x="36" y="149" class="t">Host of a.admin</text><text x="36" y="171" class="m">repoctl-check@….timer (daily)</text><text x="36" y="191" class="m">→ ~/.local/state/…/check.json</text>
+<rect class="bh" x="330" y="20" width="250" height="90" rx="8"/><text x="346" y="44" class="t">Shared inputs (read-only)</text><text x="346" y="66" class="m">GHCR -latest repodata (public)</text><text x="346" y="86" class="m">EPEL, Rocky, upstream feeds</text>
+<rect class="bg" x="330" y="125" width="250" height="90" rx="8"/><text x="346" y="149" class="t">builder/SET branch</text><text x="346" y="171" class="m">.repoctl/advisories.yaml</text><text x="346" y="191" class="m">git push / git pull</text>
+<path class="l" d="M330,55 L272,55"/><path class="l" d="M330,80 L272,150"/>
+<path class="l" d="M330,170 L272,170"/><path class="l" d="M330,150 L272,90"/>
+<rect class="bm" x="640" y="20" width="200" height="195" rx="8"/><text x="656" y="44" class="t">Signals</text><text x="656" y="68" class="m">doctor: timer off,</text><text x="656" y="86" class="m">check failed,</text><text x="656" y="104" class="m">check older than 36 h</text><text x="656" y="132" class="m">status: check line</text><text x="656" y="160" class="m">UI card head:</text><text x="656" y="178" class="m">"last check 3 days ago"</text>
+</svg>
+
+<h3>6.1 Units</h3>
+<p><code>repoctl check --install-timer</code> writes the template pair once and starts one instance for the set. The instance name is the escaped set directory (<code>systemd-escape --path</code>).</p>
+<pre># ~/.config/systemd/user/repoctl-check@.service
+[Unit]
+Description=repoctl check for the set in %I
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/repoctl -C %I check --quiet
+Nice=10</pre>
+<pre># ~/.config/systemd/user/repoctl-check@.timer
+[Unit]
+Description=Daily repoctl check for the set in %I
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target</pre>
+<pre>$ repoctl check --install-timer
+wrote ~/.config/systemd/user/repoctl-check@.service
+wrote ~/.config/systemd/user/repoctl-check@.timer
+started repoctl-check@home-dennis-src-slurm\x2d26.05.timer (next: tomorrow 00:37)
+note: lingering is off. The timer runs only while you are logged in.
+      Persistent=true runs a missed check at the next login.
+      To run it always: loginctl enable-linger dennis</pre>
+<p>repoctl runs on Fedora hosts only (Q16). On a workstation, lingering is optional. Thus, the linger note is info, not a warning.</p>
+
+<h3>6.2 Health signals</h3>
+<table>
+<tr><th>Signal</th><th>doctor</th><th>status, UI</th></tr>
+<tr><td>Timer instance not active for this set</td><td class="warn">warn <code>check.timer-off</code></td><td>"the timer is off"</td></tr>
+<tr><td>Last check failed</td><td class="warn">warn <code>check.failed</code></td><td>"last check failed 5h ago: CODE"</td></tr>
+<tr><td>Last check older than 36 h</td><td class="warn">warn <code>check.stale</code></td><td>"last check 3 days ago"</td></tr>
+<tr><td>Never checked</td><td class="warn">warn <code>check.never</code></td><td>"never checked"</td></tr>
+<tr><td>Lingering off</td><td class="info">info <code>check.no-linger</code></td><td>nothing</td></tr>
+</table>
+<p>A failed or old check is never shown as "no advisories". The UI Advisories card shows the check line above the rows and has the button Check now.</p>
+<p><b>Onboarding</b> (05 sign onboard): step "repoctl check --install-timer". <b>Offboarding</b>: nothing on the other hosts. The admin who leaves runs <code>--remove-timer</code>, or the host goes away.</p>
+
+<h2>7. Contract, MCP and UI</h2>
+<h3>7.1 Contract additions</h3>
+<p>Add to <code>output.schema.json</code>:</p>
+<pre>"Advisory": {
+  "type": "object",
+  "required": ["id", "code", "level", "subject", "targets", "state", "facts", "factsDigest", "source"],
+  "properties": {
+    "id":          {"type": "string", "pattern": "^[a-z]+\\.[a-z-]+/[A-Za-z0-9._+-]+(@[a-z0-9]+)?$"},
+    "code":        {"$ref": "#/$defs/AdvisoryCode"},
+    "level":       {"enum": ["info", "warn", "required"]},
+    "subject":     {"type": "string", "description": "DIR@TARGET, DIR, or a source package name"},
+    "targets":     {"type": "array", "items": {"type": "string"}},
+    "state":       {"enum": ["pending", "open", "dismissed"]},
+    "title":       {"type": "string"},
+    "facts":       {"type": "object", "description": "Code-specific. Input of factsDigest."},
+    "factsDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "closure":     {"type": "array", "items": {"type": "string"}, "description": "Dirs whose publish this advisory blocks. Required level only."},
+    "suggestion":  {"type": "object", "properties": {"text": {"type": "string"}, "command": {"type": "string"}}},
+    "source":      {"enum": ["plan", "build", "check", "publish"]},
+    "seen":        {"type": "string", "format": "date-time"},
+    "dismissal":   {"type": "object", "properties": {"by": {}, "at": {}, "note": {}, "stale": {"type": "boolean"}}}
+  }
+},
+"AdvisoryCode": {"enum": ["soname.removed", "closure.broken", "provider.changed", "abi.changed",
+  "buildroot.drift", "mock.drift", "upstream.release", "retired.published"]},
+"AdvisoryList": {
+  "type": "object",
+  "required": ["advisories", "check"],
+  "properties": {
+    "advisories": {"type": "array", "items": {"$ref": "#/$defs/Advisory"}},
+    "check": {"type": "object", "properties": {
+      "at": {"type": "string", "format": "date-time"}, "by": {"enum": ["timer", "person", "ui", "mcp"]},
+      "ok": {"type": "boolean"}, "failed": {"type": "array", "items": {"$ref": "#/$defs/Problem"}},
+      "stale": {"type": "boolean"}, "timer": {"enum": ["active", "off", "unknown"]}}}
+  }
+}</pre>
+<table>
+<tr><th>Item</th><th>Addition</th></tr>
+<tr><td>Kinds</td><td><code>Advisory</code>, <code>AdvisoryList</code>.</td></tr>
+<tr><td>ProblemCode</td><td><code>advisory.open</code>, <code>advisory.unknown</code>, <code>advisory.not-dismissable</code>, <code>check.failed</code>, <code>check.stale</code>, <code>check.never</code>, <code>check.timer-off</code>, <code>check.no-linger</code>, <code>upstream.unreachable</code>, <code>lock.orphaned</code>, <code>branch.exists-remote</code>, <code>branch.start-missing</code>, <code>prune.not-retired</code>, <code>git.mirror-unpushed</code>.</td></tr>
+<tr><td>HumanAction.action</td><td><code>accept-advisory</code>, <code>dismiss-advisory</code>.</td></tr>
+<tr><td>LockState</td><td><code>unpinned</code>, <code>orphaned</code> (section 10).</td></tr>
+<tr><td>Run, Plan</td><td><code>Plan.advisories[]</code> and <code>Run.advisories[]</code> of type Advisory. <code>PublishSummary.gate[]</code>: id, blocks (bool), accepted (bool).</td></tr>
+<tr><td>Journal events</td><td><code>advisory</code> (id, state, level), <code>advisory.gone</code> (id), <code>advisory.accepted</code> (id, factsDigest, reason, user, host). <code>kind: check</code> for the journal of a check.</td></tr>
+<tr><td>Exit codes</td><td>No new code. Blocked publish: 12. <code>check --check</code>: 11.</td></tr>
+</table>
+
+<h3>7.2 MCP tools</h3>
+<table>
+<tr><th>Tool</th><th>Arguments</th><th>Returns</th><th>Note</th></tr>
+<tr><td><code>repoctl_advisories</code></td><td>target, level, dismissed, refresh</td><td>AdvisoryList</td><td>Read tool.</td></tr>
+<tr><td><code>repoctl_advisory</code></td><td>id</td><td>Advisory</td><td>Read tool. The agent button "Is a rebuild necessary?" uses it.</td></tr>
+<tr><td><code>repoctl_check</code></td><td>target, code</td><td>AdvisoryList</td><td>Read tool. The check writes only the state dir.</td></tr>
+</table>
+<p>MCP has no dismiss tool and no accept tool. A dismissal changes a committed file. An acceptance is part of a publish. Both are steps for a person. A skill that wants a dismissal returns the humanAction <code>dismiss-advisory</code> with the command.</p>
+
+<h3>7.3 Web UI</h3>
+<table>
+<tr><th>Item</th><th>Rule</th></tr>
+<tr><td>Id in the DOM</td><td><code>article.adv[data-advisory-id="closure.broken/pmix@el9"]</code>. The element id is <code>adv-</code> plus the id with <code>/</code> and <code>@</code> changed to <code>-</code>.</td></tr>
+<tr><td>SSE</td><td><code>advisories</code> (panel) and <code>advisory:ID</code> (one row). As in 04k.</td></tr>
+<tr><td>Routes</td><td>One route each: <code>POST /s/SET/-/actions/advisory-dismiss</code> (id, note), <code>POST /s/SET/-/actions/advisory-undismiss</code> (id), <code>POST /s/SET/-/actions/check</code>. The 04l route <code>/-/actions/dismiss</code> is superseded.</td></tr>
+<tr><td>Dismiss dialog</td><td>Shows the CLI command first (04g rule), a note field (8 characters or more), and after the write: "Commit and push .repoctl/advisories.yaml" with the command and a copy button. No Dismiss button on a required row.</td></tr>
+<tr><td>Required row</td><td>Buttons: Rebuild…, Is a rebuild necessary?, Show closure. The text says which dirs a publish blocks.</td></tr>
+<tr><td>Publish dialog</td><td>A blocking advisory gives one row with a checkbox "Accept for this publish" and a reason field. Continue stays off until each blocking row is checked and the reason has 8 characters, or the run has no blocking row. The dialog shows the equivalent <code>--accept-advisory</code> command.</td></tr>
+<tr><td>Card head</td><td>The check line of section 6.2 and the button Check now.</td></tr>
+<tr><td>Words</td><td>"Rebuild after fix…" becomes "Pin fix and build…". The word "rebuild" means only <code>repoctl rebuild</code>.</td></tr>
+</table>
+
+<h1 style="margin-top:2.6rem">Part B. Package lifecycle</h1>
+
+<h2>8. States of a package</h2>
+<p>A package has two kinds of state. The lock state compares <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the worktree. The publish state compares the set with the <code>-latest</code> snapshot of each target.</p>
+<svg viewBox="0 0 860 260" role="img" aria-label="Package life: declared, pinned, staged, published, retired, pruned">
+<rect class="bm" x="20" y="40" width="120" height="56" rx="8"/><text x="34" y="62" class="t">declared</text><text x="34" y="82" class="m">lock: unpinned</text>
+<rect class="b" x="170" y="40" width="120" height="56" rx="8"/><text x="184" y="62" class="t">pinned</text><text x="184" y="82" class="m">lock: in-sync</text>
+<rect class="b" x="320" y="40" width="120" height="56" rx="8"/><text x="334" y="62" class="t">staged</text><text x="334" y="82" class="m">plan: staged</text>
+<rect class="bg" x="470" y="40" width="120" height="56" rx="8"/><text x="484" y="62" class="t">published</text><text x="484" y="82" class="m">plan: current</text>
+<rect class="bh" x="620" y="40" width="110" height="56" rx="8"/><text x="634" y="62" class="t">retired</text><text x="634" y="82" class="m">RPMs stay</text>
+<rect class="bm" x="760" y="40" width="85" height="56" rx="8"/><text x="772" y="62" class="t">pruned</text><text x="772" y="82" class="m">gone</text>
+<path class="l" d="M140,68 L168,68"/><path class="l" d="M290,68 L318,68"/><path class="l" d="M440,68 L468,68"/><path class="l" d="M590,68 L618,68"/><path class="l" d="M730,68 L758,68"/>
+<text x="20" y="125" class="m">edit yaml</text><text x="150" y="125" class="m">pin</text><text x="300" y="125" class="m">build</text><text x="448" y="125" class="m">publish</text><text x="594" y="125" class="m">drop from yaml</text><text x="736" y="125" class="m">prune --all</text>
+<path class="l" d="M530,96 C530,150 230,150 230,98"/><text x="290" y="152" class="m">new commit or repoctl rebuild: pinned again, plan: build</text>
+<rect class="bw" x="20" y="190" width="350" height="52" rx="8"/><text x="36" y="212" class="t">orphaned (lock only)</text><text x="36" y="230" class="m">in repoctl.lock, not in repoctl.yaml → repoctl pin</text>
+<rect class="b" x="400" y="190" width="440" height="52" rx="8"/><text x="416" y="212" class="t">retired: computed, not written</text><text x="416" y="230" class="m">a source package name in -latest that no dir in repoctl.yaml builds</text>
+</svg>
+
+<h3>8.1 Adopted manifest entries</h3>
+<p>The import runbook writes manifest entries for the RPMs that the bash-era scripts built (Q5). These entries use the RepoManifest of 03 section 3.2 with these values:</p>
+<table>
+<tr><th>Field</th><th>Value</th></tr>
+<tr><td><code>reason</code></td><td><code>adopted</code> when a commit of the branch gives the NVR. <code>adopted-unmapped</code> when no commit gives it.</td></tr>
+<tr><td><code>commit</code></td><td>The commit, or <code>null</code> for <code>adopted-unmapped</code>.</td></tr>
+<tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code>, <code>buildrootFile</code>, <code>run</code></td><td><code>null</code>. The bash era did not record them.</td></tr>
+<tr><td><code>provides</code>, <code>requires</code></td><td>From the RPM headers.</td></tr>
+<tr><td><code>built</code></td><td>BUILDTIME of the SRPM.</td></tr>
+<tr><td><code>publish</code></td><td>The import publish id <code>p-import-DATE</code> (05).</td></tr>
+<tr><td><code>signer</code></td><td>The key id of the RPM signature.</td></tr>
+</table>
+<p>plan reads an <code>adopted</code> entry as any other entry. When the pinned commit is in it, the node is <code>current</code>. An <code>adopted-unmapped</code> entry never makes a node current. It counts for the closure checks and for prune.</p>
+
+<h2>9. New set (Q7, UX-27, UX-29)</h2>
+<p>A new set forks each package branch from the previous set. Thus, the rpmautospec history and the changelogs continue. The builder branch also forks from the previous builder branch, as today.</p>
+<svg viewBox="0 0 860 220" role="img" aria-label="New set slurm-26.11 forks the builder branch and each package branch at the pinned commit of slurm-26.05">
+<rect class="b" x="20" y="20" width="300" height="40" rx="6"/><text x="34" y="45">builder/slurm-26.05 (tip)</text>
+<rect class="bh" x="520" y="20" width="320" height="40" rx="6"/><text x="534" y="45">builder/slurm-26.11 (git worktree add -b)</text>
+<path class="l" d="M320,40 L518,40"/>
+<rect class="b" x="20" y="80" width="300" height="34" rx="6"/><text x="34" y="102">pmix/slurm-26.05 @ 6644bdf (lock)</text>
+<rect class="bh" x="520" y="80" width="320" height="34" rx="6"/><text x="534" y="102">pmix/slurm-26.11 @ 6644bdf</text>
+<path class="l" d="M320,97 L518,97"/>
+<rect class="b" x="20" y="124" width="300" height="34" rx="6"/><text x="34" y="146">pmix/slurm-26.05-v4 @ 7525595</text>
+<rect class="bh" x="520" y="124" width="320" height="34" rx="6"/><text x="534" y="146">pmix/slurm-26.11-v4 @ 7525595</text>
+<path class="l" d="M320,141 L518,141"/>
+<rect class="bm" x="20" y="168" width="300" height="34" rx="6"/><text x="34" y="190">rocm-smi: git.url, branch slurm-26.05</text>
+<rect class="bm" x="520" y="168" width="320" height="34" rx="6"/><text x="534" y="190">branch slurm-26.11 on git.gsi.de</text>
+<path class="l" d="M320,185 L518,185"/>
+<text x="345" y="70" class="m">repoctl init --from</text><text x="345" y="120" class="m">checkout --create --from</text>
+</svg>
+
+<h3>9.1 repoctl init --from</h3>
+<pre>repoctl init --from SET --name NAME [--force]</pre>
+<p><code>SET</code> is a set directory or a builder branch (for example, <code>builder/slurm-26.05</code>). init reads its <code>repoctl.yaml</code> and writes a new one in the start directory:</p>
+<ul>
+<li><code>name</code> becomes <code>NAME</code>.</li>
+<li>In each <code>branch</code>, repoctl replaces the old set name with the new one: <code>pmix/slurm-26.05-v4</code> becomes <code>pmix/slurm-26.11-v4</code>. This is also true for an external package (<code>slurm-26.05</code> becomes <code>slurm-26.11</code>).</li>
+<li>A branch that does not contain the old set name stays the same. init lists it as "shared branch". Example: slurm-25.11 uses <code>pmix/slurm-26.05-v4</code>.</li>
+<li>The other keys stay the same: targets, repo, upstream, notes, roles.</li>
+<li>When the start directory is a fork of <code>SET</code> (its <code>repoctl.yaml</code> has the old set name), init changes the file in place without <code>--force</code>. Otherwise, init also copies the files that <code>repoctl.yaml</code> names: macro files and the release package path.</li>
+<li>init does not copy <code>repoctl.lock</code> or <code>.repoctl/advisories.yaml</code>. The new set has new branches and new advisories.</li>
+<li>init does not create branches. <code>checkout --create --from</code> does that.</li>
+</ul>
+<p>init (with or without <code>--from</code>) prints the full Next list. It is the same list as <code>repoctl help new-set</code> (section 13), from the step after init.</p>
+
+<h3>9.2 repoctl checkout --create</h3>
+<pre>repoctl checkout [DIR...] --create (--from REF | --from-set SET | --from fedora[:BRANCH] | --orphan)</pre>
+<table>
+<tr><th>Flag</th><th>Start point of the new branch</th></tr>
+<tr><td><code>--from-set SET</code></td><td>For each DIR: the commit of the same dir in the <code>repoctl.lock</code> of <code>SET</code>. This is the published state, not the branch tip. A dir that is not in <code>SET</code> fails with <code>branch.start-missing</code>.</td></tr>
+<tr><td><code>--from REF</code></td><td>Any git revision, for example <code>pmix/slurm-26.05</code> or a commit. For one DIR, or for a second stream such as <code>pmix_v4</code>.</td></tr>
+<tr><td><code>--from fedora[:BRANCH]</code></td><td>The dist-git history of <code>upstream.fedora</code> on src.fedoraproject.org, branch <code>rawhide</code> by default. repoctl fetches it into a temporary ref.</td></tr>
+<tr><td><code>--orphan</code></td><td>A new branch without history. Only on request.</td></tr>
+</table>
+<ul>
+<li>One of the four flags is required with <code>--create</code>. Without one: exit 2, "say --from-set, --from, --from fedora or --orphan".</li>
+<li>Before it creates a branch, repoctl runs <code>git ls-remote</code> on the remote of the package. When the branch exists there, repoctl does not create it: exit 1, <code>branch.exists-remote</code>, hint <code>repoctl checkout DIR</code>.</li>
+<li>For an external package, the server repository must exist. When <code>ls-remote</code> fails: exit 1, <code>git.unreachable</code>, hint "create the project on the git server first".</li>
+<li>The output gives the start point of each branch: "forked from pmix/slurm-26.05 at 6644bdf" or "orphan".</li>
+<li>repoctl does not push. The output ends with one push command for all new branches, then <code>repoctl pin</code>.</li>
+</ul>
+<pre>$ repoctl checkout --create --from-set builder/slurm-26.05
+munge                    munge/slurm-26.11                    forked from munge/slurm-26.05 at 3a244fd
+pmix                     pmix/slurm-26.11                     forked from pmix/slurm-26.05 at 6644bdf
+pmix_v4                  pmix/slurm-26.11-v4                  forked from pmix/slurm-26.05-v4 at 7525595
+rocm-smi                 slurm-26.11 (git.gsi.de)             forked from slurm-26.05 at cae3663
+…
+10 branches created, 0 exist on the remote
+Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
+      git -C packages/rocm-smi push origin slurm-26.11
+      repoctl pin</pre>
+
+<h3>9.3 Setup state of a new set</h3>
+<p>For a set without a snapshot on a target, <code>status</code> and the UI Needs you list show the open setup steps. repoctl computes each step from facts:</p>
+<table>
+<tr><th>Step</th><th>Done when</th></tr>
+<tr><td>Branches pushed</td><td>Each package branch exists on its remote.</td></tr>
+<tr><td>All packages pinned</td><td>No package is <code>unpinned</code> or <code>orphaned</code>.</td></tr>
+<tr><td>Set committed and pushed</td><td><code>repoctl.yaml</code> and <code>repoctl.lock</code> are committed and on the remote (Q8).</td></tr>
+<tr><td>Host ready</td><td><code>repoctl doctor</code> has no failed check.</td></tr>
+<tr><td>First publish</td><td><code>-latest</code> exists for each target (05).</td></tr>
+<tr><td>Served</td><td>The mirror job serves <code>-latest</code> at <code>repo.url</code> (05).</td></tr>
+<tr><td>Check timer</td><td>The timer instance for the set is active on this host.</td></tr>
+</table>
+
+<h2>10. Lock states (UX-31)</h2>
+<p>Two values go into <code>LockState</code>:</p>
+<table>
+<tr><th>State</th><th>Meaning</th><th>status hint</th></tr>
+<tr><td><code>unpinned</code></td><td>The package is in <code>repoctl.yaml</code>. It has no entry in <code>repoctl.lock</code>.</td><td><code>repoctl pin DIR</code></td></tr>
+<tr><td><code>orphaned</code></td><td>The package is in <code>repoctl.lock</code>. It is not in <code>repoctl.yaml</code>.</td><td><code>repoctl pin</code> (removes it)</td></tr>
+</table>
+<ul>
+<li><code>LockEntry.commit</code> is required, except for state <code>unpinned</code>.</li>
+<li><code>plan</code> shows an unpinned node with the note "not pinned" and the action <code>skip</code>. With <code>--from worktree</code>, the action is <code>build</code>.</li>
+<li><code>build --from lock</code> with a selected unpinned node fails with exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>.</li>
+<li><code>checkout</code> without <code>--create</code> for an unpinned package makes the worktree at the remote branch tip (detached) and prints "not pinned: run repoctl pin DIR". This is how a person checks out a colleague's new package.</li>
+<li><code>pin</code> without arguments removes orphaned entries and lists them. <code>pin DIR</code> for a dir that is not in <code>repoctl.yaml</code> is a usage error.</li>
+<li><code>publish</code> refuses a set with an orphaned entry: exit 5, <code>lock.orphaned</code>. The lock and <code>repoctl.yaml</code> must agree, so that the set commit fixes the output (Q8).</li>
+</ul>
+
+<h2>11. Package changes</h2>
+<p>Each case gives the ordered steps, the repository of each commit and the plan reason that the person must see. The same text goes into <code>repoctl help packages</code> (section 13).</p>
+
+<h3>11.1 Add a package in this repository</h3>
+<ol class="steps">
+<li>Add the entry to <code>repoctl.yaml</code>: <code>dir</code>, <code>branch</code>, <code>upstream</code>.</li>
+<li><code>repoctl checkout --create DIR --from fedora</code> (or <code>--orphan</code>).</li>
+<li>Write or change the spec in <code>packages/DIR</code>. Commit there. <b>Repository:</b> the package branch.</li>
+<li><code>git -C packages/DIR push origin BRANCH</code>.</li>
+<li><code>repoctl pin DIR</code>.</li>
+<li><code>git add repoctl.yaml repoctl.lock && git commit && git push</code>. <b>Repository:</b> the builder branch.</li>
+<li><code>repoctl plan</code>. Expected: DIR has reason <code>new-package</code> on each of its targets. When DIR provides a BuildRequires of a current node, <code>provider.changed</code> names the dependents.</li>
+<li>Follow the advisory: <code>repoctl rebuild DEPENDENTS --reason "build against set DIR"</code>, then pin, commit and push. Or dismiss it with a note.</li>
+<li><code>repoctl build</code>, then <code>repoctl publish</code>.</li>
+</ol>
+
+<h3>11.2 Add an external package (git.url)</h3>
+<p>The steps are the same as 11.1, with these changes:</p>
+<ul>
+<li>Create the project on the git server first. repoctl cannot do this.</li>
+<li>The entry has <code>git: {url: …}</code>.</li>
+<li>The worktree comes from a bare clone in <code>$XDG_DATA_HOME/repoctl/git/HASH.git</code> (section 12). <code>git -C packages/DIR push origin BRANCH</code> pushes to the external server.</li>
+</ul>
+
+<h3>11.3 Add a second stream</h3>
+<p>Example: <code>pmix_v4</code> next to <code>pmix</code>. Fork from the history of the first stream: <code>repoctl checkout --create pmix_v4 --from pmix/slurm-26.05</code>. The spec must rename the package and must not conflict with the Provides of the first stream. Then follow 11.1 from step 3.</p>
+
+<h3>11.4 Build a package for some targets only</h3>
+<p>Add <code>targets: [el9]</code> to the entry. <code>plan</code> shows the nodes on the other targets as removed from the set. A dependent on another target gets <code>dep.not-for-target</code> (warn, 03 D5). The published RPMs of the package on the other targets stay. They are retired on that target (11.5).</p>
+
+<h3>11.5 Remove (retire) a package (Q6, UX-05)</h3>
+<ol class="steps">
+<li>Delete the entry from <code>repoctl.yaml</code>.</li>
+<li><code>repoctl pin</code>. It removes the orphaned lock entry.</li>
+<li><code>git commit -am "feat!: remove DIR from the set" && git push</code>.</li>
+<li><code>repoctl plan</code>. Expected: no node for DIR. <code>retired.published/NAME</code> (info) gives the RPMs that stay published.</li>
+<li>The RPMs stay in the repo by default. Clients that installed them keep them.</li>
+<li>Optional, explicit: <code>repoctl repo prune --target T --package NAME --all</code>. This is a dry run. Read it. Then add <code>--apply</code>. 05 specifies how prune makes a new snapshot and records the removed NVRs.</li>
+<li>Optional, on the clients: remove the package through config management, or add <code>Obsoletes</code> to the release package.</li>
+<li><code>git worktree remove packages/DIR</code>. Keep the package branch. It holds the history of the published NVRs.</li>
+</ol>
+<p>Rules for <code>repo prune --package NAME --all</code>:</p>
+<ul>
+<li>NAME is a source package name. It must be retired on the target. Otherwise: exit 1, <code>prune.not-retired</code>. The rule "never delete the newest NVR of a package" stays for kept packages.</li>
+<li>The repoclosure check after the prune must pass. When a kept package requires NAME, the prune stops and names that package.</li>
+<li>A retired package is not in any closure of the publish gate. It never blocks a publish, and repoctl never suggests a rebuild for it.</li>
+</ul>
+<p>The publish summary does not show "removed" counts, because publish never removes. It shows "retired: N packages still published" instead. <code>repo diff</code> between two snapshots still marks removed files with <code>-</code>.</p>
+
+<h3>11.6 Rename</h3>
+<ul>
+<li><b>Rename the dir only</b> (for example, <code>rocm-smi</code> to <code>rocm-smi-lib</code>): change <code>dir</code> in <code>repoctl.yaml</code>, run <code>git worktree move</code> and <code>repoctl pin</code>. plan matches manifest entries by branch or URL, commit and target, not by dir. Thus, the node stays <code>current</code> with the note "dir renamed from rocm-smi". Nothing builds.</li>
+<li><b>Rename the RPM</b> (Name in the spec): this is a spec change with a new commit. The new name builds. Add <code>Obsoletes</code> and <code>Provides</code> for the old name in the spec. The old source package name is then retired (11.5).</li>
+<li><b>Rename the branch</b>: push the new branch, change <code>branch</code>, run <code>repoctl pin</code>. The commit stays the same, so nothing builds.</li>
+</ul>
+
+<h3>11.7 Add or drop a target</h3>
+<ul>
+<li><b>Add</b>: add the entry to <code>targets</code>. plan shows each node of the target with reason <code>new-target</code>. The first publish of the target makes its first snapshot (05). Add the target to the mirror job (05).</li>
+<li><b>Drop</b>: delete the entry. The published repo of the target, its GHCR package and the mirror stay. <code>status</code> shows "target el8: not in repoctl.yaml, still published". To stop serving it, remove it from the mirror job (05).</li>
+</ul>
+
+<h2>12. External package mirrors (UX-33)</h2>
+<ul>
+<li>The bare clone of an external package moves from <code>$XDG_CACHE_HOME/repoctl/git</code> to <code>$XDG_DATA_HOME/repoctl/git/HASH.git</code>. It can hold commits that are not pushed, so it is not cache.</li>
+<li>repoctl makes it with <code>git clone --bare URL</code> and the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>. It does not set <code>remote.origin.mirror</code>. Thus, <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</li>
+<li><code>repoctl clean</code> does not touch <code>$XDG_DATA_HOME/repoctl/git</code>. <code>repoctl clean --git</code> deletes a clone only when it has no worktree and no commit that is not on the remote. Otherwise it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</li>
+<li><code>repoctl doctor</code> warns about external clones with commits that are not pushed.</li>
+<li>The <code>pin</code> warning "not on origin" and the rebuild banner print the push command for the package.</li>
+<li>02 section 4 and 04c <code>help xdg</code> change: "Cache is safe to delete" stays true, because the clones are not in the cache any more.</li>
+</ul>
+
+<h2>13. Help topics</h2>
+<h3>13.1 repoctl help new-set</h3>
+<pre>NEW SET
+Start set slurm-26.11 from slurm-26.05. Each step names the repository
+that gets the commit.
+
+  1. git fetch origin
+     git worktree add -b builder/slurm-26.11 ../slurm-26.11 origin/builder/slurm-26.05
+     cd ../slurm-26.11
+  2. repoctl init --from builder/slurm-26.05 --name slurm-26.11
+  3. Edit the release package: Version 26.11, Release 1, the repo name.
+     (05 says which parts of it repoctl writes.)
+  4. git commit -am "feat: start set slurm-26.11"        builder branch
+  5. repoctl checkout --create --from-set builder/slurm-26.05
+  6. git push origin BRANCH...                          package branches
+     (checkout prints the full command, also for external packages)
+  7. repoctl pin
+     git commit repoctl.lock && git push origin builder/slurm-26.11
+  8. repoctl doctor
+  9. repoctl plan           expect: every node "new-package"
+ 10. repoctl build
+ 11. repoctl publish        first snapshot of each target (05)
+ 12. Add the set to the mirror job on the HTTP server (05).
+ 13. Install the release package on the clients (config management),
+     then confirm it: repoctl sign deployed … (05).
+ 14. repoctl check --install-timer
+
+repoctl status lists the steps that are still open.</pre>
+
+<h3>13.2 repoctl help packages</h3>
+<pre>PACKAGES
+Add a package in this repository:
+  1. add dir, branch, upstream to repoctl.yaml
+  2. repoctl checkout --create DIR --from fedora      (or --orphan)
+  3. write the spec; git -C packages/DIR commit          package branch
+  4. git -C packages/DIR push origin BRANCH
+  5. repoctl pin DIR
+  6. git commit repoctl.yaml repoctl.lock; git push    builder branch
+  7. repoctl plan           expect: DIR "new-package"
+     provider.changed names dependents to rebuild
+  8. repoctl build; repoctl publish
+Add an external package: create the project on the git server first.
+  Then the same steps, with git: {url: …} in the entry.
+Add a second stream: repoctl checkout --create DIR --from FIRST-BRANCH
+Some targets only: targets: [el9] in the entry.
+Remove a package:
+  1. delete the entry; repoctl pin; commit and push
+  2. its RPMs stay published (retired.published, info)
+  3. optional: repoctl repo prune --target T --package NAME --all
+     (dry run), then again with --apply
+  4. optional: remove it on the clients (config management or Obsoletes)
+Rename: a dir or branch rename does not build. An RPM rename is a
+  spec change; add Obsoletes, then the old name is retired.
+Add a target: plan shows "new-target". Drop a target: it stays published.
+Two admins pinned in the same week and git reports a conflict in
+  repoctl.lock: take both lines, then run repoctl pin to check the file.</pre>
+
+<h2>14. Changes to the earlier documents</h2>
+<table>
+<tr><th>Document</th><th>Before</th><th>Now</th></tr>
+<tr><td>03 section 4</td><td>Advisory table without provider.changed and retired.published; closure.broken on all NVRs</td><td>Table of section 2.2. closure.broken uses <code>--newest</code>.</td></tr>
+<tr><td>03 section 10</td><td>soname.removed and closure.broken block publish of the target. <code>--accept-advisory &lt;code&gt;</code>.</td><td>Block only when the closure has a dir of the run (section 4). <code>--accept-advisory ID --reason TEXT</code>.</td></tr>
+<tr><td>03 section 10</td><td>Timer without units</td><td>Section 6.</td></tr>
+<tr><td>04c section 11</td><td>No check or advisories commands</td><td>Section 3.</td></tr>
+<tr><td>04c init</td><td>Next: checkout --create, pin</td><td><code>--from</code>; full Next list (section 9.1).</td></tr>
+<tr><td>04c checkout</td><td><code>--create</code> makes an orphan branch</td><td><code>--create</code> needs <code>--from-set</code>, <code>--from</code>, <code>--from fedora</code> or <code>--orphan</code>; remote check first (section 9.2).</td></tr>
+<tr><td>04c section 8, contract LockState</td><td>six values</td><td>plus <code>unpinned</code>, <code>orphaned</code> (section 10).</td></tr>
+<tr><td>04c section 12 publish summary</td><td>"removed packages"</td><td>"retired: N packages still published".</td></tr>
+<tr><td>04c section 13</td><td>No lifecycle topics</td><td><code>help new-set</code>, <code>help packages</code>, <code>help advisories</code> (sections 5 and 13).</td></tr>
+<tr><td>02 section 4, 04c help xdg</td><td>External mirrors in the cache</td><td>In <code>$XDG_DATA_HOME/repoctl/git</code> (section 12).</td></tr>
+<tr><td>04e contract</td><td>No Advisory kind</td><td>Section 7.1.</td></tr>
+<tr><td>04f MCP</td><td>No advisory tools</td><td><code>repoctl_advisories</code>, <code>repoctl_advisory</code>, <code>repoctl_check</code> (section 7.2).</td></tr>
+<tr><td>04k, 04l</td><td>Two id forms, two dismiss routes, Dismiss in the browser only</td><td>One id form, one route, committed dismissals (sections 2.1, 2.5, 7.3).</td></tr>
+<tr><td>04k</td><td>"Rebuild after fix…"</td><td>"Pin fix and build…".</td></tr>
+<tr><td>04c migrate</td><td>Next: build</td><td>Next: the import runbook (<a href="../runbooks/import-bash-era-repos.html">runbook</a>). migrate marks CLAUDE.md for an update.</td></tr>
+</table>
+<p>Thread C (WP1) brings these changes into 02, 04, the contract files, the skills and the mockups.</p>
+
+<h2>15. Findings that this document closes</h2>
+<table>
+<tr><th>Finding</th><th>Section</th></tr>
+<tr><td>UX-03 Advisories have no CLI, contract or MCP surface</td><td>2, 3, 7</td></tr>
+<tr><td>UX-12 The required-advisory gate blocks its own fix and unrelated packages</td><td>4, 5</td></tr>
+<tr><td>UX-34 The daily check timer has no setup, no health signal and no owner</td><td>6</td></tr>
+<tr><td>UX-38 Dismiss has two id forms, two routes, no CLI and no team scope</td><td>2.1, 2.5, 7.3</td></tr>
+<tr><td>UX-05 A removed package stays in the published repo forever</td><td>2.2, 11.5</td></tr>
+<tr><td>UX-27 No ordered recipes for a new set or for package changes</td><td>9, 11, 13</td></tr>
+<tr><td>UX-28 Migration has no way to adopt the existing published repo</td><td><a href="../runbooks/import-bash-era-repos.html">runbook</a></td></tr>
+<tr><td>UX-29 checkout --create makes only empty orphan branches</td><td>9.2</td></tr>
+<tr><td>UX-31 No state for a package missing from the lock or from repoctl.yaml</td><td>10</td></tr>
+<tr><td>UX-32 A new in-set provider does not mark its dependents</td><td>2.2 (provider.changed), 11.1</td></tr>
+<tr><td>UX-33 External package commits live in the deletable cache mirror</td><td>12</td></tr>
+</table>
+</body></html>
