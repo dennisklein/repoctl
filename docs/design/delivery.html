@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Delivery and verification</title>
+<meta name="description" content="The delivery phases of repoctl, the tests that must pass before the code depends on a fact, the assumptions and the open questions.">
+</head>
+<body>
+<h1>Delivery and verification</h1>
+<p class="lede">This chapter gives the order in which repoctl is built and the tests that must pass before the code depends on a fact. It also lists the assumptions of the design and the questions that are still open.</p>
+<ul class="keypoints">
+  <li>Eight phases, 0 to 7. Each phase ends with a "done when" in the terms of the data story.</li>
+  <li>Phase 0 puts the tool on branch <code>main</code>, with CI and this docs site on GitHub Pages.</li>
+  <li>The bash-era scripts stay on the builder branches until the first publish with repoctl.</li>
+  <li>Tests V1 to V21 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
+  <li>Each open question names the phase that needs the answer.</li>
+</ul>
+
+<h2 id="phases">Delivery phases</h2>
+<p>Each phase gives a tool that works on its own. A phase starts when the tests that gate it pass (<a href="#verification">verification</a>). The command blocks are in the <a href="cli.html#commands">CLI reference</a>.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 240" role="img" aria-labelledby="phases-t">
+<title id="phases-t">Delivery phases 0 to 7 and the tests that gate them</title>
+<rect class="box" x="24" y="24" width="208" height="72" rx="8"/>
+<text class="t-title" x="40" y="48">0 Foundation</text>
+<text class="t-small t-muted" x="40" y="68">main, CI, docs on Pages</text>
+<rect class="box" x="256" y="24" width="208" height="72" rx="8"/>
+<text class="t-title" x="272" y="48">1 Core and graph</text>
+<text class="t-small t-muted" x="272" y="68">migrate, checkout, pin, graph</text>
+<rect class="box" x="488" y="24" width="208" height="72" rx="8"/>
+<text class="t-title" x="504" y="48">2 Build</text>
+<text class="t-small t-muted" x="504" y="68">plan, staging, manifest</text>
+<text class="t-small t-mono" x="504" y="86">V6 V19 V20</text>
+<rect class="box" x="720" y="24" width="208" height="72" rx="8"/>
+<text class="t-title" x="736" y="48">3 Publish</text>
+<text class="t-small t-muted" x="736" y="68">GHCR, mirror job, gates</text>
+<text class="t-small t-mono" x="736" y="86">V1–V5 V7–V16 V18</text>
+<line class="edge" x1="232" y1="60" x2="254" y2="60" marker-end="url(#arrow)"/>
+<line class="edge" x1="464" y1="60" x2="486" y2="60" marker-end="url(#arrow)"/>
+<line class="edge" x1="696" y1="60" x2="718" y2="60" marker-end="url(#arrow)"/>
+<path class="edge" d="M824,96 L824,120 L128,120 L128,142" marker-end="url(#arrow)"/>
+<rect class="box" x="24" y="144" width="208" height="72" rx="8"/>
+<text class="t-title" x="40" y="168">4 Packaging</text>
+<text class="t-small t-muted" x="40" y="188">tool RPM, Pages repo, import</text>
+<rect class="box" x="256" y="144" width="208" height="72" rx="8"/>
+<text class="t-title" x="272" y="168">5 Advisories</text>
+<text class="t-small t-muted" x="272" y="188">check timer, lifecycle</text>
+<rect class="box" x="488" y="144" width="208" height="72" rx="8"/>
+<text class="t-title" x="504" y="168">6 Agents</text>
+<text class="t-small t-muted" x="504" y="188">skills, MCP</text>
+<text class="t-small t-mono" x="504" y="206">V21</text>
+<rect class="box" x="720" y="144" width="208" height="72" rx="8"/>
+<text class="t-title" x="736" y="168">7 Web UI</text>
+<text class="t-small t-muted" x="736" y="188">local UI, agent buttons</text>
+<text class="t-small t-mono" x="736" y="206">V9</text>
+<line class="edge" x1="232" y1="180" x2="254" y2="180" marker-end="url(#arrow)"/>
+<line class="edge" x1="464" y1="180" x2="486" y2="180" marker-end="url(#arrow)"/>
+<line class="edge" x1="696" y1="180" x2="718" y2="180" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>The phases in order. The mono labels name the tests that must pass before the phase depends on their facts.</figcaption>
+</figure>
+<table>
+<thead><tr><th>Phase</th><th>Content</th><th>Done when</th></tr></thead>
+<tbody>
+<tr><td>0 Foundation</td>
+<td>Orphan branch <code>main</code> as the default branch of <a href="https://github.com/dennisklein/repoctl">github.com/dennisklein/repoctl</a> (<a href="decision.html#home">where the tool lives</a>). Go module on <code>GSI-HPC/go-clikit</code>. CI on GitHub Actions: build, test, lint, and a test that checks each contract example against its schema. This docs site on GitHub Pages.</td>
+<td><code>main</code> is the default branch and CI passes on it. The docs site is online at <code>https://dennisklein.github.io/repoctl/</code>. The builder branches do not change.</td></tr>
+<tr><td>1 Core commands and graph</td>
+<td>Config layers and set discovery, <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the user config with their schemas. <code>init</code>, <code>migrate</code>, <code>status</code>, <code>list</code>, <code>show</code>, <code>checkout</code>, <code>pin</code>, <code>graph</code>, <code>doctor</code>, <code>config</code>, <code>schema</code>, <code>mock update</code>, <code>version</code>, <code>completion</code>. The graph per target from the SRPM in the target chroot. Lock states, exit codes and problem codes.</td>
+<td><code>repoctl migrate</code> on <code>builder/slurm-26.05</code> writes a lock with the same dirs, branches and commits as <code>packages.lock</code>. <code>repoctl graph --target el9</code> shows 11 nodes, 14 edges and depth 4 (<a href="decision.html#graph">the real build graph</a>). With the target el10 added, the el10 graph has 10 nodes. <code>checkout</code> and <code>pin</code> give the same lock as the scripts. <code>repoctl doctor</code> passes on <code>hpc-a1</code>.</td></tr>
+<tr><td>2 Build with staging and the manifest</td>
+<td><code>plan</code> (<a href="build.html#actions">actions and reasons</a>), <code>build</code> (jobs, <code>mock --uniqueext</code>, keep going, <code>--fail-fast</code>), the staging repo with the RepoManifest entry of each node, <code>rebuild</code>, <code>runs</code>, <code>logs</code>, <code>cancel</code>, <code>clean</code>. The set lock and exit 7. The journal. The soname check. Terminal output: exceptions plus a totals line, <code>-v</code>, <code>--json</code>.</td>
+<td>Without latest, plan shows every node with the reason <code>new-package</code>: 11 on el9, 10 on el10, and the warning <code>dep.not-for-target</code> for slurm@el10. <code>repoctl rebuild slurm --reason …</code> makes an empty commit, and plan shows slurm with the reason <code>rebuild</code> and the NVR 26.05.4-2. A run with jobs 3 keeps going after slurm@el10 fails, marks slurm-singularity-exec@el10 blocked and exits with 3. The next plan shows the ok nodes as staged. A second build of <code>dklein</code> on <code>hpc-a1</code> stops with exit 7 (<code>set.busy</code>). An unchanged commit gives the same NVR as the bash-era build.</td></tr>
+<tr><td>3 Publish to GHCR</td>
+<td><code>publish</code> with the steps check, sign, repodata, verify, verify-el, push, tag, cache (<a href="publish.html#order">publish order</a>). The <code>repo</code> commands, <code>repo push --from</code> included. The <code>sign</code> commands, <code>release write</code>, <code>keys/deployed.yaml</code>, gates 1 to 3, the signer probe and the verify roots (<a href="signing.html#gates">gates</a>). The mirror job in <code>contrib/mirror/</code>. The registry checks of doctor.</td>
+<td>The publish of el9 from run <code>r-20261102-1750-a3f</code> signs 38 RPMs with <code>d.klein</code> and keeps 170. Step tag moves latest from <code>p-20260912-1403-c21</code> to <code>p-20261103-1412-5e1</code>. <code>publish --target el10</code> stops with <code>publish.not-ready</code> (exit 12). The mirror job serves 5e1 within 5 minutes, and status shows "served: same". Gate 2 refuses <code>a.admin</code> before its deployment record (<code>sign.not-deployed</code>, exit 12). <code>repo restore</code> makes a new snapshot, and latest moves forward.</td></tr>
+<tr><td>4 Tool RPM, release RPM, Fedora repo on Pages</td>
+<td>The tool RPM <code>repoctl</code> and the release package of the Fedora repo on Pages. A GitHub Actions job builds both on each version tag. It signs them with the key of the Pages repo (a GitHub Actions secret, not a slurm key). It publishes the dnf repo on GitHub Pages and the RPMs on the GitHub release. The mirror job ships in the release RPMs. Then the <a href="../runbooks/import.html">import runbook</a> converts the bash-era repos.</td>
+<td>On a clean Fedora host, <code>dnf install repoctl</code> from the Pages repo installs the tool, and <code>repoctl doctor</code> passes. The import of slurm-26.05 el9 gives <code>p-import-20260828</code> (48 RPMs, signer <code>hpc-repo</code>), and no client changes a package. After the first publish with repoctl (<code>p-20260902-1010-4a7</code>), the builder branch has no <code>scripts/</code> and no <code>packages.lock</code>.</td></tr>
+<tr><td>5 Advisories, check timer, lifecycle</td>
+<td><code>check</code>, <code>advisories ls|show|dismiss|undismiss</code>, the publish gate with <code>--accept-advisory ID --reason TEXT</code> (<a href="advisories.html#gate">gate</a>), the timer units and the health signals, <code>upstream</code>. <code>init --from</code>, <code>checkout --create</code> with its four start points, the lock states <code>unpinned</code> and <code>orphaned</code>, <code>repo prune --package NAME --all</code> (<a href="lifecycle.html">Sets and packages</a>). The help topics new-set, packages and advisories.</td>
+<td>The timer check of 2026-11-02 06:00 gives <code>closure.broken/pmix@el9</code> (required) and three info advisories, and keeps the dismissal of <code>upstream.release/slurm-singularity-exec</code>. The el9 publish review shows the gate row "open, not changed by this publish" and does not block. In the variant state, <code>soname.removed/ucx@el9</code> blocks the publish until an acceptance with a reason. <code>init --from</code> and <code>checkout --create --from-set</code> fork slurm-26.11 with 10 branches at the lock commits, and status lists the open setup steps.</td></tr>
+<tr><td>6 Skills and MCP</td>
+<td><code>mcp start</code> with <code>--tools read</code>, <code>mcp tools</code>, <code>skills install</code> and the Claude Code plugin. The skills repoctl, bump-package (draft, apply), triage-build, rebuild-check, package-updates, with a tool list per task (<a href="agents.html#skill-list">skills</a>).</td>
+<td>bump-package in mode apply takes ucx from 1.22.0 to 1.22.1 (commit "Bump to 1.22.1") to a staged build. It reads only <code>--json</code> output. rebuild-check on the ucx bump says "sonames unchanged: rebuild not necessary". <code>repoctl mcp start --tools read</code> lists only read tools, and a call of <code>repoctl_build</code> fails with <code>mcp.tool-not-allowed</code>. No MCP tool publishes, signs or pushes.</td></tr>
+<tr><td>7 Web UI</td>
+<td><code>repoctl ui</code> for the local user, with the token launch URL. Server-rendered pages with htmx and one SSE connection per tab. The calm rules R1 to R13. The pages of <a href="ui.html#sitemap">the sitemap</a>, the agent buttons and the agent panel.</td>
+<td>At 18:01 during run a3f, the Overview shows the run chip "r-…a3f 2/8 builds · 1 failed · 11m02s", and the graph changes the node states live. Explain failure on slurm@el10 runs triage-build with the read-only MCP server and names the fix for <code>rocm-smi-devel</code>. The el9 publish review at 14:05 shows 38 new and 170 kept, and the publish asks for the typed set name.</td></tr>
+</tbody>
+</table>
+
+<h2 id="verification">Verification tests</h2>
+<p>Run these tests before the code depends on them. Use <code>rocky:9</code> and <code>rocky:10</code> containers and the Fedora host, with a local repo over <code>file://</code> where a test needs a repo. The signing tests use two test keys A and B (RSA 4096) and one Ed25519 key C. F1 to F18 are the client facts of <a href="signing.html#facts">Signing and trust</a>.</p>
+<table class="compact">
+<thead><tr><th>Id</th><th>Test</th><th>Expected result</th><th>Gates</th></tr></thead>
+<tbody>
+<tr><td>V1</td><td>Mirror job on EL9 with curl and jq only: anonymous token, manifest and blobs of a public GHCR artifact.</td><td>The pull works without a login.</td><td>3</td></tr>
+<tr><td>V2</td><td>First push of an organisation package with a classic token. Set the package public. Turn on inherited access.</td><td>A team member can push. Anonymous pull works.</td><td>3</td></tr>
+<tr><td>V3</td><td>Push with a fine-grained token.</td><td>Shows if GHCR accepts it. If not, the docs say "classic token".</td><td>3</td></tr>
+<tr><td>V4</td><td>Fedora host: mock verify root for EL9 and EL10, bind_mount, <code>rpmkeys --checksig</code>, <code>dnf makecache</code> with <code>repo_gpgcheck=1</code>.</td><td>Pass with the right key. Fail with a missing key.</td><td>3</td></tr>
+<tr><td>V5</td><td><code>rpmsign --resign</code> on Fedora (rpm 6) of v4 packages. Install on EL9 and EL10.</td><td>One v4 signature. EL9 and EL10 install the packages.</td><td>3</td></tr>
+<tr><td>V6</td><td>rpmautospec on an in-tree package in the set repo: which commits it counts.</td><td>The release goes up for a commit on the path. The record notes the effect of other set commits.</td><td>2</td></tr>
+<tr><td>V7</td><td>EL10 client, RPM signed by a key that expired.</td><td>The install fails. After <code>repo resign</code> with a valid key, it works.</td><td>3</td></tr>
+<tr><td>V8</td><td>Time of <code>repo resign</code> for a full target (about 300 RPMs, debuginfo included) with a YubiKey, touch policy cached.</td><td>A number for the estimate in the resign summary.</td><td>3</td></tr>
+<tr><td>V9</td><td>Signer probe with pinentry-gnome3 and pinentry-curses. Then the probe of a UI Review load with a YubiKey.</td><td>One PIN prompt at the start, none in the sign step. The touch count per Review load decides when the UI probes.</td><td>3, 7</td></tr>
+<tr><td>V10</td><td>The release RPM ships keys A and B in one file. Publish RPMs signed by A and by B. <code>dnf -y install</code> both.</td><td>Success (F1, F2, F14).</td><td>3</td></tr>
+<tr><td>V11</td><td>Sign <code>repomd.xml.asc</code> with A only, then with B only. <code>repo_gpgcheck=1</code>.</td><td>Success on EL9 and EL10 (F8, F9).</td><td>3</td></tr>
+<tr><td>V12</td><td>Sign <code>repomd.xml.asc</code> with <code>-u A -u B</code>.</td><td>EL9 success, EL10 failure (F8, F9). This confirms "one signature per file".</td><td>3</td></tr>
+<tr><td>V13</td><td>Sign with B while the client has only A.</td><td>A clear dnf error and no metadata. This confirms gate 2.</td><td>3</td></tr>
+<tr><td>V14</td><td>Erase B on the client (<code>rpm -e</code> or <code>rpmkeys --erase</code>).</td><td><code>repo_gpgcheck</code> still accepts B until the repo keyring is deleted. Shows if <code>dnf clean all</code> deletes it (F13).</td><td>3</td></tr>
+<tr><td>V15</td><td>Sign with a YubiKey subkey. Install on EL9 and EL10. Add a second subkey and import the key again.</td><td>The install works (F11). The second import changes nothing (F12).</td><td>3</td></tr>
+<tr><td>V16</td><td>Sign one RPM with key C (Ed25519 on a YubiKey). Install on EL9.</td><td>The install works (F17).</td><td>3</td></tr>
+<tr><td>V17</td><td>On EL10.1, add two v6 signatures (<code>--rpmv6</code>). Install with one key, then with both. Install the same RPM on EL9.</td><td>Confirms F6 and F7. repoctl never writes v6 signatures (gate 3).</td><td>none</td></tr>
+<tr><td>V18</td><td><code>rpmkeys --erase</code> on Rocky 10.0 and on Rocky 10.1.</td><td>Shows which minor release has it (F5, F15). <code>sign offboard</code> prints the matching client command.</td><td>3</td></tr>
+<tr><td>V19</td><td>Empty commit on a package branch with rpmautospec (<code>repoctl rebuild</code>).</td><td>The release goes up by one. The changelog shows the reason.</td><td>2</td></tr>
+<tr><td>V20</td><td>A failed <code>dnf builddep</code> with the mock version of <code>hpc-a1</code>.</td><td>mock exits with 30. The error lines show "Failed build dependencies".</td><td>2</td></tr>
+<tr><td>V21</td><td>Claude Code permission rule <code>Bash(git -C packages/:*)</code> against <code>git -C packages/ucx commit …</code> and <code>git -C packages/ucx push origin ucx/slurm-26.05</code>.</td><td>The commit matches as a prefix rule. A rule of the <a href="agents.html#deny">deny list</a> refuses the push.</td><td>6</td></tr>
+</tbody>
+</table>
+
+<h2 id="assumptions">Assumptions</h2>
+<p>The design depends on these facts. A test or a person confirms each of them. When one is false, the chapter that it names must change.</p>
+<ul>
+<li>The clients run Rocky 9 and Rocky 10 with the stock rpm, dnf and librepo of the c9s and c10s spec files. The facts F1 to F18 hold for these versions (<a href="signing.html#facts">client facts</a>; V10 to V18).</li>
+<li>Config management installs the release package on every client and on the HTTP server. A person can tell when the rollout is complete (<a href="signing.html#onboarding">onboarding</a>).</li>
+<li>The HTTP server can run a systemd timer and has curl, jq, gnupg2 and rpm (<a href="publish.html#mirror">mirror job</a>; V1).</li>
+<li>The mirror job runs every 5 minutes. A shorter interval only adds HEAD requests. Clients read a new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour).</li>
+<li>GHCR has no tag compare-and-swap. publish compares latest in step 1 and in step 7. The window between the two is acceptable, because the team coordinates in its own channel (<a href="publish.html#admins">two admins</a>).</li>
+<li>The GHCR packages are public, so the mirror job pulls without a token. A push needs a classic token with <code>write:packages</code> and a team with write access (<a href="publish.html#registry">registry access</a>; V2, V3).</li>
+<li>rpmautospec raises the release for each commit, also for an empty one (<a href="build.html#rebuild">rebuild</a>; V19). For an in-tree package, V6 shows which commits count.</li>
+<li>go-clikit gives the span id (<code>Span.TraceContext()</code>), the doctor format and the progress log. repoctl needs no change in go-clikit for the journal (<a href="contract.html#journal">journal</a>).</li>
+<li>The UI agent is Claude Code (<code>agent: {command: claude}</code>). repoctl reads its stream-json output (<a href="agents.html#agent-config">agent config</a>).</li>
+<li>mock exits with 30 when <code>dnf builddep</code> fails (V20).</li>
+<li>Host names, the server path <code>/srv/repos/slurm-repo</code>, the GitHub team name, the fingerprints and the commits in the examples are placeholders. The data story fixes them for all chapters.</li>
+</ul>
+
+<h2 id="open">Open questions</h2>
+<p>The column "Needed by" gives the phase that needs the answer. Until then, the design text uses the example value or the current rule.</p>
+<table class="compact">
+<thead><tr><th>Question</th><th>Needed by</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>The slurm sets and the tool share the GitHub repo <code>repoctl</code>: <code>main</code> holds the tool, each <code>builder/&lt;set&gt;</code> branch holds a set. Do the sets move to their own repo?</td><td>4</td><td>The GHCR namespace in the examples is <code>ghcr.io/gsi-hpc/slurm-repo</code>. A move changes <code>store.oci</code>, the image source annotation and the remote of the package branches. The import writes the first snapshot into this namespace.</td></tr>
+<tr><td>Does the repository <code>dennisklein/repoctl</code> move to the GSI-HPC organization?</td><td>4</td><td>The GHCR namespace (<code>ghcr.io/gsi-hpc/…</code>) and the <code>$id</code> host of the schemas (<code>https://gsi-hpc.github.io/repoctl/schema/v1alpha1/</code>) use GSI-HPC. The docs site and the Pages repo are at <code>https://dennisklein.github.io/repoctl/</code>. A move changes the Pages URL, the repo links and the image source annotation. The <code>$id</code> values are identifiers and need not resolve (<a href="contract.html#schemas">schemas</a>).</td></tr>
+<tr><td>Which host is the HTTP server, and who owns the mirror job?</td><td>3</td><td><a href="publish.html#topology">Topology</a>.</td></tr>
+<tr><td>Which name has the GitHub team in GSI-HPC?</td><td>3</td><td>The examples use <code>slurm-repo-admins</code>.</td></tr>
+<tr><td>Does every admin get a YubiKey (or another OpenPGP card)? Who pays, and who keeps a spare?</td><td>3</td><td>A file key also works. The card keeps the key off the disk.</td></tr>
+<tr><td>Does config management run dnf with <code>-y</code> on the clusters, so that new keys import without a prompt? Who owns the removal of a key on the clients?</td><td>3</td><td>F1. <a href="signing.html#offboarding">Offboarding</a>.</td></tr>
+<tr><td>Which Rocky 10 minor release do the clusters get first?</td><td>3</td><td>F5 gives <code>rpmkeys --erase</code> from EL10.1. V18 decides the offboarding command.</td></tr>
+<tr><td><code>createrepo --deltas</code>: keep it (a key such as <code>repo.deltas: true</code>) or drop it?</td><td>3</td><td>The bash-era <code>scripts/build</code> makes delta RPMs. dnf5 does not use them by default. Each delta RPM is also a blob in the snapshot.</td></tr>
+<tr><td>Two set directories with one set name on one host: must the CLI refuse this, or key the state by name and directory?</td><td>1</td><td>All state is keyed by the set name, so two clones share runs and the set lock. The web UI refuses the second set.</td></tr>
+<tr><td>Is <code>-o json</code> an alias of <code>--json</code>, for users of sind?</td><td>1</td><td>sind uses <code>-o, --output human|json</code>.</td></tr>
+<tr><td>Does a set need GitLab upstreams (<code>upstream.gitlab</code>) in the first release?</td><td>5</td><td>The first release has the upstream kinds GitHub and Fedora (<a href="config.html#scope">narrow now, open later</a>). rocm-smi lives on git.gsi.de, but its upstream is on GitHub.</td></tr>
+<tr><td>go-clikit: a theme for the copper look (or program colours and marks); a program word for an end state, so that the tree says "blocked"; a plain mode with one line per node end; state styles in cliout tables.</td><td>2</td><td>Until then the tree says "canceled" with a note (<a href="terminal.html#conventions">conventions</a>). Is the theme ember close enough?</td></tr>
+<tr><td>Does the UI server stop by itself after an idle time with no open tab?</td><td>7</td><td>This changes the text of the session page.</td></tr>
+<tr><td>Can an agent button run before the soname check ends, or only on a final result?</td><td>7</td><td>The mockup disables the button until the result is final.</td></tr>
+<tr><td>For more than 4 targets, does the union view open as the matrix view?</td><td>7</td><td><a href="ui-build.html#matrix">Matrix view</a>.</td></tr>
+<tr><td>Does the UI run the signer probe on each Review load, or only on a click?</td><td>7</td><td>V9 decides. A YubiKey can need a touch for each probe.</td></tr>
+</tbody>
+</table>
+</body>
+</html>

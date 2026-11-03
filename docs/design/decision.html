@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Why a Go tool</title>
+<meta name="description" content="Why repoctl is one Go tool on go-clikit that calls mock: the bash scripts today, the real build graph, six options, the scores and the choice.">
+</head>
+<body>
+<h1>Why a Go tool</h1>
+<p class="lede">This chapter gives the reasons for the design of repoctl. It looks at the bash scripts of the builder branches, the real build graph and six problems. It then compares six options against seven criteria. The choice is one Go tool that calls mock, with a CLI, a local web UI, an MCP server and agent skills on one core.</p>
+<ul class="keypoints">
+  <li>repoctl is one Go binary on <code>GSI-HPC/go-clikit</code>. It is the only part that builds, signs and publishes.</li>
+  <li>mock with the rpmautospec plugin stays the build isolation. repoctl calls git, mock, rpmsign, createrepo_c and modifyrepo_c as child processes.</li>
+  <li>The build graph is real but small: 11 packages, 14 edges, 4 levels. Dagger and BuildKit add a privileged second isolation layer for little gain.</li>
+  <li>Agent skills alone are not deterministic. A signed release must be repeatable. The agent does judgment work only.</li>
+  <li>A CLI, a local web UI and an MCP server share one core, one plan and one journal.</li>
+  <li>The tool lives on the branch <code>main</code>. Each builder branch holds only the data of one set.</li>
+  <li>GitHub Pages carries the docs site and the Fedora RPM repo of repoctl.</li>
+</ul>
+
+<h2 id="scripts">The bash scripts today</h2>
+<p>Each <code>builder/slurm-*</code> branch (<code>builder/slurm-26.05</code>, <code>builder/slurm-25.11</code>, <code>builder/slurm-25.11-testing</code>) has its own copy of the build scripts. They build one EL9 repository for one Slurm release.</p>
+<ul>
+  <li><code>scripts/checkout</code> and <code>scripts/pin</code> manage one git worktree per package. <code>packages.lock</code> holds the pinned commits.</li>
+  <li><code>scripts/build</code> calls <code>build &lt;dir&gt;</code> 11 times in a fixed order. Each call makes an SRPM, builds the RPMs in mock, signs them and runs <code>createrepo --update</code> on <code>result/el9/</code>.</li>
+  <li>Each build adds <code>result/el9/slurm</code> as an extra repository (<code>mock --addrepo</code>). Thus a package can use the packages of earlier builds.</li>
+  <li><code>scripts/common.sh</code> holds the repository name (<code>slurm</code>) and the mock target (<code>rocky+epel-9-x86_64</code>). <code>scripts/macros</code> holds RPM macros.</li>
+  <li><code>scripts/list</code>, <code>scripts/rpmlist</code>, <code>scripts/setup</code>, <code>scripts/clean</code> and <code>scripts/update</code> are helpers.</li>
+  <li>Two agent skills exist: <code>package-info</code> (with a bash script) and <code>list-package-updates</code>.</li>
+</ul>
+<p>The CLI reference maps each script to its repoctl command (<a href="cli.html#migration">cli.html#migration</a>).</p>
+
+<h2 id="graph">The real build graph</h2>
+<p>The <code>BuildRequires</code> of the spec files on <code>builder/slurm-26.05</code> give this graph. An arrow means "is necessary to build".</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 392" role="img" aria-labelledby="graph-t">
+<title id="graph-t">Build graph of builder/slurm-26.05: 11 packages, 14 edges, 4 levels</title>
+<path class="edge-accent" d="M180,54 L248,54" marker-end="url(#arrow-accent)"/>
+<path class="edge-accent" d="M180,54 C215,54 215,134 248,134" marker-end="url(#arrow-accent)"/>
+<path class="edge-accent" d="M180,54 C215,54 215,230 248,230" marker-end="url(#arrow-accent)"/>
+<path class="edge" d="M180,64 C200,64 205,94 225,94 L445,94 C465,94 460,190 478,190" marker-end="url(#arrow)"/>
+<path class="edge" d="M180,140 C200,140 205,174 225,174 L445,174 C462,174 462,202 478,202" marker-end="url(#arrow)"/>
+<path class="edge" d="M180,128 C200,128 205,104 225,104 L665,104 C688,104 688,70 708,70" marker-end="url(#arrow)"/>
+<path class="edge" d="M180,236 C200,236 205,268 225,268 L445,268 C465,268 465,250 478,250" marker-end="url(#arrow)"/>
+<path class="edge" d="M410,54 L478,54" marker-end="url(#arrow)"/>
+<path class="edge" d="M410,62 C448,62 448,214 478,214" marker-end="url(#arrow)"/>
+<path class="edge" d="M410,134 C448,134 448,226 478,226" marker-end="url(#arrow)"/>
+<path class="edge" d="M410,230 C445,230 450,238 478,238" marker-end="url(#arrow)"/>
+<path class="edge" d="M410,46 C435,46 435,18 460,18 L665,18 C690,18 690,42 708,42" marker-end="url(#arrow)"/>
+<path class="edge" d="M640,56 L708,56" marker-end="url(#arrow)"/>
+<path class="edge" d="M640,220 L708,220" marker-end="url(#arrow)"/>
+<rect class="box" x="20" y="36" width="160" height="36" rx="8"/><text class="t" x="100" y="54" text-anchor="middle" dominant-baseline="middle">munge</text>
+<rect class="box" x="20" y="116" width="160" height="36" rx="8"/><text class="t" x="100" y="134" text-anchor="middle" dominant-baseline="middle">ucx</text>
+<rect class="box" x="20" y="212" width="160" height="36" rx="8"/><text class="t" x="100" y="230" text-anchor="middle" dominant-baseline="middle">rocm-smi</text>
+<rect class="box-muted" x="20" y="292" width="160" height="36" rx="8"/><text class="t t-muted" x="100" y="310" text-anchor="middle" dominant-baseline="middle">slurm-release</text>
+<rect class="box" x="250" y="36" width="160" height="36" rx="8"/><text class="t" x="330" y="54" text-anchor="middle" dominant-baseline="middle">pmix</text>
+<rect class="box" x="250" y="116" width="160" height="36" rx="8"/><text class="t" x="330" y="134" text-anchor="middle" dominant-baseline="middle">pmix_v5</text>
+<rect class="box" x="250" y="212" width="160" height="36" rx="8"/><text class="t" x="330" y="230" text-anchor="middle" dominant-baseline="middle">pmix_v4</text>
+<rect class="box" x="480" y="36" width="160" height="36" rx="8"/><text class="t" x="560" y="54" text-anchor="middle" dominant-baseline="middle">prrte</text>
+<rect class="box" x="480" y="184" width="160" height="72" rx="8"/><text class="t" x="560" y="220" text-anchor="middle" dominant-baseline="middle">slurm</text>
+<rect class="box" x="710" y="32" width="170" height="48" rx="8"/><text class="t" x="795" y="56" text-anchor="middle" dominant-baseline="middle">openmpi</text>
+<rect class="box" x="710" y="202" width="170" height="36" rx="8"/><text class="t" x="795" y="220" text-anchor="middle" dominant-baseline="middle">slurm-singularity-exec</text>
+<text class="t-small t-muted" x="100" y="346" text-anchor="middle">level 1</text>
+<text class="t-small t-muted" x="330" y="346" text-anchor="middle">level 2</text>
+<text class="t-small t-muted" x="560" y="346" text-anchor="middle">level 3</text>
+<text class="t-small t-muted" x="795" y="346" text-anchor="middle">level 4</text>
+<line class="edge-accent" x1="20" y1="374" x2="60" y2="374"/>
+<text class="t-small" x="70" y="378">the hand order of scripts/build on the 25.11 branches builds munge after these users</text>
+<rect class="box-muted" x="620" y="366" width="24" height="16" rx="4"/>
+<text class="t-small" x="652" y="378">no build dependency in the set</text>
+</svg>
+<figcaption>The build graph of <code>builder/slurm-26.05</code>. Four packages have no dependency in the set and can build at the same time.</figcaption>
+</figure>
+<ul>
+  <li>11 packages, 14 edges, 4 levels. Up to 4 builds can run at the same time.</li>
+  <li>The longest chain is <code>munge → pmix → prrte → openmpi</code>.</li>
+  <li><code>slurm</code> needs 6 other packages. <code>slurm-release</code> needs none.</li>
+</ul>
+<p>repoctl makes this graph from the specs, for each target (<a href="build.html#graph">build.html#graph</a>). Nobody writes it by hand.</p>
+
+<h2 id="problems">Problems</h2>
+<table>
+<thead><tr><th>#</th><th>Problem</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td>P1</td><td>The build order is written by hand, and a hand order can be wrong. On the 25.11 branches, <code>scripts/build</code> builds munge after the pmix packages. They need <code>munge-devel</code>.</td><td>With an empty <code>result/</code>, pmix builds against the <code>munge-devel</code> of the distribution. A second run builds it against the munge of the set. The result depends on old state.</td></tr>
+<tr><td>P2</td><td>Each run builds all 11 packages.</td><td>A change to one spec costs a full rebuild.</td></tr>
+<tr><td>P3</td><td>All builds run one after the other.</td><td>Long wall time. The graph allows 4 parallel builds.</td></tr>
+<tr><td>P4</td><td>Each package signs and updates <code>result/</code> directly.</td><td>If build 7 fails, <code>result/</code> has 6 new packages and 5 old ones. The repository is in a mixed state.</td></tr>
+<tr><td>P5</td><td>The output is <code>set -x</code> and one <code>sources.log</code>.</td><td>People cannot see the progress. An agent must parse free text.</td></tr>
+<tr><td>P6</td><td>Each <code>builder/slurm-*</code> branch has a copy of the scripts.</td><td>A fix to the tooling must go to 3 branches.</td></tr>
+</tbody>
+</table>
+
+<h2 id="criteria">Criteria</h2>
+<table>
+<thead><tr><th>Criterion</th><th>Weight</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>Fit for mock and rpmautospec</td><td>3</td><td>These are the standard EL tools. rpmautospec must read the full, unchanged git history.</td></tr>
+<tr><td>Deterministic and auditable</td><td>3</td><td>The output is a signed repository for production clusters.</td></tr>
+<tr><td>Build graph and incremental builds</td><td>2</td><td>Solves P1, P2 and P3.</td></tr>
+<tr><td>Low operation cost</td><td>2</td><td>Few new daemons, few new languages, a small team.</td></tr>
+<tr><td>Human UX (CLI, web UI)</td><td>1</td><td>Solves P5 for people.</td></tr>
+<tr><td>Agent UX (JSON, MCP, skills)</td><td>1</td><td>Solves P5 for agents.</td></tr>
+<tr><td>Same style as the GSI-HPC tools</td><td>1</td><td>clusterctl, sind and brig share go-clikit.</td></tr>
+</tbody>
+</table>
+
+<h2 id="options">Options</h2>
+<h3 id="option-a">A. Dagger (Go SDK), with mock inside</h3>
+<ul>
+  <li>Dagger runs each step as a BuildKit container. It caches each step by its inputs. It gives a DAG and parallel runs.</li>
+  <li>mock needs root capabilities for its own chroot and mounts. In Dagger, this needs <code>insecureRootCapabilities</code>. The Dagger docs compare this to <code>docker run --privileged</code>.</li>
+  <li>The mock caches (root cache, dnf cache) must be Dagger cache volumes. Else each build downloads the buildroot again.</li>
+  <li>A git worktree has a <code>.git</code> file that points outside the directory. In a mounted worktree, git does not work and rpmautospec fails. A clone is necessary first.</li>
+  <li>The GPG key must go into the engine as a secret. Signing in a container is possible, but it adds a trust question.</li>
+  <li>Gain: caching and parallel runs. Cost: a Dagger engine daemon, a second isolation layer, privileged containers and a new API for the team.</li>
+</ul>
+<p>Variant A2: Dagger without mock. Each package builds in a clean <code>rockylinux:9</code> container with <code>dnf builddep</code> and <code>rpmbuild</code>. This removes the privileged layer. But the mock rpmautospec plugin and the standard Fedora and EL build path are gone. The tool must then copy that logic.</p>
+<h3 id="option-b">B. Raw BuildKit (LLB or Dockerfile)</h3>
+<p>The same problems as A, with a lower-level API and no SDK for the graph logic.</p>
+<h3 id="option-c">C. Go tool on go-clikit</h3>
+<ul>
+  <li>One binary. It reads the lock, runs <code>rpmspec</code> to get <code>BuildRequires</code> and <code>Provides</code>, and makes the graph from them. No hand order.</li>
+  <li>It calls git, mock, rpmsign and createrepo_c as child processes. mock stays the isolation layer.</li>
+  <li>go-clikit has the parts (<a href="#layers">layers</a>). sind and brig use the same pattern.</li>
+  <li>Cost: new Go code to maintain. The estimate is 2,000 to 4,000 lines.</li>
+</ul>
+<h3 id="option-d">D. Agent skills only</h3>
+<ul>
+  <li>An agent reads the specs, decides the order and runs the scripts.</li>
+  <li>Each run can be different. Each run costs tokens. A run needs the agent to be available.</li>
+  <li>This is not acceptable for a signed release. It is good for work that needs judgment.</li>
+</ul>
+<h3 id="option-e">E. Hybrid: C plus agent skills and MCP</h3>
+<p>The Go tool does all deterministic work. Skills and an MCP server give the agent a safe, typed interface to the tool.</p>
+<h3 id="option-f">F. Other options</h3>
+<ul>
+  <li><b>F1. Make with stamp files and mock.</b> A Makefile gives a DAG and <code>make -j</code>. It costs very little. But the graph is still written by hand, and there is no UI and no JSON. It is a good fallback without new code.</li>
+  <li><b>F2. <code>mock --chain</code>.</b> It builds a list of SRPMs and retries failed ones. It does not use the dependency graph. It does not sign or publish.</li>
+  <li><b>F3. COPR, OBS, Koji.</b> Full build systems with graphs and UIs. They need servers and operation work. They are too large for 11 packages.</li>
+</ul>
+
+<h2 id="scores">Scores</h2>
+<p>Each option gets a score from 1 (bad) to 5 (good) for each criterion, from the facts above. The weights come from the criteria table. The maximum total is 65.</p>
+<table class="compact">
+<thead><tr><th>Option</th><th>mock fit ×3</th><th>Determ. ×3</th><th>Graph ×2</th><th>Ops ×2</th><th>Human UX</th><th>Agent UX</th><th>GSI style</th><th>Total</th></tr></thead>
+<tbody>
+<tr><td><b>E. Hybrid (Go tool, skills, MCP)</b></td><td>5</td><td>4</td><td>4</td><td>4</td><td>5</td><td>5</td><td>5</td><td><b>58</b></td></tr>
+<tr><td>C. Go tool only</td><td>5</td><td>4</td><td>4</td><td>4</td><td>5</td><td>3</td><td>5</td><td>56</td></tr>
+<tr><td>F1. Make and mock</td><td>5</td><td>3</td><td>4</td><td>5</td><td>2</td><td>2</td><td>2</td><td>48</td></tr>
+<tr><td>A. Dagger and mock (privileged)</td><td>2</td><td>4</td><td>5</td><td>2</td><td>3</td><td>3</td><td>2</td><td>40</td></tr>
+<tr><td>F3. COPR, OBS, Koji</td><td>4</td><td>4</td><td>3</td><td>1</td><td>4</td><td>2</td><td>1</td><td>39</td></tr>
+<tr><td>D. Agent skills only</td><td>3</td><td>1</td><td>2</td><td>4</td><td>2</td><td>5</td><td>3</td><td>34</td></tr>
+<tr><td>B. Raw BuildKit</td><td>1</td><td>4</td><td>5</td><td>1</td><td>1</td><td>1</td><td>1</td><td>30</td></tr>
+</tbody>
+</table>
+<figure class="diagram">
+<svg viewBox="0 0 760 330" role="img" aria-labelledby="scores-t">
+<title id="scores-t">Weighted total score of each option, maximum 65</title>
+<line class="edge-muted" x1="684" y1="30" x2="684" y2="286"/>
+<text class="t-small t-muted" x="684" y="22" text-anchor="middle">maximum 65</text>
+<line class="edge" x1="264" y1="30" x2="264" y2="286"/>
+<rect class="box-accent" x="264" y="40" width="375" height="22" rx="4"><title>E. Hybrid: 58 of 65</title></rect>
+<text class="t-title" x="250" y="51" text-anchor="end" dominant-baseline="middle">E. Hybrid</text>
+<text class="t-title" x="647" y="51" dominant-baseline="middle">58</text>
+<rect class="box-soft" x="264" y="76" width="362" height="22" rx="4"><title>C. Go tool only: 56 of 65</title></rect>
+<text class="t" x="250" y="87" text-anchor="end" dominant-baseline="middle">C. Go tool only</text>
+<text class="t" x="634" y="87" dominant-baseline="middle">56</text>
+<rect class="box-soft" x="264" y="112" width="310" height="22" rx="4"><title>F1. Make and mock: 48 of 65</title></rect>
+<text class="t" x="250" y="123" text-anchor="end" dominant-baseline="middle">F1. Make and mock</text>
+<text class="t" x="582" y="123" dominant-baseline="middle">48</text>
+<rect class="box-soft" x="264" y="148" width="258" height="22" rx="4"><title>A. Dagger and mock: 40 of 65</title></rect>
+<text class="t" x="250" y="159" text-anchor="end" dominant-baseline="middle">A. Dagger and mock</text>
+<text class="t" x="530" y="159" dominant-baseline="middle">40</text>
+<rect class="box-soft" x="264" y="184" width="252" height="22" rx="4"><title>F3. COPR, OBS, Koji: 39 of 65</title></rect>
+<text class="t" x="250" y="195" text-anchor="end" dominant-baseline="middle">F3. COPR, OBS, Koji</text>
+<text class="t" x="524" y="195" dominant-baseline="middle">39</text>
+<rect class="box-soft" x="264" y="220" width="220" height="22" rx="4"><title>D. Agent skills only: 34 of 65</title></rect>
+<text class="t" x="250" y="231" text-anchor="end" dominant-baseline="middle">D. Agent skills only</text>
+<text class="t" x="492" y="231" dominant-baseline="middle">34</text>
+<rect class="box-soft" x="264" y="256" width="194" height="22" rx="4"><title>B. Raw BuildKit: 30 of 65</title></rect>
+<text class="t" x="250" y="267" text-anchor="end" dominant-baseline="middle">B. Raw BuildKit</text>
+<text class="t" x="466" y="267" dominant-baseline="middle">30</text>
+<text class="t-small t-muted" x="264" y="304" text-anchor="middle">0</text>
+<text class="t-small t-muted" x="393" y="304" text-anchor="middle">20</text>
+<text class="t-small t-muted" x="522" y="304" text-anchor="middle">40</text>
+<text class="t-small t-muted" x="652" y="304" text-anchor="middle">60</text>
+<text class="t-small t-muted" x="474" y="324" text-anchor="middle">weighted total score</text>
+</svg>
+<figcaption>The weighted totals of the score table. The hybrid wins because it keeps the mock fit of the Go tool and adds the agent interface.</figcaption>
+</figure>
+
+<h2 id="choice">The choice: a hybrid</h2>
+<p>repoctl is option E. One Go tool on <code>GSI-HPC/go-clikit</code> does all deterministic work: graph, plan, build, sign and publish. mock and rpmautospec stay as they are, and repoctl calls them. A CLI, a local web UI and an MCP server sit on the same core. Agent skills call repoctl. They never call mock, rpmsign or createrepo_c.</p>
+<p>The agent does judgment work: version updates, release notes, the triage of a failed build and the question "is a rebuild necessary?". A person does every step that changes shared state (<a href="model.html#safety">model.html#safety</a>). The skills are in <a href="agents.html#skill-list">agents.html#skill-list</a>.</p>
+<aside class="callout why">
+<p class="callout-title">Why not the other options</p>
+<ul>
+  <li><b>Not Dagger or BuildKit.</b> The graph is small: 11 packages, depth 4. Dagger puts a second container layer around mock, which already isolates each build. That layer needs privileged containers, a daemon, cache volumes for the mock caches and a secret for the key.</li>
+  <li><b>Not agent skills only.</b> A signed release for production clusters must be deterministic and repeatable. An agent run can differ each time, costs tokens and needs the agent.</li>
+  <li><b>Not Make.</b> Make gives a DAG and <code>make -j</code>, but the graph stays hand-written, and there is no UI and no JSON. Make with mock stays the fallback without new code.</li>
+</ul>
+</aside>
+<table>
+<thead><tr><th>Problem</th><th>Answer of repoctl</th></tr></thead>
+<tbody>
+<tr><td>P1 hand order</td><td>repoctl makes the graph from the specs for each target. Each build sees the set packages through the staging repo of the run and the local copy of <code>latest</code> (<a href="#run">one build run</a>).</td></tr>
+<tr><td>P2 full rebuilds</td><td>Only nodes with a new package commit build (<a href="model.html#identity">model.html#identity</a>).</td></tr>
+<tr><td>P3 one build at a time</td><td>Up to <code>--jobs N</code> parallel mock builds, each with its own root.</td></tr>
+<tr><td>P4 mixed repository</td><td>A build writes only the staging of its run. A publish makes a new snapshot, and only the tag move changes what clients see (<a href="publish.html#order">publish.html#order</a>).</td></tr>
+<tr><td>P5 free-text output</td><td>A live tree on a terminal, plain lines for CI, <code>--json</code> results and one journal per run (<a href="contract.html#journal">contract.html#journal</a>).</td></tr>
+<tr><td>P6 copies of the scripts</td><td>The tool lives on <code>main</code>. Builder branches hold only data (<a href="#home">where the tool lives</a>).</td></tr>
+</tbody>
+</table>
+
+<h2 id="layers">Layers</h2>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 424" role="img" aria-labelledby="layers-t">
+<title id="layers-t">Layers of repoctl: three surfaces, one core, existing tools as child processes</title>
+<rect class="box-soft" x="20" y="16" width="270" height="40" rx="8"/><text class="t" x="155" y="36" text-anchor="middle" dominant-baseline="middle">Person in a terminal</text>
+<rect class="box-soft" x="315" y="16" width="270" height="40" rx="8"/><text class="t" x="450" y="36" text-anchor="middle" dominant-baseline="middle">Person in a browser</text>
+<rect class="box-soft" x="610" y="16" width="270" height="40" rx="8"/><text class="t" x="745" y="36" text-anchor="middle" dominant-baseline="middle">Agent with skills</text>
+<path class="edge" d="M155,56 L155,90" marker-end="url(#arrow)"/>
+<path class="edge" d="M450,56 L450,90" marker-end="url(#arrow)"/>
+<path class="edge" d="M745,56 L745,90" marker-end="url(#arrow)"/>
+<rect class="box" x="20" y="92" width="270" height="56" rx="8"/><text class="t-title" x="155" y="114" text-anchor="middle">CLI</text><text class="t-small t-muted" x="155" y="134" text-anchor="middle">cobratree, cliprogress, --json</text>
+<rect class="box" x="315" y="92" width="270" height="56" rx="8"/><text class="t-title" x="450" y="114" text-anchor="middle">Web UI (repoctl ui)</text><text class="t-small t-muted" x="450" y="134" text-anchor="middle">localweb, htmx, SSE</text>
+<rect class="box" x="610" y="92" width="270" height="56" rx="8"/><text class="t-title" x="745" y="114" text-anchor="middle">MCP server (repoctl mcp start)</text><text class="t-small t-muted" x="745" y="134" text-anchor="middle">typed tools, mcpprogress</text>
+<path class="edge" d="M155,148 L155,182" marker-end="url(#arrow)"/>
+<path class="edge" d="M450,148 L450,182" marker-end="url(#arrow)"/>
+<path class="edge" d="M745,148 L745,182" marker-end="url(#arrow)"/>
+<rect class="zone" x="20" y="184" width="860" height="132" rx="8"/>
+<text class="t-title t-accent" x="36" y="206">Core library (Go): one plan, one executor, one journal per run</text>
+<rect class="box" x="35" y="222" width="130" height="78" rx="8"/><text class="t-title" x="100" y="244" text-anchor="middle">lock</text><text class="t-small t-muted" x="100" y="264" text-anchor="middle">repoctl.lock</text><text class="t-small t-muted" x="100" y="282" text-anchor="middle">checkout, pin</text>
+<rect class="box" x="175" y="222" width="130" height="78" rx="8"/><text class="t-title" x="240" y="244" text-anchor="middle">graph</text><text class="t-small t-muted" x="240" y="264" text-anchor="middle">rpmspec in the</text><text class="t-small t-muted" x="240" y="282" text-anchor="middle">target chroot</text>
+<rect class="box" x="315" y="222" width="130" height="78" rx="8"/><text class="t-title" x="380" y="244" text-anchor="middle">planner</text><text class="t-small t-muted" x="380" y="264" text-anchor="middle">lock against the</text><text class="t-small t-muted" x="380" y="282" text-anchor="middle">manifest of latest</text>
+<rect class="box" x="455" y="222" width="130" height="78" rx="8"/><text class="t-title" x="520" y="244" text-anchor="middle">executor</text><text class="t-small t-muted" x="520" y="264" text-anchor="middle">fanout, --jobs N</text><text class="t-small t-muted" x="520" y="282" text-anchor="middle">mock --uniqueext</text>
+<rect class="box" x="595" y="222" width="130" height="78" rx="8"/><text class="t-title" x="660" y="244" text-anchor="middle">repo</text><text class="t-small t-muted" x="660" y="264" text-anchor="middle">sign, repodata,</text><text class="t-small t-muted" x="660" y="282" text-anchor="middle">verify, push, tag</text>
+<rect class="box" x="735" y="222" width="130" height="78" rx="8"/><text class="t-title" x="800" y="244" text-anchor="middle">checks</text><text class="t-small t-muted" x="800" y="264" text-anchor="middle">advisories:</text><text class="t-small t-muted" x="800" y="282" text-anchor="middle">soname, closure</text>
+<path class="edge" d="M450,316 L450,346" marker-end="url(#arrow)"/>
+<rect class="box-muted" x="20" y="348" width="135" height="44" rx="8"/><text class="t" x="87" y="370" text-anchor="middle" dominant-baseline="middle">git</text>
+<rect class="box-muted" x="165" y="348" width="135" height="44" rx="8"/><text class="t" x="232" y="370" text-anchor="middle" dominant-baseline="middle">rpmspec</text>
+<rect class="box-muted" x="310" y="348" width="135" height="44" rx="8"/><text class="t-small" x="377" y="364" text-anchor="middle">mock with</text><text class="t-small" x="377" y="381" text-anchor="middle">rpmautospec</text>
+<rect class="box-muted" x="455" y="348" width="135" height="44" rx="8"/><text class="t" x="522" y="370" text-anchor="middle" dominant-baseline="middle">rpmsign, gpg</text>
+<rect class="box-muted" x="600" y="348" width="135" height="44" rx="8"/><text class="t-small" x="667" y="364" text-anchor="middle">createrepo_c</text><text class="t-small" x="667" y="381" text-anchor="middle">modifyrepo_c</text>
+<rect class="box-muted" x="745" y="348" width="135" height="44" rx="8"/><text class="t-small" x="812" y="364" text-anchor="middle">oras-go</text><text class="t-small" x="812" y="381" text-anchor="middle">to GHCR</text>
+<text class="t-small t-muted" x="450" y="414" text-anchor="middle">existing tools: repoctl calls them as child processes (oras-go as a library) and does not replace them</text>
+</svg>
+<figcaption>Three surfaces call one core. The core owns the plan, the run and the journal. The tools below stay as they are.</figcaption>
+</figure>
+<p>go-clikit gives most parts of the core and the surfaces:</p>
+<table class="compact">
+<thead><tr><th>go-clikit part</th><th>Use in repoctl</th></tr></thead>
+<tbody>
+<tr><td><code>cobratree</code></td><td>Command tree with strict flags.</td></tr>
+<tr><td><code>progress</code>, <code>cliprogress</code></td><td>Live tree on a terminal, plain lines for CI, JSONL progress log.</td></tr>
+<tr><td><code>fanout</code></td><td>Bounded parallel pools for <code>--jobs</code>.</td></tr>
+<tr><td><code>cliout</code></td><td>Tables and <code>--json</code> results.</td></tr>
+<tr><td><code>doctor</code></td><td>Host checks of <code>repoctl doctor</code>.</td></tr>
+<tr><td><code>fsutil</code></td><td>Atomic writes and file locks: <code>repoctl.lock</code> and the set lock.</td></tr>
+<tr><td><code>localweb</code></td><td>Local web UI with htmx and SSE.</td></tr>
+<tr><td><code>progress/mcpprogress</code></td><td>MCP progress notifications.</td></tr>
+</tbody>
+</table>
+<p>sind and brig use the same pattern: a CLI and a local UI on one core. sind also has an MCP server. skyhook-io/radar shows the same idea for Kubernetes: one binary, a live graph UI and an MCP server. The core model explains how the surfaces share words, selectors and exit codes (<a href="model.html#surfaces">model.html#surfaces</a>).</p>
+
+<h2 id="run">One build run</h2>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 338" role="img" aria-labelledby="run-t">
+<title id="run-t">One build run: plan, build in mock, checks, staging; publish is a separate step</title>
+<rect class="box" x="20" y="50" width="200" height="112" rx="8"/>
+<text class="t-title" x="36" y="74">1 plan</text>
+<text class="t-small" x="36" y="96">lock and specs: graph per target</text>
+<text class="t-small" x="36" y="116">RepoManifest of latest</text>
+<text class="t-small" x="36" y="136">build only new commits</text>
+<rect class="box-accent" x="260" y="50" width="240" height="112" rx="8"/>
+<text class="t-title t-on" x="276" y="74">2 build (mock)</text>
+<text class="t-small t-on" x="276" y="96">SRPM in the target chroot</text>
+<text class="t-small t-on" x="276" y="116">--addrepo staging of the run</text>
+<text class="t-small t-on" x="276" y="136">--addrepo local copy of latest</text>
+<rect class="box" x="540" y="50" width="160" height="112" rx="8"/>
+<text class="t-title" x="556" y="74">3 after each node</text>
+<text class="t-small" x="556" y="96">RPMs to staging</text>
+<text class="t-small" x="556" y="116">soname check</text>
+<text class="t-small" x="556" y="136">start the dependents</text>
+<rect class="box" x="740" y="50" width="140" height="112" rx="8"/>
+<text class="t-title" x="756" y="74">4 run ends</text>
+<text class="t-small" x="756" y="96">staged nodes</text>
+<text class="t-small" x="756" y="116">journal closed</text>
+<text class="t-small" x="756" y="136">run state, exit</text>
+<path class="edge" d="M220,106 L258,106" marker-end="url(#arrow)"/>
+<path class="edge" d="M500,106 L538,106" marker-end="url(#arrow)"/>
+<path class="edge" d="M700,106 L738,106" marker-end="url(#arrow)"/>
+<path class="edge" d="M620,50 C620,22 380,22 380,48" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="500" y="16" text-anchor="middle">next ready node, up to N jobs, each with mock --uniqueext</text>
+<path class="edge-err" d="M380,162 L380,200" marker-end="url(#arrow)"/>
+<rect class="box-warn" x="200" y="202" width="360" height="52" rx="8"/>
+<text class="t-small" x="380" y="222" text-anchor="middle">node failed: its dependents are blocked, other nodes go on</text>
+<text class="t-small" x="380" y="242" text-anchor="middle">staging and logs stay; latest does not change</text>
+<path class="edge-muted" d="M810,162 L810,200" marker-end="url(#arrow-muted)"/>
+<rect class="box-muted" x="660" y="202" width="220" height="52" rx="8"/>
+<text class="t-small" x="770" y="222" text-anchor="middle">publish: a separate step</text>
+<text class="t-small" x="770" y="242" text-anchor="middle">that a person starts</text>
+<rect class="box-soft" x="20" y="282" width="860" height="40" rx="8"/>
+<text class="t-small" x="450" y="302" text-anchor="middle" dominant-baseline="middle">journal runs/RUN.jsonl: the CLI, the web UI and MCP read the same events</text>
+</svg>
+<figcaption>One run of <code>repoctl build</code>. Nothing in a run changes what clients see.</figcaption>
+</figure>
+<ul>
+  <li><b>Plan.</b> repoctl reads <code>repoctl.lock</code>, makes the graph per target from the specs and reads the RepoManifest of <code>latest</code> from the local copy. A node builds only when its package commit and target are not in the manifest and not staged. Mock configs, macros and dependencies are not in this comparison (<a href="model.html#identity">model.html#identity</a>).</li>
+  <li><b>Build.</b> A node starts when each dependency is ok, current or staged. repoctl makes the SRPM in the target chroot. Then mock builds the RPMs with <code>--addrepo</code> on the staging repo of the run and on the local copy of <code>latest</code>. Thus pmix always builds against the munge of the set: the new one in staging, or the published one. This solves P1.</li>
+  <li><b>Parallel jobs.</b> Up to <code>--jobs N</code> builds run at the same time. Each job gets its own mock root through <code>mock --uniqueext</code>. repoctl sets it.</li>
+  <li><b>Failure.</b> A failed node blocks its dependents. Other nodes continue, because keep going is the default (<code>--fail-fast</code> stops). The staging and the logs stay.</li>
+  <li><b>Journal.</b> repoctl writes one journal per run. The CLI, the web UI and MCP read the same events (<a href="contract.html#journal">contract.html#journal</a>).</li>
+  <li><b>Publish</b> is a separate step that a person starts. It takes the staged nodes of the plan (<a href="publish.html#takes">publish.html#takes</a>).</li>
+</ul>
+<p>The build chapter specifies the run, with a step explainer of the story run <code>r-20261102-1750-a3f</code> (<a href="build.html#run">build.html#run</a>).</p>
+
+<h2 id="home">Where the tool lives</h2>
+<p>The GitHub repository <a href="https://github.com/dennisklein/repoctl">dennisklein/repoctl</a> has three kinds of branches. They do not share history.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 312" role="img" aria-labelledby="home-t">
+<title id="home-t">Branches of the repoctl repository, GitHub Pages and the admin host</title>
+<rect class="zone" x="10" y="10" width="880" height="150" rx="8"/>
+<text class="t-small t-muted" x="26" y="30">github.com/dennisklein/repoctl</text>
+<rect class="box-accent" x="30" y="44" width="250" height="100" rx="8"/>
+<text class="t-title t-on" x="155" y="68" text-anchor="middle">main (default branch)</text>
+<text class="t-small t-on" x="155" y="92" text-anchor="middle">Go module, skills, contrib/mirror/</text>
+<text class="t-small t-on" x="155" y="112" text-anchor="middle">docs/, CI and Pages workflows</text>
+<rect class="box" x="320" y="44" width="250" height="100" rx="8"/>
+<text class="t-title" x="445" y="68" text-anchor="middle">builder/slurm-26.05</text>
+<text class="t-small" x="445" y="92" text-anchor="middle">repoctl.yaml, repoctl.lock, macros</text>
+<text class="t-small" x="445" y="112" text-anchor="middle">slurm-release, keys/, CLAUDE.md</text>
+<text class="t-small t-muted" x="445" y="132" text-anchor="middle">set data only</text>
+<rect class="box" x="620" y="44" width="250" height="100" rx="8"/>
+<text class="t-title" x="745" y="68" text-anchor="middle">&lt;pkg&gt;/&lt;set&gt;[-&lt;variant&gt;]</text>
+<text class="t-small" x="745" y="92" text-anchor="middle">spec and full git history</text>
+<text class="t-small t-mono" x="745" y="112" text-anchor="middle">pmix/slurm-26.05-v4</text>
+<path class="edge" d="M570,94 L618,94" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="595" y="86" text-anchor="middle">pins</text>
+<path class="edge" d="M155,144 L155,194" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="165" y="176">CI on a tag</text>
+<rect class="box" x="30" y="196" width="250" height="96" rx="8"/>
+<text class="t-title" x="155" y="220" text-anchor="middle">GitHub Pages</text>
+<text class="t-small" x="155" y="244" text-anchor="middle">/ docs site</text>
+<text class="t-small" x="155" y="264" text-anchor="middle">/rpm/ Fedora repo of repoctl</text>
+<text class="t-small t-muted" x="155" y="282" text-anchor="middle">signed with the Pages key</text>
+<path class="edge" d="M280,244 L318,244" marker-end="url(#arrow)"/>
+<path class="edge-muted" d="M445,144 L445,194" marker-end="url(#arrow-muted)"/>
+<text class="t-small t-muted" x="455" y="176">set directory</text>
+<rect class="box-soft" x="320" y="196" width="250" height="96" rx="8"/>
+<text class="t-title" x="445" y="220" text-anchor="middle">admin host (Fedora)</text>
+<text class="t-small t-mono" x="445" y="244" text-anchor="middle">dnf install repoctl-release</text>
+<text class="t-small t-mono" x="445" y="264" text-anchor="middle">dnf install repoctl</text>
+<path class="edge" d="M570,244 L618,244" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="595" y="230" text-anchor="middle">publish</text>
+<rect class="box-muted" x="620" y="196" width="250" height="96" rx="8"/>
+<text class="t-title" x="745" y="220" text-anchor="middle">GHCR</text>
+<text class="t-small" x="745" y="244" text-anchor="middle">snapshots of the sets</text>
+<text class="t-small t-mono" x="745" y="264" text-anchor="middle">ghcr.io/gsi-hpc/slurm-repo</text>
+</svg>
+<figcaption>The tool, the set data and the packages live on separate branches. Pages carries the docs and the install repo of the tool; GHCR carries the set repos.</figcaption>
+</figure>
+<table>
+<thead><tr><th>Branch</th><th>Holds</th></tr></thead>
+<tbody>
+<tr><td><code>main</code> (default)</td><td>The Go module of repoctl, the skills, the mirror job (<code>contrib/mirror/</code>), the source of this docs site (<code>docs/</code>) and the CI workflows.</td></tr>
+<tr><td><code>builder/&lt;set&gt;</code></td><td>The data of one set: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, macros, the in-tree release package, <code>keys/</code>, <code>.repoctl/advisories.yaml</code> and <code>CLAUDE.md</code>. No scripts (<a href="model.html#set">model.html#set</a>).</td></tr>
+<tr><td><code>&lt;pkg&gt;/&lt;set&gt;[-&lt;variant&gt;]</code></td><td>One package: its spec and its full git history, which rpmautospec reads. Example: <code>pmix/slurm-26.05-v4</code>.</td></tr>
+</tbody>
+</table>
+<p>This solves P6. A fix to the tool is one commit on <code>main</code> and one release for all sets.</p>
+
+<h3 id="set-data">Generic logic and set data</h3>
+<p>This table shows what the scripts know about the slurm set, and where it goes.</p>
+<table class="compact">
+<thead><tr><th>Today</th><th>Specific to the slurm set</th><th>New place</th></tr></thead>
+<tbody>
+<tr><td><code>build ucx</code> … lines in <code>scripts/build</code></td><td>package list, hand order</td><td><code>packages:</code> in <code>repoctl.yaml</code>. The order comes from the <code>BuildRequires</code>.</td></tr>
+<tr><td><code>packages.lock</code></td><td>pins</td><td><code>repoctl.lock</code> (YAML)</td></tr>
+<tr><td><code>common.sh</code>: <code>reponame=slurm</code>, <code>rocky+epel-9</code></td><td>repo name, mock target</td><td><code>repo:</code> and <code>targets:</code></td></tr>
+<tr><td><code>scripts/macros</code></td><td>RPM macros</td><td>a file in the set, listed in <code>targets[].macros</code></td></tr>
+<tr><td><code>slurm-release</code> symlink in <code>build_repos</code></td><td>release package</td><td><code>role: release</code> on that package</td></tr>
+<tr><td><code>gh_repo_url</code> branch in <code>build_srpm</code></td><td>tarball from a git tag</td><td>No spec uses it. repoctl has no such source kind (<a href="config.html#scope">config.html#scope</a>).</td></tr>
+<tr><td><code>REPO_MAP</code>, <code>DEFAULT_FILTERS</code> of <code>package-info</code></td><td>upstream repo, tag filter</td><td><code>packages[].upstream</code></td></tr>
+<tr><td>comments in the skill ("pmix_v4 frozen at 4.2.9")</td><td>package notes</td><td><code>packages[].notes</code></td></tr>
+<tr><td>Fedora version through a <code>src.fedoraproject.org</code> remote</td><td>Fedora package name</td><td><code>packages[].upstream.fedora</code></td></tr>
+<tr><td>GitHub tag query, version sort, rc and beta filter</td><td>none (generic)</td><td><code>repoctl upstream</code> in Go</td></tr>
+<tr><td>workflow "list updates, read release notes, summarize"</td><td>none (generic)</td><td>a skill that ships with repoctl</td></tr>
+</tbody>
+</table>
+
+<h3 id="pages">GitHub Pages</h3>
+<ul>
+  <li><b>Docs site</b> at <code>https://dennisklein.github.io/repoctl/</code>. It has the structure of the <code>GSI-HPC/sind</code> site, with its own theme.</li>
+  <li><b>Fedora RPM repo of repoctl</b> at <code>/rpm/</code>. It holds the tool RPM and the release RPM <code>repoctl-release</code>. The release RPM installs the GPG key and the <code>.repo</code> file. The tool RPM requires all system tools: mock, mock-rpmautospec, rpm-sign, createrepo_c, git and gnupg2. Thus one <code>dnf install</code> gives a ready admin host.</li>
+</ul>
+<p>CI flow: a tag on <code>main</code> builds the RPMs in a <code>fedora</code> container and attaches them to a GitHub Release. The Pages job collects the RPMs of all releases, runs <code>createrepo_c</code>, signs <code>repomd.xml</code> and deploys the docs and the repo together. No <code>gh-pages</code> branch is necessary.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p>The Pages repo has its own GPG key, stored as a GitHub Actions secret. It is not a key of a package set, and it never signs set RPMs.</p>
+</aside>
+<p>Admin hosts install repoctl from this repo or from the RPMs of a GitHub Release. repoctl runs on Fedora only (<a href="model.html#people">model.html#people</a>). The slurm sets and the tool share one GitHub repository; whether the sets move to their own repository is an open question (<a href="delivery.html#open">delivery.html#open</a>). The delivery phases are in <a href="delivery.html#phases">delivery.html#phases</a>.</p>
+
+<h2 id="name">The name</h2>
+<p>The name is <code>repoctl</code>, in the pattern of <code>clusterctl</code>. The binary, the RPM and the Go module use this name. Fedora has no package with this name.</p>
+
+<h2 id="sources">Sources</h2>
+<ul>
+  <li><code>builder/slurm-26.05</code>: <code>scripts/*</code>, <code>packages.lock</code>, <code>.claude/skills/*</code> and the spec files of all package worktrees.</li>
+  <li><code>GSI-HPC/go-clikit</code>: README and <code>doc/architecture.md</code>.</li>
+  <li><code>GSI-HPC/sind</code>, <code>dennisklein/brig</code> and <code>skyhook-io/radar</code>: READMEs.</li>
+  <li>Dagger documentation on <code>insecureRootCapabilities</code>.</li>
+  <li>rpmautospec raises the release for each commit, also for an empty one, as Fedora mass rebuilds do (rpmautospec issue 217).</li>
+</ul>
+</body>
+</html>

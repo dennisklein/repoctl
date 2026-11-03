@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web UI: overview, build and runs</title>
+<meta name="description" content="Page specs of the repoctl web UI for daily build work: Overview, Advisories, Graph, Plan, Rebuild dialog, Runs, run page, node log and agent panel.">
+</head>
+<body>
+<h1>Web UI: overview, build and runs</h1>
+<p class="lede">This chapter specifies the pages of <code>repoctl ui</code> for daily build work: Overview, Advisories, Graph, Plan, the Rebuild dialog, Runs, the run page, the node log and the agent panel. The frame of all pages (shell, URL scheme, live updates, calm rules) is in <a href="ui.html">Web UI</a>. Each page gets a screenshot, its purpose, layout, actions, states, URL, CLI equivalent and live updates.</p>
+<ul class="keypoints">
+  <li>The screenshots show one moment of the story: run <code>r-20261102-1750-a3f</code> at 18:01 (11m02s), 8 builds, slurm@el10 failed, slurm-singularity-exec@el10 blocked.</li>
+  <li>Each page has one filled primary button, for the real next step. Other actions are quiet buttons or sit in a ⋯ menu.</li>
+  <li>The Overview starts with "Needs you": one numbered list in work order. Each fact shows once.</li>
+  <li>A pure Go function lays out the Graph. A state change never moves a card.</li>
+  <li>The run page puts a failure first: one plain sentence, the fixes, then the log evidence in a fold.</li>
+  <li>The agent panel only suggests. Each proposed action is a normal button that the person clicks.</li>
+</ul>
+
+<h2 id="common">Common parts</h2>
+<p>All pages use the app shell of <a href="ui.html#shell">ui.html#shell</a>. The run chip in the top bar is the only place that says "a run is active". In the story it reads <code>r-…a3f 2/8 builds · 1 failed · 11m02s</code>. A page body repeats the run state only when the page is that run.</p>
+<p>The page head has one "CLI" toggle. It also holds the command of each dialog that the page opens (<a href="ui.html#calm">R10</a>). A row shows one visible button and a ⋯ menu. Text that a person reads once is behind a "?" or a fold with a count. Link text is a time and a short id ("today 17:50 · a3f"). Each section ends with its URL, CLI equivalent and SSE events (mechanism: <a href="ui.html#live">ui.html#live</a>).</p>
+
+<h2 id="overview">Overview</h2>
+<figure class="shot"><a href="mockups/ui/overview.html"><img src="img/ui-overview.webp" alt="Overview at 18:01: Needs you with four items, advisories, runs, last publish and a short matrix" loading="lazy"></a><figcaption>Overview of slurm-26.05 at 18:01. The one filled button is Show log on item 1.</figcaption></figure>
+<p>Purpose: the Overview is the landing page of a set. It tells the person what needs action now, and in which order. The page head shows the set name, directory, branch and targets on one line; Plan, Build… and Publish… are outline buttons; the CLI toggle holds <code>repoctl status</code>, <code>repoctl advisories</code> and <code>repoctl runs</code>.</p>
+
+<h3 id="needs-you">Needs you</h3>
+<p>One numbered list in work order. An item has a kind label, a coloured left edge (red failure, amber attention, grey info), one sentence, one visible button and a ⋯ menu; a code comes after the sentence, small and muted. Kinds in order: open steps of a new set, failed nodes, required advisories, lock and worktree problems, doctor failures, a stale check, staged nodes that wait for a publish, the age of <code>latest</code>.</p>
+<table class="compact">
+<thead><tr><th>#</th><th>Kind</th><th>Text in the story</th><th>Visible button</th><th>⋯ menu</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Run</td><td>slurm@el10 failed in run 17:50. The build needs rocm-smi-devel. The package rocm-smi gives it, but only for el9. Under it, the line <code>error: Failed build dependencies: rocm-smi-devel is needed</code>.</td><td>Show log (filled primary), ✦ Explain failure (quiet)</td><td>–</td></tr>
+<tr><td>2</td><td>Advisory</td><td>pmix@el9 does not install on a new el9 host. <span class="tag req">required</span> pmix-6.1.0-1.el9 needs libhwloc.so.15; EPEL 9 now has hwloc-libs 2.11.2, which gives only libhwloc.so.16. A publish of el9 that changes pmix stops until you fix it or accept it.</td><td>Rebuild… (primary of its row only)</td><td>Show closure, Copy command, ✦ Is a rebuild necessary?</td></tr>
+<tr><td>3</td><td>Lock</td><td>repoctl.lock has changes that are not committed. ucx moves from 907c60d to 4b1e9c2 ("Bump to 1.22.1"); slurm, openmpi and slurm-singularity-exec have rebuild commits. Publish refuses a lock that is not committed.</td><td>Show diff</td><td>Copy commit command</td></tr>
+<tr><td>4</td><td>Repo</td><td>el9 and el10: latest is 51 days old.</td><td>Review…</td><td>–</td></tr>
+</tbody>
+</table>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>A fact shows once, where the person acts on it. The required advisory is Needs you item 2. The Advisories card only counts it ("1 required: item 2"), and the matrix does not tag it. The current run shows in the run chip, not in a card.</p></aside>
+
+<h3 id="overview-cards">Advisories, Runs and Last publish</h3>
+<ul>
+  <li><b>Advisories.</b> Head: "1 required: item 2 · checked today 06:00 (timer)", a "?" and Check now (quiet). The "?" names the checks with no finding (mock.drift, soname.removed) and those not set up (abi.changed needs libabigail). The info advisories fold to one line: "3 info advisories: munge@el9 buildroot drift · slurm 26.05.5 · openmpi 5.0.12"; open, a row has one sentence and Dismiss or ✦ Summarize upstream release. The foot links to the dismissed advisory. A failed or old check shows in amber (<a href="advisories.html#health">advisories.html#health</a>).</li>
+  <li><b>Runs.</b> The current run and the two newest finished build runs: "today 17:50 · a3f · repoctl build · CLI · ucx 1.22.1 and 3 rebuilds", e19 (Sep 12 12:51, 20 builds, ok, in latest), 77f (Sep 11 16:30, 3 builds, failed). The ⋯ menu of the current run: Open run and logs, Copy run id, Cancel run….</li>
+  <li><b>Last publish.</b> Two lines: "el9 and el10: snapshot c21, 2026-09-12 14:03" and "The local and served copies are the same." A "?" says that publish adds and only <code>repoctl repo prune</code> removes. The fold "Snapshot refs and signer" holds one ref per target with copy and the signer (d.klein …41D8 0B6E). Different snapshots per target give one line per target; a copy that is behind shows the pill "behind".</li>
+</ul>
+
+<h3 id="overview-matrix">Packages and targets matrix</h3>
+<p>The matrix shows only the packages that are not current on all their targets. The card head keeps a count per target: "el9 7 of 11 current · el10 6 of 10 current". A fold row "7 packages current on all their targets" holds munge, rocm-smi, pmix, pmix_v5, pmix_v4, prrte and slurm-release.</p>
+<p>Columns: Package, Version, one per target, Upstream. There is no Commit column: the commit is in the tooltip of the version and on the package page. A cell has the state word, the step or a note, and the NVR in muted mono. Pills only for running, failed and blocked; current is quiet text; rocm-smi@el10 shows "not a target". Upstream is empty for a current package, else accent text, not a pill: "↑ 26.05.5", "↑ 5.0.12" or "frozen". Story rows: ucx (staged on both targets), slurm (el9 rpm, el10 failed), openmpi (el9 rpm, el10 srpm), slurm-singularity-exec (el9 waiting, el10 blocked). A click on a cell opens the node in its run or in the node drawer.</p>
+<figure class="shot"><a href="mockups/ui/overview.html"><img src="img/ui-overview-mobile.webp" alt="Overview at 390 px: Needs you with buttons under the text, matrix with package, el9 and el10" loading="lazy"></a><figcaption>Overview at 390 px. The matrix keeps Package, el9 and el10. Buttons go under the text.</figcaption></figure>
+<p>States: with no item, Needs you is one line, "Nothing needs you." With no agent configured, the agent buttons are not in the HTML (<a href="#agent-panel">agent panel</a>). Empty, error and offline states are in <a href="ui.html#states">ui.html#states</a>.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-status"><code>repoctl status</code></a>, <a href="cli.html#cmd-advisories"><code>repoctl advisories</code></a>, <a href="cli.html#cmd-runs"><code>repoctl runs</code></a></dd>
+  <dt>Live</dt><dd><code>set-head</code>, <code>attention</code> (Needs you), <code>advisories</code>, <code>advisory:ID</code>, <code>current-run</code>, <code>recent-runs</code>, <code>last-publish</code>, <code>node:DIR@TARGET</code> (one matrix cell)</dd>
+</dl>
+
+<h2 id="advisories-page">Advisories page</h2>
+<figure class="shot"><a href="mockups/ui/advisories.html"><img src="img/ui-advisories.webp" alt="Advisories page: check line, one required row with Rebuild…, three info rows, one dismissed" loading="lazy"></a><figcaption>Advisories of slurm-26.05 on 2026-11-02: one required, three info, one dismissed.</figcaption></figure>
+<p>Purpose: the page lists all advisories of the set with their facts and the ways out, as <code>repoctl advisories ls</code> does (codes and gate: <a href="advisories.html#codes">advisories.html</a>).</p>
+<ul>
+  <li><b>Head.</b> Check line, Check now, CLI toggle, filter chips by level and target with counts.</li>
+  <li><b>Rows.</b> Order: required, warn, info; then by node. One plain sentence, then id, targets, check source and time, small and muted. The evidence (sonames, buildroot against the repo, who requires what) is in a fold.</li>
+  <li><b>Required row.</b> The sentence names the closure: "A publish of el9 that changes pmix stops." There is no Dismiss. Rebuild… is the filled primary of the page; Show closure and ✦ Is a rebuild necessary? are in ⋯. The person accepts a required advisory only in the publish review (<a href="ui-publish.html#accept">ui-publish.html#accept</a>).</li>
+  <li><b>Warn and info rows.</b> Dismiss is the visible button; Rebuild… and the agent button are in ⋯. An upstream.release row shows ✦ Summarize upstream release; Open package and Dismiss are in ⋯.</li>
+  <li><b>Dismissed.</b> <code>?dismissed=1</code> lists the dismissals with note, user and time (upstream.release/slurm-singularity-exec, "3.2.1 only changes the docs", d.klein). When the facts change, the advisory comes back as "dismissed, facts changed".</li>
+</ul>
+<p>The Dismiss dialog has a note field (8 or more characters); the CLI toggle of the page holds <code>repoctl advisories dismiss ID --note "…"</code>. After the write it says "Commit and push .repoctl/advisories.yaml", with a copy button (<a href="advisories.html#dismissals">advisories.html#dismissals</a>). A row has the element id <code>adv-</code> plus the advisory id with <code>/</code> and <code>@</code> changed to <code>-</code>.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/advisories[?dismissed=1&amp;level=&amp;target=]</code>; <code>POST …/-/actions/advisory-dismiss</code>, <code>advisory-undismiss</code>, <code>check</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-advisories"><code>repoctl advisories</code></a>, <a href="cli.html#cmd-check"><code>repoctl check</code></a></dd>
+  <dt>Live</dt><dd><code>advisories</code> (the list), <code>advisory:ID</code> (one row)</dd>
+</dl>
+
+<h2 id="graph">Graph</h2>
+<figure class="shot"><a href="mockups/ui/graph.html"><img src="img/ui-graph.webp" alt="Graph of el9 at 18:01: four lanes, ucx ok, slurm and openmpi running, the rest current" loading="lazy"></a><figcaption>Graph of el9 during run a3f. Δ marks the 4 nodes that the plan builds.</figcaption></figure>
+<p>Purpose: the Graph shows the build graph of one target with the live state of the current run: "why does this node build, and what waits for it" (edges: <a href="build.html#graph">build.html#graph</a>).</p>
+<ul>
+  <li><b>Head.</b> "11 nodes · 14 edges · edges from SRPM BuildRequires in rocky+epel-9-x86_64", Plan (outline), CLI toggle; Export DOT in ⋯.</li>
+  <li><b>Toolbar.</b> Target tabs (el9 11, el10 10, all) with a dot for a running or failed node; Show: All, In run, Advisories, Failed; find; DAG | Matrix.</li>
+  <li><b>Banner.</b> One line with "Why ▸": "4 nodes build in run 17:50: ucx has a new commit; slurm, openmpi and slurm-singularity-exec have rebuild commits."</li>
+  <li><b>Canvas.</b> One server-rendered SVG with level lanes, cards and orthogonal edges; zoom − 100% + Fit; the legend behind a "?". No run strip: the run chip gives the run state. <code>graph.js</code> (about 90 lines) only adds hover, zoom, timers and the edge state mirror.</li>
+</ul>
+
+<h3 id="graph-card">Node card</h3>
+<table class="compact">
+<thead><tr><th>Part</th><th>Content</th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td>Left bar</td><td>State colour</td><td>A failed card also gets the failed background, a blocked card the blocked background.</td></tr>
+<tr><td>Row 1</td><td>Δ · dir · advisory marker</td><td>Δ when the plan action is build. The marker is a small icon in the level colour with a tooltip ("slurm 26.05.5 is out"). A click opens the drawer at its advisories.</td></tr>
+<tr><td>Row 2</td><td>State · elapsed · version</td><td>Running: the elapsed time of the node ("6m53s"), which ticks in the browser; the tooltip and the drawer name the step. Ok: total time. Failed: step and time ("rpm 1m48s"). Blocked: "slurm failed". Waiting: "for slurm". Current: quiet text.</td></tr>
+</tbody>
+</table>
+<p>A card is 212 × 60 px (union view 212 × 84), HTML in a <code>foreignObject</code> that is 4 px larger on each side, so the focus ring is not cut.</p>
+
+<h3 id="graph-edges">Edges</h3>
+<table class="compact">
+<thead><tr><th>Style</th><th>Meaning</th><th>Attribute</th></tr></thead>
+<tbody>
+<tr><td>Solid grey</td><td>Dependency done (ok, current, staged)</td><td><code>data-src-state</code></td></tr>
+<tr><td>Dashed grey</td><td>Dependency pending: the dependent waits for it in this run</td><td><code>data-src-state</code></td></tr>
+<tr><td>Dashed red</td><td>Dependency failed or blocked</td><td><code>data-src-state</code></td></tr>
+<tr><td>Copper / dark, 2.5 px</td><td>Downstream / upstream of the selected node</td><td><code>is-down</code>, <code>is-up</code></td></tr>
+<tr><td>Dotted</td><td>Union view: the edge exists on some targets only</td><td><code>data-only="el9"</code></td></tr>
+</tbody>
+</table>
+<p>An arrow points from the dependency to the dependent, left to right in build order. A hub (4 or more inputs, for example slurm) has one shared entry port.</p>
+
+<h3 id="selection">Selection and highlight</h3>
+<figure class="shot"><a href="mockups/ui/graph-node.html"><img src="img/ui-graph-node.webp" alt="Graph of el9 with slurm selected, paths highlighted, other cards dimmed, drawer open" loading="lazy"></a><figcaption>slurm@el9 selected: upstream dark, downstream copper, the rest dimmed, the drawer open.</figcaption></figure>
+<ul>
+  <li>Hover on a card highlights its upstream and downstream paths, with no server request. A click (or Enter) pins the selection, opens the drawer and adds <code>&amp;node=slurm</code> to the URL. Esc or Clear removes it.</li>
+  <li>The selection bar names the upstream and downstream nodes. It gives the same facts as the colours, for screen readers and colour-blind users.</li>
+  <li>The server computes the transitive closure: each <code>g.gnode</code> has <code>data-up</code> and <code>data-down</code>. The client only toggles classes and draws highlighted edges last.</li>
+  <li>Filters dim nodes (opacity 0.32) and never remove them. The layout stays.</li>
+</ul>
+
+<h3 id="graph-failed">Failed and blocked nodes</h3>
+<figure class="shot"><a href="mockups/ui/graph-failed.html"><img src="img/ui-graph-failed.webp" alt="Graph of el10: slurm failed, slurm-singularity-exec blocked, no rocm-smi card" loading="lazy"></a><figcaption>Graph of el10. slurm failed in step rpm, slurm-singularity-exec is blocked, rocm-smi has no node.</figcaption></figure>
+<p>The error banner is one sentence: "slurm@el10 failed: rocm-smi-devel is not available for el10. 1 node is blocked." Open log is the filled primary; Package slurm is in ⋯. An info line names each package that excludes the target ("rocm-smi is not built for el10 (targets: [el9])"); its fold gives the two fixes. el10 has 10 nodes and 13 edges and keeps the node order of el9, so a package stays in place when the tab changes.</p>
+
+<h3 id="matrix">Matrix view</h3>
+<figure class="shot"><a href="mockups/ui/graph-matrix.html"><img src="img/ui-graph-matrix.webp" alt="Matrix view: packages grouped by level, one column per target" loading="lazy"></a><figcaption>Matrix view. Rows are grouped by level. A cell has the state, the NVR and the step or a hint.</figcaption></figure>
+<p>Columns: package (with Δ), version, needs (in set), one per target; a column head has the mock config and the counts per state. Row groups are the levels of the union graph, and all 11 packages show. A build cell shows the NVR after the build, a current cell the NVR in <code>latest</code> as quiet text; rocm-smi@el10 shows "not a target · targets: [el9]". Failed, running and blocked cells have a 3 px left bar. A click opens the same drawer as the DAG. The matrix suits many targets; the DAG answers "why does this build".</p>
+
+<h3 id="union">Union view</h3>
+<figure class="shot"><a href="mockups/ui/graph-all.html"><img src="img/ui-graph-all.webp" alt="Union graph of el9 and el10 with one state line per target and a dotted edge" loading="lazy"></a><figcaption>Union view (target all). The dotted edge rocm-smi → slurm exists on el9 only.</figcaption></figure>
+<p><code>target=all</code> draws the union of the target graphs. Each card has one state line per target. The union order is also the start order of each target layout.</p>
+
+<h3 id="node-drawer">Node drawer</h3>
+<p>A fixed panel, 460 px wide, on the right; the graph scrolls so that the selected node stays visible. Parts, for slurm@el9 at 18:01:</p>
+<table class="compact">
+<thead><tr><th>Part</th><th>Content</th></tr></thead>
+<tbody>
+<tr><td>Head</td><td>Node id, version, level, mock config, state, close (a link to the URL without <code>node=</code>).</td></tr>
+<tr><td>Actions</td><td>Open log (filled primary). Package page, In run and Plan this node in ⋯.</td></tr>
+<tr><td>Steps</td><td>srpm ok 0:41 → rpm running 6:12 with the last 3 log lines → stage.</td></tr>
+<tr><td>Why it builds</td><td>The plan reason and one sentence: "rebuild: the commit is the empty commit 'Rebuild: ucx 1.22.1'". A current node names its snapshot, a staged node its run. Reasons: <a href="build.html#plan">build.html#plan</a>.</td></tr>
+<tr><td>Build identity</td><td>Package commit with branch <code>slurm/slurm-26.05</code> and the target, next to the commit in <code>latest</code> (<a href="model.html#identity">model.html#identity</a>).</td></tr>
+<tr><td>Checks</td><td>The soname check of the dependencies that this run built: "Sonames of ucx unchanged: rebuild not necessary" (<code>checks.soname</code> of ucx@el9).</td></tr>
+<tr><td>Advisories</td><td>upstream.release/slurm (26.05.5).</td></tr>
+<tr><td>Dependencies</td><td>Needs (6) and Needed by (1) with states, and the BuildRequires that matched a set package.</td></tr>
+<tr><td>Output</td><td>NVR after the build (slurm-26.05.4-2.el9), the staging path after success, and Rebuild… (<a href="#rebuild-dialog">Rebuild dialog</a>).</td></tr>
+</tbody>
+</table>
+
+<h3 id="graph-mobile">Graph on a phone</h3>
+<figure class="shot"><a href="mockups/ui/graph.html"><img src="img/ui-graph-mobile.webp" alt="Graph at 390 px: a list with one heading per level and the cards under it" loading="lazy"></a><figcaption>Graph at 390 px. A level list replaces the SVG.</figcaption></figure>
+<p>The page also holds a level list: one heading per level, the same cards and a "needs …" line. Below 760 px it replaces the SVG; on a desktop it is visually hidden and serves screen readers.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/graph?target=el9&amp;view=dag|matrix[&amp;node=slurm][&amp;filter=run|advisories|failed][&amp;q=pmix]</code>; <code>target=all</code>; drawer fragment <code>/s/&lt;set&gt;/graph/node/DIR@TARGET</code>; <code>graph.dot</code>, <code>graph.json</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-graph"><code>repoctl graph --target el9 --format dot|json</code></a></dd>
+  <dt>Live</dt><dd><code>node:DIR@TARGET</code> (card, matrix cell, open drawer), <code>graph:TARGET</code> (structure changed: "The graph changed. Reload.")</dd>
+</dl>
+<p>A node event carries the whole card; htmx swaps it inside the <code>foreignObject</code>, so position and edges stay, and <code>graph.js</code> copies the state to the edges. The server sends it only for a change of state or step, at most 2 per node per second.</p>
+
+<h2 id="layout">Graph layout algorithm</h2>
+<p>Package <code>internal/web/graphlayout</code> lays out the graph. Input: the node ids in repoctl.yaml order, the edges (dependency → dependent) and the card size. Output: boxes, edge paths, lane rectangles and the SVG size. It is a pure, deterministic function with no I/O. The server caches the result by a hash of nodes, edges and target. A state change never causes a new layout.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 860 250" role="img" aria-labelledby="lay-t">
+<title id="lay-t">Part of the el9 graph in four lanes, with two virtual nodes and orthogonal edges</title>
+<rect class="zone" x="16" y="12" width="156" height="206" rx="8"/><text class="t-small t-muted" x="24" y="30">Level 0</text>
+<rect class="zone" x="236" y="12" width="156" height="206" rx="8"/><text class="t-small t-muted" x="244" y="30">Level 1</text>
+<rect class="zone" x="456" y="12" width="156" height="206" rx="8"/><text class="t-small t-muted" x="464" y="30">Level 2</text>
+<rect class="zone" x="676" y="12" width="156" height="206" rx="8"/><text class="t-small t-muted" x="684" y="30">Level 3</text>
+<path class="edge" d="M164 90 H244"/>
+<path class="edge-accent" d="M164 170 H604"/>
+<path class="edge-accent" d="M384 170 H434 Q440 170 440 164 V136 Q440 130 446 130 H464"/>
+<path class="edge" d="M384 90 H408 Q414 90 414 84 V66 Q414 60 420 60 H464"/>
+<path class="edge" d="M414 90 V112 Q414 118 420 118 H464"/>
+<path class="edge" d="M604 60 H624 Q630 60 630 66 V101 Q630 107 636 107 H684"/>
+<path class="edge-accent" d="M604 170 H650 Q656 170 656 164 V129 Q656 123 662 123 H684"/>
+<rect class="box" x="24" y="74" width="140" height="32" rx="8"/><text class="t-mono" x="94" y="94" text-anchor="middle">munge</text>
+<rect class="box-accent" x="24" y="154" width="140" height="32" rx="8"/><text class="t-on" x="94" y="174" text-anchor="middle">ucx</text>
+<rect class="box" x="244" y="74" width="140" height="32" rx="8"/><text class="t-mono" x="314" y="94" text-anchor="middle">pmix</text>
+<circle class="dot-accent" cx="314" cy="170" r="5"/>
+<rect class="box" x="464" y="44" width="140" height="32" rx="8"/><text class="t-mono" x="534" y="64" text-anchor="middle">prrte</text>
+<rect class="box" x="464" y="108" width="140" height="32" rx="8"/><text class="t-mono" x="534" y="128" text-anchor="middle">slurm</text>
+<circle class="dot-accent" cx="534" cy="170" r="5"/>
+<rect class="box" x="684" y="99" width="140" height="32" rx="8"/><text class="t-mono" x="754" y="119" text-anchor="middle">openmpi</text>
+<text class="t-small t-accent" x="314" y="200" text-anchor="middle">virtual node, shared</text>
+<text class="t-small t-accent" x="534" y="200" text-anchor="middle">virtual node</text>
+<text class="t-small t-muted" x="424" y="236" text-anchor="middle">one vertical track per group</text>
+<text class="t-small t-muted" x="754" y="150" text-anchor="middle">ports sorted by source y</text>
+</svg>
+<figcaption>Part of the el9 graph. ucx → slurm and ucx → openmpi share one virtual node in level 1. The edges of one item into the next layer share one vertical track.</figcaption>
+</figure>
+<ol class="steps">
+  <li><b>Layers.</b> layer(n) = 0 when n has no dependency in the set, else 1 + max(layer(dependency)). The UI levels are these layers; the build order follows them.</li>
+  <li><b>Virtual nodes.</b> An edge that spans more than one layer gets one virtual node (height 0) in each layer between. Virtual nodes are shared per (source, layer).</li>
+  <li><b>Order.</b> Start from the union order, so that a package keeps its place on all targets. Run 24 sweeps, down and up; each sorts a layer by the mean position of its neighbours in the previous layer. After each sweep, swap adjacent items when this gives fewer crossings (transpose). Keep the order with the fewest crossings. Ties: config order, then dir. A node with no edges (slurm-release) goes to the end of its layer.</li>
+  <li><b>Y.</b> Each item wants the mean y of its neighbours. Per layer, solve "closest to the wanted y, keep the order, keep the gaps" with isotonic regression (pool adjacent violators). Repeat 60 times. Gaps: 22 px node–node, 16 px node–virtual, 12 px virtual–virtual. The top is at 44 px, for the lane labels.</li>
+  <li><b>X.</b> One column per layer, card width 212 px. Channel width: max(80, 40 + (tracks − 1) · 12) px.</li>
+  <li><b>Routing.</b> Orthogonal. The edges of one item into the next layer form a group with one vertical track. A hub (4 or more inputs) has one entry port; other cards spread their ports over the left side, sorted by source y. An edge goes straight when the source y is inside the target box. Track order: test all orders for 7 groups or fewer, else use the barycenter. Corner radius 6 px. A long edge is one <code>&lt;path&gt;</code> through its virtual nodes, so hover marks it as one element.</li>
+  <li><b>Check.</b> A unit test asserts that no edge segment crosses the inside of a card. The golden test uses the el9 and el10 graphs of slurm-26.05.</li>
+</ol>
+<p>Cost: 11 nodes take well under 1 ms. Above 100 nodes the transpose step runs at most 4 rounds.</p>
+<p>The SVG has three groups: <code>g.lanes</code>, <code>g.edges</code> (each <code>g.edge</code> with <code>data-from</code>, <code>data-to</code>, <code>data-src-state</code> and a <code>&lt;title&gt;</code>) and <code>g.nodes</code> (each <code>g.gnode</code> with <code>data-node</code>, <code>data-up</code>, <code>data-down</code> and the card in a <code>foreignObject</code>). Cards are focusable (<code>role=button</code>); the tab order follows the layer, then y. The SVG has <code>role=img</code> and an <code>aria-label</code> with the counts.</p>
+
+<h2 id="plan">Plan</h2>
+<figure class="shot"><a href="mockups/ui/plan.html"><img src="img/ui-plan.webp" alt="Plan at 17:49: 8 build, 13 current, Start build, four build rows per target" loading="lazy"></a><figcaption>Plan at 17:49, before the run. The warning dep.not-for-target is next to slurm@el10.</figcaption></figure>
+<p>Purpose: the Plan page shows what <code>repoctl build</code> does now, and why, before the person starts it (actions and reasons: <a href="build.html#plan">build.html#plan</a>).</p>
+<ul>
+  <li><b>Head and form.</b> "Computed 17:49 from repoctl.lock, the manifests of latest and staging." Packages, Targets, From (lock | worktree); force, fail-fast and Jobs in an Options fold. The form maps 1:1 to the flags of <code>repoctl build</code> and keeps its state in the URL.</li>
+  <li><b>Start box.</b> "8 build · 13 current" (no zero counts) and one sentence: "Start build runs 8 nodes into a new staging repo. It does not sign or publish." Start build is the filled primary; it opens the build dialog.</li>
+  <li><b>Table.</b> One group per target: level, node, NVR after build, action, reason and advisory. el9: ucx@el9 build, commit-changed 907c60d → 4b1e9c2; slurm@el9, openmpi@el9, slurm-singularity-exec@el9 build, rebuild "ucx 1.22.1". el10: the same four. Current nodes fold into one row with node chips ("7 current", "6 current"); rocm-smi has one muted row, "not a target for el10".</li>
+  <li><b>Row notes.</b> dep.not-for-target stands next to slurm@el10: "slurm@el10 needs rocm-smi-devel. rocm-smi builds for el9 only." It does not stop Start build. "soname check pending" shows once, on the ucx rows.</li>
+  <li><b>Changes since latest.</b> Against c21: the four NVR changes and "Publish adds. Old versions stay until repoctl repo prune." The lock diff is behind "Show lock diff ▸".</li>
+  <li><b>Advisories.</b> Advisories of planned packages show as rows. The others fold with a count: "1 required and 3 info advisories do not touch this plan ▸".</li>
+</ul>
+<p>Rules: the form sends a hidden <code>plan=sha256:…</code>; when the server computes another hash, it starts no run and shows "The plan changed. Check it and start again." A selected node that needs a skipped dependency that is neither current nor staged gives an error row and turns Start build off. While a run of this user holds the set lock, Start build is off: "Run r-…a3f is active." (<a href="build.html#lock">build.html#lock</a>).</p>
+
+<h3 id="plan-staged">Plan after the run</h3>
+<figure class="shot"><a href="mockups/ui/plan-staged.html"><img src="img/ui-plan-staged.webp" alt="Plan after run a3f: 6 staged, 2 build, 13 current, Publish el9… as primary" loading="lazy"></a><figcaption>Plan after run a3f. el9 has only current and staged nodes, so Publish el9… is the primary.</figcaption></figure>
+<p>After the run, 6 nodes are staged (four on el9; ucx and openmpi on el10); slurm@el10 and slurm-singularity-exec@el10 still build. The counts read "6 staged · 2 build · 13 current". The run id shows once, in the start box ("6 nodes staged in run 17:50 · a3f"). The ucx rows carry the soname result once: "sonames unchanged: rebuild not necessary". When a target has only current and staged nodes, the primary is Publish el9…; Start build is an outline button whose note says that slurm@el10 fails the same way until its commit changes.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/plan?dir=ucx&amp;target=el9&amp;from=lock&amp;force=1&amp;fail_fast=1&amp;jobs=3</code> (no target: all)</dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-plan"><code>repoctl plan</code></a>; Start build = <a href="cli.html#cmd-build"><code>repoctl build</code></a></dd>
+  <dt>Live</dt><dd><code>plan:TARGET</code> (banner, Start build off until reload), <code>advisory:ID</code></dd>
+</dl>
+
+<h2 id="rebuild-dialog">Rebuild dialog</h2>
+<figure class="shot"><a href="mockups/ui/rebuild-dialog.html"><img src="img/ui-rebuild-dialog.webp" alt="Rebuild dialog for pmix: reason, preview of the empty commit and NVR change, Make 1 commit" loading="lazy"></a><figcaption>Rebuild dialog for pmix, opened from closure.broken/pmix@el9 over the Plan page.</figcaption></figure>
+<p>Purpose: the dialog makes the commits of <code>repoctl rebuild</code>. It never builds and never pushes (<a href="build.html#rebuild">build.html#rebuild</a>).</p>
+<ul>
+  <li><b>Title.</b> "Rebuild pmix · 1 package · all its targets", then "From advisory closure.broken/pmix@el9". Package chips with × and Add package….</li>
+  <li><b>Reason.</b> Required, 8 or more characters. The default comes from the advisory: "hwloc 2.11: libhwloc.so.16".</li>
+  <li><b>Preview.</b> Updates on input (200 ms delay). Per package: branch and current commit, the empty commit "Rebuild: &lt;reason&gt;", the NVR change per target (pmix-6.1.0-1.el9 → pmix-6.1.0-2.el9, the same on el10). The author shows once. The rpmautospec changelog entry is in a fold.</li>
+  <li><b>After this.</b> One line: "1 commit repoctl.lock · 2 push pmix · 3 Start build on Plan ›". Dependents are not rebuilt.</li>
+  <li><b>Footer.</b> Cancel and Make 1 commit (filled primary). The CLI toggle of the page that opens the dialog holds <code>repoctl rebuild pmix --reason "…"</code>. After the commit, a toast confirms it and the plan loads again.</li>
+</ul>
+<p>The body scrolls, so title and button stay on screen at 720 px. A rebuild takes the set lock: during a run, Make 1 commit is off with "Run r-…a3f is active."</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>GET /s/&lt;set&gt;/-/dialog/rebuild?dir=pmix&amp;advisory=closure.broken/pmix@el9</code>; <code>POST /s/&lt;set&gt;/-/actions/rebuild</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-rebuild"><code>repoctl rebuild DIR... --reason TEXT</code></a></dd>
+  <dt>Live</dt><dd>none; the toast comes with the response</dd>
+</dl>
+
+<h2 id="runs">Runs</h2>
+<figure class="shot"><a href="mockups/ui/runs.html"><img src="img/ui-runs.webp" alt="Runs page: status line, folded stats and filters, rows a3f running, c21, e19, 77f failed" loading="lazy"></a><figcaption>Runs of slurm-26.05 at 18:01. Pills only for running and failed.</figcaption></figure>
+<p>Purpose: the Runs page lists every build and publish run of the set, newest first, as <code>repoctl runs</code> does.</p>
+<ul>
+  <li><b>Head.</b> "Runs" with a "?", Plan a build (outline), CLI toggle. One status line: "Published Sep 12 14:03 by d.klein, 51 days ago". "Stats ▸" holds the 30-day counts and the median duration; Kind, By, Target, Since and "In latest only" are behind "Filters".</li>
+  <li><b>Columns.</b> Select, Run (time and short id), Selection with reason, Nodes (built · current · failed · blocked · open, no zeros), Duration, Result, ⋯ (Open run, Compare with the previous run). "via mcp" marks a run from MCP. Targets show only when a run did not build all targets.</li>
+  <li><b>Result.</b> Pills only for running and failed; ok, canceled, abandoned and "in latest" are quiet text. A publish run (<code>p-…</code>) shows its targets and its snapshot.</li>
+  <li><b>Primary.</b> When a target is publishable, the newest run with staged nodes gets Review publish ›. At 18:01 no target is publishable, so the page has no filled button.</li>
+  <li><b>Compare.</b> A tick on two rows shows Compare (per node: commit, NVR, duration). "Load 15 older" adds rows.</li>
+</ul>
+<p>Story rows: today 17:50 · a3f (running, "ucx 1.22.1 · 3 rebuilds", 2 built · 1 failed · 1 blocked · 4 open); Sep 12 14:03 · c21 (publish, el9 and el10, latest); Sep 12 12:51 · e19 (20 built, 1h12m, ok, in latest); Sep 11 16:30 · 77f (3 builds, failed). The older publish runs of el9 (4a7, the import) follow.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs[?state=&amp;kind=build|publish|check&amp;target=&amp;since=&amp;cursor=]</code>; <code>/s/&lt;set&gt;/runs/compare?a=RUN&amp;b=RUN|prev|published</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-runs"><code>repoctl runs [--state STATE] [--kind build|publish]</code></a></dd>
+  <dt>Live</dt><dd><code>recent-runs</code> (a new row), <code>run:RUN</code> (one row, at most once per second)</dd>
+</dl>
+
+<h2 id="run-detail">Run detail</h2>
+<figure class="shot"><a href="mockups/ui/run-detail.html"><img src="img/ui-run-detail.webp" alt="Run a3f at 18:01: progress sentence, failure card of slurm@el10 with Review el9 publish, progress tree" loading="lazy"></a><figcaption>Run a3f at 18:01. The failure card is above the fold; its next step is the primary.</figcaption></figure>
+<p>Purpose: the run page shows one run, live and after its end. A failure comes first, with what to do about it.</p>
+<ul>
+  <li><b>Header.</b> "Run 17:50 · a3f", state pill, one subline ("Started today 17:50 by d.klein from the CLI") and "Details ▸" (host, jobs 3, targets, selection, log path). Cancel run… is an outline button.</li>
+  <li><b>Progress.</b> One bar and one sentence: "17 of 21 nodes settled · 1 failed · 3 running · ends about 18:31". Settled means ok, current, staged, failed, blocked or canceled.</li>
+  <li><b>Failure card.</b> "slurm@el10 failed: rocm-smi-devel is not available for el10", then step, time and the blocked node. The diagnosis gives two fixes: guard the BuildRequires for el10 (<code>%if 0%{?rhel} &lt; 10</code>) or add el10 to the targets of rocm-smi; then commit, <code>repoctl pin slurm</code>, build again.</li>
+  <li><b>Next step.</b> In the card: "You can publish el9 while el10 is open, when the open el9 nodes finish." Review el9 publish › is the filled primary (off until then); Open log is next to it; Copy error, Copy for agent, ✦ Explain failure and Retry failed are in ⋯.</li>
+  <li><b>Log evidence ▸.</b> <code>root.log:813 · No matching package to install: 'rocm-smi-devel'</code>, rule id, mock exit code, 6 lines around the match.</li>
+  <li><b>Progress tree.</b> Target, node, steps, as in the CLI live tree. Each row: reason ("commit 907c60d → 4b1e9c2", "rebuild: ucx 1.22.1"), a timeline bar, duration, log link; a running row adds the last log line and Follow ›. Current nodes fold into one row per target.</li>
+  <li><b>Staging, Events.</b> One-line folds; a "?" says that staging is not signed. Browse staging › opens the <a href="ui-publish.html#staging">staging view</a>.</li>
+</ul>
+<figure class="shot"><a href="mockups/ui/run-detail.html"><img src="img/ui-run-detail-mobile.webp" alt="Run page at 390 px: failure card first, then a narrow tree" loading="lazy"></a><figcaption>Run page at 390 px. The tree drops the steps and timeline columns; running and failed nodes show their steps on a second line.</figcaption></figure>
+
+<h3 id="run-actions">Actions</h3>
+<table class="compact">
+<thead><tr><th>Action</th><th>Request</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td>Cancel run…</td><td><code>GET …/-/dialog/cancel?run=RUN</code>, then <code>POST /s/&lt;set&gt;/-/actions/cancel</code></td><td>A confirm dialog that names the origin of the run, then <code>repoctl cancel RUN</code> (<a href="build.html#cancel">build.html#cancel</a>): open nodes become canceled, ok nodes stay staged.</td></tr>
+<tr><td>Retry failed</td><td><code>POST /s/&lt;set&gt;/-/actions/build</code></td><td>A new run with the dirs of the failed and blocked nodes, on the old targets (<code>repoctl build slurm slurm-singularity-exec</code>). The plan reads repoctl.lock again. Off while the old run is active. The entry says when a retry cannot help: the commit did not change since the failure.</td></tr>
+<tr><td>Open in terminal</td><td>client side</td><td>In the CLI toggle. Copies <code>repoctl -C ~/src/slurm-repo runs RUN --follow</code>.</td></tr>
+<tr><td>Copy for agent</td><td>client side</td><td>Copies <code>repoctl logs RUN NODE --json</code>, which includes the problems list.</td></tr>
+</tbody>
+</table>
+
+<h3 id="error-extraction">Error extraction</h3>
+<p>repoctl scans each log while mock writes it. A rule gives a summary, the evidence lines and an optional diagnosis. A fingerprint (rule, normalized capture, DIR@TARGET) finds the same error in earlier runs. The rules live in the core, so CLI, MCP and the triage-build skill get the same results.</p>
+<table class="compact">
+<thead><tr><th>Rule</th><th>Match (examples)</th><th>Log</th></tr></thead>
+<tbody>
+<tr><td>missing-buildrequires</td><td>dnf4 <code>No matching package to install: '(.+)'</code>; dnf5 <code>No match for argument: (.+)</code>; <code>error: Failed build dependencies:</code></td><td>root.log, build.log</td></tr>
+<tr><td>build-section-failed</td><td><code>error: Bad exit status from /var/tmp/rpm-tmp.\w+ \(%(prep|build|install|check)\)</code></td><td>build.log</td></tr>
+<tr><td>unpackaged-files</td><td><code>error: Installed \(but unpackaged\) file\(s\) found:</code></td><td>build.log</td></tr>
+<tr><td>compile-error, make-error</td><td><code>^\S+:\d+:\d+: (fatal )?error: </code>; <code>make(\[\d+\])?: \*\*\* .* Error \d+</code></td><td>build.log</td></tr>
+<tr><td>mock-error</td><td><code>^ERROR: Exception\(</code>, <code>ERROR: Command failed</code></td><td>repoctl.log</td></tr>
+</tbody>
+</table>
+<p>For missing-buildrequires: when a set package provides the capability but its targets exclude the node target, the card says so and gives the two fixes. A failure of the class host (no disk space, mock group missing) says "A retry can help after the host fix" and links to <code>repoctl doctor</code>.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN</code>, for example <code>/s/slurm-26.05/runs/r-20261102-1750-a3f</code>; publish runs use the same form</dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-runs"><code>repoctl runs RUN --follow</code></a>, <a href="cli.html#cmd-logs"><code>repoctl logs</code></a>, <a href="cli.html#cmd-cancel"><code>repoctl cancel</code></a>; frame <a href="terminal.html#build-failed">build failure</a></dd>
+  <dt>Live</dt><dd><code>run:RUN</code> (header, progress, failure cards, staging, events; the SSE URL has <code>&amp;run=RUN</code>), <code>node:DIR@TARGET</code> (one tree row). Elapsed times tick in the browser. A finished run opens no stream.</dd>
+</dl>
+
+<h2 id="node-log">Node log</h2>
+<figure class="shot"><a href="mockups/ui/node-log-failed.html"><img src="img/ui-node-log-failed.webp" alt="Log of slurm@el10: root.log, line 813 selected, search rocm, Problems list" loading="lazy"></a><figcaption>slurm@el10 (failed): root.log of step rpm, line 813 selected, search "rocm" (2 matches), wrap on.</figcaption></figure>
+<figure class="shot"><a href="mockups/ui/node-log-live.html"><img src="img/ui-node-log-live.webp" alt="Live log of slurm@el9 in step rpm with Follow on" loading="lazy"></a><figcaption>slurm@el9 (running). Follow is on. New lines arrive over SSE and flash once.</figcaption></figure>
+<p>Purpose: the node log shows the logs of one node in one run. It holds the evidence; the run page gives the summary.</p>
+
+<h3 id="log-layout">Layout</h3>
+<ul>
+  <li><b>Head.</b> Node id, state pill, one subline (NVR, step, times), Back to run, CLI toggle.</li>
+  <li><b>Step bar.</b> srpm, rpm, stage with state and duration. Default: the failed step, else the running one, else the last.</li>
+  <li><b>Tabs.</b> build.log, root.log, state.log of the step, then repoctl.log, each with its line count and an error or warning badge. Default: the file that holds the first error, so root.log for the builddep failure of slurm@el10. <code>repoctl logs</code> shows the node log of repoctl by default; <code>--file root</code> gives the same file as the UI (<a href="cli.html#cmd-logs">cli.html#cmd-logs</a>).</li>
+  <li><b>Toolbar.</b> Search, Follow, Wrap (at spaces), Problems only (with 3 lines of context), Raw. The status line gives file, range and size; while it follows, "live" and "Load 2,000 earlier lines".</li>
+  <li><b>Log view.</b> Line anchors (<code>#L813</code>); a red bar for error lines, amber for warnings, copper for the selected line; <code>&lt;mark&gt;</code> for matches; a dark surface in both themes.</li>
+  <li><b>Problems.</b> The errors and warnings of all logs of the node as a jump list (step/file:line).</li>
+  <li><b>Folds, closed.</b> Build inputs (commit, target and mock config, reason, lock or worktree, plugins, macros, repos, matched set packages; only the rows that need a look, for example "rocm-smi@el10: no node") and Mock result directory (files, kept chroot, All logs .tar.gz).</li>
+</ul>
+<p>Keys: <kbd>/</kbd> search, <kbd>n</kbd> / <kbd>N</kbd> match, <kbd>e</kbd> next error, <kbd>f</kbd> follow, <kbd>w</kbd> wrap, <kbd>g</kbd> / <kbd>G</kbd> start or end.</p>
+
+<h3 id="log-follow">Follow</h3>
+<ul>
+  <li>Follow works only while the node runs; for a finished node it is off with "node finished".</li>
+  <li>A scroll up pauses follow. A bar counts the new lines; End or a click on the bar starts it again.</li>
+  <li>When the step changes, the page goes to the new step only if the person did not pick a step.</li>
+  <li>When the node ends, the last line reads "node finished HH:MM:SS · log closed".</li>
+</ul>
+
+<h3 id="log-files">Log files</h3>
+<table class="compact">
+<thead><tr><th>File</th><th>Writer</th><th>Content</th></tr></thead>
+<tbody>
+<tr><td>root.log</td><td>mock</td><td>Chroot setup, dnf, install of the SRPM, <code>dnf builddep</code>. Missing build dependencies show here.</td></tr>
+<tr><td>build.log</td><td>mock</td><td>rpmbuild output (%prep to %check), compiler errors. The largest file (slurm: about 6,000 lines, 2.4 MiB).</td></tr>
+<tr><td>state.log</td><td>mock</td><td>Phases with Start and Finish lines. A Start without Finish marks the failed phase.</td></tr>
+<tr><td>repoctl.log</td><td>repoctl</td><td>One per node: reason, mock argv and stderr, exit codes, step times, extracted errors, blocked nodes.</td></tr>
+</tbody>
+</table>
+<p>Each step is one mock call with its own logs (paths: <a href="build.html#logs">build.html#logs</a>). hw_info.log stays in the result directory, with no tab.</p>
+
+<h3 id="log-limits">Size limits</h3>
+<ul>
+  <li>The page holds the last 2,000 lines of a file; the first render reads from the end (seek, no full scan). Follow appends batches (every 200 ms, at most 64 KiB per event) and drops lines at the top to keep 2,000.</li>
+  <li>"Load 2,000 earlier lines" adds a window at the top, up to 6,000 lines; then follow pauses. A jump outside the page loads a window around the line (<code>around=</code>); a line index (<code>FILE.idx</code>, one offset per 1,000 lines) makes this fast.</li>
+  <li>A line over 4,096 characters is cut in the view with "(+N chars)". Search runs on the server over the full file (any case, at most 500 matches). Problems: at most 200 per file. Raw streams the full file.</li>
+</ul>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN/nodes/DIR@TARGET[?step=rpm&amp;file=root.log&amp;q=&amp;follow=1&amp;wrap=1&amp;around=N][#L813]</code>; raw <code>…/nodes/DIR@TARGET/logs/STEP/FILE[?download=1]</code> (for example <code>…/logs/rpm/root.log</code>), <code>…/logs.tar.gz</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-logs"><code>repoctl logs RUN NODE [--step] [--file] [--follow]</code></a>; frame <a href="terminal.html#logs">logs</a></dd>
+  <dt>Live</dt><dd><code>log:DIR@TARGET</code> (appended lines; the SSE URL has <code>&amp;node=DIR@TARGET</code>; the event id is the byte offset, so a reconnect sends no line two times), <code>node:DIR@TARGET</code> (step bar, last line)</dd>
+</dl>
+
+<h2 id="finished">Finished runs</h2>
+<figure class="shot"><a href="mockups/ui/run-success.html"><img src="img/ui-run-success.webp" alt="Run e19 after the end: one header line, in latest as c21, folded checks" loading="lazy"></a><figcaption>Run e19 (2026-09-12), finished ok and published as c21.</figcaption></figure>
+<p>When a run ends, a summary card replaces the progress region; the tree stays below. The summary is one header line ("20 built · 1h12m · jobs 3 · el9, el10 · exit 0") and the call to action. The staging diff against <code>latest</code> and the publish checks are folds that open on a failure.</p>
+<table class="compact">
+<thead><tr><th>Result</th><th>Exit</th><th>Summary card</th><th>Call to action</th></tr></thead>
+<tbody>
+<tr><td>ok</td><td>0</td><td>Counts, staging diff; a published run says "in latest as c21".</td><td>Review publish › when a target is publishable, else the first failing check with its fix.</td></tr>
+<tr><td>failed</td><td>3</td><td>Counts (a3f: 6 ok, 1 failed, 1 blocked, 13 current, 41m07s) and the failure cards.</td><td>Review el9 publish ›. In the story the first failing check is the lock ("repoctl.lock has changes that are not committed", with the commit command).</td></tr>
+<tr><td>canceled</td><td>130</td><td>"Canceled by d.klein at HH:MM." Staging stays.</td><td>Build again</td></tr>
+<tr><td>abandoned</td><td>–</td><td>"The process of this run ended without a result." Ok nodes stay staged.</td><td>Open log</td></tr>
+<tr><td>publish ok</td><td>0</td><td>The eight steps, the snapshot, "served: behind".</td><td>none (<a href="ui-publish.html#done">Done</a>)</td></tr>
+<tr><td>publish failed</td><td>13</td><td>What is true now: nothing is tagged, or the snapshot is in the registry; <code>latest</code> is unchanged.</td><td><code>repoctl repo push p-…</code> (<a href="ui-publish.html#failed">Failed</a>)</td></tr>
+</tbody>
+</table>
+<p>A target is publishable when each of its nodes is current or staged (<a href="publish.html#takes">publish.html#takes</a>). The summary card shows only the first publish check that fails; the review shows all.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-runs"><code>repoctl runs RUN</code></a></dd>
+  <dt>Live</dt><dd><code>run:RUN</code> swaps in the summary card; then the server closes the stream.</dd>
+</dl>
+
+<h2 id="agent-panel">Agent panel</h2>
+<figure class="shot"><a href="mockups/ui/agent-panel.html"><img src="img/ui-agent-panel.webp" alt="Agent panel: verdict for slurm@el10, Fix A and Fix B, closed folds" loading="lazy"></a><figcaption>Explain failure on slurm@el10, done. The verdict and the two fixes are above the fold.</figcaption></figure>
+<p>Purpose: the agent panel shows the result of an agent button. Its behaviour (skills, tool lists, the agent command, why there is no chat) is in <a href="agents.html#agent-panel">agents.html#agent-panel</a>. This section gives the screens.</p>
+<ul>
+  <li><b>Frame.</b> A drawer on the right, 600 px wide, under the top bar; full screen below 760 px. The page under it reflows, and the source row shows as selected.</li>
+  <li><b>Head and verdict.</b> "Explain failure · slurm@el10", one muted line ("Done in 0m19s · triage-build · claude -p · input run 17:50 · read only"), then one bold line: "slurm needs rocm-smi-devel on el10, but rocm-smi is built for el9 only."</li>
+  <li><b>Proposed actions.</b> Fix A: guard the BuildRequires for el10 (<code>%if 0%{?rhel} &lt; 10</code>), with the proof line from <code>repoctl_graph</code>: "The graph of el10 has one unresolved BuildRequires for slurm: rocm-smi-devel. The guard removes it." Pin fix and build… is the filled primary; it stays off until the slurm branch has a new commit, then SSE turns it on. Copy diff and Open package are in ⋯. Fix B: add el10 to the targets of rocm-smi, with the repoctl.yaml line.</li>
+  <li><b>Folds and foot.</b> "Show diff (+3 −1)", "Evidence (5 lines)", "Tools used (5)", "Details" (skill, agent, agent id). Continue in terminal copies <code>claude --resume SESSION</code>. Last line: "Suggestions only. repoctl changes nothing until you click."</li>
+</ul>
+<figure class="shot"><a href="mockups/ui/agent-running.html"><img src="img/ui-agent-running.webp" alt="Agent panel while it runs: time, Stop, tools used with a spinner" loading="lazy"></a><figcaption>The same task while the agent runs. Text arrives over SSE.</figcaption></figure>
+<p>While the agent runs, the head shows "running", the time and Stop, and Tools used is open with a spinner on the current call. Screen readers hear only "Agent done" or "Agent stopped".</p>
+<figure class="shot"><a href="mockups/ui/overview-no-agent.html"><img src="img/ui-overview-no-agent.webp" alt="Overview with no agent configured: no agent buttons, one line in the Advisories foot" loading="lazy"></a><figcaption>No agent configured: the same layout without agent buttons.</figcaption></figure>
+<p>With no agent in the user config, the server leaves the agent buttons out of the HTML (no disabled buttons). The Advisories foot says "Agent buttons are off. How to turn them on". The plain diagnosis stays: an agent button never replaces the deterministic hint.</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>?agent=ID</code> on any set page opens a stored result; start and stop routes: <a href="agents.html#agent-buttons">agents.html#agent-buttons</a></dd>
+  <dt>CLI</dt><dd>none; Continue in terminal hands the session to the agent tool</dd>
+  <dt>Live</dt><dd><code>agent:ID</code> (tool calls, text, final state; the SSE URL has <code>&amp;agent=ID</code>)</dd>
+</dl>
+</body>
+</html>
