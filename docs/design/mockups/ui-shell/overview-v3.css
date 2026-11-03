@@ -1,0 +1,152 @@
+/* overview-v3.css: the calm Overview (and the agent drawer over it).
+   Link after ../shared/calm-v3.css. Tokens only, no new colours. */
+
+/* R1: one run chip format. Numbers in sans (R12), the short id in mono. */
+.run-chip .n{font-family:var(--font-sans);color:var(--c-text-2)}
+.run-chip .n .bad{color:var(--s-failed);font-weight:600}
+
+/* page head: one muted meta line */
+.calm .set-head{align-items:center;margin-bottom:18px}
+.calm .set-head h1{margin-bottom:2px}
+.calm .set-meta{font-size:12.5px;color:var(--c-text-3);gap:4px}
+.calm .set-meta b.mono{font-weight:500;color:var(--c-text-2)}
+.set-head .actions{align-items:center}
+.cli-toggle{position:relative}
+.cli-toggle .cli-pop{right:0;top:100%}
+
+/* layout: work on the left, runs and publish on the right, the matrix under both */
+.main{container:main / inline-size}
+.ov3{display:grid;gap:var(--gap-card);grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"main side" "mat mat";align-items:start}
+.ov3>*{min-width:0}
+.col-main{grid-area:main;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap-card);min-width:0}
+.col-side{grid-area:side;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap-card);min-width:0}
+.mat3{grid-area:mat}
+@container main (max-width:980px){.ov3{grid-template-columns:minmax(0,1fr) 300px}}
+@container main (max-width:820px){.ov3{grid-template-columns:minmax(0,1fr);grid-template-areas:"main" "side" "mat"}}
+
+/* Needs you: one numbered "do this now" list */
+.todo-list{list-style:none;margin:0;padding:0}
+.todo-list>li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:4px 14px;align-items:start;padding:14px 16px;border-top:1px solid var(--c-border)}
+.todo-list>li:first-child{border-top:0}
+.todo-list .no{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:600 12px var(--font-sans);
+  border:1.5px solid var(--c-border-strong);color:var(--c-text-3);margin-top:1px}
+.todo-list .t-failed .no{border-color:var(--s-failed);color:var(--s-failed)}
+.todo-list .t-warn .no{border-color:var(--s-blocked);color:var(--s-blocked)}
+.todo-list .first .no{background:var(--s-failed);border-color:var(--s-failed);color:var(--c-surface)}
+.todo-list .what{display:grid;gap:4px;min-width:0}
+.todo-list .t{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-weight:500;line-height:24px}
+.todo-list .kind{font-size:12px;font-weight:500;color:var(--c-text-3);min-width:56px}
+.todo-list .s{margin:0;font-size:13px;color:var(--c-text-2)}
+.todo-list .s .code-sub{margin-left:4px;white-space:nowrap}
+.todo-list .errline{justify-self:start;max-width:100%;margin-top:4px;padding:4px 8px;font-size:12px}
+.todo-list .acts{display:flex;gap:6px;align-items:center}
+.todo-list .t-info .t{font-weight:400;color:var(--c-text-2)}
+/* the row whose agent result is open in the drawer */
+.todo-list>li.is-selected{background:var(--c-surface-2);box-shadow:inset 3px 0 0 var(--c-primary)}
+.todo-list>li.is-selected:first-child{border-top-left-radius:var(--r-lg)}
+.btn-agent[aria-pressed="true"]{background:var(--c-surface);border-color:var(--c-primary);color:var(--c-text)}
+
+/* "more" menus with a long command: show it under the label */
+.more-pop{min-width:260px}
+.more-pop button .code-sub{display:block;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.more-pop button:has(.code-sub){flex-direction:column;align-items:flex-start;gap:2px}
+
+/* "?" help as a small popover, so it does not push the card head */
+.helpd{position:relative;display:inline-block}
+.helpd>summary{list-style:none}
+.helpd>summary::-webkit-details-marker{display:none}
+.helpd>.help-text{position:absolute;right:-8px;top:calc(100% + 6px);width:300px;z-index:25;margin:0;background:var(--c-surface);
+  border:1px solid var(--c-border);box-shadow:var(--shadow-2);font-size:12.5px;line-height:1.55;color:var(--c-text-2);white-space:normal}
+.card-head .right{color:var(--c-text-3);font-size:12.5px}
+.card-head .right .sep{margin:0}
+
+/* Advisories: one line, info rows fold */
+.adv3 details.fold{border-top:1px solid var(--c-border)}
+.calm .adv3 .card-head + *{border-top:1px solid var(--c-border)}
+.adv3 details.fold>summary{padding:11px 16px}
+.adv3 details.fold>summary b{font-weight:500;color:var(--c-text)}
+.adv3 details.fold>summary .sum{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.adv3 .rows>li{padding:10px 16px 10px 32px}
+.adv3 .rows .t{font-size:13.5px}
+
+/* Runs and Last publish: compact */
+.rows.mini>li{padding:9px 16px;gap:1px 12px}
+.rows.mini .t{font-size:13.5px}
+.rows.mini .t .muted{font-size:12px;margin-left:4px}
+.rows.mini .s{font-size:12.5px;color:var(--c-text-3)}
+.pub3 .card-body{padding:12px 16px}
+.pub3 p{margin:0;font-size:13.5px}
+.pub3 .l2{font-size:12.5px;color:var(--c-text-3);margin-top:2px}
+.pub3 .kv{grid-template-columns:44px minmax(0,1fr);font-size:12.5px}
+.pub3 .ref{display:flex;align-items:flex-start;gap:2px}
+.pub3 .ref .mono{font-size:11.5px;overflow-wrap:anywhere;color:var(--c-text-2)}
+.pub3 details.fold>.fold-body{padding:0 16px 12px 16px}
+
+/* matrix: exceptions first, the rest folds */
+.m3{table-layout:fixed}
+.m3 col.c-pkg{width:28%}.m3 col.c-ver{width:13%}.m3 col.c-t{width:23%}.m3 col.c-up{width:13%}
+.m3 td{padding:9px 16px;vertical-align:top}
+.m3 th{padding:8px 16px}
+.calm .m3 th{background:transparent;color:var(--c-text-3)}
+.m3 .pkg{font-weight:500;overflow-wrap:anywhere}
+.m3 td.mono{font-size:12.5px;color:var(--c-text-2)}
+.m3 .mcell{display:inline-grid}
+.m3 .nvr{font-size:11.5px}
+.m3 .nvr .v{font-weight:500}
+.m3 .note{font-size:12px;color:var(--c-text-2)}
+.m3 .code-sub{font-size:11.5px}
+.qs.run{color:var(--s-running)}
+.qs.cur{color:var(--c-text-3)}
+.mrest{border-top:1px solid var(--c-border)}
+.mrest>summary.rest{padding:10px 16px}
+.mrest .m3 tr:first-child td{border-top:0}
+.mrest[open]>summary.rest{border-bottom:1px solid var(--c-border)}
+
+/* ---------- agent drawer v3 (agent-panel-v3) ---------- */
+@media (min-width:1101px){
+  body.has-drawer .main{padding-right:calc(600px + 24px)}
+}
+.d3 .dr-head{gap:4px;padding:14px 16px 12px}
+.d3 .dr-line{margin:0;font-size:12.5px;color:var(--c-text-3)}
+.d3 .dr-line code{font-size:12px;color:var(--c-text-2)}
+.d3 .dr-body{padding:0}
+.d3 .dr-body>section{padding:14px 16px;border-bottom:1px solid var(--c-border)}
+.d3 .verdict .v{font-size:15px;line-height:1.45;margin:0 0 4px;max-width:62ch}
+.d3 .verdict p{font-size:13.5px;color:var(--c-text-2);max-width:68ch}
+.d3 h3{font-size:13px;text-transform:none;letter-spacing:0;color:var(--c-text);font-weight:600;margin:0 0 8px}
+.d3 .fixes{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.d3 .fixes>li{display:grid;gap:4px}
+.d3 .fx-h{font-size:13.5px}
+.d3 .fx-h b{font-weight:600}
+.d3 .fixes .s{margin:0;font-size:13px;color:var(--c-text-2);max-width:68ch}
+.d3 .proof{display:flex;gap:6px;align-items:baseline;margin:2px 0 0;font-size:13px;color:var(--c-text-2)}
+.d3 .proof .ok{color:var(--s-ok);font-weight:600}
+.d3 .fx-acts{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.d3 .fx-acts .why{font-size:12px;color:var(--c-text-3)}
+.d3 details.fold>summary{padding:10px 16px}
+.d3 details.fold>summary b{font-weight:500;color:var(--c-text)}
+.d3 details.fold>summary .sum{font-family:var(--font-mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.d3 details.fold>.fold-body{padding:0 16px 14px 16px}
+.d3 details.fold:last-child{border-bottom:1px solid var(--c-border)}
+.d3 .kv{grid-template-columns:64px minmax(0,1fr);font-size:12.5px}
+.d3 .dr-foot{justify-content:space-between;background:var(--c-surface)}
+.d3 .dr-foot .lnk{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--c-primary);font:500 13px var(--font-sans);cursor:pointer}
+.d3 .dr-foot .lnk:hover{text-decoration:underline}
+.d3 .dr-foot .lnk svg{width:14px;height:14px}
+.d3 .dr-foot .helpd>.help-text{top:auto;bottom:calc(100% + 6px);right:-8px}
+
+/* narrow main (agent drawer open, or a small window): actions go under the text, the matrix drops Version */
+@container main (max-width:700px){
+  .todo-list>li{grid-template-columns:24px minmax(0,1fr)}
+  .todo-list .acts{grid-column:2;margin-top:6px}
+  .adv3 .card-head,.mat3 .card-head{flex-wrap:wrap}
+  .m3 col.c-ver,.m3 th:nth-child(2),.m3 td:nth-child(2){display:none}
+  .m3 col.c-ver{width:0}.m3 col.c-pkg{width:28%}.m3 col.c-t{width:26%}.m3 col.c-up{width:20%}
+  .m3 .nvr{display:none}
+  .m3 .upd{font-size:12px;gap:2px}
+  .m3 td,.m3 th{padding-left:12px;padding-right:8px}
+  .calm .set-head{flex-wrap:wrap}
+  .calm .set-head .actions{margin-left:0}
+}
+.d3 details.fold>summary b{white-space:nowrap}
+.d3 .ev{grid-template-columns:104px minmax(0,1fr)}
