@@ -16,6 +16,12 @@ The design record is in [`docs/design/`](docs/design/index.html):
 2. [repoctl core: config, XDG, targets, skills](docs/design/02-repoctl.html)
 3. [Build state, rebuilds, snapshots, LLM in the UI](docs/design/03-build-state.html)
 4. [CLI, contract and web UI](docs/design/04-cli-ui.html), with [mockups](docs/design/mockups/index.html)
+5. [Publish, snapshots and signing](docs/design/05-publish-snapshots-signing.html) (proposal)
+6. [Advisories and package lifecycle](docs/design/06-advisories-lifecycle.html) (proposal)
+
+Runbook for an agent: [import the bash-era repos](docs/runbooks/import-bash-era-repos.html).
+
+Review of the design from six user journeys: [UX review](docs/review/ux-review.html).
 
 ## Branches in this repository
 

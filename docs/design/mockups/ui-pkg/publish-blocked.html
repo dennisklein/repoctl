@@ -28,6 +28,8 @@
     <a class="nav-item" href="/s/slurm-26.05/repo/el10"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>el10</a>
   </nav>
   <main class="main" id="main">
+<div class="banner warn sup-banner" role="note" style="margin-bottom:16px"><div><b>Superseded 2026-11-03.</b> First version of Publish: one run, replace the repo, same NVR as a warning, no advisory check, no snapshot. See <a href="publish-v2-review.html">publish-v2-review.html</a> and the other <code>publish-v2-*</code> pages.</div></div>
+
 
     <div class="page-head">
       <div><h1>Publish slurm-26.05</h1>
@@ -50,14 +52,14 @@
       <div class="stack">
         <div class="card">
           <div class="card-head"><h2>Checks</h2><span class="right"><span class="pill st-failed">4 failed</span><span class="pill st-running">1 waiting</span><span class="pill st-ok">3 passed</span></span></div>
-          <ul class="checks"><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>1 node failed</div><div class="d2"><span class="mono">slurm@el10</span>: error: Failed build dependencies: pkgconfig(rocm_smi64) is needed &middot; <a href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10/log">log</a></div></div><span class="r">1 failed</span></li><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>1 node blocked</div><div class="d2"><span class="mono">slurm-singularity-exec@el10</span> needs slurm@el10</div></div><span class="r">1 blocked</span></li><li><span class="ic wait" aria-label="wait">&#8230;</span><div><div>Run is not finished</div><div class="d2"><span class="mono">slurm@el9</span> running 6m12s &middot; <span class="mono">openmpi@el9</span> running</div></div><span class="r">2 running</span></li><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>Worktrees match repoctl.lock</div><div class="d2"><a href="/s/slurm-26.05/packages/ucx">ucx</a>: worktree 4b1e9c2 is ahead of pin 907c60d</div></div><span class="r">10/11</span></li><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>No dirty worktree</div><div class="d2"><a href="/s/slurm-26.05/packages/slurm">slurm</a>: M slurm.spec</div></div><span class="r">10/11</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>repoctl.lock is committed</div><div class="d2">builder/slurm-26.05 at a71c3e2</div></div><span class="r">a71c3e2</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Release package version</div><div class="d2">slurm-release 26.05-1 matches set name slurm-26.05</div></div><span class="r">26.05</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Signing key is available</div><div class="d2">gpg-agent: key unlocked &middot; YubiKey present</div></div><span class="r"></span></li></ul>
+          <ul class="checks"><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>1 node failed</div><div class="d2"><span class="mono">slurm@el10</span>: error: Failed build dependencies: rocm-smi-devel is needed &middot; <a href="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el10/log">log</a></div></div><span class="r">1 failed</span></li><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>1 node blocked</div><div class="d2"><span class="mono">slurm-singularity-exec@el10</span> needs slurm@el10</div></div><span class="r">1 blocked</span></li><li><span class="ic wait" aria-label="wait">&#8230;</span><div><div>Run is not finished</div><div class="d2"><span class="mono">slurm@el9</span> running 6m12s &middot; <span class="mono">openmpi@el9</span> running</div></div><span class="r">2 running</span></li><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>Worktrees match repoctl.lock</div><div class="d2"><a href="/s/slurm-26.05/packages/ucx">ucx</a>: worktree 4b1e9c2 is ahead of pin 907c60d</div></div><span class="r">10/11</span></li><li><span class="ic fail" aria-label="fail">&#10007;</span><div><div>No dirty worktree</div><div class="d2"><a href="/s/slurm-26.05/packages/slurm">slurm</a>: M slurm.spec</div></div><span class="r">10/11</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>repoctl.lock is committed</div><div class="d2">builder/slurm-26.05 at a71c3e2</div></div><span class="r">a71c3e2</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Release package version</div><div class="d2">slurm-release 26.05-1 matches set name slurm-26.05</div></div><span class="r">26.05</span></li><li><span class="ic ok" aria-label="ok">&#10003;</span><div><div>Signing key is available</div><div class="d2">gpg-agent: key unlocked &middot; YubiKey present</div></div><span class="r"></span></li></ul>
         </div>
         <div class="card">
           <div class="card-head"><h2>Same result in the terminal</h2></div>
           <div class="card-body"><div class="term"><span class="p">$</span> repoctl publish --run r-20261102-1750-a3f
 <span class="e">repoctl: publish not possible: run r-20261102-1750-a3f has 1 failed node</span>
   failed    slurm@el10
-            error: Failed build dependencies: pkgconfig(rocm_smi64) is needed
+            error: Failed build dependencies: rocm-smi-devel is needed
   blocked   slurm-singularity-exec@el10 (needs slurm@el10)
   running   slurm@el9, openmpi@el9
   lock      ucx: worktree 4b1e9c2 is not pinned (lock has 907c60d)
@@ -74,7 +76,7 @@
             <dt>Key</dt><dd class="fpr">4F0E 2B91 D6A8 33C5 9E07<br>1B6D 58A0 E2D4 <b>7C3A 19F2</b></dd>
             <dt>Source</dt><dd><span class="mono small">sign.gpg_name</span> <span class="dim small">in ~/.config/repoctl/config.yaml</span></dd>
             <dt>Agent</dt><dd><span class="pill st-ok">gpg-agent: key unlocked</span><span class="pill st-ok">YubiKey present</span></dd>
-            <dt>Started by</dt><dd>d.klein on hpc-build01</dd>
+            <dt>Started by</dt><dd>d.klein on hpc-a1</dd>
             <dt>Last publish</dt><dd>2026-09-12 &middot; same key</dd>
           </dl>
           <p class="small muted" style="margin:10px 0 0">The signer can be a shared repo key or a personal key. The published repo records the identity of each key.</p>

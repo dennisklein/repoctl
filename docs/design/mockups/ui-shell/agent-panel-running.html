@@ -36,7 +36,7 @@
     <span class="progress bar" aria-hidden="true"><i class="p-ok" style="flex:1"></i><i class="p-running" style="flex:1"></i></span>
     <span class="n">1/2</span><span class="n el">7m40s</span><span class="sr-only">Run in progress</span></a>
   <span class="live hide-sm" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="t"></span></span>
-  <span class="meta hide-md mono">d.klein@hpc-build01</span>
+  <span class="meta hide-md mono">d.klein@hpc-a1</span>
   <button class="icon-btn" type="button" aria-label="Keyboard shortcuts (?)" onclick="document.getElementById('help').showModal()">?</button>
   <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
 </header>
@@ -77,11 +77,11 @@
     <li class="a-failed"><span class="kind">Run</span>
       <div class="what">
         <div class="t"><a class="node-chip st-failed" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10" title="slurm@el10: failed"><b>slurm</b>@el10</a> failed in run <a class="mono" href="/s/slurm-26.05/runs/r-20261101-2140-5be">r-20261101-2140-5be</a> <span class="muted">yesterday 21:52</span></div>
-        <pre class="errline">error: Failed build dependencies: pkgconfig(rocm_smi64) is needed</pre>
+        <pre class="errline">error: Failed build dependencies: rocm-smi-devel is needed</pre>
         <div class="hint"><b>Hint:</b> <code>rocm-smi</code> provides this, but it has <code>targets: [el9]</code> (<code>dep.not-for-target</code>).</div>
       </div>
       <div class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/explain-failure" hx-vals='{"run":"r-20261101-2140-5be","node":"slurm@el10"}' hx-target="#drawer" hx-swap="outerHTML"
-     title="Runs claude -p with the skill triage-build. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Explain failure</button><a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10">Show log</a></div></li>
+     title="Runs claude -p with the skill triage-build. Tool list: read only (advisories, graph, plan). Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Explain failure</button><a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261101-2140-5be/nodes/slurm@el10">Show log</a></div></li>
     <li class="a-failed"><span class="kind">Advisory</span>
       <div class="what"><div class="t">1 required advisory: <code>closure.broken</code> on <a class="node-chip st-failed" href="#advisories" title="pmix@el9: failed"><b>pmix</b>@el9</a></div>
         <div class="d">Publish of el9 refuses while it is open. See Advisories below.</div></div>
@@ -92,7 +92,7 @@
         <div class="cmd"><code>git -C ~/src/slurm-repo commit -m "ucx: bump to 1.22.1" repoctl.lock</code><button class="copy" type="button" data-copy="git -C ~/src/slurm-repo commit -m "ucx: bump to 1.22.1" repoctl.lock" aria-label="Copy" title="Copy"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div>
       <div class="acts"><a class="btn btn-sm" href="/s/slurm-26.05/config#lock">Show diff</a></div></li>
     <li class="a-info"><span class="kind">Repo</span>
-      <div class="what"><div class="t">el9 and el10 were published 51 days ago</div><div class="d">Last publish 2026-09-12. Keep all versions: publish adds, prune deletes.</div></div>
+      <div class="what"><div class="t">el9 and el10: latest is 51 days old</div><div class="d">Last publish 2026-09-12. Publish adds a snapshot and keeps all versions; only <code>repo prune</code> removes them.</div></div>
       <div class="acts"><a class="btn btn-sm" href="/s/slurm-26.05/publish">Review…</a></div></li>
   </ul>
 </section>
@@ -119,31 +119,31 @@
     <span class="right"><span class="hide-sm">repoctl check, today 06:00 (timer)</span><button class="btn btn-sm" type="button" hx-post="/s/slurm-26.05/-/actions/check" hx-target="#advisories" hx-swap="outerHTML">Check now</button></span></div>
   <ul class="adv-list">
   <li class="adv-required">
-      <div class="adv-h"><span class="pill lvl-required">required</span><code class="code">closure.broken</code><a class="node-chip st-failed" href="/s/slurm-26.05/packages/pmix?target=el9" title="pmix@el9: cached"><b>pmix</b>@el9</a></div>
+      <div class="adv-h"><span class="pill lvl-required">required</span><code class="code">closure.broken</code><a class="node-chip st-failed" href="/s/slurm-26.05/packages/pmix?target=el9" title="pmix@el9: current"><b>pmix</b>@el9</a></div>
       <div class="adv-b"><span class="nvr"><span class="n">pmix</span>-<span class="v">6.1.0</span>-<span class="r">1</span><span class="d">.el9.x86_64</span></span> needs <code>libhwloc.so.15()(64bit)</code>. EPEL now has <code>hwloc-libs-2.11.2</code>, which provides only <code>libhwloc.so.16</code>. dnf cannot install pmix on a new el9 host.
      <div class="cmd"><code>repoctl rebuild pmix --reason "hwloc: libhwloc.so.15 → .so.16"</code><button class="copy" type="button" data-copy="repoctl rebuild pmix --reason "hwloc: libhwloc.so.15 → .so.16"" aria-label="Copy command" title="Copy command"><svg viewBox="0 0 24 24" class="" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></div></div>
-      <div class="acts"><button class="btn btn-sm btn-primary" type="button" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=pmix&amp;advisory=closure.broken:pmix@el9" hx-target="#modal">Rebuild…</button>
-     <button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/rebuild-advice" hx-vals='{"advisory":"closure.broken:pmix@el9"}' hx-target="#drawer" hx-swap="outerHTML"
-     title="Runs claude -p with the skill rebuild-advice. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Is a rebuild necessary?</button>
-     <button class="btn btn-sm" type="button" hx-post="/s/slurm-26.05/-/actions/dismiss" hx-vals='{"advisory":"closure.broken:pmix@el9"}'>Dismiss</button></div></li>
+      <div class="acts"><button class="btn btn-sm btn-primary" type="button" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=pmix&amp;advisory=closure.broken/pmix@el9" hx-target="#modal">Rebuild…</button>
+     <button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/rebuild-check" hx-vals='{"advisory":"closure.broken/pmix@el9"}' hx-target="#drawer" hx-swap="outerHTML"
+     title="Runs claude -p with the skill rebuild-check. Tool list: read only (advisories, graph, plan). Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Is a rebuild necessary?</button>
+     <a class="btn btn-sm" href="/s/slurm-26.05/advisories#adv-closure.broken-pmix-el9">Show closure</a></div></li>
   <li class="adv-info">
-      <div class="adv-h"><span class="pill lvl-info">info</span><code class="code">buildroot.drift</code><a class="node-chip st-cached" href="/s/slurm-26.05/packages/munge?target=el9" title="munge@el9: cached"><b>munge</b>@el9</a></div>
+      <div class="adv-h"><span class="pill lvl-info">info</span><code class="code">buildroot.drift</code><a class="node-chip st-cached" href="/s/slurm-26.05/packages/munge?target=el9" title="munge@el9: current"><b>munge</b>@el9</a></div>
       <div class="adv-b">Built with <code>openssl-devel-3.0.7</code>. Rocky 9 now has <code>3.2.2</code>. Nothing is broken. Rebuild only if you want the new version.</div>
-      <div class="acts"><button class="btn btn-sm" type="button" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=munge&amp;advisory=buildroot.drift:munge@el9" hx-target="#modal">Rebuild…</button>
-     <button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/rebuild-advice" hx-vals='{"advisory":"buildroot.drift:munge@el9"}' hx-target="#drawer" hx-swap="outerHTML"
-     title="Runs claude -p with the skill rebuild-advice. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Is a rebuild necessary?</button>
+      <div class="acts"><button class="btn btn-sm" type="button" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=munge&amp;advisory=buildroot.drift/munge@el9" hx-target="#modal">Rebuild…</button>
+     <button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/rebuild-check" hx-vals='{"advisory":"buildroot.drift/munge@el9"}' hx-target="#drawer" hx-swap="outerHTML"
+     title="Runs claude -p with the skill rebuild-check. Tool list: read only (advisories, graph, plan). Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Is a rebuild necessary?</button>
      <button class="btn btn-sm" type="button">Dismiss</button></div></li>
   <li class="adv-info">
       <div class="adv-h"><span class="pill lvl-info">info</span><code class="code">upstream.release</code><a class="mono pkg" href="/s/slurm-26.05/packages/slurm">slurm</a></div>
       <div class="adv-b">26.05.4 → <b>26.05.5</b> on <a href="https://github.com/SchedMD/slurm/releases">GitHub SchedMD/slurm</a>.</div>
       <div class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"dir":"slurm","version":"26.05.5"}' hx-target="#drawer" hx-swap="outerHTML"
-     title="Runs claude -p with the skill package-updates. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Summarize release notes</button>
+     title="Runs claude -p with the skill package-updates. Tool list: read only (advisories, graph, plan). Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Summarize release notes</button>
      <button class="btn btn-sm" type="button">Dismiss</button></div></li>
   <li class="adv-info">
       <div class="adv-h"><span class="pill lvl-info">info</span><code class="code">upstream.release</code><a class="mono pkg" href="/s/slurm-26.05/packages/openmpi">openmpi</a></div>
       <div class="adv-b">5.0.11 → <b>5.0.12</b> on <a href="https://github.com/open-mpi/ompi/releases">GitHub open-mpi/ompi</a>.</div>
       <div class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"dir":"openmpi","version":"5.0.12"}' hx-target="#drawer" hx-swap="outerHTML"
-     title="Runs claude -p with the skill package-updates. Read and plan tools only. Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Summarize release notes</button>
+     title="Runs claude -p with the skill package-updates. Tool list: read only (advisories, graph, plan). Changes nothing."><svg viewBox="0 0 24 24" class="" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Summarize release notes</button>
      <button class="btn btn-sm" type="button">Dismiss</button></div></li>
   </ul>
   <div class="card-foot muted">No finding: <code>mock.drift</code> (mock config and macros match the manifest), <code>soname.removed</code>. Not set up: <code>abi.changed</code> (needs libabigail).
@@ -151,7 +151,7 @@
 </section>
 
 <section class="card mat" id="matrix" aria-labelledby="mat-t" data-live hx-get="/s/slurm-26.05/-/frag/matrix" hx-trigger="refresh">
-  <div class="card-head"><h2 id="mat-t">Packages and targets</h2><span class="right"><span>current = this commit is in the published repo</span><a href="/s/slurm-26.05/graph?target=el9">Graph</a><a href="/s/slurm-26.05/packages">All packages</a></span></div>
+  <div class="card-head"><h2 id="mat-t">Packages and targets</h2><span class="right"><span>current = this commit is in latest</span><a href="/s/slurm-26.05/graph?target=el9">Graph</a><a href="/s/slurm-26.05/packages">All packages</a></span></div>
   <div class="table-wrap"><table class="table matrix"><thead><tr><th>Package</th><th>Version</th><th>Commit</th><th>el9</th><th>el10</th><th>Upstream</th></tr></thead><tbody>
 <tr>
     <td><a class="mono pkg" href="/s/slurm-26.05/packages/munge">munge</a></td>
@@ -253,13 +253,7 @@
 </section>
 
 <div class="side">
-<section class="card" id="last-publish" aria-labelledby="pub-t"><div class="card-head"><h2 id="pub-t">Last publish</h2><span class="right">per target</span></div>
-  <div class="card-body"><dl class="kv">
-    <dt><span class="target" title="undefined"><b>el9</b></span></dt><dd>2026-09-12 10:31 · <a class="mono" href="/s/slurm-26.05/runs/p-20260912-1031-6b2">p-20260912-1031-6b2</a></dd>
-    <dt><span class="target" title="undefined"><b>el10</b></span></dt><dd>2026-09-12 10:33 · <a class="mono" href="/s/slurm-26.05/runs/p-20260912-1033-0e4">p-20260912-1033-0e4</a></dd>
-    <dt>Signer</dt><dd>Dennis Klein &lt;d.klein@gsi.de&gt; <span class="hash">…7C3A 19F2</span></dd>
-    <dt>Snapshot</dt><dd class="mono">registry.gsi.de/hpc/slurm-repo:slurm-26.05-el9-latest</dd></dl></div>
-  <div class="card-foot"><span class="muted">Keeps all versions</span><span class="right"><a class="btn btn-sm" href="/s/slurm-26.05/publish">Publish…</a></span></div></section>
+<section class="card" id="last-publish" aria-labelledby="pub-t"><div class="card-head"><h2 id="pub-t">Last publish</h2><span class="right">per target</span></div> <div class="card-body"><dl class="kv"> <dt><span class="target"><b>el9</b></span></dt><dd><a class="mono" href="/s/slurm-26.05/runs/p-20260912-1403-c21">p-20260912-1403-c21</a> <span class="muted">2026-09-12 14:03</span><br><span class="pill st-ok">local: same</span> <span class="pill st-ok">served: same</span></dd> <dt><span class="target"><b>el10</b></span></dt><dd><a class="mono" href="/s/slurm-26.05/runs/p-20260912-1403-c21">p-20260912-1403-c21</a> <span class="muted">2026-09-12 14:03</span><br><span class="pill st-ok">local: same</span> <span class="pill st-ok">served: same</span></dd> <dt>Signer</dt><dd>d.klein <span class="hash">…41D8 0B6E</span></dd> <dt>Snapshot</dt><dd class="mono" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span>ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9</span><button class="btn btn-sm" type="button" data-copy="ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9:latest" aria-label="Copy the snapshot ref">Copy</button></dd></dl></div> <div class="card-foot"><span class="muted">All earlier versions stay</span><span class="right"><a class="btn btn-sm" href="/s/slurm-26.05/publish">Publish…</a></span></div></section>
 </div>
 </div>
 </main>
@@ -276,7 +270,7 @@
       <dt>Skill</dt><dd><code>triage-build</code> <span class="muted">(generic, ships with repoctl)</span></dd>
       <dt>Agent</dt><dd><code>claude -p</code> <span class="muted">from user config <code>agent.command</code></span></dd>
       <dt>Started</dt><dd>18:12 by d.klein · input <a class="mono" href="/s/slurm-26.05/runs/r-20261101-2140-5be">r-20261101-2140-5be</a></dd>
-      <dt>Tools</dt><dd><span class="pill st-cached">read and plan only</span> <span class="muted">No Edit, no Bash, no build, no rebuild.</span></dd>
+      <dt>Tools</dt><dd><span class="pill st-cached">read only</span> <span class="muted">Cannot edit files, build or publish.</span></dd>
     </dl>
   </header>
   <div class="dr-body" aria-busy="true">
@@ -302,7 +296,7 @@
     <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph (current target)</td></tr>
     <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
     <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
-    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Upstream</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Advisories</td></tr>
     <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Browse the repository (current target)</td></tr>
     <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
     <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>

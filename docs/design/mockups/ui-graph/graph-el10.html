@@ -30,6 +30,8 @@
   <a class="nav-item" href="/s/slurm-26.05/targets/el10"><svg class="ico " viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3" width="11" height="4" rx="1"/><rect x="2.5" y="9" width="11" height="4" rx="1"/><path d="M5 5h.01M5 11h.01"/></svg>el10<span class="dot failed" title="1 failed"></span><span class="count">10</span></a>
 </nav>
 <main class="main">
+<div class="banner warn sup-banner" role="note" style="margin-bottom:16px"><div><b>Superseded 2026-11-03.</b> Build model v1 (node keys, <i>cached</i>, rebuild of dependents by repoctl). The current design is in <a href="../ui-graph/plan-v2.html">plan-v2.html</a> and <a href="../ui-graph/graph-el9-v2.html">graph-el9-v2.html</a>: the identity of a build is the package commit plus the target, and the plan actions are build, current, staged and skip.</div></div>
+
 <div class="page-head">
   <div><div class="crumb">slurm-26.05 / graph</div><h1>Build graph</h1></div>
   <div class="sub">10 nodes · 13 edges · edges from SRPM BuildRequires in <span class="mono">rocky+epel-10-x86_64</span></div>
@@ -61,7 +63,7 @@
   <a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261102-1750-a3f">Open run</a>
 </div>
 <div class="banners">
-  <div class="banner err" role="alert"><svg class="ico b-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.8v4M8 11h.01"/></svg><div class="b-body"><b>slurm@el10 failed in step rpm.</b> <code>error: Failed build dependencies: pkgconfig(rocm_smi64) is needed</code>. The slurm spec requires rocm-smi on all targets, but the set builds rocm-smi for el9 only. 1 node is blocked: slurm-singularity-exec@el10.</div><div class="b-act"><a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/logs/slurm@el10">Open log</a><a class="btn btn-sm" href="/s/slurm-26.05/packages/slurm">Package slurm</a></div></div>
+  <div class="banner err" role="alert"><svg class="ico b-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.8v4M8 11h.01"/></svg><div class="b-body"><b>slurm@el10 failed in step rpm.</b> <code>error: Failed build dependencies: rocm-smi-devel is needed</code>. The slurm spec requires rocm-smi on all targets, but the set builds rocm-smi for el9 only. 1 node is blocked: slurm-singularity-exec@el10.</div><div class="b-act"><a class="btn btn-sm" href="/s/slurm-26.05/runs/r-20261102-1750-a3f/logs/slurm@el10">Open log</a><a class="btn btn-sm" href="/s/slurm-26.05/packages/slurm">Package slurm</a></div></div>
   <div class="banner info"><svg class="ico b-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 5h.01"/></svg><div class="b-body"><b>rocm-smi is not built for el10.</b> <span class="mono">repoctl.yaml</span> restricts it with <code>targets: [el9]</code>. This graph has no rocm-smi node and no rocm-smi → slurm edge. To fix slurm@el10, add a <code>%if</code> guard for rocm-smi in the slurm spec, or add el10 to the targets of rocm-smi.</div><div class="b-act"><a class="btn btn-sm" href="/s/slurm-26.05/graph?target=el9&amp;view=dag&amp;node=rocm-smi">rocm-smi in el9</a></div></div>
 </div>
 <div class="canvas" id="canvas" hx-ext="sse" sse-connect="/s/slurm-26.05/events?topic=run:r-20261102-1750-a3f&amp;topic=set:slurm-26.05&amp;view=dag&amp;target=el10">

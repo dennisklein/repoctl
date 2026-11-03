@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Import bash-era repos</title>
+<style>
+:root{--bg:#faf8f6;--fg:#231d18;--mut:#6b6158;--line:#ddd5cd;--acc:#b4581f;--box:#f2eeea;--ok:#2f7d4a;--warn:#9a6a00;--err:#c0362c;--hi:rgba(180,88,31,.10);--hi2:rgba(47,125,74,.10)}
+@media(prefers-color-scheme:dark){:root{--bg:#15120f;--fg:#efe9e3;--mut:#bfb4a9;--line:#352d26;--acc:#e08a4f;--box:#241f1a;--ok:#6cc58a;--warn:#e6b84a;--err:#ff7a6e;--hi:rgba(224,138,79,.14);--hi2:rgba(108,197,138,.14)}}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif;max-width:920px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.6rem}h2{margin-top:2.2rem;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin-top:1.4rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}th{background:var(--box)}
+code{background:var(--box);padding:1px 4px;border-radius:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.9em}
+pre{background:var(--box);padding:10px;border-radius:6px;overflow-x:auto;font-size:.82rem;line-height:1.45}
+svg{width:100%;height:auto;background:var(--box);border-radius:8px;margin:8px 0}
+svg text{fill:var(--fg);font:13px system-ui}svg text.m{fill:var(--mut);font-size:12px}svg text.t{font-weight:600}
+svg .b{fill:var(--bg);stroke:var(--acc);stroke-width:1.5}svg .bm{fill:var(--bg);stroke:var(--mut);stroke-width:1.2;stroke-dasharray:4 3}
+svg .bh{fill:var(--hi);stroke:var(--acc);stroke-width:2}svg .bg{fill:var(--hi2);stroke:var(--ok);stroke-width:1.5}svg .bw{fill:var(--bg);stroke:var(--err);stroke-width:1.5}
+svg .l{stroke:var(--mut);stroke-width:1.4;fill:none;marker-end:url(#a)}svg .lw{stroke:var(--err);stroke-width:1.6;fill:none;marker-end:url(#a)}svg .ah{fill:var(--mut)}
+.note{border-left:4px solid var(--acc);padding:6px 12px;background:var(--box);margin:12px 0}
+.req{color:var(--err);font-weight:600}.warn{color:var(--warn);font-weight:600}.info{color:var(--mut);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+dl.cmd dt{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;margin-top:10px}dl.cmd dd{margin-left:16px}
+ol.steps li{margin:4px 0}
+code{overflow-wrap:anywhere}pre code{overflow-wrap:normal}
+</style></head><body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;margin:0"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" class="ah"/></marker></defs></svg>
+
+<h1>Runbook: import the bash-era repos into repoctl</h1>
+<p>Date: 2026-11-03. Status: proposal. The choice of a runbook (no import command) is decided (Q5). Reader: an agent (for example, Claude Code) that works with a person. This runbook converts the three published repos of the bash era into sets that repoctl can build and publish. repoctl has no import command and no UI for this work. The design is in <a href="../design/06-advisories-lifecycle.html">06</a> section 8.1 and in <a href="../design/05-publish-snapshots-signing.html">05</a>.</p>
+
+<div class="note">
+<p><b>Rules for the agent.</b></p>
+<ul>
+<li>Do the steps in order. Do one set at a time. Start with <code>slurm-25.11-testing</code>, then <code>slurm-25.11</code>, then <code>slurm-26.05</code>.</li>
+<li>Steps marked <span class="req">PERSON</span> are for the person. Stop, show the exact command, and wait. Do not sign, do not push to git, do not push to the registry, and do not change the HTTP server.</li>
+<li>Do not rebuild a package. The import keeps the bytes and the signatures of the published RPMs.</li>
+<li>When a check in this runbook fails, stop. Report the check, the output and the step. Do not find a way around it.</li>
+<li>Keep a log of each command and its output in <code>$XDG_STATE_HOME/repoctl/import/SET.log</code>.</li>
+</ul>
+</div>
+
+<svg viewBox="0 0 860 270" role="img" aria-label="Import flow for one set: convert the builder branch, copy and verify the served tree, map NVRs to commits, write the manifest, person records the deployed key and pushes, verify, switch the mirror, report">
+<rect class="b" x="20" y="20" width="190" height="56" rx="8"/><text x="34" y="44" class="t">1 Convert branch</text><text x="34" y="64" class="m">repoctl migrate</text>
+<rect class="b" x="230" y="20" width="190" height="56" rx="8"/><text x="244" y="44" class="t">2 Copy served tree</text><text x="244" y="64" class="m">verify bytes, signatures</text>
+<rect class="b" x="440" y="20" width="190" height="56" rx="8"/><text x="454" y="44" class="t">3 Map NVR → commit</text><text x="454" y="64" class="m">rpmautospec per commit</text>
+<rect class="b" x="650" y="20" width="190" height="56" rx="8"/><text x="664" y="44" class="t">4 Write manifest</text><text x="664" y="64" class="m">manifest.json, schema check</text>
+<path class="l" d="M210,48 L228,48"/><path class="l" d="M420,48 L438,48"/><path class="l" d="M630,48 L648,48"/>
+<rect class="bw" x="650" y="110" width="190" height="56" rx="8"/><text x="664" y="134" class="t">5 PERSON: deployed</text><text x="664" y="154" class="m">sign deployed --path</text>
+<rect class="bw" x="440" y="110" width="190" height="56" rx="8"/><text x="454" y="134" class="t">6 PERSON: push</text><text x="454" y="154" class="m">repo push --from --manifest</text>
+<rect class="b" x="230" y="110" width="190" height="56" rx="8"/><text x="244" y="134" class="t">7 Verify</text><text x="244" y="154" class="m">plan shows current</text>
+<rect class="bw" x="20" y="110" width="190" height="56" rx="8"/><text x="34" y="134" class="t">8 PERSON: mirror job</text><text x="34" y="154" class="m">switch the HTTP server</text>
+<path class="l" d="M745,76 L745,108"/><path class="l" d="M650,138 L632,138"/><path class="l" d="M440,138 L422,138"/><path class="l" d="M230,138 L212,138"/>
+<rect class="b" x="20" y="200" width="400" height="56" rx="8"/><text x="34" y="224" class="t">9 Report</text><text x="34" y="244" class="m">NVR map, advisories, stops</text>
+<rect class="b" x="440" y="200" width="400" height="56" rx="8"/><text x="454" y="224" class="t">10 Remove the bash-era files</text><text x="454" y="244" class="m">after the first real publish with repoctl</text>
+<path class="l" d="M115,166 L115,198"/><path class="l" d="M420,228 L438,228"/>
+</svg>
+
+<h2>0. Inputs and preconditions</h2>
+<table>
+<tr><th>Set</th><th>Builder branch</th><th>Served at (el9)</th></tr>
+<tr><td><code>slurm-25.11-testing</code></td><td><code>builder/slurm-25.11-testing</code></td><td><code>http://cluster-mirror.hpc.gsi.de/packages/slurm-25.11-testing/el9/</code></td></tr>
+<tr><td><code>slurm-25.11</code></td><td><code>builder/slurm-25.11</code></td><td><code>http://cluster-mirror.hpc.gsi.de/packages/slurm-25.11/el9/</code></td></tr>
+<tr><td><code>slurm-26.05</code></td><td><code>builder/slurm-26.05</code></td><td><code>http://cluster-mirror.hpc.gsi.de/packages/slurm-26.05/el9/</code></td></tr>
+</table>
+<p>Each served directory has three repos (<code>slurm</code>, <code>slurm-source</code>, <code>slurm-debuginfo</code>) and the link <code>slurm-release.rpm</code>. Each repo has <code>packages/</code>, <code>repodata/</code> with <code>repomd.xml.asc</code>, and <code>RPM-GPG-KEY</code>. The only target is <code>el9</code> (<code>rocky+epel-9-x86_64</code>).</p>
+<p>Check each precondition. When one is not true, stop and tell the person.</p>
+<ol class="steps">
+<li>The host runs Fedora, and repoctl is installed from the Fedora repo on Pages or from a release RPM (Q16). <code>repoctl version</code> supports <code>repo push --from</code>.</li>
+<li>These tools are installed: <code>git</code>, <code>rpm</code>, <code>rpmkeys</code>, <code>rpmspec</code>, <code>rpmautospec</code>, <code>createrepo_c</code>, <code>modifyrepo_c</code>, <code>gpgv</code>, <code>jq</code>, <code>rsync</code>.</li>
+<li>The repository is at its final place in GSI-HPC (Q4), and the clone has all branches: <code>git fetch origin '+refs/heads/*:refs/remotes/origin/*'</code>.</li>
+<li>The registry has no snapshot of the set and target: <code>repoctl repo snapshots --target el9</code> lists nothing. <code>repo push --from</code> works only on an empty package (05).</li>
+<li>The person has a byte copy of each served tree, or gives you a path to one (for example, <code>rsync -a cluster-mirror:/srv/packages/slurm-26.05/ DIR/</code>). A copy through HTTP is also correct when step 2.2 passes.</li>
+<li>The person who runs step 6 holds the secret key of today's repo key (<code>RPM-GPG-KEY-slurm</code>). The repoctl user config on that host selects it as the signing key.</li>
+</ol>
+
+<h2>1. Convert the builder branch to a set</h2>
+<ol class="steps">
+<li>Make a worktree: <code>git worktree add ../SET origin/builder/SET -B builder/SET</code>. Work in <code>../SET</code>.</li>
+<li>Run <code>repoctl migrate --dry-run</code>. Read the findings. A difference between the hand order of <code>scripts/build</code> and the graph is not an error. Write it in the report.</li>
+<li>Run <code>repoctl migrate</code>. It writes <code>repoctl.yaml</code>, <code>repoctl.lock</code> and <code>rpm/macros</code>.</li>
+<li>Check <code>repoctl.lock</code> against <code>packages.lock</code>: the same dirs, branches and commits. A difference is a stop.</li>
+<li>Edit <code>repoctl.yaml</code>:
+<ul>
+<li><code>name: SET</code> and <code>repo.name: slurm</code>.</li>
+<li>One target <code>el9</code>, <code>mock: rocky+epel-9-x86_64</code>, <code>plugins: [rpmautospec]</code>, <code>macros: [rpm/macros]</code>.</li>
+<li><code>repo.url: http://cluster-mirror.hpc.gsi.de/packages/SET</code> (05).</li>
+<li>The store of 05: <code>ghcr.io/gsi-hpc/slurm-repo</code>.</li>
+<li>The release package: <code>dir: slurm-release</code>, <code>path: packages/slurm-release</code>, <code>role: release</code>.</li>
+<li>Today's repo key in <code>sign.keys</code> with id <code>hpc-repo</code> and state <code>active</code> (05). It must be active, because a retiring key makes no new signatures, also not on <code>repomd.xml</code>. It goes to <code>retiring</code> later, after the personal keys are deployed (<code>repoctl sign retire hpc-repo</code>, 05). Take the fingerprint from <code>packages/slurm-release/RPM-GPG-KEY-slurm</code>: <code>gpg --show-keys --with-fingerprint</code>.</li>
+<li>Keep a shared branch as it is. Example: slurm-25.11 pins <code>pmix_v4</code> on <code>pmix/slurm-26.05-v4</code>.</li>
+</ul></li>
+<li>Run <code>repoctl status</code>. It must read the set without an error. An unknown key or a bad value is an error.</li>
+<li>Check each pinned commit is on its remote branch: <code>git merge-base --is-ancestor COMMIT origin/BRANCH</code>. Publish refuses a commit that is not on the remote (Q8). A commit that is not on the remote is a stop. The person must push it or change the pin.</li>
+<li>Run <code>repoctl checkout</code>. Each package is <code>in-sync</code>.</li>
+<li>Update <code>CLAUDE.md</code>: replace the script commands with repoctl commands. Point to <code>repoctl help packages</code> and <code>repoctl help new-set</code>.</li>
+<li>Commit. Do not delete the old files yet (step 10).
+<pre>git add repoctl.yaml repoctl.lock rpm/macros CLAUDE.md
+git commit -m "feat!: convert SET to a repoctl set" -m "- add repoctl.yaml and repoctl.lock from packages.lock
+- add the repo key as hpc-repo (active)
+- keep the bash-era scripts until the first repoctl publish"</pre></li>
+<li><span class="req">PERSON</span> Review and push: <code>git push origin builder/SET</code>.</li>
+</ol>
+
+<h2>2. Copy and verify the served tree</h2>
+<ol class="steps">
+<li>Put the copy in a new, empty directory: <code>IMPORT=$XDG_STATE_HOME/repoctl/import/SET/el9</code>. Do not write into the copy that the person gave you. Copy it with <code>rsync -a --link-dest</code> or <code>cp -a</code>.</li>
+<li>For each of the three repos, compare the copy with the served repo:
+<pre>curl -fsS URL/REPO/repodata/repomd.xml | sha256sum
+sha256sum $IMPORT/REPO/repodata/repomd.xml</pre>
+The two values must be equal. Then check each file that <code>repomd.xml</code> lists: its checksum must be correct. Then check each RPM that <code>primary.xml</code> lists: it exists and its checksum is correct.</li>
+<li>Check the metadata signature of each repo:
+<pre>gpg --dearmor &lt; packages/slurm-release/RPM-GPG-KEY-slurm &gt; $TMP/key.gpg
+gpgv --keyring $TMP/key.gpg $IMPORT/REPO/repodata/repomd.xml.asc $IMPORT/REPO/repodata/repomd.xml</pre></li>
+<li>Check the signature of each RPM with a separate rpm database:
+<pre>rpmkeys --dbpath $TMP/rpmdb --import packages/slurm-release/RPM-GPG-KEY-slurm
+rpmkeys --dbpath $TMP/rpmdb --checksig $IMPORT/*/packages/*.rpm</pre>
+Each line must end with <code>digests signatures OK</code>. An RPM with no signature or with another key is a stop.</li>
+<li>Find files in <code>packages/</code> that <code>primary.xml</code> does not list. Write them in the report. Do not delete them. They do not go into the snapshot.</li>
+</ol>
+
+<h2>3. Map each published NVR to a commit</h2>
+<p>rpmautospec gives each commit of a package branch its own release. Thus, one commit gives one NVR. This step finds the commit for each published SRPM.</p>
+<ol class="steps">
+<li>List the SRPMs of <code>slurm-source</code>: <code>rpm -qp --qf '%{NAME} %{VERSION} %{RELEASE}\n'</code>. Group the binary and debuginfo RPMs by their SRPM: <code>rpm -qp --qf '%{SOURCERPM}\n'</code>.</li>
+<li>For each dir in <code>repoctl.lock</code>, with branch B and pinned commit C:
+<ol type="a">
+<li>Get the source package name at C: <code>rpmspec --load=rpm/macros -q --srpm --qf '%{name}' SPEC</code>.</li>
+<li>For each commit K in <code>git rev-list C</code> (newest first), compute the NVR:
+<pre>git worktree add --detach $TMP/k K
+rpmautospec process-distgit $TMP/k/NAME.spec $TMP/out.spec
+rpmspec --load=rpm/macros --define 'dist .el9' -q --srpm --qf '%{nvr}' $TMP/out.spec
+git worktree remove $TMP/k</pre></li>
+<li>When the NVR equals a published SRPM, record (SRPM, K). Stop the walk when each published SRPM of the name has a commit.</li>
+</ol></li>
+<li>For the in-tree release package (<code>packages/slurm-release</code>), walk the builder branch: <code>git log --format=%H -- packages/slurm-release</code>. Its spec has a fixed release. The identity is the git tree of the path at that commit (04c help keys).</li>
+<li>Check the result for each dir:
+<table>
+<tr><th>Result</th><th>Action</th></tr>
+<tr><td>C gives the newest published NVR of the name.</td><td>Correct. The node is <code>current</code> after the import.</td></tr>
+<tr><td>C gives an NVR that is not published.</td><td>Correct. The bash era did not build C yet. plan builds it after the import. Write it in the report.</td></tr>
+<tr><td>The newest published NVR comes from a commit that is not an ancestor of C.</td><td>Stop. The lock does not match the repo. Ask the person.</td></tr>
+<tr><td>An older SRPM has no commit.</td><td>Entry with <code>reason: adopted-unmapped</code> and <code>commit: null</code>.</td></tr>
+<tr><td>Two published SRPMs map to the same commit.</td><td>Stop. Ask the person.</td></tr>
+<tr><td>A published SRPM name has no dir in <code>repoctl.yaml</code>.</td><td>Correct. It is retired (06 section 11.5). Entry with <code>dir: null</code> and <code>reason: adopted-unmapped</code>.</td></tr>
+</table></li>
+<li>Write the map as a table in the report: dir, SRPM NVR, commit, reason.</li>
+</ol>
+
+<h2>4. Write the manifest</h2>
+<ol class="steps">
+<li>Write one RepoManifest for the target to <code>$XDG_STATE_HOME/repoctl/import/SET/el9.manifest.json</code> (03 section 3.2, 06 section 8.1). The manifest is for the binary repo (<code>slurm/</code>). It lists the SRPM and the debuginfo RPMs of each build. <code>slurm-source</code> and <code>slurm-debuginfo</code> get no manifest (05).
+<pre>{
+  "apiVersion": "repoctl/v1alpha1", "kind": "RepoManifest",
+  "set": "slurm-26.05", "target": "el9", "snapshot": null,
+  "builds": [{
+    "dir": "ucx", "commit": "907c60d9eb9ff6d099a5edfbfaf82022ba80e662", "url": null,
+    "branch": "ucx/slurm-26.05",
+    "srpm": "ucx-1.20.0-1.el9.src.rpm",
+    "rpms": ["ucx-1.20.0-1.el9.x86_64.rpm", "…"],
+    "debuginfo": ["ucx-debuginfo-1.20.0-1.el9.x86_64.rpm", "…"],
+    "reason": "adopted",
+    "mockConfig": null, "macros": null, "buildroot": null, "buildrootFile": null,
+    "provides": ["libucp.so.0()(64bit)", "…"],
+    "requires": ["libnuma.so.1()(64bit)", "…"],
+    "run": null, "built": "2026-05-28T10:12:44Z",
+    "publish": "p-import-20261103", "signer": "…"
+  }],
+  "removed": []
+}</pre>
+<ul>
+<li><code>provides</code> and <code>requires</code>: the union of <code>rpm -qp --provides</code> and <code>rpm -qp --requires</code> of the binary RPMs of the build. Drop <code>rpmlib(…)</code> entries.</li>
+<li><code>built</code>: <code>rpm -qp --qf '%{BUILDTIME}'</code> of the SRPM, in UTC.</li>
+<li><code>signer</code>: the key id of <code>rpm -qp --qf '%{RSAHEADER:pgpsig}'</code>.</li>
+<li><code>removed</code> is empty for an import (05).</li>
+<li>The NVRs in this example are not real. Use the values from step 3.</li>
+</ul></li>
+<li>Check the file against the schema: <code>repoctl schema RepoManifest &gt; $TMP/m.schema.json</code>, then validate it with <code>check-jsonschema</code>.</li>
+<li>Do not change the copy of the served tree. <code>repo push --from</code> adds the manifest and signs <code>repomd.xml</code> in step 6.</li>
+</ol>
+
+<h2>5. <span class="req">PERSON</span> Record the deployed key</h2>
+<p>Clients exist already. Thus, gate 2 of publish applies to the import (05). Gate 2 reads only the committed deployment record. Today's slurm-release with the hpc-repo key is on all clients. The target has no snapshot yet, so <code>--path</code> tells repoctl to read the release RPM from the copy. Give the person these commands, with the NVR of the served <code>slurm-release.rpm</code>:</p>
+<pre>repoctl sign deployed hpc-repo --release slurm-release-26.05-1.el9 --path $IMPORT
+git add keys/deployed.yaml && git commit -m "chore(keys): record hpc-repo as deployed" && git push</pre>
+
+<h2>6. <span class="req">PERSON</span> Push the first snapshot</h2>
+<p>The holder of the hpc-repo key runs:</p>
+<pre>repoctl repo push --target el9 --from $IMPORT --manifest $XDG_STATE_HOME/repoctl/import/SET/el9.manifest.json</pre>
+<p>repoctl adds the manifest to <code>slurm/repodata</code> with <code>modifyrepo_c</code>. It signs the new <code>repomd.xml</code> with the key of the person (one signature). The RPM signatures stay. It runs verify and verify-el, then makes the first snapshot with the publish id <code>p-import-DATE</code> and moves <code>latest</code> to it (05). It refuses when the registry already has a snapshot for the set and target.</p>
+
+<h2>7. Verify</h2>
+<ol class="steps">
+<li><code>repoctl repo verify --target el9</code>: exit 0.</li>
+<li><code>repoctl plan</code>: each node that step 3 marked "current" shows <code>current</code>. Only the nodes that step 3 marked "not published" show <code>build</code>. Any other <code>build</code> is a stop.</li>
+<li><code>repoctl check</code>: write the advisories in the report. <code>retired.published</code> is expected for retired names. A <code>closure.broken</code> advisory is a fact of today's repo, not an import error. Write it in the report.</li>
+<li><code>repoctl status</code>: "served: behind" is correct until step 8.</li>
+<li>Do not run <code>repoctl build --force</code> on an adopted node. Publish refuses an NVR that is already published with other content.</li>
+</ol>
+
+<h2>8. <span class="req">PERSON</span> Switch the HTTP server to the mirror job</h2>
+<p>The mirror job of 05 pulls <code>latest</code> from GHCR, verifies it and swaps the served tree. Before the person switches it on:</p>
+<ol class="steps">
+<li>Run the mirror job once into a test directory (05 gives the command).</li>
+<li>Compare the test directory with the served tree. The RPM files must be byte-equal. Only <code>slurm/repodata/</code> may differ.</li>
+<li>Give the person the result. The person switches the job on for the set.</li>
+</ol>
+<p>Clients get the new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour). No package changes on a client.</p>
+
+<h2>9. Report</h2>
+<p>At the end of each set, give the person one report with:</p>
+<ul>
+<li>The findings of <code>repoctl migrate</code>.</li>
+<li>The NVR map of step 3, with each <code>adopted-unmapped</code> entry and each "not published" node.</li>
+<li>Files in <code>packages/</code> that the repodata does not list.</li>
+<li>The snapshot ref and digest of step 6.</li>
+<li>The output of <code>plan</code> and <code>check</code> of step 7.</li>
+<li>Each stop, with the step and the output.</li>
+</ul>
+
+<h2>10. Remove the bash-era files</h2>
+<p>Do this step after the first real publish of the set with repoctl. Until then, the old scripts are the fallback.</p>
+<pre>git rm -r packages.lock scripts .claude/skills/package-info .claude/skills/list-package-updates
+git commit -m "chore!: remove the bash-era build scripts" -m "- repoctl builds and publishes this set now"</pre>
+<p><span class="req">PERSON</span> Push it.</p>
+
+<h2>11. Stop conditions in short</h2>
+<table>
+<tr><th>Step</th><th>Stop when</th></tr>
+<tr><td>0</td><td>A precondition is not true.</td></tr>
+<tr><td>1.4, 1.7</td><td>The lock differs from <code>packages.lock</code>, or a pinned commit is not on its remote.</td></tr>
+<tr><td>2</td><td>The copy differs from the served repo, or a signature check fails.</td></tr>
+<tr><td>3.4</td><td>The newest published NVR is not from an ancestor of the pin, or two SRPMs map to one commit.</td></tr>
+<tr><td>4.2</td><td>The manifest does not pass the schema check.</td></tr>
+<tr><td>7.2</td><td>plan wants to build a node that the map marked current.</td></tr>
+<tr><td>8.2</td><td>An RPM file of the mirror job differs from the served one.</td></tr>
+</table>
+</body></html>

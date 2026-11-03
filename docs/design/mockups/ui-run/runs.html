@@ -34,7 +34,7 @@
     <div class="page-head">
       <div><h1>Runs</h1><div class="sub">Every build of set slurm-26.05. Each run builds into its own staging repo.</div></div>
       <div class="actions">
-        <a class="btn" href="/s/slurm-26.05/runs/compare?a=r-20261102-1750-a3f&amp;b=r-20260912-1404-c21"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg>Compare with published</a>
+        <a class="btn" href="/s/slurm-26.05/runs/compare?a=r-20261102-1750-a3f&amp;b=r-20260912-1404-c21"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg>Compare with latest</a>
         <a class="btn btn-primary" href="/s/slurm-26.05/plan"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3l8 5-8 5z"/></svg>Plan a build</a>
       </div>
     </div>
@@ -50,23 +50,24 @@
       <form class="filters" hx-get="/s/slurm-26.05/runs/f/table" hx-target="#runs-table" hx-trigger="change, input delay:300ms from:input" hx-push-url="true">
         <label class="search" style="min-width:260px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input type="search" name="q" placeholder="Run id, package or user"></label>
         <span class="seg-ctl" role="group" aria-label="Result">
-          <a class="on" href="?result=">All <span class="muted">15</span></a><a href="?result=ok">ok <span class="muted">9</span></a><a href="?result=failed">failed <span class="muted">4</span></a><a href="?result=canceled">canceled <span class="muted">1</span></a><a href="?result=running">running <span class="muted">1</span></a>
+          <a class="on" href="?result=">All <span class="muted">17</span></a><a href="?result=ok">ok <span class="muted">10</span></a><a href="?result=failed">failed <span class="muted">4</span></a><a href="?result=canceled">canceled <span class="muted">1</span></a><a href="?result=running">running <span class="muted">1</span></a><a href="?result=abandoned">abandoned <span class="muted">1</span></a>
         </span>
+        <span class="select">Kind: <b>all</b> ▾</span>
         <span class="select">By: <b>anyone</b> ▾</span>
         <span class="select">Target: <b>all</b> ▾</span>
         <span class="select">Since: <b>90 days</b> ▾</span>
-        <label class="chk"><span class="box"></span>Published only</label>
-        <span style="margin-left:auto" class="muted">15 of 42 runs</span>
+        <label class="chk"><span class="box"></span>In latest only</label>
+        <span style="margin-left:auto" class="muted">17 of 44 runs</span>
       </form>
       <div class="cmpbar" role="region" aria-label="Compare selection">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg><span>2 runs selected: <span class="mono">r-20261030-0912-7d1</span> and <span class="mono">r-20260912-1404-c21</span> (published)</span>
-      <span class="btns"><button class="btn btn-sm" type="button">Clear</button><a class="btn btn-sm btn-primary" href="/s/slurm-26.05/runs/compare?a=r-20261030-0912-7d1&amp;b=r-20260912-1404-c21">Compare keys, NVRs and durations ›</a></span>
+      <span class="btns"><button class="btn btn-sm" type="button">Clear</button><a class="btn btn-sm btn-primary" href="/s/slurm-26.05/runs/compare?a=r-20261030-0912-7d1&amp;b=r-20260912-1404-c21">Compare commits, NVRs and durations ›</a></span>
     </div>
       <div class="table-wrap">
         <table class="table runs-table" id="runs-table">
           <thead><tr>
             <th style="width:28px"><span class="box"></span></th><th>Run</th><th>Started · by</th><th>Selection</th><th>Targets</th>
-            <th style="white-space:nowrap">Built · cached · failed</th><th>Duration <span class="muted">· jobs busy</span></th><th>Result</th><th>Published</th><th></th>
+            <th style="white-space:nowrap">Built · current · failed</th><th>Duration <span class="muted">· jobs busy</span></th><th>Result</th><th>Published</th><th></th>
           </tr></thead>
           <tbody>
           <tr class="live" id="run-r-20261102-1750-a3f">
@@ -75,7 +76,7 @@
             <td><span class="mono" style="font-size:12.5px">11-02 17:50</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">ucx <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span> <span class="tag">el10</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>13</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked · 4 open</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="current"><i></i>13</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked · 4 open</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 3 of 4"><title>Jobs busy over 11m02s: peak 3 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 12.0 L21.9 12.0 L21.9 17.0 L25.6 17.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 12.0 L36.5 12.0 L36.5 12.0 L40.2 12.0 L40.2 7.0 L43.8 7.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">11m02s…</span></span></td>
             <td><span class="pill st-running">running</span></td>
             <td><span class="muted">–</span></td>
@@ -87,11 +88,23 @@
             <td><span class="mono" style="font-size:12.5px">11-02 16:12</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">slurm-release <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>10</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="current"><i></i>10</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 2m10s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 17.0 L21.9 17.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 22.0 L32.9 22.0 L32.9 17.0 L36.5 17.0 L36.5 22.0 L40.2 22.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 22.0 L62.1 22.0 L62.1 22.0 L65.7 22.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 17.0 L76.7 17.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">2m10s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="muted">no</span></td>
             <td><a href="/s/slurm-26.05/runs/compare?a=r-20261102-1612-e40&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-r-20261030-1002-d5c">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/r-20261030-1002-d5c">r-20261030-1002-d5c</a></td>
+            <td><span class="mono" style="font-size:12.5px">10-30 10:02</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel">ucx <span class="muted">(changed)</span></td>
+            <td><span class="tag">el9</span></td>
+            <td><span class="cnts"><span class="z" style="color:var(--s-ok)" title="built"><i></i>0</span><span class="" style="color:var(--s-cached)" title="current"><i></i>9</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">process gone · 3 open</span></span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 4m02s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 17.0 L21.9 17.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 17.0 L62.1 17.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 22.0 L73.0 22.0 L73.0 22.0 L76.7 22.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">4m02s</span></span></td>
+            <td><span class="pill st-canceled" title="The process stopped without a final event">abandoned</span></td>
+            <td><span class="muted">no</span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=r-20261030-1002-d5c&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
           </tr>
           <tr class="picked" id="run-r-20261030-0912-7d1">
             <td><span class="box on"></span></td>
@@ -99,7 +112,7 @@
             <td><span class="mono" style="font-size:12.5px">10-30 09:12</span><br><span class="muted" style="font-size:12px">d.klein · mcp</span></td>
             <td class="sel">openmpi <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>10</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="current"><i></i>10</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 21m05s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 22.0 L7.3 22.0 L7.3 22.0 L11.0 22.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 22.0 L21.9 22.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 17.0 L62.1 17.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">21m05s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="muted">no</span></td>
@@ -111,7 +124,7 @@
             <td><span class="mono" style="font-size:12.5px">10-28 14:08</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">prrte <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="current"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 3 of 4"><title>Jobs busy over 24m05s: peak 3 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 12.0 L11.0 12.0 L11.0 12.0 L14.6 12.0 L14.6 12.0 L18.3 12.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 12.0 L36.5 12.0 L36.5 7.0 L40.2 7.0 L40.2 17.0 L43.8 17.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 17.0 L62.1 17.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 12.0 L73.0 12.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 12.0 L84.0 12.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">24m05s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="muted">no</span></td>
@@ -123,7 +136,7 @@
             <td><span class="mono" style="font-size:12.5px">10-27 11:11</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">prrte <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="z" style="color:var(--s-ok)" title="built"><i></i>0</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="cnts"><span class="z" style="color:var(--s-ok)" title="built"><i></i>0</span><span class="" style="color:var(--s-cached)" title="current"><i></i>9</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 4m02s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 17.0 L21.9 17.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 17.0 L62.1 17.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 22.0 L73.0 22.0 L73.0 22.0 L76.7 22.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">4m02s</span></span></td>
             <td><span class="pill st-failed">failed</span></td>
             <td><span class="muted">no</span></td>
@@ -135,7 +148,7 @@
             <td><span class="mono" style="font-size:12.5px">10-23 16:45</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">all <span class="muted">(--force)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>11</span><span class="z" style="color:var(--s-cached)" title="cached"><i></i>0</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>11</span><span class="z" style="color:var(--s-cached)" title="current"><i></i>0</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 1h04m: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 7.0 L7.3 7.0 L7.3 7.0 L11.0 7.0 L11.0 7.0 L14.6 7.0 L14.6 7.0 L18.3 7.0 L18.3 7.0 L21.9 7.0 L21.9 2.0 L25.6 2.0 L25.6 2.0 L29.2 2.0 L29.2 2.0 L32.9 2.0 L32.9 2.0 L36.5 2.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 2.0 L47.5 2.0 L47.5 2.0 L51.1 2.0 L51.1 2.0 L54.8 2.0 L54.8 7.0 L58.4 7.0 L58.4 2.0 L62.1 2.0 L62.1 7.0 L65.7 7.0 L65.7 7.0 L69.4 7.0 L69.4 7.0 L73.0 7.0 L73.0 12.0 L76.7 12.0 L76.7 12.0 L80.3 12.0 L80.3 12.0 L84.0 12.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">1h04m</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="muted">no</span></td>
@@ -147,7 +160,7 @@
             <td><span class="mono" style="font-size:12.5px">10-21 10:02</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">all</td>
             <td><span class="tag">el9</span> <span class="tag">el10</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>5</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>12</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span><br><span class="x muted">4 canceled</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>5</span><span class="" style="color:var(--s-cached)" title="current"><i></i>12</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span><br><span class="x muted">4 canceled</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 31m12s: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 12.0 L11.0 12.0 L11.0 7.0 L14.6 7.0 L14.6 7.0 L18.3 7.0 L18.3 12.0 L21.9 12.0 L21.9 7.0 L25.6 7.0 L25.6 7.0 L29.2 7.0 L29.2 7.0 L32.9 7.0 L32.9 7.0 L36.5 7.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 7.0 L47.5 7.0 L47.5 7.0 L51.1 7.0 L51.1 12.0 L54.8 12.0 L54.8 7.0 L58.4 7.0 L58.4 7.0 L62.1 7.0 L62.1 12.0 L65.7 12.0 L65.7 7.0 L69.4 7.0 L69.4 7.0 L73.0 7.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">31m12s</span></span></td>
             <td><span class="pill st-canceled">canceled</span></td>
             <td><span class="muted">no</span></td>
@@ -159,7 +172,7 @@
             <td><span class="mono" style="font-size:12.5px">10-20 15:30</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">all <span class="muted">(new target el10)</span></td>
             <td><span class="tag">el10</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>8</span><span class="z" style="color:var(--s-cached)" title="cached"><i></i>0</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>8</span><span class="z" style="color:var(--s-cached)" title="current"><i></i>0</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 48m30s: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 7.0 L11.0 7.0 L11.0 2.0 L14.6 2.0 L14.6 7.0 L18.3 7.0 L18.3 2.0 L21.9 2.0 L21.9 7.0 L25.6 7.0 L25.6 2.0 L29.2 2.0 L29.2 7.0 L32.9 7.0 L32.9 2.0 L36.5 2.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 2.0 L47.5 2.0 L47.5 2.0 L51.1 2.0 L51.1 7.0 L54.8 7.0 L54.8 7.0 L58.4 7.0 L58.4 7.0 L62.1 7.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 17.0 L76.7 17.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">48m30s</span></span></td>
             <td><span class="pill st-failed">failed</span></td>
             <td><span class="muted">no</span></td>
@@ -171,7 +184,7 @@
             <td><span class="mono" style="font-size:12.5px">10-15 09:30</span><br><span class="muted" style="font-size:12px">d.klein · mcp</span></td>
             <td class="sel">pmix_v5 <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>3</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>8</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>3</span><span class="" style="color:var(--s-cached)" title="current"><i></i>8</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 19m10s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 12.0 L14.6 12.0 L14.6 12.0 L18.3 12.0 L18.3 12.0 L21.9 12.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 12.0 L32.9 12.0 L32.9 17.0 L36.5 17.0 L36.5 12.0 L40.2 12.0 L40.2 17.0 L43.8 17.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">19m10s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="muted">no</span></td>
@@ -183,7 +196,7 @@
             <td><span class="mono" style="font-size:12.5px">10-08 14:20</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">slurm <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="current"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 15m50s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 17.0 L36.5 17.0 L36.5 12.0 L40.2 12.0 L40.2 12.0 L43.8 12.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 17.0 L58.4 17.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 12.0 L69.4 12.0 L69.4 12.0 L73.0 12.0 L73.0 12.0 L76.7 12.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">15m50s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="muted">no</span></td>
@@ -195,7 +208,7 @@
             <td><span class="mono" style="font-size:12.5px">10-01 11:05</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">rocm-smi <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>3</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>8</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>3</span><span class="" style="color:var(--s-cached)" title="current"><i></i>8</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 19m02s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 12.0 L14.6 12.0 L14.6 12.0 L18.3 12.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 17.0 L36.5 17.0 L36.5 12.0 L40.2 12.0 L40.2 12.0 L43.8 12.0 L43.8 12.0 L47.5 12.0 L47.5 12.0 L51.1 12.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 17.0 L69.4 17.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 17.0 L80.3 17.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">19m02s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="muted">no</span></td>
@@ -207,11 +220,23 @@
             <td><span class="mono" style="font-size:12.5px">09-24 16:10</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">pmix_v4 <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>8</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>1</span><span class="" style="color:var(--s-cached)" title="current"><i></i>8</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 9m40s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 22.0 L7.3 22.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 22.0 L18.3 22.0 L18.3 22.0 L21.9 22.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 22.0 L58.4 22.0 L58.4 22.0 L62.1 22.0 L62.1 22.0 L65.7 22.0 L65.7 22.0 L69.4 22.0 L69.4 22.0 L73.0 22.0 L73.0 22.0 L76.7 22.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">9m40s</span></span></td>
             <td><span class="pill st-failed">failed</span></td>
             <td><span class="muted">no</span></td>
             <td><a href="/s/slurm-26.05/runs/compare?a=r-20260924-1610-4af&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
+          </tr>
+          <tr id="run-p-20260912-1403-c21">
+            <td><span class="box"></span></td>
+            <td><a class="rid" href="/s/slurm-26.05/runs/p-20260912-1403-c21">p-20260912-1403-c21</a></td>
+            <td><span class="mono" style="font-size:12.5px">09-12 14:03</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
+            <td class="sel"><span class="tag">publish</span> <span class="muted">plan</span></td>
+            <td><span class="tag">el9</span> <span class="tag">el10</span></td>
+            <td><span class="muted" title="A publish run builds nothing">27 signed</span></td>
+            <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Signing over 1m12s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 17.0 L11.0 17.0 L11.0 12.0 L14.6 12.0 L14.6 17.0 L18.3 17.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 12.0 L36.5 12.0 L36.5 17.0 L40.2 17.0 L40.2 12.0 L43.8 12.0 L43.8 12.0 L47.5 12.0 L47.5 17.0 L51.1 17.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 12.0 L69.4 12.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 12.0 L80.3 12.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">1m12s</span></span></td>
+            <td><span class="pill st-ok">ok</span></td>
+            <td><span class="pub">latest <span class="muted">09-12</span></span></td>
+            <td><a href="/s/slurm-26.05/runs/compare?a=p-20260912-1403-c21&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
           </tr>
           <tr class="picked" id="run-r-20260912-1404-c21">
             <td><span class="box on"></span></td>
@@ -219,10 +244,10 @@
             <td><span class="mono" style="font-size:12.5px">09-12 14:04</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">slurm <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>2</span><span class="" style="color:var(--s-cached)" title="current"><i></i>9</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 2 of 4"><title>Jobs busy over 15m12s: peak 2 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 17.0 L11.0 17.0 L11.0 12.0 L14.6 12.0 L14.6 17.0 L18.3 17.0 L18.3 12.0 L21.9 12.0 L21.9 12.0 L25.6 12.0 L25.6 12.0 L29.2 12.0 L29.2 12.0 L32.9 12.0 L32.9 12.0 L36.5 12.0 L36.5 17.0 L40.2 17.0 L40.2 12.0 L43.8 12.0 L43.8 12.0 L47.5 12.0 L47.5 17.0 L51.1 17.0 L51.1 12.0 L54.8 12.0 L54.8 12.0 L58.4 12.0 L58.4 12.0 L62.1 12.0 L62.1 12.0 L65.7 12.0 L65.7 12.0 L69.4 12.0 L69.4 17.0 L73.0 17.0 L73.0 12.0 L76.7 12.0 L76.7 12.0 L80.3 12.0 L80.3 17.0 L84.0 17.0 L84.0 17.0 L87.7 17.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">15m12s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
-            <td><span class="pub">yes <span class="tag" title="This run is the published repo now">live</span> <span class="muted">09-12</span></span></td>
+            <td><span class="pub">yes <span class="tag" title="The nodes of this run are in latest">in latest</span> <span class="muted">09-12</span></span></td>
             <td><a href="/s/slurm-26.05/runs/compare?a=r-20260912-1404-c21&amp;b=prev" title="Compare with the previous run of the same targets"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2v12M10.5 2v12M2 5h3.5M10.5 11H14"/></svg></a></td>
           </tr>
           <tr id="run-r-20260911-1738-5e2">
@@ -231,7 +256,7 @@
             <td><span class="mono" style="font-size:12.5px">09-11 17:38</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">slurm <span class="muted">(changed)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="z" style="color:var(--s-ok)" title="built"><i></i>0</span><span class="" style="color:var(--s-cached)" title="cached"><i></i>9</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
+            <td><span class="cnts"><span class="z" style="color:var(--s-ok)" title="built"><i></i>0</span><span class="" style="color:var(--s-cached)" title="current"><i></i>9</span><span class="" style="color:var(--s-failed)" title="failed"><i></i>1</span><br><span class="x muted">+1 blocked</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 1 of 4"><title>Jobs busy over 6m03s: peak 1 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 17.0 L7.3 17.0 L7.3 17.0 L11.0 17.0 L11.0 17.0 L14.6 17.0 L14.6 17.0 L18.3 17.0 L18.3 17.0 L21.9 17.0 L21.9 17.0 L25.6 17.0 L25.6 17.0 L29.2 17.0 L29.2 17.0 L32.9 17.0 L32.9 17.0 L36.5 17.0 L36.5 17.0 L40.2 17.0 L40.2 17.0 L43.8 17.0 L43.8 17.0 L47.5 17.0 L47.5 17.0 L51.1 17.0 L51.1 17.0 L54.8 17.0 L54.8 17.0 L58.4 17.0 L58.4 17.0 L62.1 17.0 L62.1 17.0 L65.7 17.0 L65.7 17.0 L69.4 17.0 L69.4 22.0 L73.0 22.0 L73.0 22.0 L76.7 22.0 L76.7 22.0 L80.3 22.0 L80.3 22.0 L84.0 22.0 L84.0 22.0 L87.7 22.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">6m03s</span></span></td>
             <td><span class="pill st-failed">failed</span></td>
             <td><span class="muted">no</span></td>
@@ -243,7 +268,7 @@
             <td><span class="mono" style="font-size:12.5px">09-05 09:15</span><br><span class="muted" style="font-size:12px">d.klein</span></td>
             <td class="sel">all <span class="muted">(--force)</span></td>
             <td><span class="tag">el9</span></td>
-            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>11</span><span class="z" style="color:var(--s-cached)" title="cached"><i></i>0</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
+            <td><span class="cnts"><span class="" style="color:var(--s-ok)" title="built"><i></i>11</span><span class="z" style="color:var(--s-cached)" title="current"><i></i>0</span><span class="z" style="color:var(--s-failed)" title="failed"><i></i>0</span></span></td>
             <td><span class="spark"><svg width="84" height="22" viewBox="0 0 84 22" role="img" aria-label="jobs busy over time, peak 4 of 4"><title>Jobs busy over 58m40s: peak 4 of 4</title><line x1="0" y1="21.5" x2="84" y2="21.5" stroke="var(--c-border)" /><path d="M0 22 L0.0 17.0 L3.7 17.0 L3.7 12.0 L7.3 12.0 L7.3 7.0 L11.0 7.0 L11.0 7.0 L14.6 7.0 L14.6 7.0 L18.3 7.0 L18.3 2.0 L21.9 2.0 L21.9 2.0 L25.6 2.0 L25.6 7.0 L29.2 7.0 L29.2 2.0 L32.9 2.0 L32.9 2.0 L36.5 2.0 L36.5 2.0 L40.2 2.0 L40.2 2.0 L43.8 2.0 L43.8 2.0 L47.5 2.0 L47.5 2.0 L51.1 2.0 L51.1 2.0 L54.8 2.0 L54.8 2.0 L58.4 2.0 L58.4 2.0 L62.1 2.0 L62.1 7.0 L65.7 7.0 L65.7 7.0 L69.4 7.0 L69.4 7.0 L73.0 7.0 L73.0 7.0 L76.7 7.0 L76.7 12.0 L80.3 12.0 L80.3 12.0 L84.0 12.0 L84.0 12.0 L87.7 12.0 L84.0 22 Z" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><span class="d">58m40s</span></span></td>
             <td><span class="pill st-ok">ok</span></td>
             <td><span class="pub">yes <span class="muted">superseded</span></span></td>
