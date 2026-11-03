@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>repoctl graph</title>
+<meta name="description" content="repoctl graph of el9 as a lane graph, and the package by target matrix, before run a3f.">
+<link rel="stylesheet" href="../assets/term.css">
+</head>
+<body>
+<main class="shot" id="shot">
+<figure class="win" aria-label="Terminal: repoctl graph --target el9">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="title"><b>repoctl graph --target el9</b> — dklein@hpc-a1: ~/src/slurm-repo</span></div>
+<pre class="scr"><span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl graph --target el9
+<span class="b">el9</span>  <span class="d">rocky+epel-9-x86_64</span>  11 nodes, 14 edges, 4 layers  <span class="d">·</span>  ◆ 4 build  <span class="d">·</span>  ≡ 7 current
+
+  ≡                  munge                   0.5.18   current  <span class="d">L0</span>
+  <span class="ln"><span class="bx">│</span></span> ◆                <span class="b">ucx</span>                     1.22.1   build    <span class="d">L0</span>
+  <span class="ln"><span class="bx">│</span> <span class="bx">│</span></span> ≡              rocm-smi                7.14.0   current  <span class="d">L0</span>
+  <span class="ln"><span class="bx">│</span> <span class="bx">│</span> <span class="bx">│</span></span> ≡            slurm-release           26.05    current  <span class="d">L0</span>
+  <span class="ln"><span class="bx">│</span> <span class="bx">│</span> <span class="bx">│</span></span>
+  <span class="ln"><span class="bx">├</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span></span>≡            pmix                    6.1.0    current  <span class="d">L1  ← munge</span>
+  <span class="ln"><span class="bx">├</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span></span>≡          pmix_v5                 5.0.11   current  <span class="d">L1  ← munge</span>
+  <span class="ln"><span class="bx">├</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span></span>≡        pmix_v4                 4.2.9    current  <span class="d">L1  ← munge</span>
+  <span class="ln"><span class="bx">│</span> <span class="bx">│</span> <span class="bx">│</span> <span class="bx">│</span> <span class="bx">│</span> <span class="bx">│</span></span>
+  <span class="ln"><span class="bx">│</span> <span class="bx">│</span> <span class="bx">│</span> <span class="bx">├</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span></span>≡      prrte                   4.1.0    current  <span class="d">L2  ← pmix</span>
+  <span class="ln"><span class="bx">└</span><span class="bx">─</span><span class="bx">┼</span><span class="bx">─</span><span class="bx">┴</span><span class="bx">─</span><span class="bx">┼</span><span class="bx">─</span><span class="bx">┴</span><span class="bx">─</span><span class="bx">┴</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span></span>◆    <span class="b">slurm</span>                   26.05.4  build    <span class="d">L2  ← munge ucx rocm-smi pmix pmix_v5 pmix_v4</span>
+    <span class="ln"><span class="bx">│</span>   <span class="bx">│</span>     <span class="bx">│</span> <span class="bx">│</span></span>
+    <span class="ln"><span class="bx">└</span><span class="bx">─</span><span class="bx">─</span><span class="bx">─</span><span class="bx">┴</span><span class="bx">─</span><span class="bx">─</span><span class="bx">─</span><span class="bx">─</span><span class="bx">─</span><span class="bx">┴</span><span class="bx">─</span><span class="bx">│</span><span class="bx">─</span></span>◆  <span class="b">openmpi</span>                 5.0.11   build    <span class="d">L3  ← ucx pmix prrte</span>
+                <span class="ln"><span class="bx">└</span><span class="bx">─</span></span>◆  <span class="b">slurm-singularity-exec</span>  3.2.0    build    <span class="d">L3  ← slurm</span>
+
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl graph --format matrix
+PACKAGE                 VERSION  EL9  EL10  NEEDS
+munge                   0.5.18   ≡    ≡     -
+ucx                     1.22.1   ◆    ◆     -
+rocm-smi                7.14.0   ≡    ·     -
+slurm-release           26.05    ≡    ≡     -
+pmix                    6.1.0    ≡    ≡     munge
+pmix_v5                 5.0.11   ≡    ≡     munge
+pmix_v4                 4.2.9    ≡    ≡     munge
+prrte                   4.1.0    ≡    ≡     pmix
+slurm                   26.05.4  ◆    ◆     munge ucx rocm-smi(el9) pmix pmix_v5 pmix_v4
+openmpi                 5.0.11   ◆    ◆     ucx pmix prrte
+slurm-singularity-exec  3.2.0    ◆    ◆     slurm
+21 nodes: ◆ 8 build, ≡ 13 current; rocm-smi is not built for el10
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> <span class="cur"> </span></pre>
+</figure>
+</main>
+</body>
+</html>

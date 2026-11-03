@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>slurm@el9 log · run a3f · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../assets/repoctl.css">
+<link rel="stylesheet" href="../assets/shell.css">
+<link rel="stylesheet" href="../assets/run.css">
+</head>
+<body data-set="slurm-26.05" data-target="el9" hx-ext="sse" sse-connect="/s/slurm-26.05/-/events?page=node-log&amp;run=r-20261102-1750-a3f&amp;node=slurm@el9"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+<header class="topbar">
+  <a class="icon-btn nav-toggle" href="#nav" aria-controls="nav" aria-expanded="false" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></a>
+  <a class="brand" href="sets.html" aria-label="repoctl: all sets"><span class="brand-mark" aria-hidden="true">rc</span><span class="brand-name">repoctl</span><small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span>slurm-26.05<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="overview.html" aria-current="page"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span><b>slurm-26.05</b><span class="qs run">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-ok)" aria-hidden="true"></span><b>slurm-25.11</b><span class="qs ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-blocked)" aria-hidden="true"></span><b>slurm-25.11-testing</b><span class="qs warn">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="sets.html"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">To add a set, run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/s/slurm-26.05/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="run-detail.html" sse-swap="chip" hx-swap="outerHTML"
+     title="Run r-20261102-1750-a3f of slurm-26.05: 2 of 8 builds done, 1 failed (slurm@el10). Started 17:50 by d.klein.">
+    <span class="spin" aria-hidden="true"></span><span class="id">r-…a3f</span><span class="n">2/8<span class="w"> builds</span> <span class="sep">·</span> <span class="bad">1 failed</span><span class="el"> <span class="sep">·</span> 11m02s</span></span><span class="sr-only">: run in progress</span></a>
+  <span class="live" role="status" title="Live updates"><span class="dot" aria-hidden="true"></span><span class="t">offline</span></span>
+  <span class="who">d.klein@hpc-a1</span>
+  <button class="icon-btn" type="button" data-help aria-label="Keyboard shortcuts (?)">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+<nav class="sidebar" id="nav" aria-label="Navigation">
+  <div class="nav-label">Set <span class="set-name">slurm-26.05</span></div>
+  <a class="nav-item" href="overview.html" data-key="o"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+  <a class="nav-item" href="graph.html" data-key="g"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/></svg>Graph</a>
+  <a class="nav-item" href="plan.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M4 18h3"/></svg>Plan<span class="count">6 build</span></a>
+  <a class="nav-item" href="advisories.html" data-key="a"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>Advisories<span class="count attn">1 required</span></a>
+  <a class="nav-item" href="runs.html" data-key="r" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Runs<span class="count hot" sse-swap="nav-runs">1 running</span></a>
+  <a class="nav-item" href="packages.html" data-key="p"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>Packages</a>
+  <div class="nav-label">Repository</div>
+  <a class="nav-item" href="repository.html" data-key="b"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el9</a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el10</a>
+  <a class="nav-item" href="publish-review.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>Publish</a>
+  <a class="nav-item" href="signing.html" data-key="k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg>Signing</a>
+  <div class="nav-label">Host</div>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>Config and lock</a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Doctor</a>
+  <a class="nav-item" href="sets.html" data-key="s"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>All sets</a>
+  <div class="side-foot">repoctl v0.4.0</div>
+</nav>
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
+  <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
+
+<div class="crumbs"><a href="runs.html">Runs</a><span class="sep">/</span><a href="run-detail.html" title="r-20261102-1750-a3f">today 17:50 · a3f</a><span class="sep">/</span><span>slurm@el9</span></div>
+<div class="page-head nl-head" id="node-head" sse-swap="node:slurm@el9" hx-swap="outerHTML">
+  <div>
+    <div class="rd-title"><h1 class="mono">slurm@el9</h1><span class="pill st-running">running</span></div>
+    <div class="sub">
+      <span class="nvr"><span class="n">slurm</span>-<span class="v">26.05.4</span>-<span class="r">2</span><span class="d">.el9</span></span><span class="sep">·</span>
+      <span>started 17:54:13</span><span class="sep">·</span>
+      <span title="Typical time: the last ok build of slurm@el9, in run e19"><span data-since="2026-11-02T17:54:13+01:00">6m53s</span> of typical 17m40s</span>
+    </div>
+  </div>
+  <div class="actions">
+    <details class="cli-toggle"><summary class="btn btn-ghost" aria-label="CLI commands of this page">CLI</summary>
+      <div class="cli-pop"><span class="c"># follow this log in a terminal</span>
+repoctl -C ~/src/slurm-repo logs r-20261102-1750-a3f slurm@el9 --file build --follow
+<span class="c"># the whole run</span>
+repoctl runs r-20261102-1750-a3f --follow</div>
+    </details>
+    <a class="btn" href="run-detail.html" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f" hx-push-url="true">Back to run</a>
+  </div>
+</div>
+
+<nav class="steps-bar" aria-label="Steps of slurm@el9" sse-swap="node:slurm@el9" hx-swap="none">
+  <a href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9?step=srpm" hx-target="#logcard" hx-push-url="true"><span class="step st-ok">srpm</span><span class="mono">41s</span></a>
+  <a href="#" aria-current="step"><span class="step st-running">rpm</span><span class="mono" data-since="2026-11-02T17:54:54+01:00">6m12s</span></a>
+  <a class="off" aria-disabled="true"><span class="step pend">stage</span><span>waits</span></a>
+</nav>
+
+<div class="log-layout">
+  <section class="card logcard" id="logcard" aria-label="Logs of step rpm">
+    <div class="tabs logtabs" role="tablist" aria-label="Log files">
+      <a class="tab" role="tab" aria-selected="true" href="#">build.log <span class="badge w" title="3 warnings">3</span> <span class="sz">3,404 lines</span></a>
+      <a class="tab" role="tab" aria-selected="false" href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9?step=rpm&amp;file=root.log" hx-target="#logcard" hx-push-url="true">root.log <span class="sz">786 lines</span></a>
+      <a class="tab" role="tab" aria-selected="false" href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9?step=rpm&amp;file=state.log" hx-target="#logcard" hx-push-url="true">state.log <span class="sz">21 lines</span></a>
+      <span class="tab-sep" aria-hidden="true"></span>
+      <a class="tab" role="tab" aria-selected="false" href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9?file=repoctl.log" hx-target="#logcard" hx-push-url="true">repoctl.log <span class="sz">27 lines</span></a>
+    </div>
+    <div class="logbar">
+      <label class="search logsearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" name="q" placeholder="Search build.log" aria-label="Search build.log"
+        hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9/f/search?step=rpm&amp;file=build.log" hx-trigger="input changed delay:250ms, search" hx-swap="none"></label>
+      <button class="toggle" type="button" aria-pressed="true" title="Follow keeps the view at the end (f). Scroll up to pause; End or the new-lines bar starts it again. The page keeps the last 2,000 lines.">Follow<span class="sw" aria-hidden="true"></span></button>
+      <button class="toggle" type="button" aria-pressed="false" title="Wrap long lines at spaces (w)">Wrap<span class="sw" aria-hidden="true"></span></button>
+      <button class="toggle" type="button" aria-pressed="false" title="Show only error and warning lines, with 3 lines of context">Problems only<span class="sw" aria-hidden="true"></span></button>
+      <span class="spacer"></span>
+      <a class="btn btn-sm" href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9/logs/rpm/build.log?download=1" download>Raw</a>
+    </div>
+    <div class="logstat"><span class="livebadge" title="SSE event id 3122431: the byte offset after the last line. A reconnect resumes there.">live</span><span><b>rpm/build.log</b> · lines 1,405–3,404 · 3.0 MiB</span>
+      <span class="r"><a href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9/f/log?step=rpm&amp;file=build.log&amp;before=1,405&amp;n=2000" hx-target="#logview .lines" hx-swap="afterbegin">Load 2,000 earlier lines</a></span></div>
+    <div class="logview tail" id="logview" tabindex="0" role="region" aria-label="build.log of step rpm, live" sse-swap="log:slurm@el9" hx-target="#logview .lines" hx-swap="beforeend"><div class="lines">
+<div class="l" id="L3364"><a class="n" href="#L3364">3364</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-mpi_pmix.lo -MD -MP -MF .deps/mpi_pmix_v4_la-mpi_pmix.Tpo -c -o mpi_pmix_v4_la-mpi_pmix.lo `test -f 'mpi_pmix.c' || echo './'`mpi_pmix.c</span></div>
+<div class="l" id="L3365"><a class="n" href="#L3365">3365</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-mpi_pmix.lo -MD -MP -MF .deps/mpi_pmix_v4_la-mpi_pmix.Tpo -c mpi_pmix.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-mpi_pmix.o</span></div>
+<div class="l" id="L3366"><a class="n" href="#L3366">3366</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_agent.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_agent.Tpo -c -o mpi_pmix_v4_la-pmixp_agent.lo `test -f 'pmixp_agent.c' || echo './'`pmixp_agent.c</span></div>
+<div class="l" id="L3367"><a class="n" href="#L3367">3367</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_agent.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_agent.Tpo -c pmixp_agent.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_agent.o</span></div>
+<div class="l" id="L3368"><a class="n" href="#L3368">3368</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_client.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_client.Tpo -c -o mpi_pmix_v4_la-pmixp_client.lo `test -f 'pmixp_client.c' || echo './'`pmixp_client.c</span></div>
+<div class="l" id="L3369"><a class="n" href="#L3369">3369</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_client.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_client.Tpo -c pmixp_client.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_client.o</span></div>
+<div class="l" id="L3370"><a class="n" href="#L3370">3370</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_coll.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_coll.Tpo -c -o mpi_pmix_v4_la-pmixp_coll.lo `test -f 'pmixp_coll.c' || echo './'`pmixp_coll.c</span></div>
+<div class="l" id="L3371"><a class="n" href="#L3371">3371</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_coll.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_coll.Tpo -c pmixp_coll.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_coll.o</span></div>
+<div class="l" id="L3372"><a class="n" href="#L3372">3372</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_coll_ring.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_coll_ring.Tpo -c -o mpi_pmix_v4_la-pmixp_coll_ring.lo `test -f 'pmixp_coll_ring.c' || echo './'`pmixp_coll_ring.c</span></div>
+<div class="l" id="L3373"><a class="n" href="#L3373">3373</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_coll_ring.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_coll_ring.Tpo -c pmixp_coll_ring.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_coll_ring.o</span></div>
+<div class="l" id="L3374"><a class="n" href="#L3374">3374</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_coll_tree.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_coll_tree.Tpo -c -o mpi_pmix_v4_la-pmixp_coll_tree.lo `test -f 'pmixp_coll_tree.c' || echo './'`pmixp_coll_tree.c</span></div>
+<div class="l" id="L3375"><a class="n" href="#L3375">3375</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_coll_tree.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_coll_tree.Tpo -c pmixp_coll_tree.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_coll_tree.o</span></div>
+<div class="l" id="L3376"><a class="n" href="#L3376">3376</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dmdx.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dmdx.Tpo -c -o mpi_pmix_v4_la-pmixp_dmdx.lo `test -f 'pmixp_dmdx.c' || echo './'`pmixp_dmdx.c</span></div>
+<div class="l" id="L3377"><a class="n" href="#L3377">3377</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dmdx.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dmdx.Tpo -c pmixp_dmdx.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_dmdx.o</span></div>
+<div class="l" id="L3378"><a class="n" href="#L3378">3378</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_info.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_info.Tpo -c -o mpi_pmix_v4_la-pmixp_info.lo `test -f 'pmixp_info.c' || echo './'`pmixp_info.c</span></div>
+<div class="l" id="L3379"><a class="n" href="#L3379">3379</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_info.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_info.Tpo -c pmixp_info.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_info.o</span></div>
+<div class="l" id="L3380"><a class="n" href="#L3380">3380</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_io.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_io.Tpo -c -o mpi_pmix_v4_la-pmixp_io.lo `test -f 'pmixp_io.c' || echo './'`pmixp_io.c</span></div>
+<div class="l" id="L3381"><a class="n" href="#L3381">3381</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_io.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_io.Tpo -c pmixp_io.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_io.o</span></div>
+<div class="l" id="L3382"><a class="n" href="#L3382">3382</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_nspaces.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_nspaces.Tpo -c -o mpi_pmix_v4_la-pmixp_nspaces.lo `test -f 'pmixp_nspaces.c' || echo './'`pmixp_nspaces.c</span></div>
+<div class="l" id="L3383"><a class="n" href="#L3383">3383</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_nspaces.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_nspaces.Tpo -c pmixp_nspaces.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_nspaces.o</span></div>
+<div class="l" id="L3384"><a class="n" href="#L3384">3384</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_server.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_server.Tpo -c -o mpi_pmix_v4_la-pmixp_server.lo `test -f 'pmixp_server.c' || echo './'`pmixp_server.c</span></div>
+<div class="l" id="L3385"><a class="n" href="#L3385">3385</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_server.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_server.Tpo -c pmixp_server.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_server.o</span></div>
+<div class="l" id="L3386"><a class="n" href="#L3386">3386</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_state.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_state.Tpo -c -o mpi_pmix_v4_la-pmixp_state.lo `test -f 'pmixp_state.c' || echo './'`pmixp_state.c</span></div>
+<div class="l" id="L3387"><a class="n" href="#L3387">3387</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_state.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_state.Tpo -c pmixp_state.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_state.o</span></div>
+<div class="l" id="L3388"><a class="n" href="#L3388">3388</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_timer.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_timer.Tpo -c -o mpi_pmix_v4_la-pmixp_timer.lo `test -f 'pmixp_timer.c' || echo './'`pmixp_timer.c</span></div>
+<div class="l" id="L3389"><a class="n" href="#L3389">3389</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_timer.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_timer.Tpo -c pmixp_timer.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_timer.o</span></div>
+<div class="l" id="L3390"><a class="n" href="#L3390">3390</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_utils.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_utils.Tpo -c -o mpi_pmix_v4_la-pmixp_utils.lo `test -f 'pmixp_utils.c' || echo './'`pmixp_utils.c</span></div>
+<div class="l" id="L3391"><a class="n" href="#L3391">3391</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_utils.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_utils.Tpo -c pmixp_utils.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_utils.o</span></div>
+<div class="l" id="L3392"><a class="n" href="#L3392">3392</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dconn.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dconn.Tpo -c -o mpi_pmix_v4_la-pmixp_dconn.lo `test -f 'pmixp_dconn.c' || echo './'`pmixp_dconn.c</span></div>
+<div class="l" id="L3393"><a class="n" href="#L3393">3393</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dconn.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dconn.Tpo -c pmixp_dconn.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_dconn.o</span></div>
+<div class="l" id="L3394"><a class="n" href="#L3394">3394</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dconn_ucx.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dconn_ucx.Tpo -c -o mpi_pmix_v4_la-pmixp_dconn_ucx.lo `test -f 'pmixp_dconn_ucx.c' || echo './'`pmixp_dconn_ucx.c</span></div>
+<div class="l" id="L3395"><a class="n" href="#L3395">3395</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dconn_ucx.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dconn_ucx.Tpo -c pmixp_dconn_ucx.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_dconn_ucx.o</span></div>
+<div class="l w" id="L3396"><a class="n" href="#L3396">3396</a><span class="t">pmixp_dconn_ucx.c:412:17: warning: 'ucp_request_is_completed' is deprecated [-Wdeprecated-declarations]</span></div>
+<div class="l d" id="L3397"><a class="n" href="#L3397">3397</a><span class="t">  412 |         if (ucp_request_is_completed(req)) {</span></div>
+<div class="l d" id="L3398"><a class="n" href="#L3398">3398</a><span class="t">      |                 ^~~~~~~~~~~~~~~~~~~~~~~~</span></div>
+<div class="l d" id="L3399"><a class="n" href="#L3399">3399</a><span class="t">In file included from /usr/include/ucp/api/ucp.h:12,</span></div>
+<div class="l d" id="L3400"><a class="n" href="#L3400">3400</a><span class="t">/usr/include/ucp/api/ucp_compat.h:41:19: note: declared here</span></div>
+<div class="l" id="L3401"><a class="n" href="#L3401">3401</a><span class="t">mv -f .deps/mpi_pmix_v4_la-pmixp_dconn_ucx.Tpo .deps/mpi_pmix_v4_la-pmixp_dconn_ucx.Plo</span></div>
+<div class="l d" id="L3402"><a class="n" href="#L3402">3402</a><span class="t">make[2]: Entering directory '/builddir/build/BUILD/slurm-26.05.4/src/plugins/select/cons_tres'</span></div>
+<div class="l fresh hold" id="L3403"><a class="n" href="#L3403">3403</a><span class="t">/bin/sh ../../../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I/usr/include/pmix  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -pipe -Wall -m64 -pthread -ggdb3 -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dconn_tcp.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dconn_tcp.Tpo -c -o mpi_pmix_v4_la-pmixp_dconn_tcp.lo `test -f 'pmixp_dconn_tcp.c' || echo './'`pmixp_dconn_tcp.c</span></div>
+<div class="l fresh hold" id="L3404"><a class="n" href="#L3404">3404</a><span class="t">libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../.. -I../../../../slurm -DSLURM_PLUGIN_DEBUG -I../../../.. -I/usr/include/pmix -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -pthread -ggdb3 -Wall -g -O1 -fno-strict-aliasing -MT mpi_pmix_v4_la-pmixp_dconn_tcp.lo -MD -MP -MF .deps/mpi_pmix_v4_la-pmixp_dconn_tcp.Tpo -c pmixp_dconn_tcp.c  -fPIC -DPIC -o .libs/mpi_pmix_v4_la-pmixp_dconn_tcp.o</span></div>
+<div class="cursor">waiting for output…</div>
+    </div></div>
+    <div class="logfoot"><span>following · 38 lines/s · last line 0.4s ago</span><span class="r">Scroll up to pause</span></div>
+  </section>
+
+  <aside class="stack log-side">
+    <section class="card" id="problems" aria-labelledby="pr-t">
+      <div class="card-head"><h2 id="pr-t">Problems</h2><span class="right">3 warnings so far, no errors</span></div>
+      <ul class="hits" id="problems-list">
+        <li><a href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9?step=rpm&amp;file=build.log&amp;around=1187#L1187"><span class="ic w" aria-label="warning"></span><span class="where">rpm/build.log:1187</span><span class="msg">gpu_rsmi.c:401:17: warning: enumeration value 'RSMI_CLK_TYPE_PCIE' not handled in switch</span></a></li>
+        <li><a href="#" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9?step=rpm&amp;file=build.log&amp;around=2899#L2899"><span class="ic w" aria-label="warning"></span><span class="where">rpm/build.log:2899</span><span class="msg">pmixp_dconn_ucx.c:412:17: warning: 'ucp_request_is_completed' is deprecated (mpi_pmix_v5)</span></a></li>
+        <li aria-current="true"><a href="#L3396"><span class="ic w" aria-label="warning"></span><span class="where">rpm/build.log:3396</span><span class="msg">pmixp_dconn_ucx.c:412:17: warning: 'ucp_request_is_completed' is deprecated (mpi_pmix_v4)</span></a></li>
+      </ul>
+    </section>
+    <section class="card side-folds" aria-label="Build inputs and mock result directory">
+      <details class="fold inputs" id="build-inputs" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/nodes/slurm@el9/f/inputs" hx-trigger="toggle once" hx-target="find .all-inputs" hx-swap="innerHTML">
+        <summary><b>Build inputs</b><span class="sum">1 changed · ucx@el9 from this run</span></summary>
+        <div class="fold-body">
+          <dl class="kv">
+            <dt>ucx@el9</dt><dd><span class="chg">changed</span> staged in this run, 1.22.1-1 (4b1e9c2)</dd>
+          </dl>
+          <details class="all-inputs-d"><summary class="rest"><b>7 more inputs</b> commit, reason, lock, target, plugins, macros, repos</summary>
+            <div class="rest-body all-inputs"><dl class="kv">
+              <dt>commit</dt><dd>d42f66a <span class="muted">Rebuild: ucx 1.22.1</span></dd>
+              <dt>reason</dt><dd>rebuild: ucx 1.22.1</dd>
+              <dt>lock</dt><dd>repoctl.lock</dd>
+              <dt>target</dt><dd>el9 · rocky+epel-9-x86_64</dd>
+              <dt>plugins</dt><dd>rpmautospec</dd>
+              <dt>macros</dt><dd>rpm/macros</dd>
+              <dt>repos</dt><dd>BaseOS, AppStream, CRB, EPEL 9, staging of run a3f</dd>
+            </dl></div></details>
+        </div>
+      </details>
+      <details class="fold fileinfo" id="resultdir">
+        <summary><b>Mock result directory</b><span class="sum">srpm done · rpm writes</span></summary>
+        <div class="fold-body">
+          <dl class="kv">
+            <dt>srpm</dt><dd>build.log root.log state.log hw_info.log</dd>
+            <dt>rpm</dt><dd>build.log root.log state.log, while mock runs</dd>
+            <dt>path</dt><dd>~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/slurm@el9/</dd>
+            <dt>chroot</dt><dd>/var/lib/mock/rocky+epel-9-x86_64-a3f.j1</dd>
+          </dl>
+        </div>
+      </details>
+    </section>
+  </aside>
+</div>
+</main>
+</div>
+<div class="nav-scrim" data-nav-close></div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="step-n">Esc closes</span></header>
+  <div class="body"><table class="keys">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Advisories</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Advisories: upstream releases</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>k</kbd></td><td>Signing (keys)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Repository of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Close a dialog, a menu or leave an input</td></tr>
+  </table><p class="muted">No key starts a build, a cancel or a publish.</p></div>
+  <footer><form method="dialog"><button class="btn">Close</button></form></footer>
+</dialog>
+<script src="../assets/shell.js"></script>
+</body>
+</html>
