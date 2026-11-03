@@ -282,7 +282,7 @@
         "traceParent": {
           "type": "string",
           "pattern": "^[0-9a-f]{16}$",
-          "description": "Span of the program that started this run (TRACEPARENT), e.g. the MCP server or the web UI."
+          "description": "Span of the program that started the run (TRACEPARENT), for example the MCP server or the web UI."
         },
         "origin": {
           "type": "object",
@@ -323,13 +323,14 @@
             "publish",
             "restore",
             "prune",
-            "resign"
+            "resign",
+            "import"
           ]
         }
       }
     },
     "PlanReady": {
-      "description": "Sets every node first state: build nodes start waiting (a node with all dependencies done starts when a job slot is free), current and staged nodes keep their plan state. No node.state line is written for these first states.",
+      "description": "Gives every node its first state. Build nodes start waiting. When the dependencies of a node are done, the node starts if a job slot is free, else it is queued. Current and staged nodes keep their plan state. No node.state line is written for a first state.",
       "required": [
         "summary",
         "build",
@@ -408,6 +409,7 @@
       }
     },
     "NodeStateEvent": {
+      "description": "A change of the node state after its first state. A terminal state is the last node.state of the node.",
       "required": [
         "node",
         "state",
@@ -437,6 +439,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "checks": {
+          "$ref": "output.json#/$defs/NodeChecks"
         }
       }
     },
@@ -472,7 +477,7 @@
       }
     },
     "NodeLogEvent": {
-      "description": "Sampled: at most one per node every 2 s. The full text is in logs/<run>/<node>.log.",
+      "description": "Sampled: at most one line per node every 2 s, plus each line that matches an error pattern. The full text is in logs/<run>/<node>.log.",
       "required": [
         "node",
         "step",
@@ -563,6 +568,7 @@
       }
     },
     "WarningEvent": {
+      "description": "A warning, with the same code as in warnings[] of the result.",
       "required": [
         "code",
         "message"
@@ -580,6 +586,7 @@
       }
     },
     "CancelRequested": {
+      "description": "A person, a signal, the UI or the MCP server asked the run to stop.",
       "required": [
         "by"
       ],
@@ -601,6 +608,7 @@
       }
     },
     "RunFinished": {
+      "description": "The last line of a run.",
       "required": [
         "state",
         "counts",
@@ -624,7 +632,8 @@
           "type": "array",
           "items": {
             "$ref": "output.json#/$defs/TargetId"
-          }
+          },
+          "description": "Targets whose nodes are all current or staged."
         }
       }
     },
@@ -670,6 +679,7 @@
       }
     },
     "PublishStep": {
+      "description": "Start or end of one publish step for one target.",
       "required": [
         "target",
         "step",
@@ -756,7 +766,7 @@
       }
     },
     "AdvisoryEvent": {
-      "description": "An advisory appeared or changed state. Journal of a check or a build.",
+      "description": "A plan, a node build or a check found an advisory, or gave it a new state.",
       "required": [
         "id",
         "state",
@@ -767,18 +777,10 @@
           "type": "string"
         },
         "state": {
-          "enum": [
-            "pending",
-            "open",
-            "dismissed"
-          ]
+          "$ref": "output.json#/$defs/AdvisoryState"
         },
         "level": {
-          "enum": [
-            "info",
-            "warn",
-            "required"
-          ]
+          "$ref": "output.json#/$defs/AdvisoryLevel"
         },
         "factsDigest": {
           "$ref": "output.json#/$defs/Digest"
@@ -786,6 +788,7 @@
       }
     },
     "AdvisoryGone": {
+      "description": "The check does not find the advisory any more.",
       "required": [
         "id"
       ],
@@ -813,7 +816,8 @@
         },
         "reason": {
           "type": "string",
-          "minLength": 8
+          "minLength": 8,
+          "description": "The --reason of the publish, 8 characters or more."
         },
         "user": {
           "type": "string"
