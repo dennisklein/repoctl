@@ -19,7 +19,7 @@
 </ul>
 
 <h2 id="conventions">Conventions</h2>
-<p>The progress displays (tree, counter, plain lines) come from go-clikit <code>progress/display</code>. The tables are go-clikit <code>cliout</code> tables. The doctor text comes from go-clikit <code>doctor.Write</code>. repoctl gives the kit its own marks, words and colours. The output contract (what goes to which stream, the order of the lines, the JSON envelope) is in <a href="cli.html#output">CLI reference: output</a>. The form of an error line and a hint is in <a href="cli.html#errors">CLI reference: error messages</a>. The JSON documents are in <a href="contract.html#envelope">Machine contract</a>.</p>
+<p>The progress displays (tree, counter, plain lines) come from go-clikit <code>progress/display</code>. The tables are go-clikit <code>cliout</code> tables. The doctor text comes from go-clikit <code>doctor.Write</code>. repoctl gives the kit its own marks, words and colours. The output contract (what goes to which stream, the order of the lines, the JSON envelope) is in <a href="terminal.html#output">CLI reference: output</a>. The form of an error line and a hint is in <a href="cli.html#errors">CLI reference: error messages</a>. The JSON documents are in <a href="contract.html#envelope">Machine contract</a>.</p>
 
 <h3 id="marks">State marks and colours</h3>
 <p>The table gives the node states, the plan actions and the check results. The node words have one definition for all surfaces (<a href="build.html#states">Build: node states</a>). Without a UTF-8 locale, repoctl writes the ASCII mark.</p>
@@ -108,6 +108,35 @@
   <li>Durations: <code>4.2s</code>, <code>26s</code>, <code>6m53s</code>, <code>41m07s</code>, <code>1h12m</code>. The elapsed time of a live tree: <code>11:02.4</code>. A plain line starts with <code>[m:ss]</code>. Times of day: <code>17:50</code>. Dates: <code>2026-11-02</code>.</li>
   <li>Tree rows: mark, name, elapsed time, step, and the last line of the child process in dim.</li>
   <li>Plain lines: <code>[m:ss] mark path: text</code>. The parts of the path use <code>›</code>, or <code>&gt;</code> without a UTF-8 locale.</li>
+</ul>
+
+<h2 id="output">Output rules</h2>
+<h3 id="output-streams">Streams</h3>
+<ul>
+  <li><strong>stdout</strong> holds the result only: a table, a key-value block or one JSON document.</li>
+  <li><strong>stderr</strong> holds, in order: progress, <code>note:</code> and <code>warning:</code> lines, log lines, the summary line, the error line, 0 to 3 <code>hint:</code> lines and <code>Next:</code>. A confirmation question also goes to stderr.</li>
+  <li>Progress never changes stdout. A command that ends in less than one second draws no progress and no summary line.</li>
+  <li>repoctl never writes a token or a passphrase into a log, a journal or a result.</li>
+</ul>
+<p><a href="terminal.html#streams">terminal.html#streams</a> shows the streams. The words for node states are in <a href="build.html#states">build.html#states</a>.</p>
+<h3 id="human">Human output</h3>
+<ul>
+  <li><strong>Exceptions plus a totals line.</strong> A result table shows the rows that differ from the normal state (in-sync, in-tree, ok, current, same, up-to-date). The normal rows fold into one totals line with a count for each state. Example: <code>11 packages: 9 in-sync, 1 ahead, 1 in tree  (-v shows all)</code>. The count stays, so "all fine" and "nothing checked" do not look the same.</li>
+  <li><strong><code>-v</code> shows all rows.</strong> Scripts do not parse the text. They use <code>--json</code>, which always has all rows.</li>
+  <li>A column with the same value on every row moves into the header line. A list where all items pass folds to one line.</li>
+  <li>A pure list (list, repo ls, runs, sign ls, repo snapshots) shows all rows, because it has no normal state to fold.</li>
+</ul>
+<h3 id="json">JSON output</h3>
+<p>With <code>--json</code>, a command writes exactly one JSON document to stdout: the envelope with <code>apiVersion</code>, <code>kind</code>, <code>metadata</code>, <code>items</code>, <code>warnings</code> and <code>errors</code> (<a href="contract.html#envelope">contract.html#envelope</a>). Each command block names its kind (<a href="contract.html#kinds">contract.html#kinds</a>). A failed command also writes an envelope. <code>items</code> holds the partial result. <code>errors</code> holds each problem with its code, hint and exit code, and <code>humanAction</code> where a human must act.</p>
+<p>A usage error writes no envelope. <code>--json</code> does not change the progress; in CI, use <code>--progress plain</code> or <code>none</code>.</p>
+<h3 id="colour">Colour and layout</h3>
+<p>Colour shows only on a terminal, and never with <code>NO_COLOR</code>, <code>--no-color</code> or <code>TERM=dumb</code>. Tables have no colour: a table shows a state with a word or a mark. Without a UTF-8 locale, repoctl writes the ASCII marks, for example <code>#</code> build, <code>o</code> queued and <code>/</code> blocked. All lines fit in 120 columns. <a href="terminal.html#marks">terminal.html#marks</a> gives the marks and colours; <a href="terminal.html#layout">terminal.html#layout</a> gives the layout of ids, digests and durations.</p>
+<h3 id="next">Hint and Next lines</h3>
+<ul>
+  <li><code>hint: WHAT TO DO. run: CMD</code> tells what to do about a finding in this output: an error or a warning. A failed command ends with 0 to 3 hints and has no <code>Next:</code> line.</li>
+  <li><code>Next: CMD</code> gives the one next step of the normal path. status computes it from the state and writes it as its last line. pin, rebuild, a successful build and publish write it at the end. init, migrate, sign add, sign deployed and a prune dry run also end with it.</li>
+  <li>When the step needs more than one command, the commands follow on indented lines. init and migrate write a numbered list.</li>
+  <li>With <code>--json</code>, the field <code>next</code> holds the step as NextStep objects: in the item of Status, Run and SignerList, and in <code>metadata.next</code> of Lock and File (<a href="contract.html#kinds">contract.html#kinds</a>).</li>
 </ul>
 
 <h2 id="calm">Calm rules for the terminal</h2>

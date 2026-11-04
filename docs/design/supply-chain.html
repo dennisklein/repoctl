@@ -399,21 +399,6 @@
 </table>
 <p>The read commands have read-only MCP tools, <code>repoctl_repo_provenance</code> and <code>repoctl_repo_sbom</code> (<a href="agents.html#mcp-tools">agents.html#mcp-tools</a>). A skill can then answer T3 and T4 for an admin: "which builds used gcc 11.5.0-5?". The problem codes are <code>records.mismatch</code> (exit 10) and <code>records.missing</code> (<a href="contract.html#problems">contract.html#problems</a>). The stored files keep their own standard schemas; repoctl does not wrap them.</p>
 
-<h2 id="tool">Records for the repoctl tool</h2>
-<p>A GitHub Actions job builds the repoctl binary and the tool RPMs (<a href="decision.html#home">decision.html#home</a>). GitHub artifact attestations fit this case. The action <code>actions/attest-build-provenance</code> writes SLSA provenance v1 for each file, signs it with a short-lived Sigstore certificate of the workflow identity and stores it in the attestation store of the repository. This gives SLSA Build L2, and L3 when a reusable workflow does the build. No key to keep. Admins verify a download with <code>gh attestation verify</code>.</p>
-<pre><code class="language-yaml">permissions:
-  contents: write
-  id-token: write        # Sigstore certificate for the workflow
-  attestations: write    # GitHub attestation store
-steps:
-  # … build the binary and the RPMs into dist/ …
-  - uses: actions/attest-build-provenance@v4
-    with:
-      subject-path: dist/*</code></pre>
-<pre class="term">$ gh attestation verify repoctl-0.4.0-1.fc43.x86_64.rpm --repo dennisklein/repoctl
-✓ Verification succeeded!</pre>
-<p>The RPMs of the tool also have the OpenPGP signature of the Pages repo key for dnf. The attestation is an extra record for admins. It does not change the install.</p>
-
 <h2 id="not-used">Not used, and what changes the answer</h2>
 <table class="compact">
 <thead><tr><th>Option</th><th>Why not</th><th>Use it when</th></tr></thead>

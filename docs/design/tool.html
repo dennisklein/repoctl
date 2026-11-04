@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tool releases</title>
+<meta name="description" content="How repoctl itself reaches the admin hosts: the RPM repo on GitHub Pages, the tool repository key, the first install, the upgrade, key rotation and compromise, a bad release and the records of the tool.">
+</head>
+<body>
+<h1>Tool releases</h1>
+<p class="lede">This chapter specifies how repoctl itself reaches the admin hosts and the HTTP server: the RPM repo on GitHub Pages, the tool repository key that signs it, the first install, the upgrade, and what to do when the key or a release is bad.</p>
+
+<h2 id="pages">GitHub Pages</h2>
+<ul>
+  <li><b>Docs site</b> at <code>https://dennisklein.github.io/repoctl/</code>. It has the structure of the <code>GSI-HPC/sind</code> site, with its own theme.</li>
+  <li><b>RPM repo of repoctl</b> at <code>/rpm/</code>, with one directory per <code>$releasever</code>: <code>rpm/43/x86_64/</code> and <code>rpm/44/x86_64/</code> for the Fedora releases that are not end of life, <code>rpm/9/x86_64/</code> and <code>rpm/10/x86_64/</code> for EL. A Fedora directory holds the tool RPM <code>repoctl</code>, the release RPM <code>repoctl-release</code> and the mirror job RPM <code>repoctl-mirror</code>. An EL directory holds only <code>repoctl-release</code> and <code>repoctl-mirror</code>, for the HTTP server. Both are noarch. The release RPM installs the public tool repository key as <code>/etc/pki/rpm-gpg/RPM-GPG-KEY-repoctl</code> and <code>/etc/yum.repos.d/repoctl.repo</code> with <code>baseurl=https://dennisklein.github.io/repoctl/rpm/$releasever/$basearch/</code>, <code>gpgcheck=1</code> and <code>repo_gpgcheck=1</code>. The tool RPM requires all system tools: mock, mock-rpmautospec, rpm-sign, createrepo_c, git and gnupg2. Thus one <code>dnf install</code> gives a ready admin host.</li>
+</ul>
+<p>CI flow: a tag <code>v*</code> on <code>main</code> starts the release job. It makes the tool RPM in a <code>fedora</code> container for each Fedora directory, and the two noarch RPMs once. It signs the RPMs, runs <code>createrepo_c</code> in each directory and signs each <code>repomd.xml</code>. It attaches the RPMs and the signed tree <code>rpm-repo.tar</code> to a GitHub Release. The Pages job deploys the docs and the <code>rpm-repo.tar</code> of the newest release together. It needs no key. No <code>gh-pages</code> branch is necessary.</p>
+<p>The tree keeps, in each directory, the newest patch release of the newest three minor releases of repoctl, and the newest <code>repoctl-release</code> and <code>repoctl-mirror</code>. Each older RPM stays on its GitHub Release. Thus the site stays far below the size limit of GitHub Pages (1 GB). A copy of the newest <code>repoctl-release</code> is also at <code>rpm/</code>, for the first install.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p>The Pages repo has its own key, the tool repository key (<a href="#tool-key">below</a>). It is not a key of a package set, and it never signs set RPMs. Only the release job and the yank job can read it.</p>
+</aside>
+<p>Admin hosts install repoctl from this repo or from the RPMs of a GitHub Release. repoctl runs on Fedora only (<a href="model.html#humans">model.html#humans</a>). The slurm sets and the tool share one GitHub repository; whether the sets move to their own repository is an open question (<a href="delivery.html#open">delivery.html#open</a>). The delivery phases are in <a href="delivery.html#phases">delivery.html#phases</a>.</p>
+
+<h2 id="tool-key">Tool repository key</h2>
+<p>The tool repository key signs the RPMs of repoctl and the repodata of the RPM repo on Pages. The tool RPM runs on the admin hosts, next to the signing keys of the admins. Thus a stolen tool repository key can give the admins a repoctl that signs bad set RPMs. The key never signs a set RPM, but it guards the trust of the clients.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 260" role="img" aria-labelledby="toolkey-t">
+<title id="toolkey-t">Only the release job and the yank job in the protected environment read the tool repository key</title>
+<rect class="box" x="16" y="56" width="160" height="56" rx="8"/>
+<text class="t-title" x="30" y="80">tag v* on main</text>
+<text class="t-small t-muted" x="30" y="100">or the yank job on main</text>
+<rect class="box-muted" x="16" y="168" width="160" height="56" rx="8"/>
+<text class="t-title" x="30" y="192">other refs</text>
+<text class="t-small t-muted" x="30" y="212">builder/*, pull requests</text>
+<rect class="zone" x="216" y="16" width="250" height="228" rx="8"/>
+<text class="t-title" x="232" y="40">environment tool-release</text>
+<rect class="box-soft" x="232" y="56" width="218" height="40" rx="8"/>
+<text class="t-small" x="246" y="81">a maintainer approves the job</text>
+<rect class="box-accent" x="232" y="108" width="218" height="64" rx="8"/>
+<text class="t-title t-on" x="246" y="132">release job, yank job</text>
+<text class="t-small t-on" x="246" y="154">sign the RPMs and the repodata</text>
+<text class="t-small t-mono" x="232" y="200">secret TOOL_REPO_KEY</text>
+<text class="t-small t-muted" x="232" y="222">refs: main, tags v*</text>
+<rect class="box" x="506" y="40" width="170" height="72" rx="8"/>
+<text class="t-title" x="520" y="64">GitHub Release</text>
+<text class="t-small" x="520" y="84">RPMs, rpm-repo.tar,</text>
+<text class="t-small" x="520" y="102">attestations</text>
+<rect class="box" x="506" y="160" width="170" height="56" rx="8"/>
+<text class="t-title" x="520" y="184">Pages job</text>
+<text class="t-small" x="520" y="204">no key: deploys the tree</text>
+<rect class="box-soft" x="716" y="40" width="168" height="56" rx="8"/>
+<text class="t-title" x="730" y="64">admin host</text>
+<text class="t-small t-mono" x="730" y="84">repoctl</text>
+<rect class="box-soft" x="716" y="160" width="168" height="56" rx="8"/>
+<text class="t-title" x="730" y="184">HTTP server</text>
+<text class="t-small t-mono" x="730" y="204">repoctl-mirror</text>
+<path class="edge" d="M176,84 L230,132" marker-end="url(#arrow)"/>
+<path class="edge-err" d="M176,196 L214,196"/>
+<text class="t-small t-err" x="180" y="186">no access</text>
+<path class="edge" d="M450,140 L504,84" marker-end="url(#arrow)"/>
+<path class="edge" d="M591,112 L591,158" marker-end="url(#arrow)"/>
+<path class="edge" d="M676,180 L714,72" marker-end="url(#arrow)"/>
+<path class="edge" d="M676,188 L714,188" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="694" y="232" text-anchor="middle">dnf from /rpm/</text>
+</svg>
+<figcaption>The trust boundary of the tool repository key. Only a job of the protected environment reads the key, after a maintainer approves it. The Pages job and the jobs of other refs never see it.</figcaption>
+</figure>
+<table class="compact">
+<thead><tr><th>Item</th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td>Key</td><td>OpenPGP, RSA 4096, one primary key that signs, no subkey, valid for 2 years. User ID <code>repoctl tool repository</code>. Fingerprint <code>7D3A1F0C9B2E4D6A8F1C3E5B7A9D0F2C4E6B8A13</code>.</td></tr>
+<tr><td>Creation</td><td>A maintainer makes the key with GnuPG on a host without network. One encrypted copy of the secret key stays offline with the maintainer. The other copy goes into the environment secret.</td></tr>
+<tr><td>Storage</td><td>The secret <code>TOOL_REPO_KEY</code> of the GitHub environment <code>tool-release</code> in <code>dennisklein/repoctl</code>. No repository secret and no organization secret holds the key.</td></tr>
+<tr><td>Access</td><td>The environment admits only the ref <code>main</code> and the tags <code>v*</code>, and a maintainer must approve each job (required reviewer). A workflow on a builder branch, a package branch or a pull request cannot read the secret. The release job also checks that the commit of the tag is on <code>main</code>.</td></tr>
+<tr><td>Fingerprint</td><td>In this chapter, in the README of <code>main</code> and in the notes of each GitHub Release. The binary has the fingerprints of all tool repository keys, each with a state: <code>current</code>, <code>retired</code> or <code>revoked</code>.</td></tr>
+<tr><td>First install</td><td><code>repoctl-release-1-1.noarch.rpm</code>, sha256 <code>2c4e6a8b0d1f3a5c7e9b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c</code>. Each new <code>repoctl-release</code> changes this value in the same commit (<a href="#tool-bootstrap">first install</a>).</td></tr>
+<tr><td>Expiry</td><td>Do not extend the expiry date. rpm 6 on the Fedora admin hosts updates a key at import, but rpm 4.16 and 4.19 on the EL HTTP servers do not (F12, <a href="signing.html#facts">client facts</a>). Rotate the key 180 days before it expires.</td></tr>
+<tr><td>doctor</td><td>The host check <code>tool.repo-key</code> passes when the rpm keyring has each current key and <code>repoctl.repo</code> has <code>gpgcheck=1</code> and <code>repo_gpgcheck=1</code>. It warns when a current key is missing, when it expires within 180 days, or when a key in state <code>retired</code> is still in the keyring. It fails when the keyring has a revoked key.</td></tr>
+</tbody>
+</table>
+<h2 id="tool-bootstrap">First install of the tool</h2>
+<p>dnf cannot check the first key. The human checks it by hand, once on each host. The same steps install the mirror job on the HTTP server.</p>
+<ol class="steps">
+  <li>Download <code>https://dennisklein.github.io/repoctl/rpm/repoctl-release-1-1.noarch.rpm</code>.</li>
+  <li>Compare its sha256 (<code>sha256sum</code>) with the value in the table above. If it is different, stop and tell the team.</li>
+  <li>Install the file: <code>sudo dnf install ./repoctl-release-1-1.noarch.rpm</code>.</li>
+  <li>Compare the fingerprint of the installed key with the fingerprint in the table: <code>gpg --show-keys /etc/pki/rpm-gpg/RPM-GPG-KEY-repoctl</code>.</li>
+  <li>On an admin host, install the tool: <code>sudo dnf install repoctl</code>. On the HTTP server, install the mirror job: <code>sudo dnf install repoctl-mirror</code>.</li>
+  <li>On an admin host, run <code>repoctl doctor --only host</code>. The check <code>tool.repo-key</code> must pass.</li>
+</ol>
+<h2 id="upgrade">Upgrade repoctl</h2>
+<p>The text of <code>repoctl help upgrade</code> gives the steps on one admin host. A run that is active during the upgrade ends with the old binary. A UI or MCP server that runs during the upgrade starts no new child (<code>host.stale-server</code>).</p>
+<pre><code class="language-plaintext">UPGRADE
+
+Upgrade repoctl on an admin host:
+  1. Read the release notes. They name new keys and fields, a new
+     apiVersion and a new minRepoctl.
+  2. repoctl runs --state running    in each set: wait until no run is active
+  3. repoctl ui --stop               stop the web UI server
+  4. sudo dnf upgrade repoctl repoctl-release
+  5. repoctl skills install          also --project in each set that has them
+  6. repoctl check --install-timer   in each set with a timer: it rewrites
+                                     the units when they changed
+  7. Restart each agent session that runs "repoctl mcp start".
+  8. repoctl doctor                  host.stale-server, skills.version-mismatch
+                                     and check.timer-unit must pass
+Upgrade the mirror job on the HTTP server: sudo dnf upgrade
+repoctl-mirror. The timer runs the new job at its next start.
+Two admins can work with two releases for a short time. An older
+binary reads newer files, but it never rewrites a file with a field
+that it does not know (contract.newer-file, exit 1).
+When all admins have the new release:
+  - raise minRepoctl in repoctl.yaml if the release notes ask for it;
+  - for a new apiVersion, upgrade the HTTP server first, then run
+    "repoctl migrate --api".
+Commit and push the change of repoctl.yaml.</code></pre>
+<figure class="diagram">
+<svg viewBox="0 0 900 132" role="img" aria-labelledby="upgrade-t">
+<title id="upgrade-t">The order of a team upgrade</title>
+<rect class="box" x="16" y="24" width="196" height="84" rx="8"/>
+<text class="t-title" x="30" y="48">1 each admin host</text>
+<text class="t-small t-mono" x="30" y="70">dnf upgrade repoctl</text>
+<text class="t-small" x="30" y="90">skills, timer, doctor</text>
+<rect class="box" x="240" y="24" width="196" height="84" rx="8"/>
+<text class="t-title" x="254" y="48">2 HTTP server</text>
+<text class="t-small t-mono" x="254" y="70">dnf upgrade</text>
+<text class="t-small t-mono" x="254" y="90">repoctl-mirror</text>
+<rect class="box-accent" x="464" y="24" width="196" height="84" rx="8"/>
+<text class="t-title t-on" x="478" y="48">3 one set commit</text>
+<text class="t-small t-on" x="478" y="70">minRepoctl, or</text>
+<text class="t-small t-mono t-on" x="478" y="90">migrate --api</text>
+<rect class="box-soft" x="688" y="24" width="196" height="84" rx="8"/>
+<text class="t-title" x="702" y="48">4 next publish</text>
+<text class="t-small" x="702" y="70">RepoManifest in the</text>
+<text class="t-small" x="702" y="90">apiVersion of the set</text>
+<path class="edge" d="M212,66 L238,66" marker-end="url(#arrow)"/>
+<path class="edge" d="M436,66 L462,66" marker-end="url(#arrow)"/>
+<path class="edge" d="M660,66 L686,66" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>A team upgrade. Step 3 shuts out the older binaries, so it comes after all hosts have the new release. A release without a new apiVersion and without a new minRepoctl needs only steps 1 and 2.</figcaption>
+</figure>
+
+<h2 id="tool-rotation">Rotation of the tool repository key</h2>
+<ol class="steps">
+  <li>180 days before key A expires, make key B as above. Add it to the environment as a second secret.</li>
+  <li>Release a <code>repoctl-release</code> that ships A and B in one file (F14). The release job still signs with A. The binary of this release lists A and B as current.</li>
+  <li>Wait 30 days. On each admin host without B, doctor warns with the fix <code>sudo dnf upgrade repoctl-release</code>.</li>
+  <li>Sign the next release with B. Delete the secret of A. The binary of this release lists A as <code>retired</code>.</li>
+  <li>Release a <code>repoctl-release</code> with only B.</li>
+  <li>Erase A on each host: <code>sudo rpmkeys --erase</code> on Fedora, config management on the HTTP server. A release RPM cannot remove a key (F16).</li>
+</ol>
+<p>A host that did not get B in step 3 fails with a signature error of dnf. On that host, do the first install again.</p>
+<h2 id="tool-compromise">Compromise of the tool repository key</h2>
+<p>Treat the key as compromised when the secret can have leaked, when a job read it without a release, or when the repo holds an RPM that no release job made.</p>
+<ol class="steps">
+  <li>Delete the environment secret. Turn off the release workflow.</li>
+  <li>Make a new key C as above. Put it into the environment.</li>
+  <li>Yank each release that the old key signed after the first possible time of the leak (<a href="#tool-yank">bad release</a>).</li>
+  <li>Release a fixed version and a <code>repoctl-release</code> with only C, signed with C. Change the fingerprint and the sha256 in this chapter, in the README and in the release notes. The binary of this release lists the old key as revoked.</li>
+  <li>Tell all admins and the owner of the HTTP server in the team channel. dnf on their hosts cannot verify C.</li>
+  <li>On each host, erase the old key, then do the first install again. On an admin host, also run <code>sudo dnf reinstall repoctl</code>.</li>
+  <li>Compare the NVR and the sha256 of each installed repoctl RPM with the GitHub Releases. If a host installed an RPM that no release job made, offboard the signing key of the admin of that host (<a href="signing.html#offboarding">offboarding</a>).</li>
+</ol>
+<h2 id="tool-yank">A bad tool release</h2>
+<ol class="steps">
+  <li>Add the version to <code>packaging/yanked.txt</code> on <code>main</code>, in a reviewed commit.</li>
+  <li>Start the yank job (a manual workflow on <code>main</code>). A maintainer approves it in the environment.</li>
+  <li>The job makes and signs the repodata without the yanked RPMs. It attaches a new <code>rpm-repo.tar</code> to the newest GitHub Release, and the Pages job deploys it.</li>
+  <li>Mark the GitHub Release of the bad version as yanked in its title and its notes. Keep its files.</li>
+  <li>Tag a fix release with a higher version. dnf does not downgrade, so a host with the bad release gets the fix with <code>dnf upgrade</code>.</li>
+</ol>
+
+<h2 id="tool-records">Records of the tool</h2>
+<p>A GitHub Actions job builds the repoctl binary and the tool RPMs (<a href="decision.html#home">decision.html#home</a>). GitHub artifact attestations fit this case. The action <code>actions/attest-build-provenance</code> writes SLSA provenance v1 for each file, signs it with a short-lived Sigstore certificate of the workflow identity and stores it in the attestation store of the repository. This gives SLSA Build L2, and L3 when a reusable workflow does the build. No key to keep. Admins verify a download with <code>gh attestation verify</code>.</p>
+<pre><code class="language-yaml">permissions:
+  contents: write
+  id-token: write        # Sigstore certificate for the workflow
+  attestations: write    # GitHub attestation store
+steps:
+  # … build the binary and the RPMs into dist/ …
+  - uses: actions/attest-build-provenance@v4
+    with:
+      subject-path: dist/*</code></pre>
+<pre class="term">$ gh attestation verify repoctl-0.4.0-1.fc43.x86_64.rpm --repo dennisklein/repoctl
+✓ Verification succeeded!</pre>
+<p>The RPMs of the tool also have the OpenPGP signature of the Pages repo key for dnf. The attestation is an extra record for admins. It does not change the install.</p>
+</body>
+</html>

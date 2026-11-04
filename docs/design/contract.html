@@ -65,7 +65,7 @@
   <li>Text fields (<code>message</code>, <code>hint</code>, log lines, commit subjects) can change in any release. Match on <code>code</code> and on enum values.</li>
 </ul>
 </aside>
-<p>Progress never goes to stdout. In a pipe or in CI, use <code>--progress plain</code> or <code>--progress none</code> for a clean stderr (<a href="cli.html#output">Output rules</a>).</p>
+<p>Progress never goes to stdout. In a pipe or in CI, use <code>--progress plain</code> or <code>--progress none</code> for a clean stderr (<a href="terminal.html#output">Output rules</a>).</p>
 
 <h3 id="metadata">Metadata and units</h3>
 <table class="compact">
@@ -286,7 +286,7 @@
 </tbody>
 </table>
 <p><code>ui</code>, <code>mock</code>, <code>mcp</code> and <code>completion</code> have no <code>--json</code>. <code>schema</code> prints a schema without an envelope.</p>
-<p>The <code>Next:</code> line of a command (<a href="cli.html#next">cli.html#next</a>) is the field <code>next</code>, a list of NextStep objects. A kind with one item holds it in the item: Status, Run and SignerList. A kind with one item per dir or per file holds it in <code>metadata.next</code>: Lock and File. Status also gives each line of <code>repoctl status</code>: <code>set.git.pushed</code>, <code>lockHolder</code>, <code>upstream</code> and <code>signing</code>. Each item of <code>Package.targets[]</code> gives the columns of <code>repoctl show</code> for one target: <code>nvr</code>, <code>dependsOn</code>, <code>usedBy</code>, <code>published</code>, <code>action</code> and <code>reasons</code>.</p>
+<p>The <code>Next:</code> line of a command (<a href="terminal.html#next">terminal.html#next</a>) is the field <code>next</code>, a list of NextStep objects. A kind with one item holds it in the item: Status, Run and SignerList. A kind with one item per dir or per file holds it in <code>metadata.next</code>: Lock and File. Status also gives each line of <code>repoctl status</code>: <code>set.git.pushed</code>, <code>lockHolder</code>, <code>upstream</code> and <code>signing</code>. Each item of <code>Package.targets[]</code> gives the columns of <code>repoctl show</code> for one target: <code>nvr</code>, <code>dependsOn</code>, <code>usedBy</code>, <code>published</code>, <code>action</code> and <code>reasons</code>.</p>
 <p>A publish run is a Run with <code>kind: publish</code> and a <code>publishKind</code>. Per target, it adds the base, the new snapshot, the gate rows, the sign counts, the eight publish steps and <code>pushable</code>. The state file <code>publishes/p-…/state.json</code> of a kept tree holds the same Run (<a href="publish.html#complete">publish.html#complete</a>). The cache file <code>snapshot.json</code> of the local copy holds one Snapshot (<a href="publish.html#pull">publish.html#pull</a>); <code>repoctl schema Snapshot</code> prints its schema. A <code>--dry-run</code> publish gives the same Run with <code>state: planning</code>. <code>repoctl runs</code> lists Runs with empty <code>nodes</code>.</p>
 
 <h2 id="schemas">Schemas</h2>
@@ -357,7 +357,7 @@
 <tr><td><code>config.unknown-key</code></td><td>1</td><td>A key is unknown, or the user config sets a key that changes the build.</td><td>Remove the key, or upgrade repoctl when a newer release knows it; <code>repoctl config show</code>.</td></tr>
 <tr><td><code>config.unknown-set</code></td><td>warning</td><td><code>config show</code>: the user config has <code>sets.NAME</code> for a set that this host does not know.</td><td>Correct NAME, or remove the key.</td></tr>
 <tr><td><code>config.unsupported</code></td><td>1</td><td>This release does not support the key or its value, for example a target that is not <code>x86_64</code>.</td><td>Remove the key, or change the value.</td></tr>
-<tr><td><code>contract.newer-file</code></td><td>1; warning in a command that only reads the file</td><td>A stored file needs a newer repoctl: its apiVersion, a field, a closed enum value or <code>minRepoctl</code> is newer than this binary. The message names the file and the versions.</td><td>Upgrade repoctl on this host (<a href="cli.html#upgrade">upgrade</a>).</td></tr>
+<tr><td><code>contract.newer-file</code></td><td>1; warning in a command that only reads the file</td><td>A stored file needs a newer repoctl: its apiVersion, a field, a closed enum value or <code>minRepoctl</code> is newer than this binary. The message names the file and the versions.</td><td>Upgrade repoctl on this host (<a href="tool.html#upgrade">upgrade</a>).</td></tr>
 <tr><td><code>contract.old-file</code></td><td>1</td><td>The command must write a stored file in an apiVersion that this binary only reads.</td><td><code>repoctl migrate --api</code>, then commit.</td></tr>
 <tr><td><code>dep.not-for-target</code></td><td>warning</td><td>Plan: only a package of another target provides a BuildRequires of the node.</td><td>Guard the BuildRequires with <code>%if</code>, or add the target.</td></tr>
 <tr><td><code>deprecated</code></td><td>warning</td><td>The input uses a deprecated name, for example <code>sign.gpg_name</code>.</td><td>Use the name in the message.</td></tr>
