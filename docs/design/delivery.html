@@ -64,7 +64,7 @@
 <thead><tr><th>Phase</th><th>Content</th><th>Done when</th></tr></thead>
 <tbody>
 <tr><td>0 Foundation</td>
-<td>Orphan branch <code>main</code> as the default branch of <a href="https://github.com/dennisklein/repoctl">github.com/dennisklein/repoctl</a> (<a href="decision.html#home">where the tool lives</a>). Go module on <code>GSI-HPC/go-clikit</code>. CI on GitHub Actions: build, test, lint, and a test that checks each contract example against its schema. This docs site on GitHub Pages.</td>
+<td>Orphan branch <code>main</code> as the default branch of <a href="https://github.com/dennisklein/repoctl">github.com/dennisklein/repoctl</a> (<a href="decision.html#home">where the tool lives</a>). Go module on <code>GSI-HPC/go-clikit</code>. CI on GitHub Actions: build, test (<a href="#tests">test strategy</a>), lint, and a test that checks each contract example against its schema. This docs site on GitHub Pages.</td>
 <td><code>main</code> is the default branch and CI passes on it. The docs site is online at <code>https://dennisklein.github.io/repoctl/</code>. The builder branches do not change.</td></tr>
 <tr><td>1 Core commands and graph</td>
 <td>Config layers and set discovery, <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the user config with their schemas. <code>init</code>, <code>migrate</code>, <code>status</code>, <code>list</code>, <code>show</code>, <code>checkout</code>, <code>pin</code>, <code>graph</code>, <code>doctor</code>, <code>config</code>, <code>schema</code>, <code>mock update</code>, <code>version</code>, <code>completion</code>. The graph per target from the SRPM in the target chroot. Lock states, exit codes and problem codes.</td>
@@ -91,7 +91,7 @@
 </table>
 
 <h2 id="requirements">Requirements</h2>
-<p>These are the non-functional requirements of repoctl. The column "Story" gives the value of the data story. The column "Design limit" gives the largest value that the design supports. A result outside the limit is a bug, not a new design question. A change of a limit changes this table.</p>
+<p>These are the non-functional requirements of repoctl. The column "Story" gives the value of the data story. The column "Design limit" gives the largest value that the design supports. A result outside the limit is a bug, not a new design question. A change of a limit changes this table. The scale tests and the end-to-end tests measure these rows (<a href="#tests">test strategy</a>).</p>
 <p>The times are for an admin host like <code>hpc-a1</code>. They do not include the time in mock, the time of the human (confirmation, PIN, touch) and the network transfer.</p>
 <table class="compact">
 <thead><tr><th>Area</th><th>Requirement</th><th>Story</th><th>Design limit</th></tr></thead>
@@ -120,6 +120,27 @@
 <tr><td>Disk</td><td>Preflight of <code>publish</code></td><td>none</td><td>Free space in the data directory for the RPMs that the publish signs, plus 1 GiB. Else <code>host.not-ready</code> (exit 9).</td></tr>
 </tbody>
 </table>
+
+<h2 id="tests">Test strategy</h2>
+<p>The <a href="#verification">verification tests</a> check facts of the environment. The test layers in this section check the code of repoctl. Each layer starts in the phase of the table. Each later phase adds the tests of its own commands to each layer. A phase is done when the tests of its "done when" pass in the end-to-end layer.</p>
+<table class="compact">
+<thead><tr><th>Layer</th><th>What it checks</th><th>Fixtures and tools</th><th>Where it runs</th><th>From phase</th></tr></thead>
+<tbody>
+<tr><td>Unit</td><td>Pure functions: the config rules, the lock states, plan actions and reasons, the graph from recorded <code>rpmspec</code> output, the NVR order, the advisory ids, the graph layout.</td><td>Recorded tool output from the story fixture. No child process.</td><td>CI, each pull request</td><td>0</td></tr>
+<tr><td>Contract</td><td>The schemas that <code>internal/api</code> generates are equal to the files in <code>docs/design/contract/schema/</code>. Each example is valid against its schema. The tool list of the MCP server is equal to <code>mcp-tools.json</code>.</td><td>The files of the <a href="contract.html#examples">machine contract</a>.</td><td>CI, each pull request</td><td>0; the MCP tools from 6</td></tr>
+<tr><td>Golden</td><td>The terminal output, the <code>--json</code> result and the journal of each command in the story state are equal to their golden files. From phase 7, also the HTML fragments of the web UI.</td><td>The story fixture, a fixed clock, fixed random parts in the ids, a fixed terminal size.</td><td>CI, each pull request</td><td>2</td></tr>
+<tr><td>Integration</td><td>The core with real git, createrepo_c, rpmsign and gpg: checkout, pin, build, publish, pull, push, restore, the gates and the mirror job script.</td><td>The story fixture as git repositories, the test keys A, B and C, a local OCI <span class="no-gl">registry</span> in a container, the mock stub.</td><td>CI, each pull request, in a Fedora container</td><td>1 (git); 2 (mock stub); 3 (registry, gpg, mirror job)</td></tr>
+<tr><td>End-to-end</td><td>The "done when" of each phase with real mock on a Fedora host. Rocky 9 and Rocky 10 client containers install from the served tree. The <a href="config.html#generic">generic test</a> runs here too.</td><td>The story fixture, a local OCI <span class="no-gl">registry</span>, a local HTTP server for the served tree.</td><td>A Fedora host with mock, before each version tag</td><td>2</td></tr>
+<tr><td>Scale</td><td>The time rows of the <a href="#requirements">requirements</a> at the design limits.</td><td>A generated set with 100 packages and 8 targets, the mock stub.</td><td>CI, before each version tag</td><td>2</td></tr>
+</tbody>
+</table>
+<ul>
+  <li><b>Story fixture.</b> The <dfn>story fixture</dfn> is the data story as test data. It has the set <code>slurm-26.05</code> with a builder branch and 11 package branches. The specs are small, but they keep the names, versions, <code>BuildRequires</code> and <code>Provides</code> of the story. A script replays the story: the bump of ucx, the rebuild commits, run <code>r-20261102-1750-a3f</code> with the failure of slurm@el10, and publish <code>p-20261103-1412-5e1</code>. The fixture also holds the recorded tool output: <code>rpmspec</code> output, <code>buildroot_lock.json</code> and the mock logs of the story.</li>
+  <li><b>Mock stub.</b> The integration tests put a stub first in <code>PATH</code> with the name <code>mock</code>. It reads the arguments that repoctl gives, writes the recorded RPMs, logs and <code>buildroot_lock.json</code> of the node into <code>--resultdir</code>, and exits with the recorded exit code (0, 1 or 30). Thus CI needs no mock chroot and no network.</li>
+  <li><b>Golden files.</b> A <dfn>golden file</dfn> is the expected output of one command or one UI fragment in the story state. <code>go test -update</code> writes the golden files again, and a human reviews the change. The mockups are the reference for what a human sees. When a golden file changes what a human sees, the same pull request changes the mockup and its screenshot.</li>
+  <li><b>Code.</b> Unit tests are next to their Go package. The fixture is in <code>testdata/story/</code>. The helpers are in <code>internal/testkit</code> (<a href="decision.html#code-layout">Go packages</a>). The end-to-end tests and the scale tests have the Go build tags <code>e2e</code> and <code>scale</code>, so that <code>go test ./...</code> does not run them.</li>
+  <li><b>Test keys.</b> The integration tests use the keys A, B and C of the verification tests. No test uses a key of a set.</li>
+</ul>
 
 <h2 id="verification">Verification tests</h2>
 <p>Run these tests before the code depends on them. Use <code>rocky:9</code> and <code>rocky:10</code> containers and the Fedora host, with a local repo over <code>file://</code> where a test needs a repo. The signing tests use two test keys A and B (RSA 4096) and one Ed25519 key C. F1 to F18 are the client facts of <a href="signing.html#facts">Signing and trust</a>.</p>
