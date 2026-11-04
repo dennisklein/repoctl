@@ -4620,6 +4620,32 @@
               }
             }
           }
+        },
+        "clientCommands": {
+          "type": "array",
+          "description": "sign offboard only: the commands that config management runs on each client, after the upgrade of the release package.",
+          "items": {
+            "type": "object",
+            "required": [
+              "os",
+              "command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "os": {
+                "type": "string",
+                "description": "The client OS of the command, e.g. EL9, EL10, both."
+              },
+              "command": {
+                "type": "string",
+                "description": "e.g. rpm -e gpg-pubkey-7c3a19f2."
+              },
+              "note": {
+                "type": "string",
+                "description": "e.g. EL10.1 and later."
+              }
+            }
+          }
         }
       }
     }

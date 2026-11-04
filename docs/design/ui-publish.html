@@ -272,8 +272,8 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
 <p>When the selection holds a ready target, the page is the normal review, and el10 is one neutral line in Targets. The web UI does not hold a node back. For an urgent fix, the human runs <code>repoctl publish --hold NODE --reason TEXT</code> in a terminal (<a href="publish.html#urgent">publish.html#urgent</a>).</p>
 
 <h2 id="signing">Signing</h2>
-<figure class="shot"><a href="mockups/ui/signing.html"><img src="img/ui-signing.webp" alt="Signing at 15:00: three keys, a.admin with no record, onboarding of a.admin 2 of 5 done" loading="lazy"></a><figcaption>Signing of slurm-26.05 on 2026-11-03 15:00, after A. Admin added the key a.admin.</figcaption></figure>
-<p>Purpose: the Signing page shows the keys of <code>sign.keys</code>, their deployment records and the onboarding steps, as <code>repoctl sign ls</code> and <code>repoctl sign onboard</code> do. The rules are in <a href="signing.html">Signing and trust</a>.</p>
+<figure class="shot"><a href="mockups/ui/signing.html"><img src="img/ui-signing.webp" alt="Signing at 15:00: three keys, a.admin with no record, onboarding of a.admin 2 of 5 done, offboarding of hpc-repo 2 of 6 done" loading="lazy"></a><figcaption>Signing of slurm-26.05 on 2026-11-03 15:00, after A. Admin added the key a.admin.</figcaption></figure>
+<p>Purpose: the Signing page shows the keys of <code>sign.keys</code>, their deployment records and the onboarding and offboarding steps, as <code>repoctl sign ls</code>, <code>repoctl sign onboard</code> and <code>repoctl sign offboard</code> do. The rules are in <a href="signing.html">Signing and trust</a>.</p>
 <table class="compact">
 <thead><tr><th>Key</th><th>Fingerprint</th><th>State</th><th>Deployed</th><th>Expires</th><th>RPMs in latest of el9</th></tr></thead>
 <tbody>
@@ -291,10 +291,11 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
   <li>Open: deployed on all clients, no record. A human confirms it once per target. Confirm deployment… is off until a target has the release in latest.</li>
   <li>Open: GHCR write access. a.admin is not in the team slurm-repo-admins. A. Admin checks it with <code>repoctl doctor</code> on hpc-a2 (<a href="publish.html#registry">publish.html#registry</a>).</li>
 </ol>
-<p>The Rules fold links <a href="signing.html#gates">signing.html#gates</a> and <a href="signing.html#onboarding">signing.html#onboarding</a>. The UI does not add, retire, activate, revoke or remove a key: these are CLI steps (<a href="cli.html#cmd-sign-add"><code>sign add</code></a>, <a href="cli.html#cmd-sign-retire"><code>sign retire</code></a>, <a href="cli.html#cmd-sign-activate"><code>sign activate</code></a>, <a href="cli.html#cmd-sign-revoke"><code>sign revoke</code></a>, <a href="cli.html#cmd-sign-remove"><code>sign remove</code></a>).</p>
+<p>Offboarding: a key in state retiring or removed with open steps gets the card "Offboarding hpc-repo · 2 of 6 done ▸", with the six steps of <code>repoctl sign offboard</code> (<a href="signing.html#offboarding">signing.html#offboarding</a>). Done for hpc-repo: no team member, state retiring. Open: the re-sign of the 50 RPMs in el9, sign remove, the new release, and the key removal on the clients with its removal record. The UI has no action for these steps; each open step shows its command. A removed key without a removal record shows "clients: unconfirmed" in the Deployed column.</p>
+<p>The Rules fold links <a href="signing.html#gates">signing.html#gates</a>, <a href="signing.html#onboarding">signing.html#onboarding</a> and <a href="signing.html#offboarding">signing.html#offboarding</a>. The UI does not add, retire, activate, revoke or remove a key: these are CLI steps (<a href="cli.html#cmd-sign-add"><code>sign add</code></a>, <a href="cli.html#cmd-sign-retire"><code>sign retire</code></a>, <a href="cli.html#cmd-sign-activate"><code>sign activate</code></a>, <a href="cli.html#cmd-sign-revoke"><code>sign revoke</code></a>, <a href="cli.html#cmd-sign-remove"><code>sign remove</code></a>).</p>
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/signing</code></dd>
-  <dt>CLI</dt><dd><a href="cli.html#cmd-sign-ls"><code>repoctl sign ls</code></a>, <a href="cli.html#cmd-sign-onboard"><code>repoctl sign onboard ID</code></a></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-sign-ls"><code>repoctl sign ls</code></a>, <a href="cli.html#cmd-sign-onboard"><code>repoctl sign onboard ID</code></a>, <a href="cli.html#cmd-sign-offboard"><code>repoctl sign offboard ID</code></a></dd>
   <dt>Live</dt><dd><code>signing</code> (key table and onboarding after a set commit or a publish)</dd>
 </dl>
 

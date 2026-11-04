@@ -871,7 +871,7 @@ a.admin   …E93F 52A7   active    no record                                   2
 <section class="cmd" id="cmd-sign-offboard">
   <h4><code>repoctl sign offboard</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl sign offboard ID</pre>
-  <p>Check the six offboarding steps of a key and print the next command (<a href="signing.html#offboarding">signing.html#offboarding</a>): the GitHub team, sign retire, repo resign, sign remove, the new release package of each target, and the client removal with its removal record. It prints the client commands for config management. It changes nothing.</p>
+  <p>Check the six offboarding steps of a key and print the next command (<a href="signing.html#offboarding">signing.html#offboarding</a>): the GitHub team, sign retire, repo resign, sign remove, the new release package of each target, and the client removal with its removal record. It prints the client commands for config management; <code>--json</code> has them in <code>clientCommands</code>. It changes nothing.</p>
   <p>For a revoked key, it prints the emergency order (<a href="signing.html#compromise">signing.html#compromise</a>): the client commands to run at once with the sha256 of the new key file, and each snapshot in the registry with a file that the key signed. It finds them from the annotation <code>.signer</code> and the <code>signer</code> of each RepoManifest entry. <code>--json</code> puts them in <code>OnboardReport.signedSnapshots</code>.</p>
   <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>OnboardReport</code></dd><dt>Exit</dt><dd>0; 1; 13 (revoked key: the registry does not answer)</dd></dl>
 </section>

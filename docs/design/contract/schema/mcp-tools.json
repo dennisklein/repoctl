@@ -26,6 +26,8 @@
         "repoctl_check",
         "repoctl_sign_ls",
         "repoctl_sign_onboard",
+        "repoctl_sign_offboard",
+        "repoctl_sign_keyfile",
         "repoctl_config_show",
         "repoctl_schema"
       ],
@@ -689,10 +691,18 @@
     {
       "name": "repoctl_sign_ls",
       "title": "List signing keys",
-      "description": "List the keys of sign.keys with state (active, retiring, removed, revoked), the deployment record, the expiry and the number of RPMs in latest that each key signed. Returns kind SignerList.",
+      "description": "List the keys of sign.keys with state (active, retiring, removed, revoked), the deployment and removal records, the expiry and the number of RPMs in latest that each key signed. deployed is true when each target in scope with a latest has a record. Returns kind SignerList.",
       "inputSchema": {
         "type": "object",
-        "properties": {},
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Target ids or globs. Default: all targets of the set."
+          }
+        },
         "additionalProperties": false
       },
       "outputKind": "SignerList",
@@ -721,6 +731,71 @@
         ]
       },
       "outputKind": "OnboardReport",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "class": "read"
+    },
+    {
+      "name": "repoctl_sign_offboard",
+      "title": "Offboarding checklist for a key",
+      "description": "Check the six offboarding steps of one key: the GitHub team, state retiring, the re-sign of its RPMs per target, state removed, a release without the key per target, and the removal record per target. clientCommands holds the commands that config management runs on the clients. It only prints and checks. Returns kind OnboardReport.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Key id."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Target ids or globs. Default: all targets of the set."
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ]
+      },
+      "outputKind": "OnboardReport",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "class": "read"
+    },
+    {
+      "name": "repoctl_sign_keyfile",
+      "title": "Key file of latest",
+      "description": "Return the key file in latest of each target (the root key file of the snapshot), or with checksum its sha256: the pin of the client bootstrap. With tree, read the key file of the in-tree release package, which can be ahead of latest. Returns kind File.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Target ids or globs. Default: all targets of the set."
+          },
+          "tree": {
+            "type": "boolean",
+            "description": "Read the in-tree key file."
+          },
+          "checksum": {
+            "type": "boolean",
+            "description": "Return the sha256 only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "File",
       "annotations": {
         "readOnlyHint": true,
         "idempotentHint": true,
