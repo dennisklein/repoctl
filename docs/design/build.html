@@ -554,6 +554,14 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <figcaption>The 8 build nodes of the run on el9 and el10. Copper: running. Dashed: waiting. Green: ok or staged. Red: failed. Amber: blocked or a warning. An arrow means "is needed to build".</figcaption>
 </figure>
 <p>The journal of this run is the example of the machine contract (<a href="contract.html#journal">journal</a>). The publish of el9 on the next day takes the staged el9 nodes (<a href="publish.html#takes">what a publish takes</a>).</p>
+<p>The fix of slurm@el10 comes after that publish. The commit is per package, so the fix also gives slurm@el9 a new build:</p>
+<ol class="steps">
+  <li>2026-11-03 14:12: Dennis publishes el9 first (<code>p-20261103-1412-5e1</code>). el9 is publishable, and the fix would end its staged slurm@el9.</li>
+  <li>He guards the BuildRequires in <code>slurm.spec</code> with <code>%if 0%{?rhel} &lt; 10</code>, commits to <code>slurm/slurm-26.05</code> and pushes. In the web UI, Pin fix and build… of the agent panel then pins the commit. In the terminal, he runs <code>repoctl pin slurm</code>, then commits and pushes <code>repoctl.lock</code>.</li>
+  <li><code>repoctl plan slurm slurm-singularity-exec</code> gives: slurm@el9 build, <code>commit-changed</code>, 26.05.4-3; slurm@el10 build, <code>commit-changed</code>, 26.05.4-3; slurm-singularity-exec@el10 build, <code>rebuild</code>, 3.2.0-2; slurm-singularity-exec@el9 current. slurm@el9 26.05.4-3 has the content of 26.05.4-2 with a new release.</li>
+  <li><code>repoctl build slurm slurm-singularity-exec</code>. The selector names slurm-singularity-exec too, because build never adds a dependent by itself.</li>
+  <li><code>repoctl publish</code> takes both targets: slurm@el9 on el9, slurm@el10 and slurm-singularity-exec@el10 on el10.</li>
+</ol>
 
 <h2 id="lock">Set lock and no queue</h2>
 <p>Three different things have the name "lock". The help and the messages always say which one.</p>

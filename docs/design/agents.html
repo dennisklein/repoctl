@@ -439,7 +439,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <p>Rules of the panel:</p>
 <ul>
   <li>The panel is read only. repoctl never applies a diff. "Copy diff" copies it, and the human applies it in the package worktree.</li>
-  <li>A proposed action is a normal UI action with its normal dialog and confirmation. "Pin fix and build…" is off until the package branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog.</li>
+  <li>A proposed action is a normal UI action with its normal dialog and confirmation. "Pin fix and build…" is off until the package branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog. The dialog selects the dirs of the failed nodes of the run and the dirs of the nodes that they block, for example <code>slurm slurm-singularity-exec</code>.</li>
   <li>"Continue in terminal" copies <code>claude --resume &lt;session&gt;</code> for the set directory. The conversation stays in the agent tool, and repoctl keeps no copy. A "?" next to the link tells the human before the click: the terminal session has the permissions of the human's own agent setup, not the read-only tool list of the panel. Mode apply of <code>bump-package</code> runs only there.</li>
   <li>While the agent runs, "Tools used" lists each call with a short argument, and a spinner marks the call that runs now.</li>
 </ul>
