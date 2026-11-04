@@ -822,11 +822,11 @@ el9  ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9
 
 <section class="cmd" id="cmd-repo-gc">
   <h4><code>repoctl repo gc</code> <span class="tag shared">shared state</span></h4>
-  <pre class="synopsis">repoctl repo gc [--keep N] [--keep-days D] [--apply]</pre>
-  <p>Delete old snapshots in GHCR with the GitHub API; GitHub then frees the unused blobs. The dry run is the default; <code>--apply</code> acts. gc never deletes latest, the newest N snapshots of the chain (default 10) or the snapshots younger than D (default 90d). It keeps the newest snapshot that holds each entry of <code>removed[]</code> (<a href="publish.html#gc">publish.html#gc</a>). gc needs the token scope <code>delete:packages</code> and never runs unattended.</p>
+  <pre class="synopsis">repoctl repo gc [--keep N] [--keep-days D] [--keep-removed D] [--apply]</pre>
+  <p>Delete old snapshots in GHCR with the GitHub API; GitHub then frees the unused blobs. The dry run is the default; <code>--apply</code> acts. gc never deletes latest, the newest N snapshots of the chain (default 10) or the snapshots younger than D (default 90d). It keeps the newest snapshot that holds each entry of <code>removed[]</code> until <code>keep_removed</code> (default 1y) after its removal (<a href="publish.html#gc">publish.html#gc</a>). gc needs the token scope <code>delete:packages</code> and never runs unattended.</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock with <code>--apply</code></dd><dt>Writes</dt><dd>deletes package versions in GHCR; the journal</dd><dt>Output</dt><dd>kind <code>SnapshotList</code>, with the action delete or keep</dd><dt>Exit</dt><dd>0; 4 nothing to delete; 6; 7; 13 <code>registry.denied</code></dd></dl>
   <pre class="term">$ repoctl repo gc
-nothing to delete: el9 has 4 snapshots, el10 has 1 (keep 10, keep 90 days)
+nothing to delete: el9 has 4 snapshots, el10 has 1 (keep 10, keep 90 days, keep removed 1 year)
 $ echo $?
 4</pre>
 </section>

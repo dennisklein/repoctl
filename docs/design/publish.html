@@ -16,7 +16,7 @@
   <li>There is no lease between admins. Publish compares latest with its base in step 1 and again in step 7.</li>
   <li>Publish takes all staged nodes of the plan, per target. It adds files and never deletes them.</li>
   <li>Prune and restore make a new snapshot, and latest moves forward. Fix forward is the normal way back.</li>
-  <li>A snapshot is one OCI artifact with one blob per file. gc deletes old snapshots only with <code>--apply</code> and keeps each file that a client can have.</li>
+  <li>A snapshot is one OCI artifact with one blob per file. gc deletes old snapshots only with <code>--apply</code>. It keeps each file that a client can have for <code>keep_removed</code> (default one year) after its prune or restore.</li>
 </ul>
 
 <h2 id="topology">Topology</h2>
@@ -486,20 +486,20 @@ Next: repoctl status</pre>
 <tbody>
 <tr><td>Git repository of builds</td><td>yes, but the history keeps all</td><td>no (history rewrite)</td><td>checkout</td><td>clone, grows</td><td>large clones</td></tr>
 <tr><td>OCI image, one layer per publish</td><td>per layer only</td><td>hard (rewrite layers, whiteouts)</td><td>needs all layers</td><td>registry</td><td>medium</td></tr>
-<tr><td><strong>OCI artifact, one blob per file</strong></td><td>per file</td><td>a new manifest without it; GC frees the blob</td><td>pull one manifest</td><td>registry</td><td>low (oras-go)</td></tr>
+<tr><td><strong>OCI artifact, one blob per file</strong></td><td>per file</td><td>a new manifest without it; the blob is free after gc deletes the old manifests</td><td>pull one manifest</td><td>registry</td><td>low (oras-go)</td></tr>
 <tr><td>Plain directory and rsync backup</td><td>no</td><td>yes</td><td>backup restore</td><td>file share</td><td>low, no history</td></tr>
 <tr><td>Pulp</td><td>yes</td><td>yes</td><td>yes</td><td>server</td><td>high (a server to run)</td></tr>
 </tbody>
 </table>
 <aside class="callout why">
 <p class="callout-title">Why OCI artifacts with one blob per file</p>
-<p>Each file has a content hash, and the registry stores each blob once. A prune is a new manifest without the file, and the registry frees the blob when no manifest uses it. A restore pulls one manifest. Image layers would bind files to publishes and make a prune hard. oras-go does the work inside the Go binary, and GHCR gives a shared state to the team.</p>
+<p>Each file has a content hash, and the registry stores each blob once. A prune is a new manifest without the file. The registry frees the blob when no manifest uses it, that is after gc deletes the old snapshots (<a href="#gc">gc and retention</a>). A restore pulls one manifest. Image layers would bind files to publishes and make a prune hard. oras-go does the work inside the Go binary, and GHCR gives a shared state to the team.</p>
 </aside>
 <p>GHCR has no garbage collection that a user starts. <code>repoctl repo gc</code> deletes package versions through the GitHub REST API (<a href="#gc">gc and retention</a>). Public packages are free. Private packages count against the storage quota of GitHub Packages. The debuginfo repositories are the largest part.</p>
 
 <h2 id="retention">Keep all versions and prune</h2>
 <p>Publish adds to the repository. It never deletes. All old versions stay, as with <code>createrepo_c --update</code> in the bash scripts. Clients can still install each old version. Step 4 enforces this rule: a file of the base that is not in the new tree gives <code>verify.failed</code>, also when the local copy lost the file (<a href="#order">publish order</a>).</p>
-<p><code>repoctl repo prune</code> removes NVRs only on request. The dry run is the default, and <code>--apply</code> acts. With <code>--apply</code>, prune is a publish run of kind prune: steps 1 to 8 make a new snapshot without the selected NVRs (<a href="#per-kind">checks per kind</a>). The NVRs go into <code>removed[]</code>. Old snapshots still hold the files until gc deletes these snapshots. The selectors combine:</p>
+<p><code>repoctl repo prune</code> removes NVRs only on request. The dry run is the default, and <code>--apply</code> acts. With <code>--apply</code>, prune is a publish run of kind prune: steps 1 to 8 make a new snapshot without the selected NVRs (<a href="#per-kind">checks per kind</a>). The NVRs go into <code>removed[]</code>. Old snapshots still hold the files until gc deletes these snapshots. Thus the registry frees the blobs of a pruned NVR at the earliest <code>retention.snapshots.keep_removed</code> after the prune (default 1y), when gc runs. A prune of debuginfo frees storage only then. The selectors combine:</p>
 <table class="compact">
 <thead><tr><th>Selector</th><th>Effect</th></tr></thead>
 <tbody>
@@ -565,11 +565,11 @@ Next: repoctl status</pre>
   <li>latest,</li>
   <li>the newest N snapshots of the chain (default 10),</li>
   <li>the snapshots younger than D (default 90 days),</li>
-  <li>for each entry of <code>removed[]</code>, the newest snapshot that still holds it.</li>
+  <li>for each entry of <code>removed[]</code>, the newest snapshot that still holds it, until <code>keep_removed</code> (default 1y) after the publish that removed it.</li>
 </ul>
-<p>Thus each RPM that a client can have stays in at least one snapshot.</p>
+<p>Thus each RPM that a client can have stays in at least one snapshot for <code>keep_removed</code>. After that time, gc can delete the last snapshot that holds it. <code>removed[]</code> still holds the NVR and the sha256 of each RPM, so <code>nvr.removed</code> still works.</p>
 </aside>
-<p>The defaults come from <code>retention.snapshots</code> in <code>repoctl.yaml</code> (<code>keep: 10</code>, <code>keep_days: 90d</code>, see <a href="config.html#set-config">config.html#set-config</a>). The flags <code>--keep N</code> and <code>--keep-days D</code> change them for one call. gc needs the token scope <code>delete:packages</code> and admin access to the package. gc never runs unattended, because it deletes history (<a href="cli.html#safety">cli.html#safety</a>). Nothing to delete gives exit 4. Command: <a href="cli.html#cmd-repo-gc">repo gc</a>.</p>
+<p>The defaults come from <code>retention.snapshots</code> in <code>repoctl.yaml</code> (<code>keep: 10</code>, <code>keep_days: 90d</code>, <code>keep_removed: 1y</code>, see <a href="config.html#set-config">config.html#set-config</a>). The flags <code>--keep N</code>, <code>--keep-days D</code> and <code>--keep-removed D</code> change them for one call. gc needs the token scope <code>delete:packages</code> and admin access to the package. gc never runs unattended, because it deletes history (<a href="cli.html#safety">cli.html#safety</a>). Nothing to delete gives exit 4. Command: <a href="cli.html#cmd-repo-gc">repo gc</a>.</p>
 
 <h2 id="registry">Registry access</h2>
 <table class="compact">
