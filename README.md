@@ -8,6 +8,10 @@ UI and an MCP server for agents. It is built on
 
 Status: design. No code yet.
 
+License: [Apache-2.0](LICENSE), for the code and the design record on this
+branch. The fonts and the vendored script in `docs/assets/` keep their own
+licenses ([details](docs/design/decision.html#license)).
+
 ## Design record
 
 Read the design record at **<https://dennisklein.github.io/repoctl/>**.
