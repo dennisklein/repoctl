@@ -7,7 +7,7 @@
 </head>
 <body>
 <h1>Configuration</h1>
-<p class="lede">This chapter specifies the configuration of repoctl. It gives the layers and their precedence, the set discovery, <code>repoctl.yaml</code>, <code>repoctl.lock</code>, the user config, the environment variables and the XDG directories. It also says what the first release covers and where the schema stays open.</p>
+<p class="lede">This chapter specifies the configuration of repoctl: its files and layers, the set discovery, the environment variables and the XDG directories. It also says what the first release covers and where the schema stays open.</p>
 <ul class="keypoints">
   <li>Three files: <code>repoctl.yaml</code> (what to build, committed), <code>repoctl.lock</code> (pinned commits, written by repoctl) and the user config (how and where on this host).</li>
   <li>repoctl takes each value from the first layer that gives it: flag, <code>REPOCTL_*</code> variable, user config, set config, default.</li>
@@ -51,16 +51,9 @@
 </svg>
 <figcaption>repoctl reads the layers from the top. The first layer that gives a value wins. Only layer 4 can say what to build.</figcaption>
 </figure>
-<ol>
-  <li>Command-line flag.</li>
-  <li><code>REPOCTL_*</code> variable (<a href="#env">environment variables</a>).</li>
-  <li>User config <code>$XDG_CONFIG_HOME/repoctl/config.yaml</code>: the entry under <code>sets.&lt;set name&gt;</code> first, then the top-level entry.</li>
-  <li>Set config: <code>repoctl.yaml</code> and <code>repoctl.lock</code>.</li>
-  <li>Built-in default.</li>
-</ol>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>Layers 1 to 3 change only how and where, for example <code>jobs</code>, <code>sign.key</code>, <code>sign.backend</code>, <code>lock_wait</code>, <code>progress</code>, <code>ui.*</code> and <code>agent</code>. Only layer 4 changes what repoctl builds: packages, branches, commits, targets, mock configs, macros and repos. A key of layer 4 in the user config is an error (<code>config.unknown-key</code>, exit 1). Thus the set commit fixes the output.</p>
+<p>Layers 1 to 3 change only how and where, for example <code>jobs</code>, <code>sign.key</code>, <code>sign.backend</code>, <code>lock_wait</code>, <code>progress</code>, <code>ui.*</code> and <code>agent</code>. Only layer 4 changes what repoctl builds: packages, branches, commits, targets, mock configs, macros and repos. A key of layer 4 in the user config is an error (<code>config.unknown-key</code>, exit 1).</p>
 </aside>
 <p><code>repoctl config show</code> prints each value and the layer that gave it (<a href="cli.html#cmd-config">cli.html#cmd-config</a>):</p>
 <pre class="term">$ repoctl config show
@@ -89,7 +82,7 @@ $ repoctl status
 repoctl: error: no set: no repoctl.yaml in /tmp or in a parent directory
 hint: give the set directory. run: repoctl -C ~/src/slurm-repo status
 hint: start a new set here. run: repoctl init</pre>
-<p>These commands work without a set: <code>version</code>, <code>completion</code>, <code>help</code>, <code>schema</code>, <code>skills ls|show|path</code>, <code>mcp tools</code>, <code>config paths</code> (user paths only), <code>doctor</code> (host checks only), <code>init</code>, <code>migrate</code>, <code>repo ls --path DIR</code> and <code>ui</code> (it opens the overview of the known sets).</p>
+<p>These commands work without a set: <code>version</code>, <code>completion</code>, <code>help</code>, <code>schema</code>, <code>skills ls|show|path</code>, <code>mcp tools</code>, <code>init</code>, <code>migrate</code> and <code>repo ls --path DIR</code>. Three more work in part: <code>config paths</code> (user paths only), <code>doctor</code> (host checks only) and <code>ui</code> (it opens the overview of the known sets).</p>
 
 <h2 id="set-config">repoctl.yaml</h2>
 <p>The set config says what to build. It is committed on the builder branch. This is the file of the set <code>slurm-26.05</code>:</p>
@@ -198,13 +191,13 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tr><td><code>sign.checks.key_expiry_warn</code>, <code>.key_min_validity</code></td><td>no</td><td>Defaults 180d and 30d (<a href="signing.html#expiry">signing.html#expiry</a>).</td></tr>
 <tr><td><code>retention.snapshots.keep</code>, <code>.keep_days</code>, <code>.keep_removed</code></td><td>no</td><td>Rules for <code>repo gc</code>. Defaults 10, 90d and 1y (<a href="publish.html#gc">publish.html#gc</a>).</td></tr>
 <tr><td><code>targets[].id</code>, <code>.mock</code></td><td>yes</td><td>The target id and the mock config name.</td></tr>
-<tr><td><code>targets[].plugins</code></td><td>yes</td><td>Must contain <code>rpmautospec</code>.</td></tr>
-<tr><td><code>targets[].macros</code>, <code>.path</code>, <code>.repos</code></td><td>no</td><td>Macro files, the client path below <code>repo.url</code>, extra RPM repos for mock.</td></tr>
-<tr><td><code>targets[].state</code></td><td>no</td><td><code>active</code> (default) or <code>retired</code>. A retired target has no nodes. Its published repo stays, and the repo commands still act on it (<a href="lifecycle.html#targets">retire a target</a>).</td></tr>
+<tr><td><code>targets[].plugins</code></td><td>yes</td><td>Must contain <code>rpmautospec</code> (<a href="#rules">rules</a>). doctor and status show the plugins of each target.</td></tr>
+<tr><td><code>targets[].macros</code>, <code>.path</code>, <code>.repos</code></td><td>no</td><td>Macro files, the client path below <code>repo.url</code>, extra RPM repos for mock (<a href="#targets">targets</a>).</td></tr>
+<tr><td><code>targets[].state</code></td><td>no</td><td><code>active</code> (default) or <code>retired</code>. A retired target has no nodes, but the repo commands still act on its published repo (<a href="lifecycle.html#targets">retire a target</a>).</td></tr>
 <tr><td><code>targets[].closure_repos[]</code>: <code>id</code>, <code>url</code></td><td>no</td><td>The RPM repos that the clients of the target have. The closure check, <code>buildroot.drift</code> and the publish gate read them (<a href="advisories.html#check">advisories.html#check</a>). Default: the enabled repos of the mock config of the target, plus <code>.repos</code>.</td></tr>
 <tr><td><code>defaults.git.remote</code></td><td>no</td><td>The remote of the package branches. Default <code>origin</code>.</td></tr>
 <tr><td><code>packages[].dir</code></td><td>yes</td><td>The worktree name below <code>packages/</code> and the DIR of <code>DIR@TARGET</code>.</td></tr>
-<tr><td><code>packages[].branch</code> or <code>.path</code></td><td>one of them</td><td>The package branch, or the path of an in-tree package.</td></tr>
+<tr><td><code>packages[].branch</code> or <code>.path</code></td><td>exactly one of them</td><td>The package branch, or the path of an in-tree package.</td></tr>
 <tr><td><code>packages[].git.url</code></td><td>no</td><td>An external repository (<a href="#external">external</a>).</td></tr>
 <tr><td><code>packages[].targets</code></td><td>no</td><td>The targets of this package. Default all.</td></tr>
 <tr><td><code>packages[].role</code></td><td>no</td><td><code>release</code> for the release package (<a href="signing.html#release">signing.html#release</a>). At most one package, with <code>path</code>.</td></tr>
@@ -216,19 +209,29 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <p><code>repoctl init</code> writes a starter file with comments and an empty lock (<a href="cli.html#cmd-init">cli.html#cmd-init</a>). <code>repoctl schema config</code> prints the JSON Schema for editors and agents (<a href="cli.html#cmd-schema">cli.html#cmd-schema</a>).</p>
 
 <h2 id="rules">Rules</h2>
+<p><code>apiVersion</code> lets the schema change without silent errors. These cases stop the command:</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Problem</th><th>Exit</th></tr></thead>
+<tbody>
+<tr><td>An unknown key, also a key of a newer release</td><td><code>config.unknown-key</code></td><td>1</td></tr>
+<tr><td>A key for a later release (<a href="#scope">narrow now, open later</a>)</td><td><code>config.unsupported</code></td><td>1</td></tr>
+<tr><td>A target without <code>plugins: [rpmautospec]</code>. Without it, a rebuild commit gives no new NVR.</td><td><code>config.invalid</code></td><td>1</td></tr>
+<tr><td>More than one package with <code>role: release</code>, or one without <code>path</code>. The release package is in-tree (<a href="signing.html#release">signing.html#release</a>).</td><td><code>config.invalid</code></td><td>1</td></tr>
+</tbody>
+</table>
 <ul>
-  <li>An unknown key is an error (<code>config.unknown-key</code>, exit 1). <code>apiVersion</code> lets the schema change without silent errors. A key of a newer release also gives this error. Thus the team raises <code>minRepoctl</code> in the commit that first uses a new key, and an older binary stops with <code>contract.newer-file</code> and the hint to upgrade (<a href="contract.html#stored">stored files</a>).</li>
-  <li>The schema also has keys for later releases (<a href="#scope">narrow now, open later</a>). repoctl rejects them with <code>config.unsupported</code>.</li>
+  <li>The team raises <code>minRepoctl</code> in the commit that first uses a new key. Thus an older binary stops with <code>contract.newer-file</code> and the hint to upgrade (<a href="contract.html#stored">stored files</a>).</li>
   <li>The file has no build order. repoctl makes the graph from <code>rpmspec --buildrequires</code> and the <code>Provides</code> of each package (<a href="build.html#graph">build.html#graph</a>).</li>
-  <li>The file has no secrets and no host paths. It has no registry credentials and no publish path. Push credentials come from the container credential store of the user (<a href="publish.html#registry">publish.html#registry</a>). Git credentials come from the git and ssh setup of the user.</li>
-  <li>Every target has <code>plugins: [rpmautospec]</code>. Without it, a rebuild commit gives no new NVR. Else <code>config.invalid</code>, exit 1. doctor and status show the plugins of each target.</li>
-  <li>A package has exactly one of <code>branch</code> and <code>path</code>.</li>
-  <li>At most one package has <code>role: release</code>, and that package has <code>path</code>. Else <code>config.invalid</code>, exit 1. The release package is in-tree (<a href="signing.html#release">signing.html#release</a>).</li>
-  <li>A target that has a latest stays in <code>targets</code>. To stop it, set <code>state: retired</code>. Without the entry, no repoctl command can act on its OCI package.</li>
-  <li><code>name</code> and <code>targets[].id</code> never change after the first publish. They give the OCI package <code>STORE/SET-TARGET</code>, the XDG paths, the set lock and <code>sets.NAME</code> of the user config. A new name or id gives a new OCI package without the history of the old one. The first publish of that package stops with <code>set.renamed</code>, because the served tree names the old set or target (<a href="signing.html#gates">rule: first publish</a>). To rename a set, start a new set. To rename a target, add a new target and retire the old one (<a href="lifecycle.html#rename">rename</a>).</li>
+  <li>The file has no secrets and no host paths: no registry credentials and no publish path. Push credentials come from the container credential store of the user (<a href="publish.html#registry">publish.html#registry</a>). Git credentials come from the git and ssh setup of the user.</li>
   <li>Package facts (upstream repository, tag filter, notes) live in this file, not in a skill. Thus the CLI and the skills read the same facts. repoctl never reads a status from <code>notes</code>; <code>upstream.frozen</code> marks a frozen stream.</li>
   <li>publish needs <code>repo.url</code>, <code>store.oci</code>, <code>sign.keys</code> and <code>sign.release.keyfile</code>. doctor warns when one is missing.</li>
+  <li>A target that has a latest stays in <code>targets</code>. To stop it, set <code>state: retired</code>. Without the entry, no repoctl command can act on its OCI package.</li>
 </ul>
+<aside class="callout rule">
+<p class="callout-title">Rule: names never change</p>
+<p><code>name</code> and <code>targets[].id</code> never change after the first publish. They give the OCI package <code>STORE/SET-TARGET</code>, the XDG paths, the set lock and <code>sets.NAME</code> of the user config. A new name or id gives a new OCI package without the history of the old one.</p>
+<p>The first publish of that package stops with <code>set.renamed</code>, because the served tree names the old set or target (<a href="signing.html#gates">rule: first publish</a>). To rename a set or a target, follow <a href="lifecycle.html#rename">rename</a>.</p>
+</aside>
 
 <h2 id="lock">repoctl.lock</h2>
 <p>The lock file holds the pinned commit of each package. This is the lock of the story run, after <code>repoctl pin</code>:</p>
@@ -254,23 +257,12 @@ packages:
   <li>Only <code>pin</code>, <code>rebuild</code>, <code>init</code> and <code>migrate</code> write the lock, with an atomic write under a file lock.</li>
   <li>The lock is a separate file, like <code>go.sum</code>. A version bump changes one line in the lock and nothing in <code>repoctl.yaml</code>.</li>
   <li>An entry has <code>branch</code> and <code>commit</code>. An external package also has <code>url</code>.</li>
-  <li>An in-tree package has no lock line, and it is never unpinned. Its commit is the last set commit that changes its path. Its lock state is <code>in-tree</code>, or <code>dirty</code> when a file under its path has a change. A Lock result gives it with <code>path</code> and that commit.</li>
+  <li>An in-tree package has no lock line, and it is never unpinned. A Lock result gives it with <code>path</code> and its commit: the last set commit that changes its path (<a href="model.html#identity">build identity</a>).</li>
   <li>A dir that is two times in the file, for example after a git merge, gives <code>config.invalid</code> (exit 1). <a href="cli.html#cmd-pin">repoctl pin</a> gives the steps after a merge conflict.</li>
   <li>A missing lock file counts as an empty lock. <code>repoctl migrate</code> converts <code>packages.lock</code> once (<a href="cli.html#cmd-migrate">cli.html#cmd-migrate</a>).</li>
-  <li>A package without a lock line is <code>unpinned</code>. A lock line without a package is <code>orphaned</code>. The lock states are in <a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>.</li>
+  <li>The lock states, for example <code>unpinned</code>, <code>orphaned</code> and <code>in-tree</code>, are in <a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>.</li>
 </ul>
-<h3 id="set-lock">The lock file and the set lock</h3>
-<p>Two things of a set have the name "lock". The help and the messages always say which one. The host mock lock is a third lock, for mock (<a href="build.html#lock">build.html#lock</a>).</p>
-<table>
-<thead><tr><th></th><th>Lock file</th><th>Set lock</th></tr></thead>
-<tbody>
-<tr><td>What</td><td>The pinned commits of the set.</td><td>One writer per set at a time, for one user on one host.</td></tr>
-<tr><td>Where</td><td><code>repoctl.lock</code> in the set directory, committed.</td><td><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>; without <code>XDG_RUNTIME_DIR</code>, <code>$XDG_STATE_HOME/repoctl/SET.lock</code>.</td></tr>
-<tr><td>Holds</td><td>Branch, commit and URL per package.</td><td>The holder: command, pid, host, user, start time and run id.</td></tr>
-<tr><td>Busy</td><td>-</td><td>A command waits up to <code>--lock-wait</code> (default 0), then stops with exit 7. Read-only commands never wait.</td></tr>
-</tbody>
-</table>
-<p>Which command takes the set lock, and what a busy set shows, is in <a href="build.html#lock">build.html#lock</a>.</p>
+<p id="set-lock">The lock file is not the set lock. The set lock allows one writer per set at a time, for one user on one host (<a href="build.html#lock">build.html#lock</a>).</p>
 
 <h2 id="user-config">User config</h2>
 <p>The user config holds the values of one human on one host. It never says what to build.</p>
@@ -296,19 +288,26 @@ sets:
 <tr><td><code>sign.gpg.homedir</code></td><td><code>GNUPGHOME</code>, else <code>~/.gnupg</code></td><td>The GnuPG home directory.</td></tr>
 <tr><td><code>ui.listen</code>, <code>ui.open</code></td><td>127.0.0.1:0, true</td><td>The loopback address of the web UI, and whether <code>repoctl ui</code> opens a browser.</td></tr>
 <tr><td><code>agent.command</code>, <code>agent.args</code></td><td>none</td><td>The local agent of the agent buttons. Without it, the web UI shows no agent buttons (<a href="agents.html#agent-config">agents.html#agent-config</a>).</td></tr>
-<tr><td><code>agent.timeout</code></td><td>10m</td><td>The time limit of one agent run. At the limit, the server stops the agent, and its state is failed (<a href="agents.html#agent-buttons">agents.html#agent-buttons</a>).</td></tr>
+<tr><td><code>agent.timeout</code></td><td>10m</td><td>The time limit of one agent run (<a href="agents.html#agent-buttons">agents.html#agent-buttons</a>).</td></tr>
 <tr><td><code>build.timeout.srpm</code>, <code>.rpm</code>, <code>.stage</code>, <code>.idle</code>, <code>.run</code></td><td>30m, 12h, 30m, 1h, 0</td><td>The time limits of a build step, of a mock child without output, and of a whole run; 0 is no limit (<a href="build.html#failures">build.html#failures</a>).</td></tr>
-<tr><td><code>state.keep_runs</code></td><td>50</td><td>The number of finished build runs whose journals and logs stay. Runs with staged nodes, publish runs and check runs have their own rule (<a href="contract.html#retention">contract.html#retention</a>).</td></tr>
-<tr><td><code>state.keep_publishes</code></td><td>100</td><td>The number of publish runs whose journals stay. The journal of a publish with a kept tree always stays.</td></tr>
-<tr><td><code>state.keep_checks</code></td><td>30</td><td>The number of check runs whose journals stay. Check runs do not count toward <code>state.keep_runs</code> (<a href="contract.html#writing">contract.html#writing</a>).</td></tr>
-<tr><td><code>state.keep_agent</code></td><td>50</td><td>The number of agent results per set that stay. A result whose input run is gone is deleted too (<a href="agents.html#agent-buttons">agents.html#agent-buttons</a>).</td></tr>
-<tr><td><code>sets.NAME.*</code></td><td>-</td><td>The same keys for one set. They win over the top-level keys. <code>repoctl config show</code> warns (<code>config.unknown-set</code>) about a NAME that is not the current set, has no state directory <code>$XDG_STATE_HOME/repoctl/NAME/</code> and is not in the set list of the web UI.</td></tr>
+<tr><td><code>state.keep_runs</code></td><td>50</td><td>The number of finished build runs whose journals and logs stay (<a href="contract.html#retention">contract.html#retention</a>).</td></tr>
+<tr><td><code>state.keep_publishes</code></td><td>100</td><td>The number of publish runs whose journals stay.</td></tr>
+<tr><td><code>state.keep_checks</code></td><td>30</td><td>The number of check runs whose journals stay (<a href="contract.html#writing">contract.html#writing</a>).</td></tr>
+<tr><td><code>state.keep_agent</code></td><td>50</td><td>The number of agent results per set that stay.</td></tr>
+<tr><td><code>sets.NAME.*</code></td><td>-</td><td>The same keys for one set. They win over the top-level keys.</td></tr>
 </tbody>
 </table>
+<p><code>repoctl config show</code> warns about an unknown NAME with <code>config.unknown-set</code>. A NAME is unknown when it is not the current set, has no <code>$XDG_STATE_HOME/repoctl/NAME/</code> and is not in the set list of the web UI.</p>
 <p>The set config lists the keys that the clients trust. The user config only selects the key of this human (<a href="signing.html#probe">signing.html#probe</a>). A user config has no publish path, because no admin writes the served tree.</p>
 
 <h2 id="env">Environment variables</h2>
-<p>A <code>REPOCTL_*</code> variable stands in for a flag that the command line does not give. A variable with the empty string counts as not set. The help of each flag names its variable before the default. A value that repoctl cannot use fails the command with exit 1 and names the variable. <code>REPOCTL_PROGRESS</code>, <code>REPOCTL_PROGRESS_LOG</code> and <code>REPOCTL_VERBOSE</code> never fail a command: repoctl writes one note and continues without them.</p>
+<p>A <code>REPOCTL_*</code> variable stands in for a flag that the command line does not give.</p>
+<ul>
+  <li>A variable with the empty string counts as not set.</li>
+  <li>The help of each flag names its variable before the default.</li>
+  <li>A value that repoctl cannot use fails the command with exit 1 and names the variable.</li>
+  <li><code>REPOCTL_PROGRESS</code>, <code>REPOCTL_PROGRESS_LOG</code> and <code>REPOCTL_VERBOSE</code> never fail a command. repoctl writes one note and continues without them.</li>
+</ul>
 <table class="compact">
 <thead><tr><th>Variable</th><th>Stands in for</th><th>Notes</th></tr></thead>
 <tbody>
@@ -324,7 +323,7 @@ sets:
 <tr><td><code>REPOCTL_LOCK_WAIT</code></td><td><code>--lock-wait</code></td><td>A duration, for example <code>10m</code>.</td></tr>
 <tr><td><code>REPOCTL_SIGN_KEY</code></td><td>user config <code>sign.key</code></td><td>No flag: a human sets the key once. <code>REPOCTL_GPG_NAME</code> is an alias.</td></tr>
 <tr><td><code>REPOCTL_UI_LISTEN</code></td><td><code>repoctl ui --listen</code></td><td>A loopback address only.</td></tr>
-<tr><td><code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code></td><td>no flag</td><td><code>1</code> lets publish, repo push, repo restore, repo prune and repo resign run with <code>--yes</code> and without a terminal. It never allows repo gc, sign deployed, a trust change or an advisory acceptance (<code>--accept-advisory</code>). repoctl reads it from the environment only, never from a file (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
+<tr><td><code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code></td><td>no flag</td><td><code>1</code> lets publish, repo push, repo restore, repo prune and repo resign run with <code>--yes</code> and without a terminal. It never allows repo gc, sign deployed, a trust change or <code>--accept-advisory</code>. repoctl reads it only from the environment (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
 </tbody>
 </table>
 <p>repoctl also reads these variables:</p>
@@ -339,17 +338,32 @@ sets:
 <tr><td>Browser start of <code>repoctl ui</code></td><td><code>SSH_CONNECTION</code>, <code>DISPLAY</code>, <code>WAYLAND_DISPLAY</code></td></tr>
 </tbody>
 </table>
+<p>repoctl never writes a token or a passphrase into a config file, a log or a <code>--json</code> result.</p>
+
+<h3 id="env-children">Commands of the web UI and MCP</h3>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p><code>repoctl ui</code> and <code>repoctl mcp start</code> run each command without the variables that stand in for a flag, and with <code>REPOCTL_PROGRESS=none</code>. They also remove <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code>. Thus a run does what its shown command says. repoctl never writes a token or a passphrase into a config file, a log or a <code>--json</code> result.</p>
+<p><code>repoctl ui</code> and <code>repoctl mcp start</code> run each command without the variables that stand in for a flag. Thus a run does what its shown command says.</p>
 </aside>
-<p>The rule in detail:</p>
-<ul>
-  <li>Removed from the environment of each child: <code>REPOCTL_DIR</code>, <code>REPOCTL_CONFIG</code>, <code>REPOCTL_TARGET</code>, <code>REPOCTL_JSON</code>, <code>REPOCTL_PROGRESS_LOG</code>, <code>REPOCTL_QUIET</code>, <code>REPOCTL_VERBOSE</code>, <code>REPOCTL_JOBS</code>, <code>REPOCTL_LOCK_WAIT</code>, <code>REPOCTL_UI_LISTEN</code> and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code>. <code>REPOCTL_PROGRESS</code> is set to <code>none</code>.</li>
-  <li>Given as flags in their place: <code>-C</code> with the set directory, <code>--config</code> with the effective user config path of the server (also <code>--config ""</code>), <code>--jobs</code> for a build (the value of the build dialog or of the tool call, else the effective <code>jobs</code> of the server) and <code>--lock-wait 0</code>, so that a busy set answers at once with <code>set.busy</code>. The CLI toggle of the UI shows <code>--config PATH</code> only when the path is not the default.</li>
-  <li>Kept: <code>REPOCTL_SIGN_KEY</code> and its alias <code>REPOCTL_GPG_NAME</code>. They stand in for the user config key <code>sign.key</code>, which has no flag. Thus the server and the child find the same signer from the same layers. The review shows that signer, and the plan digest holds its fingerprint (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>).</li>
-  <li>The pages of the UI and the read tools of the MCP server run in the server process. They use the same values as the children: the effective config path and the kept variables. They read no other <code>REPOCTL_*</code> variable.</li>
-</ul>
+<table class="compact">
+<thead><tr><th>Variable</th><th>In the environment of each child</th></tr></thead>
+<tbody>
+<tr><td><code>REPOCTL_DIR</code>, <code>REPOCTL_CONFIG</code>, <code>REPOCTL_TARGET</code>, <code>REPOCTL_JSON</code>, <code>REPOCTL_PROGRESS_LOG</code>, <code>REPOCTL_QUIET</code>, <code>REPOCTL_VERBOSE</code>, <code>REPOCTL_JOBS</code>, <code>REPOCTL_LOCK_WAIT</code>, <code>REPOCTL_UI_LISTEN</code>, <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code></td><td>removed</td></tr>
+<tr><td><code>REPOCTL_PROGRESS</code></td><td>set: <code>REPOCTL_PROGRESS=none</code></td></tr>
+<tr><td><code>REPOCTL_SIGN_KEY</code> and its alias <code>REPOCTL_GPG_NAME</code></td><td>kept: they stand in for the user config key <code>sign.key</code>, which has no flag</td></tr>
+</tbody>
+</table>
+<table class="compact">
+<thead><tr><th>Flag in place of a variable</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td><code>-C</code></td><td>The set directory.</td></tr>
+<tr><td><code>--config</code></td><td>The effective user config path of the server, also <code>--config ""</code>. The CLI toggle of the UI shows <code>--config PATH</code> only when the path is not the default.</td></tr>
+<tr><td><code>--jobs</code> (for a build)</td><td>The value of the build dialog or of the tool call, else the effective <code>jobs</code> of the server.</td></tr>
+<tr><td><code>--lock-wait 0</code></td><td>Thus a busy set answers at once with <code>set.busy</code>.</td></tr>
+</tbody>
+</table>
+<p>Thus the server and the child find the same signer from the same layers. The review shows that signer, and the plan digest holds its fingerprint (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>).</p>
+<p>The pages of the UI and the read tools of the MCP server run in the server process. They use the same values as the children: the effective config path and the kept variables. They read no other <code>REPOCTL_*</code> variable.</p>
 
 <h2 id="xdg">XDG directories</h2>
 <p>The set directory holds only committed files and the package worktrees. All generated files go to the XDG directories of the user.</p>
@@ -406,88 +420,33 @@ sets:
 <tr><td><code>$XDG_STATE_HOME/repoctl/SET/agent/</code></td><td>the results of agent buttons</td><td><code>repoctl clean --logs</code>; <code>state.keep_agent</code></td></tr>
 <tr><td><code>$XDG_STATE_HOME/repoctl/-ui/sets.yaml</code></td><td>the set list of the web UI: name and path of each set (<a href="ui.html#sets">ui.html#sets</a>)</td><td><code>repoctl ui --remove SET</code>, or "Remove from list" on the Sets page; <code>repoctl clean --set NAME</code></td></tr>
 <tr><td><code>$XDG_STATE_HOME/repoctl/import/SET/</code>, <code>import/SET.log</code></td><td>the copy of the served tree, the manifest and the log of the <a href="../runbooks/import.html">import runbook</a></td><td>the agent deletes the copy after Verify (<a href="../runbooks/import.html#report">report</a>); <code>repoctl clean --set NAME</code> deletes all</td></tr>
-<tr><td><code>$XDG_RUNTIME_DIR/repoctl/</code></td><td>the set lock <code>SET.lock</code>, the clone locks <code>git-HASH.lock</code>, the web UI socket <code>ui.sock</code> and <code>ui.json</code> (pid, address, port, version and start time of the server); <code>ui/</code> with stdout and stderr of the UI children without a run and the private plugin <code>ui/plugin/</code> of the agent buttons</td><td>at logout, unless lingering is on; a run that holds the set lock takes it again (<a href="build.html#lock">build.html#lock</a>); the server deletes the files of a child that ended</td></tr>
+<tr><td><code>$XDG_RUNTIME_DIR/repoctl/</code></td><td>the set lock <code>SET.lock</code>, the clone locks <code>git-HASH.lock</code>, the web UI socket <code>ui.sock</code> and <code>ui.json</code> (pid, address, port, version and start time of the server)</td><td>at logout, unless lingering is on; a run that holds the set lock takes it again (<a href="build.html#lock">build.html#lock</a>)</td></tr>
+<tr><td><code>$XDG_RUNTIME_DIR/repoctl/ui/</code></td><td>stdout and stderr of the UI children without a run; the private plugin <code>ui/plugin/</code> of the agent buttons</td><td>the server deletes the files of a child that ended</td></tr>
 </tbody>
 </table>
 <ul>
   <li><b>Only the cache is safe to delete.</b> The next build is slower, not different.</li>
-  <li><b>The data directory is build state.</b> It holds the staged nodes, the local copy of <code>latest</code> and the external clones. A clone can hold commits that are not pushed, so it is not cache.</li>
+  <li><b>The data directory is build state.</b> A clone can hold commits that are not pushed, so it is not cache.</li>
+  <li><b>The state is kept.</b> The journals feed <code>repoctl logs</code>, the web UI and the agent.</li>
   <li><b>The registry decides what is published.</b> No file on this host does (<a href="model.html#records">model.html#records</a>).</li>
-  <li><b>State is kept.</b> The journals feed <code>repoctl logs</code>, the web UI and the agent.</li>
 </ul>
 <p><code>repoctl config paths</code> prints the paths of this set with their sizes (<a href="cli.html#cmd-config">cli.html#cmd-config</a>).</p>
 
 <h2 id="targets">Many targets</h2>
-<figure class="diagram wide">
-<svg viewBox="0 0 1000 250" role="img" aria-labelledby="targets-t">
-<title id="targets-t">Each target has its own chroot, graph, staging, OCI package and client path</title>
-<text class="t-small t-muted" x="108" y="32" text-anchor="middle">target and mock chroot</text>
-<text class="t-small t-muted" x="304" y="32" text-anchor="middle">graph</text>
-<text class="t-small t-muted" x="500" y="32" text-anchor="middle">staging of a run</text>
-<text class="t-small t-muted" x="696" y="32" text-anchor="middle">OCI package (snapshots)</text>
-<text class="t-small t-muted" x="892" y="32" text-anchor="middle">client path</text>
-<rect class="box-accent" x="20" y="46" width="176" height="60" rx="8"/>
-<text class="t-title t-on" x="108" y="68" text-anchor="middle">el9</text>
-<text class="t-small t-mono t-on" x="108" y="90" text-anchor="middle">rocky+epel-9-x86_64</text>
-<rect class="box" x="216" y="46" width="176" height="60" rx="8"/>
-<text class="t" x="304" y="68" text-anchor="middle">11 nodes</text>
-<text class="t-small t-muted" x="304" y="90" text-anchor="middle">SRPMs from this chroot</text>
-<rect class="box" x="412" y="46" width="176" height="60" rx="8"/>
-<text class="t-small t-mono" x="500" y="68" text-anchor="middle">r-…-a3f, el9 repo</text>
-<text class="t-small t-muted" x="500" y="90" text-anchor="middle">4 nodes ok</text>
-<rect class="box" x="608" y="46" width="176" height="60" rx="8"/>
-<text class="t-small t-mono" x="696" y="68" text-anchor="middle">…/slurm-26.05-el9</text>
-<text class="t-small t-muted" x="696" y="90" text-anchor="middle">latest: p-…-5e1</text>
-<rect class="box" x="804" y="46" width="176" height="60" rx="8"/>
-<text class="t-small t-mono" x="892" y="76" text-anchor="middle">…/slurm-26.05/el9/</text>
-<rect class="box-accent" x="20" y="136" width="176" height="60" rx="8"/>
-<text class="t-title t-on" x="108" y="158" text-anchor="middle">el10</text>
-<text class="t-small t-mono t-on" x="108" y="180" text-anchor="middle">rocky+epel-10-x86_64</text>
-<rect class="box" x="216" y="136" width="176" height="60" rx="8"/>
-<text class="t" x="304" y="158" text-anchor="middle">10 nodes</text>
-<text class="t-small t-muted" x="304" y="180" text-anchor="middle">no rocm-smi</text>
-<rect class="box-warn" x="412" y="136" width="176" height="60" rx="8"/>
-<text class="t-small t-mono" x="500" y="158" text-anchor="middle">r-…-a3f, el10 repo</text>
-<text class="t-small" x="500" y="180" text-anchor="middle">slurm@el10 failed</text>
-<rect class="box" x="608" y="136" width="176" height="60" rx="8"/>
-<text class="t-small t-mono" x="696" y="158" text-anchor="middle">…/slurm-26.05-el10</text>
-<text class="t-small t-muted" x="696" y="180" text-anchor="middle">latest: p-…-c21</text>
-<rect class="box" x="804" y="136" width="176" height="60" rx="8"/>
-<text class="t-small t-mono" x="892" y="166" text-anchor="middle">…/slurm-26.05/el10/</text>
-<path class="edge" d="M196,76 L214,76" marker-end="url(#arrow)"/>
-<path class="edge" d="M392,76 L410,76" marker-end="url(#arrow)"/>
-<path class="edge" d="M588,76 L606,76" marker-end="url(#arrow)"/>
-<path class="edge" d="M784,76 L802,76" marker-end="url(#arrow)"/>
-<path class="edge" d="M196,166 L214,166" marker-end="url(#arrow)"/>
-<path class="edge" d="M392,166 L410,166" marker-end="url(#arrow)"/>
-<path class="edge-muted" d="M588,166 L606,166" marker-end="url(#arrow-muted)"/>
-<path class="edge" d="M784,166 L802,166" marker-end="url(#arrow)"/>
-<text class="t-small t-muted" x="20" y="232">The story after the el9 publish: el9 has a new latest; el10 is not publishable, so its latest stays.</text>
-</svg>
-<figcaption>Targets are independent from the chroot to the client path. A failed el10 node does not stop el9.</figcaption>
-</figure>
+<p>Each entry of <code>targets</code> is one target (<a href="model.html#targets">model.html#targets</a>). repoctl builds the SRPM of a node in the mock chroot of its target, so each target has its own graph (<a href="build.html#graph">build.html#graph</a>).</p>
 <ul>
-  <li><b>Node = package × target.</b> repoctl builds each package for each target in its <code>targets</code> list. The default is all targets (<a href="model.html#nodes">model.html#nodes</a>).</li>
-  <li><b>One graph per target.</b> repoctl builds the SRPM in the mock chroot of the target and reads its requires. Thus <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives correct edges. repoctl cannot see dynamic <code>BuildRequires</code> (<code>%generate_buildrequires</code>) before the build, and it writes a warning for them.</li>
   <li><b>Missing dependency for a target.</b> plan shows the gap before the build: "slurm@el10 needs rocm-smi-devel; rocm-smi is not built for el10" (<code>dep.not-for-target</code>, warn).</li>
-  <li><b>Staging and publish per target.</b> Each target has its own staging repo in a run and its own OCI package. A publish covers the targets that are ready.</li>
-  <li><b>Extra RPM repos</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. A change in these repos can change a build result. repoctl does not rebuild by itself. It shows the advisory <code>buildroot.drift</code>, and the human decides.</li>
+  <li><b>Extra RPM repos.</b> repoctl gives <code>targets[].repos</code> to mock as <code>--addrepo</code>. A change in these repos can change a build result, but it gives only the advisory <code>buildroot.drift</code> (<a href="model.html#identity">build identity</a>).</li>
   <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
-  <li><b>One architecture per target.</b> The architecture of a target is the last part of its mock config name: <code>x86_64</code> in <code>rocky+epel-9-x86_64</code>. This release supports only <code>x86_64</code>. Another architecture, or a mock config name that does not end with one, gives <code>config.unsupported</code> (exit 1). The client path names the target, so it has no <code>$basearch</code>. A <code>noarch</code> package builds on each target, with the dist tag of that target.</li>
+  <li><b>One architecture per target.</b> The architecture of a target is the last part of its mock config name: <code>x86_64</code> in <code>rocky+epel-9-x86_64</code>. This release supports only <code>x86_64</code>. Another architecture, or a mock config name that does not end with one, gives <code>config.unsupported</code> (exit 1).</li>
+  <li><b>No <code>$basearch</code>.</b> The client path names the target, so it has no <code>$basearch</code>. A <code>noarch</code> package builds on each target, with the dist tag of that target.</li>
   <li><b>Macro files.</b> repoctl gives <code>targets[].macros</code> to mock after the macros of the mock config. Thus a macro file can set <code>%dist</code>, for example <code>%dist .el9~testing</code> in a testing set (<a href="lifecycle.html#testing">lifecycle.html#testing</a>).</li>
 </ul>
-<p>Build a package for some targets only, and add or retire a target: <a href="lifecycle.html#some-targets">lifecycle.html#some-targets</a>, <a href="lifecycle.html#targets">lifecycle.html#targets</a>.</p>
+<p>The tasks are in the lifecycle chapter: <a href="lifecycle.html#some-targets">build a package for some targets only</a>, <a href="lifecycle.html#targets">add or retire a target</a>.</p>
 
 <h2 id="external">External package repositories</h2>
-<ul>
-  <li><code>git.url</code> on a package points to any git server. The lock stores the URL, the branch and the commit.</li>
-  <li>repoctl keeps one bare clone per URL with the full history in <code>$XDG_DATA_HOME/repoctl/git/HASH.git</code>, because rpmautospec needs the history. HASH comes from the sha256 of the normalized URL, and the clone lock guards each git step on the clone (<a href="lifecycle.html#clones">lifecycle.html#clones</a>). <code>repoctl checkout</code> fetches the clone and makes the worktree.</li>
-  <li>repoctl makes the clone with <code>git clone --bare URL</code> and the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>. It does not set <code>remote.origin.mirror</code>. Thus <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</li>
-  <li>The worktree is attached to the local branch <code>BRANCH</code> of the clone. checkout creates it at the lock commit and moves it only forward (<a href="cli.html#local-branch">cli.html#local-branch</a>).</li>
-  <li><code>repoctl clean</code> does not touch the clones. <code>repoctl clean --git</code> runs <code>git worktree prune</code> first. Then it deletes a clone only when it has no worktree and no commit that is not on the remote. Else it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</li>
-  <li>Credentials come from the git and ssh setup of the user. The config never holds them. <code>repoctl doctor</code> checks that each URL is reachable, and it warns about clones with commits that are not pushed.</li>
-</ul>
-<p>The steps to add an external package are in <a href="lifecycle.html#add-external">lifecycle.html#add-external</a>.</p>
+<p>A package with <code>git.url</code> comes from any git server, for example rocm-smi from <code>https://git.gsi.de/SDE/packages/rocm-smi.git</code>. <code>branch</code> names the package branch on that server. The lock stores the URL, the branch and the commit (<a href="#lock">repoctl.lock</a>). Credentials come from the git and ssh setup of the user. The config never holds them.</p>
+<p>repoctl keeps one bare clone per URL with the full history, because rpmautospec needs it. The clones, the clone lock, the push and <code>repoctl clean --git</code> are in <a href="lifecycle.html#clones">lifecycle.html#clones</a>. The steps to add an external package are in <a href="lifecycle.html#add-external">lifecycle.html#add-external</a>.</p>
 
 <h2 id="scope">Narrow now, open later</h2>
 <p>The first release covers the slurm sets. The schema leaves room for more. repoctl rejects a key for later with <code>config.unsupported</code>.</p>
@@ -506,7 +465,8 @@ sets:
 </table>
 <h3 id="generic">The "generic" test</h3>
 <p>repoctl must not know the word slurm. The test is the branch <code>main</code> as its own set. <code>main</code> gets a <code>repoctl.yaml</code>: name <code>repoctl</code>, one target for the current Fedora, and the packages <code>repoctl</code> and <code>repoctl-release</code> (in-tree, <code>role: release</code>).</p>
-<p>The test passes when repoctl builds and publishes this set with the same commands as a slurm set. It runs on a Fedora host with a personal key, and the snapshot goes to GHCR. The release-version check (<a href="signing.html#release">signing.html#release</a>) compares the release package with the version in the set name. The name <code>repoctl</code> has no version, so the check is off for this set.</p>
+<p>The test passes when repoctl builds and publishes this set with the same commands as a slurm set. It runs on a Fedora host with a personal key, and the snapshot goes to GHCR.</p>
+<p>The release-version check (<a href="signing.html#release">signing.html#release</a>) compares the release package with the version in the set name. The name <code>repoctl</code> has no version, so the check is off for this set.</p>
 <p>The Fedora RPM repo on GitHub Pages stays the output of the Pages job (<a href="tool.html#pages">tool.html#pages</a>). A CI job that signs and publishes through repoctl without a human is a later feature.</p>
 </body>
 </html>
