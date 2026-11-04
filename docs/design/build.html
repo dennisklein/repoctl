@@ -87,6 +87,27 @@ el10  10 nodes · 13 edges · 4 levels
 hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add el10 to the targets of rocm-smi</pre>
 <p>The fix is in the spec or in <code>repoctl.yaml</code>. Command: <a href="cli.html#cmd-graph">repoctl graph</a>. Terminal frame: <a href="terminal.html#graph">graph</a>.</p>
 
+<h2 id="sources">Sources</h2>
+<p>A package branch has the layout of Fedora dist-git. The spec, the patches and the small source files are in git. The large source archives are not in git, and <code>.gitignore</code> names them. The <dfn>sources file</dfn> <code>sources</code> gives the SHA-512 of each archive, one line per file. All package branches of the story have this layout, also the branches that do not come from Fedora, for example rocm-smi and slurm-singularity-exec. An in-tree package has the same layout below its path. This is the sources file of slurm at <code>d42f66a</code>:</p>
+<pre><code class="language-plaintext">SHA512 (slurm-26.05.4.tar.bz2) = 9ad6e078a6be67d8ad1dbcdd7e07d97af56c30c2e058a49ce3db3073ee77e26a29d6c12843e65605f1223ccbbfe778895ae53e3826dbf7037ac97b9b0147ed7e</code></pre>
+<p>repoctl reads the <code>Source</code> and <code>Patch</code> lines of the spec in the chroot of the target, as <code>spectool</code> does. Each line gives one file. repoctl puts the files into one directory and gives it to <code>mock --buildsrpm --sources</code>.</p>
+<table class="compact">
+<thead><tr><th>File of a Source or Patch line</th><th>Where repoctl gets it</th><th>Check</th></tr></thead>
+<tbody>
+<tr><td>The file is in git at the commit.</td><td>From the commit. repoctl never downloads it.</td><td>The commit.</td></tr>
+<tr><td>The line has a URL, and the sources file has a line for the file.</td><td>In this order: the source cache, the Fedora lookaside cache (only with <code>upstream.fedora</code>), the URL of the line.</td><td>The SHA-512 of the sources file.</td></tr>
+<tr><td>The line has a URL, and the sources file has no SHA512 line for the file.</td><td>repoctl does not download it.</td><td><code>source.unlisted</code></td></tr>
+</tbody>
+</table>
+<ul>
+  <li><b>Fetch.</b> The source cache is <code>$XDG_CACHE_HOME/repoctl/sources/sha512/HEX/FILE</code>, for all sets. The Fedora lookaside cache is <code>https://src.fedoraproject.org/repo/pkgs/NAME/FILE/sha512/HEX/FILE</code>, with NAME from <code>upstream.fedora</code>. repoctl writes each download to a temporary file, checks it, and then renames it into the source cache.</li>
+  <li><b>Checksum.</b> repoctl accepts only the SHA512 form of a line. A file whose SHA-512 is not the value of its line is never used: <code>source.mismatch</code>. Thus a new archive with an old name stops the build.</li>
+  <li><b>No network.</b> repoctl uses only the source cache. A file that is not in the cache gives <code>source.unreachable</code>. Thus a host builds without network after one plan of the same commits.</li>
+  <li><b>Failure.</b> In plan and graph, a source problem is a warning on the node. The node keeps its plan action. In the build, the node then fails in step srpm with the failure class srpm, and <code>error.code</code> holds the problem code.</li>
+</ul>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>The sources file is part of the commit. Thus the commit fixes the content of every source, and a source never changes the build identity (<a href="model.html#identity">build identity</a>). To change an archive, change the spec and the sources file in one commit, for example with <code>sha512sum --tag FILE</code> for the new line.</p></aside>
+<p><code>repoctl checkout --create --from fedora</code> forks a Fedora dist-git branch with this layout (<a href="lifecycle.html#checkout-create">checkout --create</a>). <code>repoctl clean --cache</code> deletes the source cache (<a href="cli.html#cmd-clean">repoctl clean</a>).</p>
+
 <h2 id="plan">Plan</h2>
 <p><code>repoctl plan</code> shows what <code>repoctl build</code> with the same arguments does, and why. It builds nothing and writes no run. <code>repoctl build</code> makes the same plan as its first step.</p>
 <p>The baseline of the plan is latest: the RepoManifest in the local copy of latest of each target (<a href="model.html#manifest">RepoManifest</a>). First, repoctl compares the digest of latest in the registry with the local copy (<a href="publish.html#freshness">freshness check</a>). When latest is newer, or when no local copy exists, plan and build stop with <code>state.behind</code> (exit 13), and the hint gives <code>repoctl repo pull</code>. When the registry is not reachable, the plan uses the local copy and prints the warning <code>registry.unreachable</code>.</p>

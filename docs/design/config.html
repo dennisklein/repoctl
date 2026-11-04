@@ -352,7 +352,7 @@ sets:
 <text class="t-small t-muted" x="864" y="40" text-anchor="end">edit by hand</text>
 <rect class="box-muted" x="300" y="76" width="580" height="46" rx="8"/>
 <text class="t-title" x="316" y="96">$XDG_CACHE_HOME/repoctl/</text>
-<text class="t-small" x="316" y="113">srpm/: SRPMs and spec facts per commit · upstream/: answers of the last hour · mock/: work files</text>
+<text class="t-small" x="316" y="113">srpm/: SRPMs and spec facts · sources/: source archives · upstream/: answers · mock/: work files</text>
 <text class="t-small t-ok" x="864" y="96" text-anchor="end">safe to delete</text>
 <rect class="box" x="300" y="132" width="580" height="80" rx="8"/>
 <text class="t-title" x="316" y="152">$XDG_DATA_HOME/repoctl/</text>
@@ -378,7 +378,7 @@ sets:
 <thead><tr><th>Path</th><th>Holds</th><th>Delete</th></tr></thead>
 <tbody>
 <tr><td><code>$XDG_CONFIG_HOME/repoctl/config.yaml</code></td><td>the user config</td><td>edit by hand</td></tr>
-<tr><td><code>$XDG_CACHE_HOME/repoctl/srpm/</code>, <code>upstream/</code>, <code>mock/</code></td><td>SRPMs and spec facts per commit, upstream answers (1 hour), mock work files of all sets</td><td>safe: <code>repoctl clean --cache</code></td></tr>
+<tr><td><code>$XDG_CACHE_HOME/repoctl/srpm/</code>, <code>sources/</code>, <code>upstream/</code>, <code>mock/</code></td><td>SRPMs and spec facts per commit, source archives by SHA-512 (<a href="build.html#sources">build.html#sources</a>), upstream answers (1 hour), mock work files of all sets</td><td>safe: <code>repoctl clean --cache</code></td></tr>
 <tr><td><code>$XDG_DATA_HOME/repoctl/SET/staging/RUN/</code></td><td>the RPMs of a run, per target</td><td><code>repoctl clean</code> keeps staged nodes and publishable runs</td></tr>
 <tr><td><code>$XDG_DATA_HOME/repoctl/SET/repo/TARGET/</code></td><td>the local copy of <code>latest</code> and its <code>snapshot.json</code></td><td>never; <code>repoctl repo pull</code> makes it again</td></tr>
 <tr><td><code>$XDG_DATA_HOME/repoctl/SET/publishes/ID/</code></td><td>the signed tree of a publish until step 8</td><td><code>repoctl repo push ID</code> completes it, <code>repoctl clean --publish ID</code> deletes it</td></tr>
@@ -474,7 +474,7 @@ sets:
 <thead><tr><th>Topic</th><th>First release</th><th>Room for later</th></tr></thead>
 <tbody>
 <tr><td>Targets</td><td>Many mock chroots (el9, el10).</td><td>Per-target overrides of more keys.</td></tr>
-<tr><td>Package source</td><td>A branch in the set repository or in an external git repository; an in-tree path.</td><td>Tarball-only sources, dist-git layouts.</td></tr>
+<tr><td>Package source</td><td>A branch in the set repository or in an external git repository; an in-tree path. Each one has the layout of Fedora dist-git: spec, patches and a sources file (<a href="build.html#sources">build.html#sources</a>).</td><td>Tarball-only sources, other layouts.</td></tr>
 <tr><td>Upstream check</td><td>GitHub tags and releases, the Fedora version.</td><td><code>upstream</code> kinds GitLab, PyPI, URL pattern.</td></tr>
 <tr><td>Signing</td><td>Personal keys with local gpg (YubiKey or key file), many trusted keys, <code>sign.backend: gpg</code>.</td><td>Other backends: central signing over an agent socket, no signing for CI, sops.</td></tr>
 <tr><td>Publish</td><td>Snapshots in an OCI registry (<code>store.oci</code>). The HTTP server at <code>repo.url</code> is a mirror.</td><td>Other registries, other mirror kinds.</td></tr>
