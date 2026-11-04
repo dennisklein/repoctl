@@ -607,7 +607,8 @@ Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmp
 
 <h2 id="force">Forced builds</h2>
 <p><code>repoctl build --force</code> builds the selected nodes into staging, also when they are current. The plan reason is forced. This is for tests, for example after a change of the mock config. The commit does not change, so rpmautospec gives the same NVR.</p>
-<p>Publish refuses a forced node whose NVR is already published (<code>nvr.reused</code>, exit 12). It also refuses an NVR that the <code>removed[]</code> list of the RepoManifest holds (<code>nvr.removed</code>), because clients can still have it (<a href="publish.html#checks">checks before the first signature</a>). To publish a new build of the same version, use <code>repoctl rebuild</code>.</p>
+<aside class="callout rule"><p class="callout-title">Rule: a forced build of a current node</p><p>A forced build of a current node is never staged. The plan asks "commit in latest?" before "ok in a run of yours?", so the next plan keeps the node current. Thus publish never takes the forced build, and <code>repoctl clean</code> deletes it as a staging without staged nodes. A forced build of a node that is not current is a normal build: it is staged, and the newest run wins (<a href="#staging">staging</a>).</p></aside>
+<p>The publish checks <code>nvr.reused</code> and <code>nvr.removed</code> apply to each build that a publish takes. Publish refuses a new commit that gives an NVR that latest holds with other content (<code>nvr.reused</code>, exit 12), for example a spec without <code>%autorelease</code>. It also refuses an NVR that the <code>removed[]</code> list of the RepoManifest holds (<code>nvr.removed</code>), because clients can still have it (<a href="publish.html#checks">checks before the first signature</a>). To publish a new build of the same version, use <code>repoctl rebuild</code>.</p>
 <aside class="callout why"><p class="callout-title">Why</p><p>Clients and mirrors expect that one NVR always has the same content. A second file with the same NVR and other content gives checksum errors on the clients, or two different packages with one name.</p></aside>
 <p>A change in a mock config, a macro file or an extra repository is not in the build identity. It gives the advisory <code>mock.drift</code> or <code>buildroot.drift</code>. Use <code>repoctl rebuild</code> to build against the change. Use <code>--force</code> only to try it.</p>
 
@@ -683,8 +684,8 @@ repoctl builds each node of one identity once.
               rebuild         "repoctl rebuild DIR" made an empty commit
               new-package     the package is new in the set
               new-target      the target is new for the package
-              forced          --force (for tests; publish refuses an
-                              NVR that is already published)
+              forced          --force (for tests; a forced build of a
+                              current node is never staged or published)
               staging-missing the staging of a staged node is gone
   skip      not selected, and no selected node needs it
 

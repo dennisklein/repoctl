@@ -602,7 +602,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <tbody>
   <tr><td><code>-j</code>, <code>--jobs</code></td><td>Nodes in mock at the same time. Default <code>jobs</code> of the user config, else 2. Each mock build uses all CPUs.</td></tr>
   <tr><td><code>--from worktree</code></td><td>Build the HEAD commit of each worktree. The run is unpinned, and its nodes are never staged or publishable. Uncommitted changes never build.</td></tr>
-  <tr><td><code>--force</code></td><td>Build current nodes too (reason forced), for tests. Publish refuses a reused NVR (<a href="build.html#force">build.html#force</a>).</td></tr>
+  <tr><td><code>--force</code></td><td>Build current nodes too (reason forced), for tests. A forced build of a current node is never staged or published (<a href="build.html#force">build.html#force</a>).</td></tr>
   </tbody>
   </table>
   <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run; the host mock lock, shared</dd><dt>Preflight</dt><dd>mock, the group mock, the mock configs, the rpmautospec plugin, free disk (<a href="delivery.html#requirements">requirements</a>); no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
