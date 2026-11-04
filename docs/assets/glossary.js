@@ -2,7 +2,8 @@
    Needs glossary-data.js first. A term link is <a class="gl" data-gl="ID" data-domain="KEY">:
    tools/site/build.py and tools/site/glossary.py write them. When the pointer or the focus is
    on a term, the card shows the domain (icon and colour), the word, its kind and the definition.
-   Esc closes the card. The link itself goes to the glossary entry. */
+   Esc closes the card. The link itself goes to the glossary entry.
+   On the glossary page, the domain buttons and the text field filter the entries. */
 (function () {
   "use strict";
   var G = window.REPOCTL_GLOSSARY;
@@ -79,4 +80,51 @@
   doc.addEventListener("focusout", function (e) { if (termOf(e) === cur) hide(); });
   doc.addEventListener("keydown", function (e) { if (e.key === "Escape" && cur) hide(); });
   window.addEventListener("resize", hide);
+
+  /* The glossary page: one domain button (press again to show all) and a text filter. */
+  var tools = doc.querySelector(".gl-tools");
+  if (!tools) return;
+  tools.hidden = false;
+  var q = doc.getElementById("gl-q"), count = doc.getElementById("gl-count"),
+      none = doc.getElementById("gl-none"), domain = "",
+      buttons = [].slice.call(tools.querySelectorAll(".gl-dom")),
+      entries = [].slice.call(doc.querySelectorAll(".gl-entry")),
+      groups = [].slice.call(doc.querySelectorAll(".gl-group"));
+  entries.forEach(function (e) {
+    e._text = (e.getAttribute("data-words") + " " + e.querySelector("dd").textContent).toLowerCase();
+  });
+  function apply() {
+    var words = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean), n = 0;
+    entries.forEach(function (e) {
+      var ok = (!domain || e.getAttribute("data-domain") === domain) &&
+        words.every(function (w) { return e._text.indexOf(w) >= 0; });
+      e.hidden = !ok;
+      if (ok) n++;
+    });
+    groups.forEach(function (g) { g.hidden = !g.querySelector(".gl-entry:not([hidden])"); });
+    buttons.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-domain") === domain)); });
+    count.textContent = (n === entries.length ? n : n + " of " + entries.length) + " words";
+    none.hidden = n > 0;
+  }
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var d = b.getAttribute("data-domain");
+      domain = domain === d ? "" : d;
+      apply();
+    });
+  });
+  q.addEventListener("input", apply);
+  q.addEventListener("keydown", function (e) { if (e.key === "Escape" && q.value) { q.value = ""; apply(); } });
+  /* A link to an entry or a domain: show it, also when the filter hides it. */
+  function reveal() {
+    var id = decodeURIComponent(location.hash.slice(1)), t = id && doc.getElementById(id);
+    if (!t) return;
+    if (/^d-/.test(id)) { domain = id.slice(2); q.value = ""; apply(); return; }
+    if (t.classList.contains("gl-entry") && t.hidden) {
+      domain = ""; q.value = ""; apply();
+      t.scrollIntoView();
+    }
+  }
+  window.addEventListener("hashchange", reveal);
+  reveal();
 })();

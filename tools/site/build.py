@@ -49,7 +49,8 @@ CODE_LABELS = {"yaml": "YAML", "json": "JSON", "bash": "Bash", "shell": "Shell",
 CONTRACT_CLASSES = set("""
 lede keypoints callout note rule why warn tip callout-title term synopsis tag read
 staging local shared req info ok muted compact steps facts cmd diagram wide
-explainer shot no-gl glossary gl-index gl-icon gl-term gl-kind gl-see box box-accent box-soft box-ok box-warn box-err box-info box-muted
+explainer shot no-gl glossary gl-icon gl-term gl-kind gl-see gl-see-sec gl-tools gl-domains gl-dom
+gl-dom-name gl-dom-n gl-filter gl-search gl-search-label gl-count gl-none gl-group gl-entry gl-meta box box-accent box-soft box-ok box-warn box-err box-info box-muted
 zone dot dot-accent edge edge-accent edge-muted edge-ok edge-err t t-title t-small
 t-muted t-mono t-accent t-ok t-warn t-err t-num t-on
 """.split())
@@ -950,26 +951,67 @@ class Site:
         return "".join(out)
 
     # -- the glossary page
+    def section_title(self, path, anchor):
+        """The text of the heading at #anchor in the source of a page, or ""."""
+        cache = self.__dict__.setdefault("_src_text", {})
+        if path not in cache:
+            f = self.src / path
+            cache[path] = f.read_text(encoding="utf-8") if f.is_file() else ""
+        text = cache[path]
+        m = re.search(r'<(\w+)[^>]*\sid="' + re.escape(anchor) + r'"[^>]*>', text)
+        if not m:
+            return ""
+        h = re.compile(r"<(h[1-4])\b[^>]*>(.*?)</\1>", re.S)
+        hm = h.match(text, m.start()) or h.search(text, m.end())
+        if not hm:
+            return ""
+        plain = re.sub(r'<span\s+class="tag\b[^"]*"[^>]*>.*?</span>', "", hm.group(2), flags=re.S)
+        return norm_space(html.unescape(re.sub(r"<[^>]*>", "", plain)))
+
     def glossary_block(self, page):
-        """The body of the glossary page: an A-Z index, then one section per domain."""
+        """The body of the glossary page: the domains, a filter, then the words A-Z.
+        Each letter is a section; each word is a dt/dd pair with its domain and its chapter."""
         g = self.glossary
         titles = {p["path"]: p["short"] for p in self.pages}
-        index = " ".join(f'<a href="#{t["id"]}">{esc(t["term"])}</a>' for t in g.terms)
-        out = [f'<p class="gl-index">{index}</p>']
+
+        def icon(key, label=None):
+            aria = f'role="img" aria-label="{esc(label)}"' if label else 'role="img" aria-hidden="true"'
+            return f'<svg class="gl-icon" viewBox="0 0 16 16" {aria}><use href="#gl-i-{key}"/></svg>'
+
+        out = ['<div class="gl-tools" hidden>',
+               '<ul class="gl-domains" aria-label="Domains">']
         for key, d in g.domains.items():
-            terms = [t for t in g.terms if t["domain"] == key]
-            out.append(f'<h2 id="d-{key}"><svg class="gl-icon" data-domain="{key}" viewBox="0 0 16 16" role="img" '
-                       f'aria-label="Domain"><use href="#gl-i-{key}"/></svg>{esc(d["name"])}</h2>')
-            out.append(f'<dl class="glossary" data-domain="{key}">')
-            for t in terms:
-                see = t["see"]
-                target = posixpath.normpath(posixpath.join("design", see.split("#")[0]))
-                label = titles.get(target, see)
-                out.append(f'<dt id="{t["id"]}"><span class="gl-term">{esc(t["term"])}</span>'
-                           f'<span class="gl-kind">{esc(t["kind"])}</span></dt>'
-                           f'<dd>{t["def"]} <span class="gl-see"><a href="{esc(rel(page, posixpath.join("design", see)))}">'
-                           f'{esc(label)}</a></span></dd>')
-            out.append("</dl>")
+            n = sum(1 for t in g.terms if t["domain"] == key)
+            out.append(f'<li id="d-{key}"><button class="gl-dom" type="button" data-domain="{key}" aria-pressed="false">'
+                       f'{icon(key)}<span class="gl-dom-name">{esc(d["name"])}</span>'
+                       f'<span class="gl-dom-n">{n}</span></button></li>')
+        out.append("</ul>")
+        out.append('<p class="gl-filter"><label class="gl-search"><span class="gl-search-label">Filter</span>'
+                   '<input type="search" id="gl-q" placeholder="a word or a part of a definition" autocomplete="off"></label>'
+                   f'<span class="gl-count" id="gl-count" aria-live="polite">{len(g.terms)} words</span></p>')
+        out.append("</div>")
+        out.append('<p class="gl-none" id="gl-none" hidden>No word matches the filter.</p>')
+        groups = {}
+        for t in g.terms:
+            groups.setdefault(t["term"][:1].upper(), []).append(t)
+        for letter in sorted(groups):
+            out.append(f'<section class="gl-group" aria-labelledby="letter-{letter.lower()}">'
+                       f'<h2 id="letter-{letter.lower()}">{letter}</h2><dl class="glossary">')
+            for t in groups[letter]:
+                key = t["domain"]
+                path, _, anchor = t["see"].partition("#")
+                target = posixpath.normpath(posixpath.join("design", path))
+                chapter = titles.get(target, path)
+                sec = self.section_title(target, anchor) if anchor else ""
+                label = esc(chapter) + (f' <span class="gl-see-sec">{esc(sec)}</span>' if sec and sec != chapter else "")
+                href = esc(rel(page, posixpath.join("design", t["see"])))
+                words = " ".join([t["term"]] + t["forms"])
+                out.append(f'<div class="gl-entry" id="{t["id"]}" data-domain="{key}" data-words="{esc(words)}">'
+                           f'<dt><span class="gl-term">{esc(t["term"])}</span>'
+                           f'<span class="gl-meta">{icon(key)}<span class="gl-dom-name">{esc(g.domains[key]["name"])}</span>'
+                           f'<span class="gl-kind">{esc(t["kind"])}</span></span></dt>'
+                           f'<dd><p>{t["def"]}</p><p class="gl-see"><a href="{href}">{label}</a></p></dd></div>')
+            out.append("</dl></section>")
         return "\n".join(out)
 
     # -- one wrapped page
@@ -1003,7 +1045,7 @@ class Site:
             "custom": is_home or (meta or {}).get("custom", False),
             "blocks": {"chapters": self.chapter_cards(page)},
             "used_ids": set(TEMPLATE_IDS) | self.symbol_ids,
-            "toc_marker": not is_home,
+            "toc_marker": not is_home and page != gloss.PAGE,   # the glossary has its filter
         }
         rw = Rewriter(page, ctx)
         # ids that the author wrote are reserved before slugs are made
