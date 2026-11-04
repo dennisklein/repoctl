@@ -1006,8 +1006,20 @@ suggests  rebuild pmix against hwloc 2.11, or change its spec
   <h4><code>repoctl upstream</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl upstream [DIR...] [--check] [--releases] [--refresh] [-j N]</pre>
   <p>Compare the version of each package at its lock commit with the newest upstream release. The sources come from <code>packages[].upstream</code>: GitHub releases or tags, a tag filter, and Fedora rawhide. repoctl drops pre-releases and vendor tags. The answers stay in the cache for one hour; <code>--refresh</code> ignores it.</p>
+  <p>The version of a tag comes from <code>upstream.version</code>: the capture groups of that regular expression, joined with <code>.</code>. For example, <code>'^slurm-(\d+)-(\d+)-(\d+)'</code> maps the tag <code>slurm-26-05-5-1</code> to 26.05.5. Without the key, the version is the tag without a leading <code>v</code>. repoctl compares versions with the RPM version order.</p>
+  <table class="compact">
+  <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+  <tbody>
+  <tr><td>up-to-date</td><td>The version at the lock commit equals the newest upstream version.</td></tr>
+  <tr><td>update-available</td><td>The newest upstream version is newer. Only this status gives the advisory <code>upstream.release</code>.</td></tr>
+  <tr><td>ahead</td><td>The version at the lock commit is newer than the newest upstream version, for example a snapshot from git.</td></tr>
+  <tr><td>frozen</td><td><code>upstream.frozen</code> is set, and the version at the lock commit is that version or newer. repoctl does not look for newer releases. An older version gives update-available, with the frozen version as the newest.</td></tr>
+  <tr><td>unknown</td><td>All queries for the package failed, the tag filter matches no tag (<code>upstream.no-match</code>), or <code>upstream.version</code> matches no tag.</td></tr>
+  <tr><td>none</td><td>The package has no <code>upstream</code> key, for example slurm-release. The totals line says "without upstream".</td></tr>
+  </tbody>
+  </table>
   <p><code>--releases</code> lists each newer release with its date and URL. <code>--check</code> gives exit 11 for an update. The package-updates skill calls <code>repoctl upstream --releases --json</code> (<a href="agents.html#skill-list">agents.html#skill-list</a>).</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Network</dt><dd>GitHub API with <code>GH_TOKEN</code>, <code>GITHUB_TOKEN</code> or <code>gh auth token</code>, else anonymous (<code>upstream.rate-limited</code>); src.fedoraproject.org</dd><dt>Writes</dt><dd><code>~/.cache/repoctl/upstream/</code></dd><dt>Output</dt><dd>kind <code>Upstream</code>; status up-to-date, update-available, ahead, frozen or unknown</dd><dt>Exit</dt><dd>0 (also with updates); 1 all queries failed; 11 with <code>--check</code></dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Network</dt><dd>GitHub API with <code>GH_TOKEN</code>, <code>GITHUB_TOKEN</code> or <code>gh auth token</code>, else anonymous (<code>upstream.rate-limited</code>); src.fedoraproject.org</dd><dt>Writes</dt><dd><code>~/.cache/repoctl/upstream/</code></dd><dt>Output</dt><dd>kind <code>Upstream</code>; status up-to-date, update-available, ahead, frozen, unknown or none</dd><dt>Exit</dt><dd>0 (also with updates); 1 all queries failed; 11 with <code>--check</code></dd></dl>
   <pre class="term">$ repoctl upstream
 PACKAGE                 CURRENT  LATEST   RELEASED    FEDORA   STATUS            NOTE
 slurm                   26.05.4  26.05.5  2026-10-29  26.05.4  update-available

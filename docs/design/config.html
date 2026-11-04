@@ -164,14 +164,14 @@ packages:
     upstream: {github: openpmix/openpmix, tags: '^v5'}
   - dir: pmix_v4
     branch: pmix/slurm-26.05-v4
-    upstream: {github: openpmix/openpmix, tags: '^v4'}
+    upstream: {github: openpmix/openpmix, tags: '^v4', frozen: 4.2.9}
     notes: Upstream 4.x is frozen at 4.2.9.
   - dir: prrte
     branch: prrte/slurm-26.05
     upstream: {github: openpmix/prrte, fedora: prrte}
   - dir: slurm
     branch: slurm/slurm-26.05
-    upstream: {github: SchedMD/slurm, tags: '^slurm-', fedora: slurm}
+    upstream: {github: SchedMD/slurm, tags: '^slurm-', version: '^slurm-(\d+)-(\d+)-(\d+)', fedora: slurm}
   - dir: openmpi
     branch: openmpi/slurm-26.05
     upstream: {github: open-mpi/ompi, tags: '^v5\.', fedora: openmpi}
@@ -208,7 +208,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tr><td><code>packages[].git.url</code></td><td>no</td><td>An external repository (<a href="#external">external</a>).</td></tr>
 <tr><td><code>packages[].targets</code></td><td>no</td><td>The targets of this package. Default all.</td></tr>
 <tr><td><code>packages[].role</code></td><td>no</td><td><code>release</code> for the release package (<a href="signing.html#release">signing.html#release</a>). At most one package, with <code>path</code>.</td></tr>
-<tr><td><code>packages[].upstream</code>: <code>github</code>, <code>tags</code>, <code>fedora</code></td><td>no</td><td>The input of <code>repoctl upstream</code>: GitHub repository, tag filter (regular expression), Fedora package name.</td></tr>
+<tr><td><code>packages[].upstream</code>: <code>github</code>, <code>tags</code>, <code>version</code>, <code>frozen</code>, <code>fedora</code></td><td>no</td><td>The input of <code>repoctl upstream</code>: GitHub repository, tag filter (regular expression), the version of a tag (a regular expression whose capture groups, joined with <code>.</code>, give the version), the frozen version of the stream, Fedora package name (<a href="cli.html#cmd-upstream">cli.html#cmd-upstream</a>).</td></tr>
 <tr><td><code>packages[].notes</code></td><td>no</td><td>Free text for humans and skills.</td></tr>
 <tr><td><code>skills[]</code></td><td>no</td><td>Directories with set-local skills (<a href="agents.html#skills">agents.html#skills</a>).</td></tr>
 </tbody>
@@ -226,7 +226,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
   <li>At most one package has <code>role: release</code>, and that package has <code>path</code>. Else <code>config.invalid</code>, exit 1. The release package is in-tree (<a href="signing.html#release">signing.html#release</a>).</li>
   <li>A target that has a latest stays in <code>targets</code>. To stop it, set <code>state: retired</code>. Without the entry, no repoctl command can act on its OCI package.</li>
   <li><code>name</code> and <code>targets[].id</code> never change after the first publish. They give the OCI package <code>STORE/SET-TARGET</code>, the XDG paths, the set lock and <code>sets.NAME</code> of the user config. A new name or id gives a new OCI package without the history of the old one. The first publish of that package stops with <code>set.renamed</code>, because the served tree names the old set or target (<a href="signing.html#gates">rule: first publish</a>). To rename a set, start a new set. To rename a target, add a new target and retire the old one (<a href="lifecycle.html#rename">rename</a>).</li>
-  <li>Package facts (upstream repository, tag filter, notes) live in this file, not in a skill. Thus the CLI and the skills read the same facts.</li>
+  <li>Package facts (upstream repository, tag filter, notes) live in this file, not in a skill. Thus the CLI and the skills read the same facts. repoctl never reads a status from <code>notes</code>; <code>upstream.frozen</code> marks a frozen stream.</li>
   <li>publish needs <code>repo.url</code>, <code>store.oci</code>, <code>sign.keys</code> and <code>sign.release.keyfile</code>. doctor warns when one is missing.</li>
 </ul>
 
