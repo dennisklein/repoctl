@@ -319,6 +319,14 @@ started repoctl-check@home-dklein-src-slurm\x2drepo.timer (next: tomorrow 06:00)
 note: lingering is off. The timer runs only while you are logged in.
       Persistent=true runs a missed check at the next login.
       To run it always: loginctl enable-linger dklein</pre>
+<p>The timer prints nothing, and it does not fail on an open advisory. To get an alert for a new required advisory or a failed check, add this optional drop-in. <code>--check --min-level required</code> gives exit 11 for an open required advisory, and exit 1 for a failed check, so the unit fails and systemd starts the unit of <code>OnFailure=</code>. repoctl does not ship that unit: it is a local script, for example with <code>notify-send</code> or <code>mail</code>.</p>
+<pre><code class="language-ini"># ~/.config/systemd/user/repoctl-check@.service.d/alert.conf (optional)
+[Unit]
+OnFailure=repoctl-check-alert@%i.service
+
+[Service]
+ExecStart=
+ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</code></pre>
 <p>repoctl runs on Fedora hosts only. On a workstation, lingering is optional, so the linger note is info, not a warning. The result is ready when the work day starts. The onboarding of an admin has the step <code>repoctl check --install-timer</code> (<a href="signing.html#onboarding">onboarding</a>). At offboarding, the other hosts do nothing. The admin who leaves runs <code>--remove-timer</code>, or the host goes away.</p>
 
 <h2 id="health">Health signals</h2>
@@ -328,10 +336,12 @@ note: lingering is off. The timer runs only while you are logged in.
 <tr><td>The timer instance of this set is not active.</td><td><span class="tag warn">warn</span> <code>check.timer-off</code></td><td>"the timer is off"</td></tr>
 <tr><td>The last check failed.</td><td><span class="tag warn">warn</span> <code>check.failed</code></td><td>"last check failed 5h ago: CODE"</td></tr>
 <tr><td>The last check is older than 36 hours.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"last check 3 days ago"</td></tr>
+<tr><td>The last check is older than latest of a target: a publish, restore, prune or resign came after it.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"check older than latest of el9: run repoctl check"</td></tr>
 <tr><td>No check ran.</td><td><span class="tag warn">warn</span> <code>check.never</code></td><td>"never checked: run repoctl check --install-timer"</td></tr>
 <tr><td>Lingering is off.</td><td><span class="tag info">info</span> <code>check.no-linger</code></td><td>nothing</td></tr>
 </tbody>
 </table>
+<p>Thus after a fixing publish, status and the UI do not show the old advisory as open. They show the check line in amber until the next check.</p>
 <aside class="callout rule"><p class="callout-title">Rule</p><p>A failed or old check is never shown as "no advisories". The Advisories card of the UI shows the check line above the rows and has the button Check now.</p></aside>
 <p>Command: <a href="cli.html#cmd-doctor">repoctl doctor</a>. Terminal frame: <a href="terminal.html#doctor">doctor</a>.</p>
 

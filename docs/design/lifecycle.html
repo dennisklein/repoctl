@@ -284,7 +284,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>git commit -am "feat!: remove DIR from the set" &amp;&amp; git push</code>. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: no node for DIR. The advisory <code>retired.published/NAME</code> (info) gives the RPMs that stay published.</li>
 <li>The RPMs stay in the repo by default. Clients that installed them keep them.</li>
-<li>Optional, explicit: run <code>repoctl repo prune --target T --package NAME --all</code>. This is a dry run. Read it. Then run it again with <code>--apply</code>. The prune makes a new snapshot and records the removed NVRs in <code>removed[]</code> (<a href="publish.html#retention">prune</a>, <a href="cli.html#cmd-repo-prune">command block</a>).</li>
+<li>Optional, explicit: run <code>repoctl repo prune --target T --package NAME --all</code>. This is a dry run. Read it. Then run it again with <code>--apply</code>. The prune makes a new snapshot and records the removed NVRs in <code>removed[]</code> (<a href="publish.html#retention">prune</a>, <a href="cli.html#cmd-repo-prune">command block</a>). It does not free storage in the registry, because gc keeps the newest snapshot that holds each removed NVR (<a href="publish.html#gc">gc</a>).</li>
 <li>Optional, on the clients: remove the package through config management, or add Obsoletes to the release package.</li>
 <li>Run <code>git worktree remove packages/DIR</code>. Keep the package branch. It holds the history of the published NVRs.</li>
 </ol>

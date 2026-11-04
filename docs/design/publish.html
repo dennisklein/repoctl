@@ -658,6 +658,7 @@ Next: repoctl status</pre>
 <p class="callout-title">Rule: a failed delete</p>
 <p>When the GitHub API refuses or fails one delete, gc stops at once. The versions that it deleted before stay deleted, and the journal lists them. gc exits with 13: <code>registry.denied</code> for a missing scope or role, else <code>gc.failed</code>. A second <code>repoctl repo gc --apply</code> continues, because gc computes the list again from the registry.</p>
 </aside>
+<p>For this reason, gc never frees the storage of a pruned NVR: the newest snapshot that holds it stays. A prune removes an NVR from latest, so that no new install gets it. It does not make the registry smaller.</p>
 
 <h2 id="registry">Registry access</h2>
 <table class="compact">
