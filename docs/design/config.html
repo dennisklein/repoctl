@@ -451,6 +451,7 @@ sets:
   <li><b>Staging and publish per target.</b> Each target has its own staging repo in a run and its own OCI package. A publish covers the targets that are ready.</li>
   <li><b>Extra RPM repos</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. A change in these repos can change a build result. repoctl does not rebuild by itself. It shows the advisory <code>buildroot.drift</code>, and the human decides.</li>
   <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
+  <li><b>One architecture per target.</b> The architecture of a target is the last part of its mock config name: <code>x86_64</code> in <code>rocky+epel-9-x86_64</code>. This release supports only <code>x86_64</code>. Another architecture, or a mock config name that does not end with one, gives <code>config.unsupported</code> (exit 1). The client path names the target, so it has no <code>$basearch</code>. A <code>noarch</code> package builds on each target, with the dist tag of that target.</li>
 </ul>
 <p>Build a package for some targets only, and add or drop a target: <a href="lifecycle.html#some-targets">lifecycle.html#some-targets</a>, <a href="lifecycle.html#targets">lifecycle.html#targets</a>.</p>
 
@@ -476,6 +477,7 @@ sets:
 <tr><td>Publish</td><td>Snapshots in an OCI registry (<code>store.oci</code>). The HTTP server at <code>repo.url</code> is a mirror.</td><td>Other registries, other mirror kinds.</td></tr>
 <tr><td>Release package</td><td>An in-tree spec. <code>repoctl release write</code> writes the key file and the <code>.repo</code> baseurl.</td><td>A release package that repoctl writes in full.</td></tr>
 <tr><td>Host</td><td>Fedora only. The mock chroots are EL9 and EL10.</td><td>repoctl on EL.</td></tr>
+<tr><td>Architecture</td><td><code>x86_64</code> only. One architecture per target (<a href="#targets">many targets</a>).</td><td>A second architecture as a new target with its own id, mock config, OCI package and client path, for example <code>el9-aarch64</code> with <code>rocky+epel-9-aarch64</code>. Its <code>noarch</code> packages build again on that target.</td></tr>
 </tbody>
 </table>
 <h3 id="generic">The "generic" test</h3>

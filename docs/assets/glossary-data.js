@@ -105,7 +105,7 @@ window.REPOCTL_GLOSSARY = {
   {"id": "staging", "term": "staging", "kind": "noun", "domain": "build", "forms": ["staging"], "see": "build.html#staging", "def": "The RPMs that a run built and that are not published."},
   {"id": "store", "term": "store", "kind": "noun", "domain": "publish", "forms": ["store"], "see": "config.html#set-config", "def": "The registry path of a set, <code>store.oci</code>.", "only_after": "\\b(?:the|its)\\s$", "not_after": "\\bcredential\\s$"},
   {"id": "surface", "term": "surface", "kind": "noun", "domain": "contract", "forms": ["surface", "surfaces"], "see": "model.html#surfaces", "def": "One of the four ways to use the core: CLI, web UI, MCP server, skills."},
-  {"id": "target", "term": "target", "kind": "noun", "domain": "build", "forms": ["target", "targets"], "see": "model.html#targets", "def": "One build platform, one mock chroot: <code>el9</code>, <code>el10</code>."},
+  {"id": "target", "term": "target", "kind": "noun", "domain": "build", "forms": ["target", "targets"], "see": "model.html#targets", "def": "One build platform, one mock chroot with one architecture: <code>el9</code>, <code>el10</code>."},
   {"id": "trust-set", "term": "trust set", "kind": "noun", "domain": "trust", "forms": ["trust set"], "see": "signing.html#verify-el", "def": "The keys that a signature check uses."},
   {"id": "verify-root", "term": "verify root", "kind": "noun", "domain": "build", "forms": ["verify root", "verify roots"], "see": "build.html#mock", "def": "A mock root per target with the client rpm and dnf. The publish step verify-el runs in it."}
  ]

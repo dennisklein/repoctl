@@ -31,7 +31,7 @@
 <p>The set <code>slurm-26.05</code> has 11 packages. Other sets use the same tool with their own file, for example <code>slurm-25.11</code> in <code>~/src/slurm-repo-25.11</code>. A new set forks its branches from the previous set (<a href="lifecycle.html#new-set">lifecycle.html#new-set</a>).</p>
 
 <h2 id="targets">Targets</h2>
-<p>A <dfn>target</dfn> is one build platform: one mock chroot. The set <code>slurm-26.05</code> has two targets: <code>el9</code> (<code>rocky+epel-9-x86_64</code>) and <code>el10</code> (<code>rocky+epel-10-x86_64</code>).</p>
+<p>A <dfn>target</dfn> is one build platform: one mock chroot with one architecture. The set <code>slurm-26.05</code> has two targets: <code>el9</code> (<code>rocky+epel-9-x86_64</code>) and <code>el10</code> (<code>rocky+epel-10-x86_64</code>).</p>
 <p>repoctl keeps the targets apart. Each target has its own build graph, its own staging repo in each run, its own OCI package (<code>…/slurm-26.05-el9</code>) with its own <code>latest</code> and RepoManifest, and its own client path below <code>repo.url</code>.</p>
 <p>A run can build all targets. A publish covers the targets that are ready. In the story, <code>slurm@el10</code> fails, so el9 publishes and el10 waits. The configuration chapter has the keys (<a href="config.html#targets">config.html#targets</a>).</p>
 
