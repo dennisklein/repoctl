@@ -27,7 +27,7 @@
 <tr><td>A6</td><td>Served tree</td><td>The HTTP server.</td><td>A change of what the clients download.</td><td>dnf checks <code>repomd.xml.asc</code> and rpm checks each RPM (<a href="signing.html#chain">signing.html#chain</a>).</td></tr>
 <tr><td>A7</td><td>Client keyrings</td><td>The rpmdb keys and the dnf repository keyring of each client.</td><td>Trust for any key.</td><td>Only the release package and config management write them.</td></tr>
 <tr><td>A8</td><td>Credentials</td><td>The GHCR token of each admin in the container credential store. The GitHub login with push access to the set repository.</td><td>A push of snapshots and tags, a delete of snapshots, a push of commits.</td><td>Team membership and package access (<a href="publish.html#registry">publish.html#registry</a>). OpenPGP stops a change of a signed file.</td></tr>
-<tr><td>A9</td><td>The tool</td><td>repoctl and its skills on branch <code>main</code>, the release RPMs of repoctl and the mirror job script <code>contrib/mirror/</code>.</td><td>Code that runs on each admin host and on the HTTP server.</td><td>The records of the tool (<a href="supply-chain.html#tool">supply-chain.html#tool</a>).</td></tr>
+<tr><td>A9</td><td>The tool</td><td>repoctl and its skills on branch <code>main</code>, the release RPMs of repoctl and the mirror job script <code>contrib/mirror/</code>.</td><td>Code that runs on each admin host and on the HTTP server.</td><td>The ruleset <code>main</code> (<a href="#rulesets">GitHub rulesets</a>). The records of the tool (<a href="supply-chain.html#tool">supply-chain.html#tool</a>).</td></tr>
 </tbody>
 </table>
 
@@ -154,7 +154,7 @@
 <table class="compact">
 <thead><tr><th>#</th><th>Crossing</th><th>Check at the crossing</th></tr></thead>
 <tbody>
-<tr><td>B1</td><td>Admin host and GitHub: set commits and package commits, push and fetch.</td><td>Publish refuses a change of a set input without a valid signature of an allowed key (<a href="#set-inputs">signed set inputs</a>). The lock pins each package commit.</td></tr>
+<tr><td>B1</td><td>Admin host and GitHub: set commits and package commits, push and fetch.</td><td>Publish refuses a change of a set input without a valid signature of an allowed key (<a href="#set-inputs">signed set inputs</a>). The lock pins each package commit. The rulesets block force pushes and deletions (<a href="#rulesets">GitHub rulesets</a>).</td></tr>
 <tr><td>B2</td><td>Upstream to the admin host: source archives and buildroot RPMs.</td><td>mock checks the signatures of the Rocky and EPEL RPMs. The provenance records each digest. A human reviews each version bump.</td></tr>
 <tr><td>B3</td><td>Admin host to GHCR: the push of a snapshot and the tag.</td><td>The GHCR token. GHCR is storage only: nothing in it is trusted without its OpenPGP signature.</td></tr>
 <tr><td>B4</td><td>GHCR to the HTTP server: the pull of the mirror job.</td><td>The mirror job verifies each <code>repomd.xml.asc</code> and each RPM with the key file that config management installed (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
@@ -195,5 +195,22 @@ $ echo $?
 <p>After the fetch of step 1, publish compares <code>repoctl.yaml</code> and <code>keys/</code> of the set commit with the tip of the remote branch: <code>git diff --quiet SET origin/builder/SET -- repoctl.yaml keys/</code>. A difference stops the publish with <code>sign.trust-behind</code> (exit 13). The hint is <code>git pull --ff-only</code>, then publish again.</p>
 </aside>
 <p>Thus gates 1 and 2 and the trust block read the newest key states and deployment records. All admins see the same record. A change of <code>repoctl.yaml</code> outside <code>sign</code>, for example a new package, also stops the publish. This is on purpose: the rule stays one file comparison.</p>
+
+<h2 id="rulesets">GitHub rulesets</h2>
+<p>The set repository holds the tool on <code>main</code>, each set on <code>builder/&lt;set&gt;</code> and each package on its package branch (<a href="decision.html#home">decision.html#home</a>). An organization owner sets three rulesets on it. A ruleset also stops a human with a stolen login and push access.</p>
+<table class="compact">
+<thead><tr><th>Ruleset</th><th>Target branches</th><th>Rules</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>main</code></td><td><code>main</code></td><td>Require a pull request with one approval of another team member. Dismiss stale approvals on a new push. Require the status checks of the CI workflows. Restrict deletions. Block force pushes.</td><td><code>main</code> holds the tool, the skills and the mirror job script (A9). A change there runs on each admin host and on the HTTP server after the next release.</td></tr>
+<tr><td><code>sets</code></td><td><code>builder/*</code></td><td>Restrict deletions. Block force pushes.</td><td>The snapshots name their set commits (<code>io.repoctl.set-commit</code>). A rewrite removes these commits, the history of the trust records and the commits that a <a href="#review">review commit</a> covers.</td></tr>
+<tr><td><code>packages</code></td><td>all branches except <code>main</code> and <code>builder/*</code></td><td>Restrict deletions. Block force pushes.</td><td>The lock pins each package commit. A rewrite removes a pinned commit, and an old lock cannot build again.</td></tr>
+</tbody>
+</table>
+<p>The bypass list of each ruleset is empty. An organization owner can change a ruleset, and the audit log of the organization records the change.</p>
+<aside class="callout why">
+<p class="callout-title">Why no pull request on builder branches</p>
+<p>The admins push set commits directly: lock commits, deployment records and key changes. A required pull request would put each lock commit through a review. GitHub cannot require a review only for some paths of a branch. The design checks trust changes in two other ways: each change of a set input has a signature (<a href="#set-inputs">signed set inputs</a>), and the human who publishes a new key file answers the trust block. The rule "Require signed commits" of GitHub is not used either. It verifies with the keys of the GitHub accounts, not with <code>keys/</code>, and it also refuses the unsigned lock commits of a host that only builds.</p>
+</aside>
+<p><code>repoctl doctor</code> reads the rules of the set branch, of <code>main</code> and of the package branches of the lock with the GitHub REST API (<code>GET /repos/OWNER/REPO/rules/branches/BRANCH</code>). OWNER and REPO come from the URL of the remote. The check <code>git.protection</code> warns for each branch without the rules "restrict deletions" and "block force pushes", and for <code>main</code> without a required pull request. A remote outside GitHub, or a failed request, gives a warning with the reason.</p>
 </body>
 </html>

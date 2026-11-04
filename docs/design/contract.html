@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 100 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 101 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -302,6 +302,7 @@
 <tr><td><code>git.busy</code></td><td>7</td><td>Another command holds the clone lock of an external package (<a href="lifecycle.html#clones">clones</a>). The message names the clone and the holder.</td><td>Try again, or set <code>--lock-wait</code>.</td></tr>
 <tr><td><code>git.fetch-failed</code></td><td>1</td><td><code>git fetch</code> failed.</td><td>Examine the remote and the credentials.</td></tr>
 <tr><td><code>git.mirror-unpushed</code></td><td>warning</td><td><code>clean --git</code> keeps a bare clone with commits that are not on the remote.</td><td>Push the commits.</td></tr>
+<tr><td><code>git.protection</code></td><td>warning in doctor</td><td>A branch of the set repository does not have the rules of its GitHub ruleset, or doctor cannot read them.</td><td>An organization owner sets the ruleset (<a href="security.html#rulesets">GitHub rulesets</a>).</td></tr>
 <tr><td><code>git.signing</code></td><td>warning in doctor</td><td>git in the set directory does not sign commits with the key of <code>sign.key</code>.</td><td><code>git config commit.gpgsign true</code> and <code>git config user.signingkey FPR</code> (<a href="security.html#set-inputs">Signed set inputs</a>).</td></tr>
 <tr><td><code>git.unreachable</code></td><td>1</td><td><code>git ls-remote</code> of an external package failed.</td><td>Make the project on the git server.</td></tr>
 <tr><td><code>graph.ambiguous-provider</code></td><td>warning</td><td>Two set packages provide one capability.</td><td>Make the Provides unique.</td></tr>
