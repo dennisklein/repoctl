@@ -298,7 +298,7 @@
 <thead><tr><th>Gate</th><th>Passes when</th><th>Problem, exit</th></tr></thead>
 <tbody>
 <tr><td>1 active and valid</td><td>The signer key is in <code>sign.keys</code> with <code>state: active</code>. It is valid for at least <code>sign.checks.key_min_validity</code> (default 30 days).</td><td><code>sign.not-active</code>, <code>sign.key-expiring</code>, 12</td></tr>
-<tr><td>2 deployed</td><td>For each selected target: <code>keys/deployed.yaml</code> at the set commit of the publish has an entry for the signer. The release NVR of that entry is in the base snapshot, and its key file holds the fingerprint of the signer.</td><td><code>sign.not-deployed</code>, 12. Hint: <code>repoctl sign onboard ID</code></td></tr>
+<tr><td>2 deployed</td><td>For each selected target: <code>keys/deployed.yaml</code> at the set commit of the publish has an entry for the signer. The release NVR of that entry is in the base snapshot, and its key file holds the fingerprint of the signer. Restore and prune keep each release NVR of a deployment record, so a later snapshot still holds it (<a href="publish.html#restore">publish.html#restore</a>).</td><td><code>sign.not-deployed</code>, 12. Hint: <code>repoctl sign onboard ID</code></td></tr>
 <tr><td>3 key format</td><td>OpenPGP v4 key, RSA 2048 or more, or Ed25519. No SHA-1 self-signature.</td><td><code>sign.key-format</code>, 9</td></tr>
 </tbody>
 </table>

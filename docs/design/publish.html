@@ -491,7 +491,7 @@ Next: repoctl status</pre>
 </table>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>Prune never deletes the newest NVR of a kept package. Prune never deletes an NVR that a kept package requires: the repoclosure after the prune must pass. <code>--package NAME --all</code> needs a package that is retired on the target; otherwise exit 1 with <code>prune.not-retired</code>. A safety rule that refuses gives exit 12. Nothing to prune gives exit 4.</p>
+<p>Prune never deletes the newest NVR of a kept package. Prune never deletes a release NVR that a deployment record in <code>keys/deployed.yaml</code> names for the target, because gate 2 and verify-el need its key file (<a href="signing.html#gates">signing.html#gates</a>). Prune never deletes an NVR that a kept package requires: the repoclosure after the prune must pass. A selector that matches many NVRs (<code>--keep-last</code>, <code>--older-than</code>, <code>--package</code>) keeps a protected NVR, and the dry run names the rule. <code>--nvr</code> that names a protected NVR stops the prune with <code>prune.unsafe</code>. <code>--package NAME --all</code> needs a package that is retired on the target; otherwise exit 1 with <code>prune.not-retired</code>. A safety rule that refuses gives exit 12. Nothing to prune gives exit 4.</p>
 </aside>
 <p>Command: <a href="cli.html#cmd-repo-prune">repo prune</a>.</p>
 
@@ -503,6 +503,7 @@ Next: repoctl status</pre>
   <li>The summary lists each NVR that leaves the repository. It says that clients keep these NVRs, because dnf does not downgrade.</li>
   <li>These NVRs go into <code>removed[]</code>. After a restore, publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</li>
   <li>RPMs in REF that a key in state removed signed get a new signature from the human who restores (<a href="signing.html#resign">re-sign rules</a>).</li>
+  <li>The new snapshot keeps each release NVR that a deployment record names for the target, also when REF does not hold it. Thus gate 2 and verify-el still find the key file of each signer. The summary lists these NVRs as "kept: deployment record". For example, a restore of el9 to <code>p-import-20260828</code> keeps slurm-release-26.05-2, the release of the record of d.klein; REF holds only slurm-release-26.05-1.</li>
 </ul>
 <p>Publish has no rollback flag. Restore and fix forward cover both cases. Command: <a href="cli.html#cmd-repo-restore">repo restore</a>.</p>
 
