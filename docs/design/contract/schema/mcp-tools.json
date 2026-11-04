@@ -548,7 +548,7 @@
     {
       "name": "repoctl_snapshots",
       "title": "List snapshots",
-      "description": "List the snapshots of each target in the registry, newest first, with publish id, digest, parent, kind, signer, human and host. Use it to find the publish that changed an NVR. Returns kind SnapshotList, one item per target.",
+      "description": "List the snapshots of each target in the registry, newest first, with publish id, digest, parent, kind, signer, human and host. Use it to find the publish that changed an NVR. With history, it also lists the snapshots that gc deleted. Returns kind SnapshotList, one item per target.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -564,6 +564,11 @@
             "minimum": 1,
             "maximum": 100,
             "default": 20
+          },
+          "history": {
+            "type": "boolean",
+            "default": false,
+            "description": "List the publish history of latest: each publish of the chain, also snapshots that gc deleted, with the acceptances and their reasons and the trust changes."
           }
         },
         "additionalProperties": false

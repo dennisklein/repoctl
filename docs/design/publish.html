@@ -160,7 +160,7 @@ KEEP_TREES=2</code></pre>
 <tr><td><code>keys/deployed.yaml</code></td><td>set repository (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
 </tbody>
 </table>
-<p>Status, the Overview card "Last publish", the sign step and the default key set of <code>repo verify</code> read the annotations of latest. After the loss of a host, <code>repoctl repo pull</code> gives all of this back. The runs and journals of that host are lost. They are personal, and nothing depends on them.</p>
+<p>Status, the Overview card "Last publish", the sign step and the default key set of <code>repo verify</code> read the annotations of latest. After the loss of a host, <code>repoctl repo pull</code> gives all of this back. The runs and journals of that host are lost. They are personal, and nothing depends on them. The shared audit record is the publish history in the RepoManifest of latest (<a href="#format">snapshot format</a>).</p>
 <h3 id="pull">Pull</h3>
 <p><code>repoctl repo pull [REF]</code> makes the local copy equal to a snapshot: latest (the default), a publish id or a digest. It downloads the missing blobs and checks their sha256. It verifies each RPM and each <code>repomd.xml.asc</code> with the keys of <code>sign.keys</code> (all states) before it writes the local copy in one rename. Then it writes <code>snapshot.json</code>. A file that does not verify stops the pull, and repoctl writes nothing (exit 10). When the local copy holds a publish of this user that is not on the chain of latest, pull warns with <code>snapshot.orphaned</code> before it replaces the local copy (<a href="#admins">two admins</a>). Command: <a href="cli.html#cmd-repo-pull">repo pull</a>.</p>
 
@@ -475,6 +475,7 @@ Next: repoctl status</pre>
 <tr><td><code>p-import-20260828</code></td><td>import of the bash-era repository</td><td>d.klein@hpc-a1</td><td>hpc-repo</td><td>48</td><td>48</td></tr>
 </tbody>
 </table>
+<p>The annotations go away when gc deletes a snapshot. Thus the RepoManifest of each snapshot also holds the publish history <code>history[]</code>: one entry per publish of the chain, with the publish id, the kind, the human, the host, the signer, the set commit, each acceptance with its reason and each trust change. Each snapshot copies the list from its base and adds its own entry. The list is in the signed repodata, and latest always holds it. Thus latest is the full audit record of the target, also for the snapshots that gc deleted (<a href="model.html#manifest">model.html#manifest</a>). <code>repoctl repo snapshots --history</code> lists it.</p>
 <h3 id="removed">RepoManifest and removed[]</h3>
 <p>The RepoManifest (<a href="model.html#manifest">model.html#manifest</a>) is in the repodata of the binary repository (<code>slurm/</code>) only. Its entries list the source RPM and the debuginfo RPMs, so slurm-source and slurm-debuginfo need no manifest of their own.</p>
 <p>The RepoManifest has the list <code>removed[]</code>. Each entry has the NVR, the sha256 of each RPM, the publish id and the reason (prune or restore). Each new snapshot copies the list from its base. Thus plan and publish know each NVR that clients can still have, also when the repository no longer holds it. Publish refuses a build that gives such an NVR again with other content (<code>nvr.removed</code>, exit 12).</p>
@@ -567,6 +568,7 @@ Next: repoctl status</pre>
   <li>the snapshots younger than D (default 90 days),</li>
   <li>for each entry of <code>removed[]</code>, the newest snapshot that still holds it, until <code>keep_removed</code> (default 1y) after the publish that removed it.</li>
 </ul>
+<p>gc deletes the annotations of a snapshot with it. The publish history in latest keeps who published, who signed and which advisories were accepted, with the reason (<a href="#format">snapshot format</a>).</p>
 <p>Thus each RPM that a client can have stays in at least one snapshot for <code>keep_removed</code>. After that time, gc can delete the last snapshot that holds it. <code>removed[]</code> still holds the NVR and the sha256 of each RPM, so <code>nvr.removed</code> still works.</p>
 </aside>
 <p>The defaults come from <code>retention.snapshots</code> in <code>repoctl.yaml</code> (<code>keep: 10</code>, <code>keep_days: 90d</code>, <code>keep_removed: 1y</code>, see <a href="config.html#set-config">config.html#set-config</a>). The flags <code>--keep N</code>, <code>--keep-days D</code> and <code>--keep-removed D</code> change them for one call. gc needs the token scope <code>delete:packages</code> and admin access to the package. gc never runs unattended, because it deletes history (<a href="cli.html#safety">cli.html#safety</a>). Nothing to delete gives exit 4. Command: <a href="cli.html#cmd-repo-gc">repo gc</a>.</p>

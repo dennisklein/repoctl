@@ -4066,6 +4066,52 @@
           },
           "description": "Advisory ids that the human accepted for this publish."
         },
+        "acceptances": {
+          "type": "array",
+          "description": "With --history: the acceptances of this publish from history[] of the RepoManifest of latest.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "factsDigest": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "trust": {
+          "type": "object",
+          "description": "The trust change of this publish: the fingerprints that the key file added and removed.",
+          "properties": {
+            "added": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9A-F]{40}$"
+              }
+            },
+            "removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9A-F]{40}$"
+              }
+            }
+          }
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "With --history: gc deleted this snapshot. The fields come from history[] of the RepoManifest of latest."
+        },
         "gc": {
           "enum": [
             "delete",

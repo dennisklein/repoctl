@@ -792,8 +792,8 @@ repoctl repo push --from DIR --manifest FILE --target ID [--dry-run] [--yes]</pr
 
 <section class="cmd" id="cmd-repo-snapshots">
   <h4><code>repoctl repo snapshots</code> <span class="tag read">read</span></h4>
-  <pre class="synopsis">repoctl repo snapshots [--limit N] [--all]</pre>
-  <p>List the snapshots of each target, newest first, along the parent chain of latest (<a href="publish.html#format">publish.html#format</a>). <code>--all</code> adds tags that are not on the chain, for example a publish that diverged.</p>
+  <pre class="synopsis">repoctl repo snapshots [--limit N] [--all] [--history]</pre>
+  <p>List the snapshots of each target, newest first, along the parent chain of latest (<a href="publish.html#format">publish.html#format</a>). <code>--all</code> adds tags that are not on the chain, for example a publish that diverged. <code>--history</code> lists the publish history of latest instead: each publish of the chain, also a snapshot that gc deleted (<code>deleted: true</code>), with the acceptances and their reasons and the trust changes.</p>
   <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>SnapshotList</code></dd><dt>Exit</dt><dd>0; 1; 13</dd></dl>
   <pre class="term">$ repoctl repo snapshots --target el9
 el9  ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9
