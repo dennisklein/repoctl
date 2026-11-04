@@ -200,6 +200,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tr><td><code>targets[].id</code>, <code>.mock</code></td><td>yes</td><td>The target id and the mock config name.</td></tr>
 <tr><td><code>targets[].plugins</code></td><td>yes</td><td>Must contain <code>rpmautospec</code>.</td></tr>
 <tr><td><code>targets[].macros</code>, <code>.path</code>, <code>.repos</code></td><td>no</td><td>Macro files, the client path below <code>repo.url</code>, extra RPM repos for mock.</td></tr>
+<tr><td><code>targets[].state</code></td><td>no</td><td><code>active</code> (default) or <code>retired</code>. A retired target has no nodes. Its published repo stays, and the repo commands still act on it (<a href="lifecycle.html#targets">retire a target</a>).</td></tr>
 <tr><td><code>defaults.git.remote</code></td><td>no</td><td>The remote of the package branches. Default <code>origin</code>.</td></tr>
 <tr><td><code>packages[].dir</code></td><td>yes</td><td>The worktree name below <code>packages/</code> and the DIR of <code>DIR@TARGET</code>.</td></tr>
 <tr><td><code>packages[].branch</code> or <code>.path</code></td><td>one of them</td><td>The package branch, or the path of an in-tree package.</td></tr>
@@ -222,6 +223,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
   <li>Every target has <code>plugins: [rpmautospec]</code>. Without it, a rebuild commit gives no new NVR. Else <code>config.invalid</code>, exit 1. doctor and status show the plugins of each target.</li>
   <li>A package has exactly one of <code>branch</code> and <code>path</code>.</li>
   <li>At most one package has <code>role: release</code>, and that package has <code>path</code>. Else <code>config.invalid</code>, exit 1. The release package is in-tree (<a href="signing.html#release">signing.html#release</a>).</li>
+  <li>A target that has a latest stays in <code>targets</code>. To stop it, set <code>state: retired</code>. Without the entry, no repoctl command can act on its OCI package.</li>
   <li>Package facts (upstream repository, tag filter, notes) live in this file, not in a skill. Thus the CLI and the skills read the same facts.</li>
   <li>publish needs <code>repo.url</code>, <code>store.oci</code>, <code>sign.keys</code> and <code>sign.release.keyfile</code>. doctor warns when one is missing.</li>
 </ul>
@@ -459,7 +461,7 @@ sets:
   <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
   <li><b>One architecture per target.</b> The architecture of a target is the last part of its mock config name: <code>x86_64</code> in <code>rocky+epel-9-x86_64</code>. This release supports only <code>x86_64</code>. Another architecture, or a mock config name that does not end with one, gives <code>config.unsupported</code> (exit 1). The client path names the target, so it has no <code>$basearch</code>. A <code>noarch</code> package builds on each target, with the dist tag of that target.</li>
 </ul>
-<p>Build a package for some targets only, and add or drop a target: <a href="lifecycle.html#some-targets">lifecycle.html#some-targets</a>, <a href="lifecycle.html#targets">lifecycle.html#targets</a>.</p>
+<p>Build a package for some targets only, and add or retire a target: <a href="lifecycle.html#some-targets">lifecycle.html#some-targets</a>, <a href="lifecycle.html#targets">lifecycle.html#targets</a>.</p>
 
 <h2 id="external">External package repositories</h2>
 <ul>

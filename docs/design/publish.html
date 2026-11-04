@@ -114,6 +114,7 @@ KEEP_TREES=2</code></pre>
 <p class="callout-title">Rule</p>
 <p>If a step fails, the job keeps the old tree, writes the error to the journal and exits with a failure. The next run tries again. The job never serves a tree that its keyring does not verify.</p>
 </aside>
+<p>The job keeps the served path of each line in <code>.trees/&lt;set&gt;-&lt;target&gt;/served-path</code>. When a line is no longer in the config, the next run deletes the symlink of that served path, the trees of the line and the objects that no tree uses. It writes each deletion to the journal. The URL then gives 404. Thus the removal of a line stops the serving of a target (<a href="lifecycle.html#targets">retire a target</a>). When the line comes back, the next run makes the tree again from GHCR.</p>
 <p>The job reads the RepoManifest apiVersions of its release. A snapshot with another apiVersion fails step 4, so the job keeps the old tree. Thus the HTTP server gets the new release of the job before the first publish in a new apiVersion (<a href="contract.html#stored">stored files</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: keyring of a mirror line</p>

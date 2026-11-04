@@ -216,7 +216,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td><a href="#move">Move to a branch</a></td><td>package branch, builder branch</td><td><code>rebuild</code></td></tr>
 <tr><td><a href="#move">Move to an external server</a></td><td>external server, builder branch</td><td><code>current</code></td></tr>
 <tr><td><a href="#targets">Add a target</a></td><td>builder branch</td><td><code>new-target</code></td></tr>
-<tr><td><a href="#targets">Drop a target</a></td><td>builder branch</td><td>no node on that target</td></tr>
+<tr><td><a href="#targets">Retire a target</a></td><td>builder branch</td><td>no node on that target</td></tr>
 <tr><td><a href="#mass-rebuild">Rebuild the set</a></td><td>package branches, builder branch</td><td><code>rebuild</code></td></tr>
 </tbody>
 </table>
@@ -348,7 +348,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </ol>
 <p>A move from an external server to the set repository uses the same steps in the other direction: push the branch to <code>origin</code>, remove <code>git.url</code>, then checkout and pin. Expect: <code>current</code>. This release has no steps for a move from a branch into the set tree.</p>
 
-<h3 id="targets">Add or drop a target</h3>
+<h3 id="targets">Add or retire a target</h3>
 <p>Add a target, for example el10:</p>
 <ol class="steps">
 <li>Add the entry to <code>targets</code>. Commit and push. Repository: the builder branch.</li>
@@ -356,11 +356,15 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>repoctl build</code> and <code>repoctl publish</code>. The first publish makes the first snapshot of the target. No client uses the target yet, so gate 2 does not apply (<a href="signing.html#gates">gates</a>). Example: el10 has no import; its first snapshot is <code>p-20260912-1403-c21</code>.</li>
 <li>Add the target to the mirror job (<a href="publish.html#mirror">mirror job</a>).</li>
 </ol>
-<p>Drop a target:</p>
+<p>Retire a target, for example el9 when all its clients use el10. Do not delete the entry: the repo commands find the OCI package of the target through it.</p>
 <ol class="steps">
-<li>Delete the entry. Commit and push. Repository: the builder branch.</li>
-<li>Run <code>repoctl status</code>. Expect: "target ID: not in repoctl.yaml, still published". The published repo, its GHCR package and the served tree stay.</li>
-<li>To stop serving the target, remove it from the mirror job.</li>
+<li>Add <code>state: retired</code> to the entry. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: no node on that target. plan, build, graph and publish skip a retired target. For them, <code>--target</code> with a retired id is a usage error (exit 2).</li>
+<li>Run <code>repoctl status</code>. Expect: the target shows "retired" next to its latest, with no hint. The published repo, its OCI package and the served tree stay.</li>
+<li>The repo commands, the sign commands, status and doctor still act on the retired target. <code>repo prune</code>, <code>repo restore</code> and <code>repo resign --target ID</code> make new snapshots of it.</li>
+<li>A key offboarding skips a retired target: <code>repo resign</code> without <code>--target</code> does not select it, and <code>sign remove</code> does not count its latest for <code>sign.key-in-use</code>. Its RPMs keep their signatures. Thus move its clients away before the offboarding removes the key on the clients.</li>
+<li>To stop serving the target, first move its clients away (config management). Then remove the line of the target from the mirror job config. The next run of the job deletes the served tree of that line (<a href="publish.html#mirror">mirror job</a>).</li>
+<li>Keep the OCI package. repoctl has no command that deletes an OCI package.</li>
 </ol>
 
 <h3 id="mass-rebuild">Rebuild the set</h3>
@@ -501,7 +505,8 @@ Rename: a dir or branch rename does not build. An RPM rename is a
 Move to an external server: push the history there, add git: {url: ...},
   then checkout and pin. plan shows current. A move from the set tree
   to a branch makes new commits: rebuild it, else publish refuses it.
-Add a target: plan shows "new-target". Drop a target: it stays published.
+Add a target: plan shows "new-target". Retire a target: state: retired
+  in its entry; it stays published, and the repo commands still act on it.
 Rebuild the set: repoctl mock update; repoctl rebuild '*' --reason TEXT;
   push the package branches; commit and push repoctl.lock;
   repoctl build; repoctl publish. In-tree packages: change a file.

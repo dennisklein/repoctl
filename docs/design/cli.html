@@ -254,7 +254,7 @@ See also: repoctl help selectors, repoctl help build-state.</pre>
 <tbody>
 <tr><td><code>-C</code>, <code>--dir</code></td><td><code>.</code></td><td><code>REPOCTL_DIR</code></td><td>Start the set discovery in this directory, as <code>git -C</code> does.</td></tr>
 <tr><td><code>--config</code></td><td><code>~/.config/repoctl/config.yaml</code></td><td><code>REPOCTL_CONFIG</code></td><td>User config file. An empty value reads no user config.</td></tr>
-<tr><td><code>--target</code></td><td>all</td><td><code>REPOCTL_TARGET</code></td><td>Use only these target ids or globs. An id that matches no target is a usage error. version, schema, skills, mcp, completion, config and init reject the flag.</td></tr>
+<tr><td><code>--target</code></td><td>all</td><td><code>REPOCTL_TARGET</code></td><td>Use only these target ids or globs. An id that matches no target is a usage error. plan, build, graph and publish also reject a retired target (<code>targets[].state: retired</code>). version, schema, skills, mcp, completion, config and init reject the flag.</td></tr>
 <tr><td><code>--json</code></td><td>false</td><td><code>REPOCTL_JSON=1</code></td><td>Write the result as one JSON document (<a href="#json">JSON output</a>).</td></tr>
 <tr><td><code>--progress</code></td><td>auto</td><td><code>REPOCTL_PROGRESS</code></td><td><code>auto</code>: the tree when stderr is a terminal, else plain lines. <code>tree</code> and <code>counter</code> need a terminal, else exit 2. <code>plain</code>: one line for each change, for CI. <code>none</code>.</td></tr>
 <tr><td><code>--progress-log</code></td><td>none</td><td><code>REPOCTL_PROGRESS_LOG</code></td><td>Also append the go-clikit JSONL events to this file. build and publish always write their journal.</td></tr>
@@ -292,7 +292,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 (* "*" and "?" never match "@". A glob uses the Go path.Match rules. *)</code></pre>
 <h3 id="evaluation">Evaluation</h3>
 <ol>
-  <li>Start with all nodes of the set. <code>packages[].targets</code> limits them, so rocm-smi has no el10 node.</li>
+  <li>Start with all nodes of the set. <code>packages[].targets</code> limits them, so rocm-smi has no el10 node. A retired target has no nodes.</li>
   <li>Remove the nodes of the targets that <code>--target</code> does not name.</li>
   <li>Without a positive selector, select all remaining nodes. Else select the union of the positive selectors.</li>
   <li>Remove the nodes of each <code>!</code> selector. The order of the selectors has no effect.</li>
@@ -845,7 +845,7 @@ $ echo $?
 <section class="cmd" id="cmd-repo-resign">
   <h4><code>repoctl repo resign</code> <span class="tag shared">shared state</span></h4>
   <pre class="synopsis">repoctl repo resign --signer ID [--repo binary|source|debuginfo] [--dry-run] [--yes]</pre>
-  <p>Give a new signature, with the key of the human, to each RPM that the key ID signed. It is a publish run of kind resign, used to retire a key (<a href="signing.html#resign">signing.html#resign</a>). The summary shows the count per target and repository and the size of the new blobs; <code>--repo</code> splits the work. A normal publish never re-signs old RPMs.</p>
+  <p>Give a new signature, with the key of the human, to each RPM that the key ID signed. It is a publish run of kind resign, used to retire a key (<a href="signing.html#resign">signing.html#resign</a>). Without <code>--target</code>, it skips a retired target. The summary shows the count per target and repository and the size of the new blobs; <code>--repo</code> splits the work. A normal publish never re-signs old RPMs.</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>as publish</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>publishKind: resign</code></dd><dt>Exit</dt><dd>as publish; 4 no RPM carries the key</dd></dl>
 </section>
 
@@ -909,7 +909,7 @@ Next: git push origin builder/slurm-26.05</pre>
 <section class="cmd" id="cmd-sign-remove">
   <h4><code>repoctl sign remove</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl sign remove ID</pre>
-  <p>Set the key state of a retiring key to removed and write a key file without the key. remove refuses while latest of a target holds an RPM that the key signed (<code>sign.key-in-use</code>). remove makes one set commit, signed with the key of <code>sign.key</code>. Then build and publish the new release package; config management removes the key on the clients.</p>
+  <p>Set the key state of a retiring key to removed and write a key file without the key. remove refuses while latest of a target holds an RPM that the key signed (<code>sign.key-in-use</code>). A retired target does not count (<a href="lifecycle.html#targets">lifecycle.html#targets</a>). remove makes one set commit, signed with the key of <code>sign.key</code>. Then build and publish the new release package; config management removes the key on the clients.</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> files; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.wrong-state</code>; 5; 7; 9 <code>sign.no-key</code>; 12 <code>sign.key-in-use</code></dd></dl>
 </section>
 
