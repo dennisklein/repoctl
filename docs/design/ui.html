@@ -73,7 +73,7 @@
   <li>Server-rendered pages. Go templates render each page and each fragment. htmx swaps the fragments. The only scripts are htmx, its SSE extension and <code>shell.js</code> (theme, copy, keys, live state). The graph page adds <code>graph.js</code> (<a href="ui-build.html#graph">ui-build.html#graph</a>).</li>
   <li>CLI parity. Each page shows the data of a CLI command. Each action has a CLI equivalent, and the CLI toggle of the page holds it (<a href="#calm">R10</a>). The browser never sends a command line. The server runs the command as a child, as the CLI would run it.</li>
   <li>GET never changes state. Each action is a POST with the CSRF header.</li>
-  <li>Shared state needs a human. A shared-state action shows the summary, then asks for the typed set name. For a trust change, it first asks for the typed key id of each added key. The UI never passes <code>--yes</code> to a child without that confirmation (<a href="cli.html#safety">cli.html#safety</a>).</li>
+  <li>Shared state needs a human. A shared-state action shows the summary, then asks for the typed set name. For a trust change, it first asks for the typed key id of each added key. The UI never passes <code>--yes</code> to a child. It gives the child a one-use UI confirmation with the typed values and the plan digest (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>).</li>
   <li>No shortcut starts a build, a cancel or a publish.</li>
   <li>Calm by default. Every page follows the calm rules below.</li>
 </ul>

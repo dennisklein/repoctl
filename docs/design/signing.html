@@ -411,7 +411,7 @@ deployments:                       # one entry per key and target, sorted by key
          a.admin cannot sign until "repoctl sign deployed a.admin" (gate 2)
 Type the key id of each added key to continue: a.admin
 Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pre>
-<p>A change of the <code>.repo</code> file without an added key needs no key id. Then the typed set name is the answer, and <code>--yes</code> does not skip it. Without the answer, publish stops with <code>sign.trust-change</code> (exit 6). The web UI asks for the same key id in step 2 Confirm (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>).</p>
+<p>A change of the <code>.repo</code> file without an added key needs no key id. Then the typed set name is the answer, and <code>--yes</code> does not skip it. Without the answer, publish stops with <code>sign.trust-change</code> (exit 6). The web UI asks for the same key id in step 2 Confirm (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>) and gives it to the publish child as a UI confirmation (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>).</p>
 
 <h2 id="verify-el">Verify in the EL chroot</h2>
 <p>repoctl runs on Fedora, with rpm 6 and rpm-sequoia. The clients use EL9 rpm 4.16 and EL10 rpm 4.19. Thus step 4 (verify on the host) can pass while a client fails. Step 5 (verify-el) checks each target with the client tools:</p>

@@ -330,7 +330,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 126 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 127 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -399,6 +399,7 @@
 <tr><td><code>publish.not-ready</code></td><td>12</td><td>A node of a selected target is not current or staged.</td><td>Build it, or publish the other targets. For an urgent fix, hold the node for one publish: <code>repoctl publish --hold NODE --reason TEXT</code> (<a href="publish.html#urgent">urgent fix</a>).</td></tr>
 <tr><td><code>publish.not-verified</code></td><td>10</td><td><code>repo push</code>: the state file of the tree does not record verify and verify-el ok for the target.</td><td>Discard the tree: <code>repoctl clean --publish p-…</code>, then publish again.</td></tr>
 <tr><td><code>publish.nothing-to-publish</code></td><td>4</td><td>No node is staged, or prune finds nothing.</td><td>-</td></tr>
+<tr><td><code>publish.plan-changed</code></td><td>6</td><td>The plan digest under the set lock differs from the plan digest of the UI confirmation. Nothing is signed.</td><td>Review the publish again (<code>confirm</code>, <a href="cli.html#ui-confirmation">UI confirmation</a>).</td></tr>
 <tr><td><code>publish.served-exists</code></td><td>12</td><td>A first publish of a target: <code>repo.url</code> already serves a repo for the target, or does not answer with 404, or <code>keys/deployed.yaml</code> has a record for the target. Clients can exist.</td><td>Import the repo (<a href="../runbooks/import.html">import runbook</a>), or correct <code>store.oci</code>.</td></tr>
 <tr><td><code>publish.unattended-refused</code></td><td>6</td><td><code>--yes</code> without a terminal, and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is not 1. Also <code>--accept-advisory</code> without a terminal, with any value of the variable.</td><td><a href="cli.html#safety">Shared-state safety</a></td></tr>
 <tr><td><code>rebuild.in-tree</code></td><td>1; warning for a glob</td><td><code>repoctl rebuild</code>: the package is in-tree. An empty commit does not change its commit.</td><td>Change a file below the path of the package, and commit it to the builder branch.</td></tr>

@@ -703,6 +703,7 @@
         "publish.not-ready",
         "publish.not-verified",
         "publish.nothing-to-publish",
+        "publish.plan-changed",
         "publish.served-exists",
         "publish.unattended-refused",
         "rebuild.in-tree",
@@ -2447,6 +2448,10 @@
         "signer": {
           "$ref": "#/$defs/Signer",
           "description": "Publish runs only."
+        },
+        "planDigest": {
+          "$ref": "#/$defs/Digest",
+          "description": "Publish runs only: the sha256 of the publish summary (per target the base digest and the NVRs to sign, the signer fingerprint, the trust block, the accepted advisory ids). The web UI sends it back in the UI confirmation; publish compares it under the set lock (publish.plan-changed)."
         },
         "publish": {
           "type": "object",

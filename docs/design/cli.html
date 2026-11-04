@@ -372,7 +372,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 <tr><td>3</td><td><code>ExitBuildFailed</code></td><td>A node failed, or a failed node blocks it. The staging and the logs stay.</td><td><code>node.failed</code>, <code>node.blocked</code></td></tr>
 <tr><td>4</td><td><code>ExitNothingToPublish</code></td><td>Nothing to do: no node is staged, or prune, gc or resign finds nothing.</td><td><code>publish.nothing-to-publish</code></td></tr>
 <tr><td>5</td><td><code>ExitLockDirty</code></td><td>A worktree is not in-sync with <code>repoctl.lock</code>, or a set input is not committed or not pushed. A lock that does not agree with <code>repoctl.yaml</code>, a stale key file and a stale <code>.repo</code> file also give 5.</td><td><code>lock.dirty</code>, <code>lock.behind</code> (pin DIR), <code>lock.diverged</code>, <code>lock.unpushed</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code>, <code>sign.keyfile-stale</code>, <code>sign.repofile-stale</code></td></tr>
-<tr><td>6</td><td><code>ExitNeedsConfirmation</code></td><td>The command needs a human: no terminal, a wrong answer, a trust change without the typed key id, or <code>--accept-advisory</code> without a terminal. Without a terminal, <code>--yes</code> also needs <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code>.</td><td><code>publish.needs-confirmation</code>, <code>publish.unattended-refused</code>, <code>sign.trust-change</code></td></tr>
+<tr><td>6</td><td><code>ExitNeedsConfirmation</code></td><td>The command needs a human: no terminal, a wrong answer, a trust change without the typed key id, or <code>--accept-advisory</code> without a terminal. Without a terminal, <code>--yes</code> also needs <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code>. A UI child also gets 6 when its UI confirmation does not match, or when the plan changed after the review (<a href="#ui-confirmation">UI confirmation</a>).</td><td><code>publish.needs-confirmation</code>, <code>publish.unattended-refused</code>, <code>publish.plan-changed</code>, <code>sign.trust-change</code></td></tr>
 <tr><td>7</td><td><code>ExitBusy</code></td><td>Another process holds the set lock, the clone lock of an external package or the host mock lock, and <code>--lock-wait</code> ended. There is no build queue.</td><td><code>set.busy</code>, <code>git.busy</code>, <code>mock.busy</code></td></tr>
 <tr><td>8</td><td><code>ExitDoctorWarning</code></td><td>Only with <code>doctor --strict</code>: a check gave a warning, none failed.</td><td></td></tr>
 <tr><td>9</td><td><code>ExitHostNotReady</code></td><td>A required host check failed, in doctor or in the preflight of build, publish, check or mock. A UI or MCP server that runs an older binary than the one on disk also gives 9.</td><td><code>host.not-ready</code>, <code>host.stale-server</code>, <code>mock.unavailable</code>, <code>mock.config-missing</code>, <code>sign.no-key</code>, <code>sign.card-absent</code>, <code>sign.no-pinentry</code>, <code>sign.locked</code>, <code>sign.key-format</code></td></tr>
@@ -687,7 +687,7 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
                 [--accept-advisory ID]... [--hold NODE]... [--reason TEXT]</pre>
   <p>Publish the plan, per target (<a href="publish.html#takes">publish.html#takes</a>). For each selected target, publish takes every node with the plan action staged. A target is publishable when each of its nodes is current or staged. Publish adds RPMs and never deletes.</p>
   <p>The steps are fixed: check, sign, repodata, verify, verify-el, push, tag, cache (<a href="publish.html#order">publish.html#order</a>). All checks run before the first signature (<a href="publish.html#checks">publish.html#checks</a>). They check the set inputs, freshness, plan and NVRs, the advisory gate (<a href="advisories.html#gate">advisories.html#gate</a>), the signing gates 1 to 3 and the signer probe (<a href="signing.html#gates">signing.html#gates</a>). Only the tag step changes what other humans see. Steps 1 to 5 run for all selected targets before the first push, and a failure there stops all targets. Then steps 6 to 8 run per target; a publish that tags only some targets exits with 13 (<a href="publish.html#several-targets">publish.html#several-targets</a>). After a failed push or tag, <code>repoctl repo push</code> completes the publish.</p>
-  <p>publish writes the summary to stdout (<a href="publish.html#summary">publish.html#summary</a>), then asks for the set name. gpg-agent asks for the PIN; repoctl suspends the progress display for it.</p>
+  <p>publish writes the summary to stdout (<a href="publish.html#summary">publish.html#summary</a>), then asks for the set name. gpg-agent asks for the PIN; repoctl suspends the progress display for it. A child of the web UI gets the typed values from a UI confirmation in place of the question (<a href="#ui-confirmation">UI confirmation</a>).</p>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
   <tbody>
@@ -930,7 +930,7 @@ repoctl sign deployed ID --keyfile SHA256 --target ID... [--note TEXT] [--dry-ru
 repoctl sign deployed ID --target ID... --withdraw [--note TEXT] [--dry-run]</pre>
   <p>Record that config management installed the release NVR on all clients. Config management gives no feedback, so a human confirms it. repoctl checks that the release is in latest of each selected target and that its key file holds the key. For an import, <code>--path DIR</code> names the signed tree in place of latest (<a href="../runbooks/import.html#record-key">../runbooks/import.html#record-key</a>). Then repoctl asks for the key id, writes one entry per key and target into <code>keys/deployed.yaml</code> and makes a set commit; the human pushes it. Gate 2 reads only this record (<a href="signing.html#deployment-record">signing.html#deployment-record</a>). <code>--target</code> is required; without it, exit 2. <code>--dry-run</code> runs the checks, shows the entries and writes nothing. <code>--withdraw</code> removes the entry of the key and each target, after the same typed key id. When latest holds files of the key, its hint is <code>repoctl repo resign --signer ID --target T</code> (<a href="signing.html#deployment-repair">signing.html#deployment-repair</a>).</p>
   <p>With <code>--keyfile SHA256</code>, the record says that config management installed the committed key file with this sha256 on all clients and on the HTTP server, without a release package. SHA256 must be the sum of <code>repoctl sign keyfile --checksum</code>, the key file must hold the key, and each target must have a latest. The record keeps the sum and the set commit of the key file. Use it in an emergency or when the target is not publishable (<a href="signing.html#emergency">signing.html#emergency</a>).</p>
-  <p>sign deployed needs a terminal or the UI dialog. It has no unattended mode and no MCP tool. <code>--note</code> says how the human checked the clients. The note is public in the set repository (<a href="security.html#public">security.html#public</a>).</p>
+  <p>sign deployed needs a terminal or the UI dialog. The UI dialog gives the child the typed key id as a UI confirmation (<a href="#ui-confirmation">UI confirmation</a>). It has no unattended mode and no MCP tool. <code>--note</code> says how the human checked the clients. The note is public in the set repository (<a href="security.html#public">security.html#public</a>).</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>keys/deployed.yaml</code>; one set commit; the journal</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1; 2 no <code>--target</code>; 6 no terminal, or a wrong key id; 7; 9 <code>sign.no-key</code>; 12 the release is not there, the sum is not the sum of the committed key file, the key file does not hold the key, the target has no latest, <code>sign.not-active</code>, <code>sign.self-confirm</code>, or <code>--withdraw</code> finds no entry (<code>sign.not-deployed</code>)</dd></dl>
   <pre class="term">$ repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9 \
     --note "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters"     # 2026-11-05 09:12
@@ -1225,7 +1225,7 @@ Commit and push the change of repoctl.yaml.</code></pre>
   <li><strong>Set lock and journal.</strong> The command holds the set lock for its whole run and writes a journal (<a href="contract.html#journal">contract.html#journal</a>).</li>
   <li><strong>No MCP tool.</strong> The command is in <code>notExposed</code>, in the deny list of the skills and in the guard hook (<a href="agents.html#deny">agents.html#deny</a>). MCP never signs.</li>
   <li><strong>humanAction.</strong> A skill that reaches such a step stops and gives the human the command (<a href="agents.html#human-action">agents.html#human-action</a>). The values are publish, repo-push, restore, prune, gc, resign, sign-deployed, sign-removed, trust-change and accept-advisory.</li>
-  <li><strong>The UI</strong> has the same two steps, the summary and the typed set name (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>). It never passes <code>--yes</code> to a child without that confirmation.</li>
+  <li><strong>The UI</strong> has the same steps: the summary, the typed key ids of a trust change and the typed set name (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>). It never passes <code>--yes</code> to a child. It gives the child a UI confirmation (<a href="#ui-confirmation">UI confirmation</a>).</li>
 </ol>
 <h3 id="confirmation">Confirmation</h3>
 <table class="compact">
@@ -1237,8 +1237,45 @@ Commit and push the change of repoctl.yaml.</code></pre>
 <tr><td>no</td><td>yes</td><td>not 1</td><td>Refuse (<code>publish.unattended-refused</code>).</td><td>6</td></tr>
 <tr><td>no</td><td>yes</td><td>1</td><td>Act and record <code>unattended: true</code>. Not for repo gc, sign deployed, sign removed, a trust change or <code>--accept-advisory</code>.</td><td>0; 6 for those</td></tr>
 <tr><td>no</td><td>yes</td><td>any</td><td>With <code>--accept-advisory</code>: refuse (<code>publish.unattended-refused</code>). An acceptance needs a human.</td><td>6</td></tr>
+<tr><td>no (UI child)</td><td>no</td><td>removed</td><td>A valid <a href="#ui-confirmation">UI confirmation</a>: check it under the set lock, act, record origin <code>ui</code> and <code>unattended: false</code>. Also for sign deployed and a trust change.</td><td>0; 6 a confirmation that does not match, or <code>publish.plan-changed</code></td></tr>
 </tbody>
 </table>
+<h3 id="ui-confirmation">UI confirmation</h3>
+<p>A child of the web UI has no terminal, and <code>repoctl ui</code> removes <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> from its environment. Thus <code>--yes</code> cannot work for it. In its place, the server gives the child a <dfn>UI confirmation</dfn>: the values that the human typed in the dialog, for one command.</p>
+<figure class="diagram">
+<svg viewBox="0 0 880 290" role="img" aria-labelledby="uiconf-t">
+<title id="uiconf-t">The confirm dialog, the repoctl ui server and the publish child with its UI confirmation</title>
+<text class="t-title" x="110" y="28" text-anchor="middle">Confirm dialog</text>
+<text class="t-title" x="420" y="28" text-anchor="middle">repoctl ui server</text>
+<text class="t-title" x="720" y="28" text-anchor="middle">publish child</text>
+<line class="edge-muted" x1="110" y1="40" x2="110" y2="200"/>
+<line class="edge-muted" x1="420" y1="40" x2="420" y2="200"/>
+<line class="edge-muted" x1="720" y1="40" x2="720" y2="200"/>
+<line class="edge" x1="110" y1="72" x2="416" y2="72" marker-end="url(#arrow)"/>
+<text class="t-small" x="265" y="64" text-anchor="middle">POST: typed values, plan digest</text>
+<text class="t-small t-muted" x="410" y="104" text-anchor="end">the server checks them again</text>
+<line class="edge" x1="420" y1="124" x2="716" y2="124" marker-end="url(#arrow)"/>
+<text class="t-mono t-small" x="570" y="116" text-anchor="middle">publish --target el9 --confirm-fd 3</text>
+<path class="edge-accent" d="M420,156 H716" marker-end="url(#arrow-accent)"/>
+<text class="t-small" x="570" y="148" text-anchor="middle">fd 3: the UI confirmation, read once</text>
+<line class="edge" x1="420" y1="188" x2="114" y2="188" marker-end="url(#arrow)"/>
+<text class="t-small" x="265" y="180" text-anchor="middle">HX-Location: the publish run page</text>
+<rect class="box" x="560" y="204" width="310" height="74" rx="8"/>
+<text class="t-small" x="576" y="226">set lock, step check, plan digest again</text>
+<text class="t-small t-ok" x="576" y="248">same: sign, push, tag</text>
+<text class="t-small t-err" x="576" y="268">other: publish.plan-changed, exit 6</text>
+</svg>
+<figcaption>The typed values go from the dialog to the child once, through a pipe. The child makes the plan digest again under the set lock and signs only when it is the same.</figcaption>
+</figure>
+<ol>
+  <li><strong>Content.</strong> One JSON object: the command (<code>publish</code> or <code>sign deployed</code>), the typed set name, the typed key ids (each added key of a trust change, or the key of sign deployed), the plan digest of the review (publish only) and the accepted advisory ids.</li>
+  <li><strong>One use.</strong> The server writes the object into a pipe. The child gets the read end as file descriptor 3 and the hidden flag <code>--confirm-fd 3</code>. The child reads the object once and closes the pipe. The object never goes on the command line, into the environment or into a file. The help and the completion do not show the flag.</li>
+  <li><strong>Origin.</strong> The child accepts <code>--confirm-fd</code> only when its parent process is the server that <code>ui.json</code> names (<a href="ui.html#sets">ui.html#sets</a>). Else it stops with <code>publish.needs-confirmation</code> (exit 6).</li>
+  <li><strong>Match.</strong> The child compares the object with its command line: the set name with the set, the key ids with the added keys of the trust block or with the ID of sign deployed, the advisory ids with the <code>--accept-advisory</code> flags. A difference stops it with <code>publish.needs-confirmation</code> (exit 6).</li>
+  <li><strong>Plan digest under the set lock.</strong> publish takes the set lock, runs step check and makes the plan digest again. When it differs from the plan digest of the object, publish stops before the first signature with <code>publish.plan-changed</code> (exit 6). The human must review the publish again.</li>
+  <li><strong>Record.</strong> The journal and the snapshot annotations record origin <code>ui</code> and <code>unattended: false</code>.</li>
+</ol>
+<p>The <dfn>plan digest</dfn> is the sha256 of the publish summary as canonical JSON: per target the base digest and the NVRs to sign, the signer fingerprint, the added and removed keys of the trust block and the accepted advisory ids. <code>publish --dry-run --json</code> gives it in <code>Run.planDigest</code>. The review page shows the summary of that dry run, and the confirm dialog sends the plan digest back (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>). Another latest, other staged nodes, another <code>sign.key</code> or another key file thus give another plan digest.</p>
 
 <h2 id="topics">Help topics</h2>
 <p>repoctl registers the topics with <code>cobratree.Topics</code>. <code>repoctl help TOPIC</code> prints the text, and completion offers the names. An unknown topic is a usage error. Each text lives in the chapter that owns its facts.</p>
