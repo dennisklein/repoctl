@@ -292,6 +292,7 @@ sets:
 <tr><td><code>agent.command</code>, <code>agent.args</code></td><td>none</td><td>The local agent of the agent buttons. Without it, the web UI shows no agent buttons (<a href="agents.html#agent-config">agents.html#agent-config</a>).</td></tr>
 <tr><td><code>build.timeout.srpm</code>, <code>.rpm</code>, <code>.stage</code>, <code>.idle</code>, <code>.run</code></td><td>30m, 12h, 30m, 1h, 0</td><td>The time limits of a build step, of a mock child without output, and of a whole run; 0 is no limit (<a href="build.html#failures">build.html#failures</a>).</td></tr>
 <tr><td><code>state.keep_runs</code></td><td>50</td><td>The number of finished build runs whose journals and logs stay. Runs with staged nodes, publish runs and check runs have their own rule (<a href="contract.html#retention">contract.html#retention</a>).</td></tr>
+<tr><td><code>state.keep_publishes</code></td><td>100</td><td>The number of publish runs whose journals stay. The journal of a publish with a kept tree always stays.</td></tr>
 <tr><td><code>sets.NAME.*</code></td><td>-</td><td>The same keys for one set. They win over the top-level keys.</td></tr>
 </tbody>
 </table>
@@ -384,7 +385,7 @@ sets:
 <tr><td><code>$XDG_DATA_HOME/repoctl/SET/repo/TARGET/</code></td><td>the local copy of <code>latest</code> and its <code>snapshot.json</code></td><td>never; <code>repoctl repo pull</code> makes it again</td></tr>
 <tr><td><code>$XDG_DATA_HOME/repoctl/SET/publishes/ID/</code></td><td>the signed tree and the state file <code>state.json</code> of a publish until step 8</td><td><code>repoctl repo push ID</code> completes it, <code>repoctl clean --publish ID</code> deletes it</td></tr>
 <tr><td><code>$XDG_DATA_HOME/repoctl/git/HASH.git</code></td><td>bare clones of external package repositories, one per URL</td><td><code>repoctl clean --git</code>, only without worktree and unpushed commits</td></tr>
-<tr><td><code>$XDG_STATE_HOME/repoctl/SET/runs/</code>, <code>logs/</code></td><td>journals, progress logs, node and mock logs</td><td><code>repoctl clean --logs</code>; <code>state.keep_runs</code></td></tr>
+<tr><td><code>$XDG_STATE_HOME/repoctl/SET/runs/</code>, <code>logs/</code></td><td>journals, progress logs, node and mock logs</td><td><code>repoctl clean --logs</code>; <code>state.keep_runs</code>, <code>state.keep_publishes</code></td></tr>
 <tr><td><code>$XDG_STATE_HOME/repoctl/SET/check.json</code></td><td>the result of the last <code>repoctl check</code></td><td>the next check writes it again</td></tr>
 <tr><td><code>$XDG_STATE_HOME/repoctl/SET/agent/</code></td><td>the results of agent buttons</td><td>with the logs</td></tr>
 <tr><td><code>$XDG_RUNTIME_DIR/repoctl/</code></td><td>the set lock <code>SET.lock</code>, the clone locks <code>git-HASH.lock</code>, the web UI socket <code>ui.sock</code> and <code>ui.json</code></td><td>at logout, unless lingering is on; a run that holds the set lock takes it again (<a href="build.html#lock">build.html#lock</a>)</td></tr>
