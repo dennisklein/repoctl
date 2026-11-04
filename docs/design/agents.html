@@ -462,13 +462,15 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
   <li>The server keeps the newest <code>state.keep_agent</code> results of a set (user config, default 50). When it stores a result, it deletes the older results and each result whose input run is gone. <code>repoctl clean --logs</code> applies the same rule. <code>?agent=&lt;id&gt;</code> of a deleted result gives the 404 page.</li>
 </ul>
 <p>The server runs the agent in the set directory with this command line. <code>agent.command</code> and <code>agent.args</code> come from the <a href="#agent-config">user config</a>. repoctl adds the rest:</p>
-<pre class="term">$ claude -p "/triage-build r-20261102-1750-a3f/slurm@el10" \
+<pre class="term">$ claude -p "/repoctl-ui:triage-build r-20261102-1750-a3f/slurm@el10" \
+    --plugin-dir "$XDG_RUNTIME_DIR/repoctl/ui/plugin" \
     --output-format stream-json --verbose \
     --mcp-config '{"mcpServers":{"repoctl":{"command":"repoctl","args":["mcp","start","--tools","read"]}}}' \
     --strict-mcp-config \
     --allowedTools mcp__repoctl__repoctl_runs mcp__repoctl__repoctl_run_get mcp__repoctl__repoctl_logs \
                    mcp__repoctl__repoctl_graph mcp__repoctl__repoctl_show mcp__repoctl__repoctl_doctor Read Grep \
     --disallowedTools Bash Edit Write NotebookEdit</pre>
+<p>The skill comes from the binary of the server, never from a copy that the agent finds. At its start, the server writes its embedded skills into the private plugin directory <code>$XDG_RUNTIME_DIR/repoctl/ui/plugin/</code> (mode 0700), with the plugin name <code>repoctl-ui</code> and the version of the binary. <code>--plugin-dir</code> loads this plugin, and the prompt names the skill with the plugin prefix <code>repoctl-ui:</code>. A user, project, plugin or set-local skill with the name <code>triage-build</code> thus cannot replace it, and an older or newer installed copy plays no part. No repoctl distribution uses the plugin name <code>repoctl-ui</code>.</p>
 <p>repoctl reads the stream. Tool calls go to "Tools used". Text goes to the result parts. The session id of the stream gives the command for "Continue in terminal". The panel gets each update through the SSE event <code>agent:&lt;id&gt;</code>. The page opens its stream again with <code>&amp;agent=&lt;id&gt;</code> (<a href="ui.html#live">ui.html#live</a>).</p>
 <h3 id="agent-panel">Agent panel</h3>
 <p>The agent panel is a drawer on the right, 600 px wide, under the top bar. It does not block the page. The page under it reflows, and the source row stays marked as selected while the drawer is open. Below 760 px the drawer covers the full screen. Mockups: <a href="mockups/ui/agent-running.html">agent-running.html</a> and <a href="mockups/ui/agent-panel.html">agent-panel.html</a>.</p>
@@ -499,9 +501,9 @@ agent:
   command: claude        # the agent program
   args: []               # extra arguments before the arguments that repoctl adds
   timeout: 10m           # the time limit of one agent run</code></pre>
-<p>The agent must run a skill from a prompt and use an MCP server from <code>--mcp-config</code>. It must accept the tool flags above and write the stream-json format of Claude Code. repoctl reads only this format. The agent uses the sign-in and model settings of the human.</p>
+<p>The agent must run a skill of a plugin from <code>--plugin-dir</code> by its prompt and use an MCP server from <code>--mcp-config</code>. It must accept the tool flags above and write the stream-json format of Claude Code. repoctl reads only this format. The agent uses the sign-in and model settings of the human.</p>
 <h3 id="no-agent">No agent configured</h3>
-<p>Without <code>agent</code> in the user config, the server leaves the agent buttons out of the HTML. It does not show disabled buttons. All other actions stay. The Advisories card has one quiet line in its foot: "Agent buttons are off. How to turn them on". The plain diagnosis of repoctl stays, for example the Needs you item "slurm@el10 failed: rocm-smi-devel is not available for el10".</p>
+<p>Without <code>agent</code> in the user config, the server leaves the agent buttons out of the HTML. It does not show disabled buttons. All other actions stay. The Advisories card has one quiet line in its foot: "Agent buttons are off. How to turn them on". The same applies when <code>agent.command</code> is set but cannot run: the program is not on the PATH, or <code>COMMAND --version</code> fails. The server checks this at its start and after each change of the user config. The foot line then names the cause, for example "Agent buttons are off: claude not found. Run repoctl doctor". The plain diagnosis of repoctl stays, for example the Needs you item "slurm@el10 failed: rocm-smi-devel is not available for el10".</p>
 <figure class="shot"><a href="mockups/ui/overview-no-agent.html"><img src="img/ui-overview-no-agent.webp" alt="Advisories card of the Overview without agent buttons. Rows have Rebuild…, Show closure and Dismiss only." loading="lazy"></a><figcaption>No agent configured. The card has the same layout and no agent buttons.</figcaption></figure>
 <h3 id="no-chat">Why no chat</h3>
 <p>The UI has advisory buttons and no chat panel. For a free conversation, the human uses "Continue in terminal".</p>
