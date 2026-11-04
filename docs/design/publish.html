@@ -93,7 +93,7 @@
 <p>No admin writes the served tree. Thus no publish can go to a path that no client reads, and two Unix users need no shared directory. The keys <code>store.oci</code>, <code>repo.url</code> and <code>targets[].path</code> are in <a href="config.html#set-config">the set config</a>. The XDG directories are in <a href="config.html#xdg">config.html#xdg</a>.</p>
 
 <h2 id="mirror">Mirror job</h2>
-<p>The mirror job is a shell script with systemd units. It ships in the repoctl repository as <code>contrib/mirror/</code> and in the release RPMs of repoctl. It runs on the HTTP server as an own system user. A systemd timer starts it every 5 minutes. The HTTP server needs systemd, curl, jq, gnupg2 and rpm. repoctl does not run there.</p>
+<p>The mirror job is a shell script with systemd units. It ships in the repoctl repository as <code>contrib/mirror/</code> and as the noarch RPM <code>repoctl-mirror</code> in the RPM repo of repoctl, for EL 9, EL 10 and Fedora (<a href="decision.html#pages">GitHub Pages</a>). It runs on the HTTP server as an own system user. A systemd timer starts it every 5 minutes. The HTTP server needs systemd, curl, jq, gnupg2 and rpm. repoctl does not run there.</p>
 <pre><code class="language-plaintext"># /etc/repoctl-mirror.conf: one mirror line per set and target
 # set        target  package                                      served path                             keyring
 slurm-26.05  el9     ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9   /srv/repos/slurm-repo/slurm-26.05/el9   /etc/repoctl-mirror/keys/slurm-26.05-el9.asc

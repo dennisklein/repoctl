@@ -124,6 +124,7 @@ window.REPOCTL_GLOSSARY = {
   {"id": "story-fixture", "term": "story fixture", "kind": "noun", "domain": "contract", "forms": ["story fixture"], "see": "delivery.html#tests", "def": "The data story as test data: the set <code>slurm-26.05</code> with small specs, and the recorded tool output of the story."},
   {"id": "surface", "term": "surface", "kind": "noun", "domain": "contract", "forms": ["surface", "surfaces"], "see": "model.html#surfaces", "def": "One of the four ways to use the core: CLI, web UI, MCP server, skills."},
   {"id": "target", "term": "target", "kind": "noun", "domain": "build", "forms": ["target", "targets"], "see": "model.html#targets", "def": "One build platform, one mock chroot with one architecture: <code>el9</code>, <code>el10</code>."},
+  {"id": "tool-repo-key", "term": "tool repository key", "kind": "noun", "domain": "trust", "forms": ["tool repository key", "tool repository keys", "Pages repo key"], "see": "decision.html#tool-key", "def": "The OpenPGP key of the RPM repo of repoctl on GitHub Pages. It signs the tool RPMs and their repodata, never a set RPM."},
   {"id": "trust-set", "term": "trust set", "kind": "noun", "domain": "trust", "forms": ["trust set"], "see": "signing.html#verify-el", "def": "The keys that a signature check uses."},
   {"id": "verify-root", "term": "verify root", "kind": "noun", "domain": "build", "forms": ["verify root", "verify roots"], "see": "build.html#mock", "def": "A mock root per target with the client rpm and dnf. The publish step verify-el runs in it."}
  ]
