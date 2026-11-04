@@ -123,6 +123,41 @@ KEEP_TREES=2</code></pre>
 <pre><code class="language-json">{"set": "slurm-26.05", "target": "el9", "digest": "sha256:9d07…",
  "publish": "p-20261103-1412-5e1", "pulled": "2026-11-03T14:15:02Z"}</code></pre>
 <p><code>repoctl status</code> reads <code>&lt;repo.url&gt;/&lt;target.path&gt;/repoctl-snapshot.json</code> and shows <code>served: same</code>, <code>served: behind</code> or <code>served: unknown</code>. A new set or target needs one new mirror line and its keyring in the config of the job (<a href="lifecycle.html#targets">add a target</a>).</p>
+<h3 id="mirror-health">Job health and alerts</h3>
+<p>Each run writes <code>repoctl-mirror.json</code> into the served tree of each mirror line, also when the digest is the same or a step fails. The job writes it to a temporary file and renames it. It is the heartbeat of the line:</p>
+<pre><code class="language-json">{"set": "slurm-26.05", "target": "el9", "checked": "2026-11-03T14:15:02Z",
+ "result": "swapped", "served": "sha256:9d07…", "latest": "sha256:9d07…",
+ "behindSince": null, "error": null}</code></pre>
+<ul>
+  <li><code>result</code> is <code>same</code>, <code>swapped</code> or <code>failed</code>. <code>error</code> is the message of the failed step.</li>
+  <li><code>behindSince</code> is the time of the first run that saw a latest other than the served digest. It is <code>null</code> when the two are the same.</li>
+</ul>
+<p>The job ships these systemd units. The job exits with 1 when a mirror line fails.</p>
+<pre><code class="language-ini"># /etc/systemd/system/repoctl-mirror.service
+[Unit]
+Description=repoctl mirror job
+After=network-online.target
+OnFailure=repoctl-mirror-failed.service
+
+[Service]
+Type=oneshot
+User=repoctl-mirror
+ExecStart=/usr/libexec/repoctl-mirror/mirror /etc/repoctl-mirror.conf
+
+# /etc/systemd/system/repoctl-mirror.timer
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+
+[Install]
+WantedBy=timers.target</code></pre>
+<p>The config key <code>NOTIFY</code> names an optional command, for example a script that sends a mail or calls a webhook of the team channel. The job ships no mail or chat code.</p>
+<ul>
+  <li>After each swap, the job runs <code>NOTIFY served SET TARGET</code>. Standard input gets the annotations of the new latest: kind, publish id, signer, user and host. Thus the team gets one message for each publish, restore, prune, resign and import, from any admin host.</li>
+  <li><code>repoctl-mirror-failed.service</code> runs <code>NOTIFY failed</code>. Standard input gets the last 50 journal lines of the job.</li>
+  <li>A failed <code>NOTIFY</code> goes to the journal. It does not change the result of the run.</li>
+</ul>
+<p>Without <code>NOTIFY</code>, the journal and <code>repoctl status</code> still show each failure (<a href="#freshness">freshness check</a>). Who owns the mirror job is an <a href="delivery.html#open">open question</a>.</p>
 
 <h2 id="records">Records: where the truth lives</h2>
 <p>One record says what is published: the tag <code>latest</code> in GHCR. The other records are copies, and each copy names the snapshot that it comes from. <a href="model.html#records">model.html#records</a> lists all records of a set.</p>
@@ -184,6 +219,12 @@ KEEP_TREES=2</code></pre>
 <tr><td>the registry is not reachable</td><td>warn: <code>registry.unreachable</code>, use the local copy</td><td>registry: unknown</td><td>stop: <code>registry.unreachable</code>, exit 13</td></tr>
 </tbody>
 </table>
+<p>status also reads <code>repoctl-mirror.json</code> of the served tree (<a href="#mirror-health">job health</a>). It gives the warning <code>served.stale</code> in two cases:</p>
+<ul>
+  <li>the served tree is behind latest, and <code>behindSince</code> is more than 15 minutes ago (three runs of the job);</li>
+  <li><code>checked</code> is more than 15 minutes ago: the job does not run.</li>
+</ul>
+<p>The warning names the time and the last error of the job. Its hint is <code>read the journal of the mirror job on the HTTP server: journalctl -u repoctl-mirror.service</code>. <code>repoctl doctor</code> (group registry) and the Needs you list of the web UI show the same warning (<a href="ui-build.html#needs-you">ui-build.html#needs-you</a>).</p>
 <p>The hint of <code>state.behind</code> is <code>run: repoctl repo pull</code>. The hint of <code>state.unpushed</code> is <code>run: repoctl repo push p-…</code>, or discard the tree with <code>repoctl clean --publish p-…</code>. A pushable tree is defined in <a href="#complete">stop and complete</a>. Offline work is possible for plan and build, but not for publish. The full list of problem codes is in <a href="contract.html#problems">contract.html#problems</a>.</p>
 <p>The snapshot lines of <code>repoctl status</code> just after the story publish of el9 (2026-11-03 14:13):</p>
 <pre class="term">$ repoctl status
@@ -193,7 +234,10 @@ TARGET  LATEST                 BY               LOCAL   SERVED
 el9     p-20261103-1412-5e1    d.klein@hpc-a1   same    behind (p-20260912-1403-c21)
 el10    p-20260912-1403-c21    d.klein@hpc-a1   same    same
 hint: the mirror job on the HTTP server runs every 5 min</pre>
-<p>el9 shows <code>served: behind</code> until the next run of the mirror job. el10 did not change. The full status frame is <a href="terminal.html#status">terminal.html#status</a>.</p>
+<p>el9 shows <code>served: behind</code> until the next run of the mirror job. el10 did not change. The full status frame is <a href="terminal.html#status">terminal.html#status</a>. If the job cannot verify the new snapshot, status shows this line 15 minutes later, for example at 14:30:</p>
+<pre class="term">el9     p-20261103-1412-5e1    d.klein@hpc-a1   same    behind since 14:15
+! served.stale: el9 is behind since 14:15. Last error of the mirror job: gpgv: BAD signature
+    hint: read the journal of the mirror job on the HTTP server: journalctl -u repoctl-mirror.service</pre>
 
 <h2 id="order">Publish order</h2>
 <p>Publish has one fixed order with eight steps. The journal records each step as a <code>publish.step</code> event with the step name (<a href="contract.html#events">contract.html#events</a>). The explainer plays the story publish of el9.</p>
@@ -628,14 +672,15 @@ Next: repoctl status</pre>
 <tr><td>New set or target</td><td>The first push makes the package. Then an organization owner sets it to public and turns on the inherited access. <code>repoctl doctor</code> shows this step until it is done (<code>registry.public</code>).</td></tr>
 </tbody>
 </table>
-<p><code>repoctl doctor</code> has four registry checks. <code>registry.login</code> finds the credentials. <code>registry.scope</code> reads the token scopes. <code>registry.write</code> checks write access to each package of the set. <code>registry.public</code> checks that each package is public. On hpc-a1 in the story:</p>
+<p><code>repoctl doctor</code> has five registry checks. <code>registry.login</code> finds the credentials. <code>registry.scope</code> reads the token scopes. <code>registry.write</code> checks write access to each package of the set. <code>registry.public</code> checks that each package is public. <code>served.stale</code> reads the heartbeat of each mirror line (<a href="#freshness">freshness check</a>). On hpc-a1 in the story:</p>
 <pre class="term">$ repoctl doctor --only registry
 ✓ registry.login: ghcr.io as dklein (container auth file)
 ! registry.scope: the token has no scope delete:packages, so repo gc cannot run
     fix: add the scope (only gc needs it). run: gh auth refresh -s delete:packages
 ✓ registry.write: write access to slurm-26.05-el9, slurm-26.05-el10
 ✓ registry.public: slurm-26.05-el9, slurm-26.05-el10 are public
-4 checks: 3 ok, 1 warning</pre>
+✓ served.stale: the mirror job checked el9 and el10 2 min ago, both same
+5 checks: 4 ok, 1 warning</pre>
 <p>A private package gives a warning with the link to its settings page, for example <code>https://github.com/orgs/GSI-HPC/packages/container/slurm-repo%2Fslurm-26.05-el10/settings</code>. The problem <code>registry.denied</code> (exit 13) names the missing scope and the settings page of the package. Onboarding and offboarding include the team membership (<a href="signing.html#onboarding">signing.html#onboarding</a>). The doctor frame is <a href="terminal.html#doctor">terminal.html#doctor</a>.</p>
 
 <h3 id="disaster">Registry outage and loss</h3>

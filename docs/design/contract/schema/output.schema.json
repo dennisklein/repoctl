@@ -702,6 +702,7 @@
         "run.not-found",
         "run.staging-missing",
         "run.unpinned",
+        "served.stale",
         "set.busy",
         "set.lock-lost",
         "sign.card-absent",
@@ -1209,6 +1210,49 @@
                   "behind",
                   "unknown"
                 ]
+              },
+              "mirror": {
+                "type": "object",
+                "description": "repoctl-mirror.json of the served tree: the heartbeat of the mirror line. Absent when status cannot read it.",
+                "required": [
+                  "checked",
+                  "result"
+                ],
+                "properties": {
+                  "checked": {
+                    "$ref": "#/$defs/Time",
+                    "description": "Time of the last run of the mirror job for this line."
+                  },
+                  "result": {
+                    "enum": [
+                      "same",
+                      "swapped",
+                      "failed"
+                    ]
+                  },
+                  "behindSince": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/Time"
+                      }
+                    ],
+                    "description": "First run that saw a latest other than the served digest."
+                  },
+                  "error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Message of the failed step."
+                  },
+                  "stale": {
+                    "type": "boolean",
+                    "description": "true: status gives the warning served.stale for this target."
+                  }
+                }
               }
             }
           }
