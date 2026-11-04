@@ -215,6 +215,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td><a href="#move">Move to an external server</a></td><td>external server, builder branch</td><td><code>current</code></td></tr>
 <tr><td><a href="#targets">Add a target</a></td><td>builder branch</td><td><code>new-target</code></td></tr>
 <tr><td><a href="#targets">Drop a target</a></td><td>builder branch</td><td>no node on that target</td></tr>
+<tr><td><a href="#mass-rebuild">Rebuild the set</a></td><td>package branches, builder branch</td><td><code>rebuild</code></td></tr>
 </tbody>
 </table>
 
@@ -360,6 +361,20 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>To stop serving the target, remove it from the mirror job.</li>
 </ol>
 
+<h3 id="mass-rebuild">Rebuild the set</h3>
+<p>Rebuild the whole set when its build roots change for all packages, for example at a minor release of the distribution (Rocky 9.8) or after a change of the macro files. The advisory <code>mock.drift</code> says when the mock config or the macros of this host differ from the manifest. Each host computes it from its own mock config, so do the steps on the host that builds the set.</p>
+<ol class="steps">
+<li>Run <code>repoctl mock update</code>. The roots of each target get the new packages of the distribution.</li>
+<li>Run <code>repoctl rebuild '*' --reason "Rocky 9.8" --dry-run</code>. Expect: one new NVR per package. The glob leaves out each in-tree package with the warning <code>rebuild.in-tree</code>.</li>
+<li>Run the same command without <code>--dry-run</code>. repoctl makes one empty commit per package branch and pins it. Repository: each package branch.</li>
+<li>Push each package branch with the Next lines of the command.</li>
+<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>To build an in-tree package again too, change a file below its path, for example its changelog, and commit it to the builder branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: each node has the reason <code>rebuild</code> on each of its targets.</li>
+<li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
+</ol>
+<p>The commit is per package, so a rebuild applies to all targets of the package. A rebuild for a minor release of el9 also builds the el10 nodes again, each with a new NVR. To build one target only, use <code>repoctl build --force @el9</code> for a test. A forced build of a current node is never staged, so it is never published (<a href="build.html#force">forced builds</a>).</p>
+
 <h2 id="clones">External package clones</h2>
 <p>A package with <code>git.url</code> (in its entry or in <code>defaults.git</code>) lives on another git server. rpmautospec needs the full history, so repoctl keeps one bare clone per URL (<a href="config.html#external">external package repos</a>).</p>
 <figure class="diagram">
@@ -482,6 +497,9 @@ Move to an external server: push the history there, add git: {url: ...},
   then checkout and pin. plan shows current. A move from the set tree
   to a branch makes new commits: rebuild it, else publish refuses it.
 Add a target: plan shows "new-target". Drop a target: it stays published.
+Rebuild the set: repoctl mock update; repoctl rebuild '*' --reason TEXT;
+  push the package branches; commit and push repoctl.lock;
+  repoctl build; repoctl publish. In-tree packages: change a file.
 Two admins pinned in the same week and git reports a conflict in
   repoctl.lock: keep both lines when they name two dirs. For one dir,
   keep the line with the newer commit NEW, where
