@@ -367,56 +367,6 @@
 <p>The surfaces share one set of words, one selector grammar, one exit code table and one journal. A <code>--json</code> result and an MCP result have the same kinds (<a href="contract.html#kinds">contract.html#kinds</a>). The web UI and the MCP server run each command without the <code>REPOCTL_*</code> stand-in variables. Thus a run does what its shown command says (<a href="config.html#env">config.html#env</a>). The agent parts are in <a href="agents.html#mcp">agents.html#mcp</a>, and the UI rules are in <a href="ui.html#principles">ui.html#principles</a>.</p>
 
 <h2 id="glossary">Glossary</h2>
-<dl>
-  <dt><a href="advisories.html#gate">acceptance</a></dt><dd>The override of a required advisory for one publish, with a reason (<code>--accept-advisory ID --reason TEXT</code>).</dd>
-  <dt><a href="#advisories">advisory</a></dt><dd>The result of a deterministic check that suggests a step. Id <code>CODE/SUBJECT</code>; levels required, warn, info.</dd>
-  <dt><a href="agents.html#principles">agent</a></dt><dd>A local LLM program, for example Claude Code, that runs a skill and calls repoctl.</dd>
-  <dt><a href="agents.html#agent-buttons">agent button</a></dt><dd>A web UI button that runs the local agent with one fixed skill and a read-only MCP server.</dd>
-  <dt><a href="agents.html#agent-panel">agent panel</a></dt><dd>The web UI drawer that shows the progress and the result of an agent button.</dd>
-  <dt><a href="publish.html#order">base</a></dt><dd>The snapshot that a publish starts from: <code>latest</code> at the check step.</dd>
-  <dt><a href="#identity">build identity</a></dt><dd>The package commit plus the target.</dd>
-  <dt><a href="advisories.html#gate">closure</a></dt><dd>The set packages that an advisory concerns. A required advisory blocks only a publish that changes one of them.</dd>
-  <dt><a href="signing.html#gates">deployment record</a></dt><dd>An entry in <code>keys/deployed.yaml</code>: a person states that all clients have a release package with the key. Gate 2 reads it.</dd>
-  <dt><a href="advisories.html#dismissals">dismissal</a></dt><dd>A committed entry in <code>.repoctl/advisories.yaml</code> that hides an info or warn advisory with the same id and facts.</dd>
-  <dt><a href="cli.html#exit">exit code</a></dt><dd>The exit status of a command. A code can be added but never renumbered.</dd>
-  <dt><a href="signing.html#gates">gate 1, gate 2, gate 3</a></dt><dd>The signer checks before the first signature: active and valid, deployed, key format.</dd>
-  <dt><a href="agents.html#human-action">humanAction</a></dt><dd>The field of an MCP result that names the command that a person must run.</dd>
-  <dt><a href="contract.html#journal">journal</a></dt><dd>The event file of one run or publish. All surfaces read it.</dd>
-  <dt><a href="signing.html#release">key file</a></dt><dd>The file in the release package with the public keys of all trusted signers, for example <code>RPM-GPG-KEY-slurm</code>.</dd>
-  <dt><a href="signing.html#lifecycle">key state</a></dt><dd><code>active</code> (signs, trusted), <code>retiring</code> (trusted, does not sign) or <code>removed</code> (not in the key file).</dd>
-  <dt><a href="contract.html#kinds">kind</a></dt><dd>The type of the elements of <code>items</code> in a <code>--json</code> result, for example <code>Plan</code>.</dd>
-  <dt><a href="#records">latest</a></dt><dd>The GHCR tag of the published snapshot of one set and target. The only authority for what is published.</dd>
-  <dt><a href="#records">local copy</a></dt><dd>A copy of one snapshot on the admin host. The build input and the base of the next publish.</dd>
-  <dt><a href="lifecycle.html#lock-states">lock state</a></dt><dd>in-sync, ahead, behind, diverged, dirty, missing, unpinned or orphaned.</dd>
-  <dt><a href="publish.html#mirror">mirror job</a></dt><dd>A shell script with systemd units on the HTTP server. It pulls <code>latest</code>, verifies it with the client keys and swaps the served tree.</dd>
-  <dt><a href="#nodes">node</a></dt><dd>One package on one target, <code>DIR@TARGET</code>.</dd>
-  <dt><a href="#words">node state</a></dt><dd>In a run: waiting, queued, running, ok, failed, blocked, canceled. In a plan: current, staged, skip.</dd>
-  <dt><a href="#set">package</a></dt><dd>One <code>dir</code> entry in <code>repoctl.yaml</code>.</dd>
-  <dt><a href="build.html#actions">plan action</a></dt><dd><code>build</code>, <code>current</code>, <code>staged</code> or <code>skip</code>.</dd>
-  <dt><a href="build.html#actions">plan reason</a></dt><dd>Why a node builds: <code>commit-changed</code>, <code>rebuild</code>, <code>new-package</code>, <code>new-target</code> or <code>forced</code>.</dd>
-  <dt><a href="contract.html#problems">problem code</a></dt><dd>The dotted id of a problem, for example <code>set.busy</code>, with its exit code and hint.</dd>
-  <dt><a href="supply-chain.html#provenance">provenance</a></dt><dd>The SLSA provenance record of one build: an in-toto Statement with the signed RPMs as subjects.</dd>
-  <dt>publish id</dt><dd>The id of one publish and the tag of its snapshot: <code>p-YYYYMMDD-HHMM-xxx</code>; an import has <code>p-import-YYYYMMDD</code>.</dd>
-  <dt><a href="publish.html#registry">registry</a></dt><dd>The OCI registry that holds the snapshots: GHCR.</dd>
-  <dt><a href="signing.html#release">release package</a></dt><dd>The in-tree package with <code>role: release</code> that installs the key file and the <code>.repo</code> file on the clients.</dd>
-  <dt><a href="#manifest">RepoManifest</a></dt><dd>The signed file in the repodata that lists every build of a target repo with its commit.</dd>
-  <dt>run</dt><dd>One execution of <code>repoctl build</code>, id <code>r-YYYYMMDD-HHMM-xxx</code>.</dd>
-  <dt><a href="#words">run state</a></dt><dd>planning, running, ok, failed, canceled or abandoned.</dd>
-  <dt><a href="#safety">safety class</a></dt><dd>read, staging, local write or shared state.</dd>
-  <dt><a href="supply-chain.html#sbom-record">SBOM</a></dt><dd>Software bill of materials: the components, versions, licenses and hashes of a build or a repository, in CycloneDX 1.6.</dd>
-  <dt><a href="publish.html#mirror">served tree</a></dt><dd>The directory on the HTTP server that the clients read. Only the mirror job writes it.</dd>
-  <dt><a href="#set">set (package set)</a></dt><dd>A group of packages that one <code>repoctl.yaml</code> describes.</dd>
-  <dt><a href="#set">set directory</a></dt><dd>The git work tree of a builder branch, with the package worktrees below <code>packages/</code>.</dd>
-  <dt><a href="config.html#lock">set lock</a></dt><dd>The file lock that allows one writer per set for one user on one host.</dd>
-  <dt><a href="signing.html#probe">signer</a></dt><dd>The key that signs a publish, selected by <code>sign.key</code> in the user config.</dd>
-  <dt><a href="agents.html#skills">skill</a></dt><dd>Instructions for an agent that ship with repoctl. A set can add skills but cannot replace one.</dd>
-  <dt><a href="#snapshots">snapshot</a></dt><dd>One OCI artifact with all files of one set and target.</dd>
-  <dt><a href="build.html#staging">staged node</a></dt><dd>A node built for the current lock in an unpublished run of this user.</dd>
-  <dt><a href="build.html#staging">staging</a></dt><dd>The RPMs that a run built and that are not published.</dd>
-  <dt><a href="config.html#set-config">store</a></dt><dd>The registry path of a set, <code>store.oci</code>.</dd>
-  <dt><a href="#targets">target</a></dt><dd>One build platform, one mock chroot: <code>el9</code>, <code>el10</code>.</dd>
-  <dt><a href="signing.html#verify-el">trust set</a></dt><dd>The keys that a signature check uses. The client trust set is the key file that the clients have.</dd>
-  <dt><a href="build.html#mock">verify root</a></dt><dd>A mock root per target with the client rpm and dnf. The publish step verify-el runs in it.</dd>
-</dl>
+<p>The <a href="glossary.html">glossary</a> gives all project words with their domain and the chapter that explains them. In each section, the first use of a word is a link to its entry.</p>
 </body>
 </html>
