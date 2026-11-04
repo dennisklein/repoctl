@@ -209,6 +209,8 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td><a href="#retire">Retire a package</a></td><td>builder branch</td><td>no node; <code>retired.published</code></td></tr>
 <tr><td><a href="#rename">Rename a dir or a branch</a></td><td>builder branch</td><td><code>current</code></td></tr>
 <tr><td><a href="#rename">Rename the RPM</a></td><td>package branch, builder branch</td><td><code>commit-changed</code></td></tr>
+<tr><td><a href="#move">Move to a branch</a></td><td>package branch, builder branch</td><td><code>rebuild</code></td></tr>
+<tr><td><a href="#move">Move to an external server</a></td><td>external server, builder branch</td><td><code>current</code></td></tr>
 <tr><td><a href="#targets">Add a target</a></td><td>builder branch</td><td><code>new-target</code></td></tr>
 <tr><td><a href="#targets">Drop a target</a></td><td>builder branch</td><td>no node on that target</td></tr>
 </tbody>
@@ -281,7 +283,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>Change <code>dir</code> in <code>repoctl.yaml</code>. Run <code>git worktree move packages/rocm-smi packages/rocm-smi-lib</code>.</li>
 <li>Run <code>repoctl pin</code>. Commit and push. Repository: the builder branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: <code>current</code> with the note "dir renamed from rocm-smi". plan matches manifest entries by branch or URL, commit and target, not by dir.</li>
+<li>Run <code>repoctl plan</code>. Expect: <code>current</code> with the note "dir renamed from rocm-smi". plan matches manifest entries by commit, target and source package name, not by dir, branch or URL (<a href="model.html#manifest">match key</a>).</li>
 </ol>
 <p>Rename the RPM (<code>Name</code> in the spec). The new name builds.</p>
 <ol class="steps">
@@ -291,10 +293,40 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </ol>
 <p>Rename the branch. The commit stays the same, so nothing builds.</p>
 <ol class="steps">
-<li>Push the new branch. Change <code>branch</code> in <code>repoctl.yaml</code>.</li>
-<li>Run <code>repoctl pin</code>. Commit and push. Repository: the builder branch.</li>
+<li>Rename the local branch: <code>git -C packages/DIR branch -m OLD NEW</code>. Push it: <code>git -C packages/DIR push origin NEW</code>. Change <code>branch</code> in <code>repoctl.yaml</code>.</li>
+<li>Run <code>repoctl pin</code>. The worktree is in-sync, so pin writes only the new branch into the line. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 </ol>
+
+<h3 id="move">Move a package to another source</h3>
+<p>A package has one of three sources: a path in the set tree (in-tree), a branch in the set repository, or a branch on an external server. rpmautospec computes the release from the history, so a move keeps the history. The plan result depends on the commits (<a href="model.html#manifest">match key</a>):</p>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<ul>
+<li>A move that keeps the commits keeps each node <code>current</code>.</li>
+<li>A move that makes new commits with the same history gives the same NVR from a new commit. publish refuses it with <code>nvr.reused</code>. Thus such a move ends with <code>repoctl rebuild</code>, which raises the release.</li>
+</ul>
+</aside>
+<p>Move an in-tree package to a branch. The release package stays in-tree (<a href="signing.html#release">release package</a>).</p>
+<ol class="steps">
+<li>In the set directory, run <code>git subtree split --prefix packages/DIR -b BRANCH</code>. The new branch holds each commit that changes the path, with new commit ids. Run <code>git push origin BRANCH</code>.</li>
+<li>Run <code>git rm -r packages/DIR</code>. In the entry, replace <code>path:</code> with <code>branch: BRANCH</code>. The package is now <code>unpinned</code>.</li>
+<li>Run <code>repoctl checkout DIR</code>. The worktree starts on the local branch at the tip of <code>origin/BRANCH</code>.</li>
+<li>Run <code>repoctl pin DIR</code>. Then run <code>repoctl rebuild DIR --reason "move to branch BRANCH"</code>.</li>
+<li>Run <code>git -C packages/DIR push origin BRANCH</code>. Then run <code>git commit -am "refactor: move DIR to branch BRANCH" &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: build with the reason <code>rebuild</code> on each target of DIR.</li>
+</ol>
+<p>Move a package from the set repository to an external server:</p>
+<ol class="steps">
+<li>Create the project on the git server. repoctl cannot do this.</li>
+<li>Push the history: <code>git -C packages/DIR push URL BRANCH</code>. The commits stay the same.</li>
+<li>Run <code>git worktree remove packages/DIR</code>. Add <code>git: {url: URL}</code> to the entry.</li>
+<li>Run <code>repoctl checkout DIR</code>. The worktree now comes from the bare clone of URL (<a href="#clones">external package clones</a>).</li>
+<li>Run <code>repoctl pin DIR</code>. The worktree is in-sync, so pin writes only the URL into the line. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
+<li>Keep the old branch in the set repository, or delete it. The external server holds the same commits.</li>
+</ol>
+<p>A move from an external server to the set repository uses the same steps in the other direction: push the branch to <code>origin</code>, remove <code>git.url</code>, then checkout and pin. Expect: <code>current</code>. This release has no steps for a move from a branch into the set tree.</p>
 
 <h3 id="targets">Add or drop a target</h3>
 <p>Add a target, for example el10:</p>
@@ -418,6 +450,9 @@ Remove a package:
   4. optional: remove it on the clients (config management or Obsoletes)
 Rename: a dir or branch rename does not build. An RPM rename is a
   spec change; add Obsoletes, then the old name is retired.
+Move to an external server: push the history there, add git: {url: ...},
+  then checkout and pin. plan shows current. A move from the set tree
+  to a branch makes new commits: rebuild it, else publish refuses it.
 Add a target: plan shows "new-target". Drop a target: it stays published.
 Two admins pinned in the same week and git reports a conflict in
   repoctl.lock: keep both lines when they name two dirs. For one dir,
