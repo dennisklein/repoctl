@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 89 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 90 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -357,6 +357,7 @@
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files.</td></tr>
 <tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
 <tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
+<tr><td><code>snapshot.orphaned</code></td><td>warning</td><td>The local copy holds a publish of this user that is not on the parent chain of latest. Another publish won the tag race.</td><td><code>repoctl repo pull</code>, then plan and publish again. The staged nodes of that publish are staged again.</td></tr>
 <tr><td><code>snapshot.push-failed</code></td><td>13</td><td>An upload failed. The signed tree stays.</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>)</td></tr>
 <tr><td><code>source.mismatch</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>A source archive does not have the SHA-512 of its line in the sources file.</td><td>Find out why the archive changed. Then correct the archive or the line, and commit.</td></tr>
 <tr><td><code>source.unlisted</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>A Source line has a URL, and the sources file has no SHA512 line for its file.</td><td>Add the line, for example with <code>sha512sum --tag FILE</code>, and commit (<a href="build.html#sources">Sources</a>).</td></tr>

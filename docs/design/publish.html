@@ -162,7 +162,7 @@ KEEP_TREES=2</code></pre>
 </table>
 <p>Status, the Overview card "Last publish", the sign step and the default key set of <code>repo verify</code> read the annotations of latest. After the loss of a host, <code>repoctl repo pull</code> gives all of this back. The runs and journals of that host are lost. They are personal, and nothing depends on them.</p>
 <h3 id="pull">Pull</h3>
-<p><code>repoctl repo pull [REF]</code> makes the local copy equal to a snapshot: latest (the default), a publish id or a digest. It downloads the missing blobs and checks their sha256. It verifies each RPM and each <code>repomd.xml.asc</code> with the keys of <code>sign.keys</code> (all states) before it writes the local copy in one rename. Then it writes <code>snapshot.json</code>. A file that does not verify stops the pull, and repoctl writes nothing (exit 10). Command: <a href="cli.html#cmd-repo-pull">repo pull</a>.</p>
+<p><code>repoctl repo pull [REF]</code> makes the local copy equal to a snapshot: latest (the default), a publish id or a digest. It downloads the missing blobs and checks their sha256. It verifies each RPM and each <code>repomd.xml.asc</code> with the keys of <code>sign.keys</code> (all states) before it writes the local copy in one rename. Then it writes <code>snapshot.json</code>. A file that does not verify stops the pull, and repoctl writes nothing (exit 10). When the local copy holds a publish of this user that is not on the chain of latest, pull warns with <code>snapshot.orphaned</code> before it replaces the local copy (<a href="#admins">two admins</a>). Command: <a href="cli.html#cmd-repo-pull">repo pull</a>.</p>
 
 <h2 id="freshness">Freshness check</h2>
 <p>plan, build, status and publish read the digest of latest with one HEAD request per target. They compare it with the digest in the local <code>snapshot.json</code>.</p>
@@ -174,6 +174,7 @@ KEEP_TREES=2</code></pre>
 <tr><td>latest is newer than the local copy, or there is no local copy</td><td>stop: <code>state.behind</code>, exit 13</td><td>local: behind</td><td>stop: <code>state.behind</code>, exit 13</td></tr>
 <tr><td>a pushable tree of this user is not tagged: latest is still its base</td><td>warn: <code>state.unpushed</code></td><td>local: unpushed</td><td>stop: <code>state.unpushed</code>, exit 13</td></tr>
 <tr><td>latest is the new snapshot of a pushable tree of this user: step 7 is done, step 8 is not</td><td>stop: <code>state.behind</code>, exit 13, hint <code>repoctl repo push p-…</code></td><td>local: behind, hint "publish p-… is in latest, the cache step did not run"</td><td>stop: <code>state.behind</code>, exit 13, hint <code>repoctl repo push p-…</code></td></tr>
+<tr><td>the local copy holds a publish of this user that is not on the parent chain of latest (<a href="#admins">two admins</a>)</td><td>stop: <code>state.behind</code>, exit 13, and warn: <code>snapshot.orphaned</code></td><td>local: behind, and warn: <code>snapshot.orphaned</code></td><td>stop: <code>state.behind</code>, exit 13, and warn: <code>snapshot.orphaned</code></td></tr>
 <tr><td>the registry is not reachable</td><td>warn: <code>registry.unreachable</code>, use the local copy</td><td>registry: unknown</td><td>stop: <code>registry.unreachable</code>, exit 13</td></tr>
 </tbody>
 </table>
@@ -347,6 +348,11 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <p>GHCR has no compare-and-swap for tags. The race window is the time between the read and the write of the tag in step 7, less than one second. For a small team that coordinates in a channel, this window is acceptable. A lease would need a second shared record and a way to break it.</p>
 </aside>
 <p>After <code>snapshot.diverged</code>, run <code>repoctl repo pull</code>, then plan and publish again. <code>repoctl repo snapshots --all</code> lists the diverged tag.</p>
+<p>In the race window, two publishes can both pass step 7. The second tag write wins, and the first snapshot leaves the chain of latest. Its NVRs reach the served tree only if the mirror job reads latest in that window. repoctl finds this case: when the local copy holds a publish of this user, and latest is newer, repoctl walks the parent chain of latest back to the first snapshot that is older than the local copy. If the publish of the local copy is not on that chain, <code>repo pull</code> and <code>status</code> give the warning <code>snapshot.orphaned</code>, and plan, build and publish give it with <code>state.behind</code>. The hint is <code>repoctl repo pull</code>, then plan and publish again.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p>A run counts as published only when its publish is on the chain of latest. Thus the staged nodes of an orphaned publish are staged again, the next plan shows them as staged, and <code>repoctl clean</code> keeps their staging. The next publish signs them again: the NVRs and the payloads stay the same, only the signatures change.</p>
+</aside>
 
 <h2 id="summary">Summary and confirmation</h2>
 <p>Publish shows a summary before it asks. The summary always shows these items:</p>

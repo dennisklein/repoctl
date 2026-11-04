@@ -186,7 +186,7 @@
 <li>Config management installs the release package on every client and on the HTTP server. A human can tell when the rollout is complete (<a href="signing.html#onboarding">onboarding</a>).</li>
 <li>The HTTP server can run a systemd timer and has curl, jq, gnupg2 and rpm (<a href="publish.html#mirror">mirror job</a>; V1).</li>
 <li>The mirror job runs every 5 minutes. A shorter interval only adds HEAD requests. Clients read a new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour).</li>
-<li>GHCR has no tag compare-and-swap. publish compares latest in step 1 and in step 7. The window between the two is acceptable, because the team coordinates in its own channel (<a href="publish.html#admins">two admins</a>).</li>
+<li>GHCR has no tag compare-and-swap. publish compares latest in step 1 and in step 7. The window between the two is acceptable, because the team coordinates in its own channel (<a href="publish.html#admins">two admins</a>). A publish that loses the race leaves the chain of latest, and repo pull and status warn with <code>snapshot.orphaned</code>.</li>
 <li>The GHCR packages are public, so the mirror job pulls without a token. A push needs a classic token with <code>write:packages</code> and a team with write access (<a href="publish.html#registry">registry access</a>; V2, V3).</li>
 <li>rpmautospec raises the release for each commit, also for an empty one (<a href="build.html#rebuild">rebuild</a>; V19). For an in-tree package, V6 shows which commits count.</li>
 <li>go-clikit gives the span id (<code>Span.TraceContext()</code>), the doctor format and the progress log. repoctl needs no change in go-clikit for the journal (<a href="contract.html#journal">journal</a>).</li>

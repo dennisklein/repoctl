@@ -774,7 +774,7 @@ ucx-devel          1.22.1-1.el9   pkg:rpm/gsi-hpc/ucx-devel@1.22.1-1.el9?…    
 <section class="cmd" id="cmd-repo-pull">
   <h4><code>repoctl repo pull</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl repo pull [REF]</pre>
-  <p>Make the local copy equal to a snapshot: <code>latest</code> (default), a publish id or a digest. pull downloads the missing blobs, checks their sha256, and verifies each RPM and <code>repomd.xml.asc</code> against <code>sign.keys</code> before it swaps the local copy. Use it when status shows <code>local behind</code> or a command stops with <code>state.behind</code>.</p>
+  <p>Make the local copy equal to a snapshot: <code>latest</code> (default), a publish id or a digest. pull downloads the missing blobs, checks their sha256, and verifies each RPM and <code>repomd.xml.asc</code> against <code>sign.keys</code> before it swaps the local copy. Use it when status shows <code>local behind</code> or a command stops with <code>state.behind</code>. When the local copy holds a publish of this user that is not on the chain of latest, pull warns with <code>snapshot.orphaned</code>: that publish lost the tag race, and its staged nodes are staged again (<a href="publish.html#admins">publish.html#admins</a>).</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>~/.local/share/repoctl/SET/repo/TARGET/</code> and <code>snapshot.json</code></dd><dt>Output</dt><dd>kind <code>Snapshot</code></dd><dt>Exit</dt><dd>0; 1; 7; 10 (nothing written); 13</dd></dl>
   <pre class="term">$ repoctl repo pull                      # A. Admin on hpc-a2, after the publish of 14:12
 el9   p-20261103-1412-5e1  sha256:9d07…  54 blobs new (412 MiB), 170 known, verified
