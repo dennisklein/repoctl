@@ -585,7 +585,7 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
 <h2 id="soname">Soname check after a node build</h2>
 <p>At the end of step rpm, repoctl compares the sonames that the new RPMs provide with the sonames of the newest published build of the node. The published sonames come from the <code>provides</code> list of the node in the RepoManifest of latest.</p>
 <ul>
-  <li>A soname is gone, and a kept set package requires it: repoctl writes the required advisory <code>soname.removed/DIR@TARGET</code> (<a href="advisories.html#codes">advisory codes</a>). The publish gate decides if it blocks (<a href="advisories.html#gate">publish gate</a>).</li>
+  <li>A soname is gone, and a kept set package requires it: repoctl writes the required advisory <code>soname.removed/DIR@TARGET</code> (<a href="advisories.html#codes">advisory codes</a>). A kept set package is one whose newest NVR in latest plus the staging of the run is not rebuilt yet. A dependent that builds later in the same run counts until then; at the end of the run, repoctl checks the advisory again (<a href="advisories.html#states">advisory states</a>). The publish gate decides if it blocks (<a href="advisories.html#gate">publish gate</a>).</li>
   <li>No soname is gone: the result is <code>unchanged</code>. repoctl writes it into the node record as <code>checks.soname: unchanged</code>. This is a result, not an advisory.</li>
 </ul>
 <p>The plan and the UI show the result in the row of the node: "sonames unchanged: rebuild not necessary". While the node is in the run, its soname advisory is pending (<a href="advisories.html#states">advisory states</a>). The optional ABI check (<code>abi.changed</code>, needs libabigail) also runs after the node build.</p>
