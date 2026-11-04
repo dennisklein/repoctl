@@ -33,6 +33,10 @@ jobs:
       - name: Build the site
         run: python3 tools/site/build.py --strict --out _site
 
+      # Fails when a mockup misses the glossary links of the current glossary.
+      - name: Check the glossary links of the mockups
+        run: python3 tools/site/glossary.py mockups --check
+
       # Only for a deploy: the artifact that deploy-pages publishes.
       - if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
