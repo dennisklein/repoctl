@@ -21,7 +21,7 @@
 <h2 id="graph">Graph per target</h2>
 <p>A node is one package built for one target, written <code>DIR@TARGET</code> (<a href="model.html#nodes">nodes</a>). repoctl makes one graph for each target. An edge from A to B means: B needs a package of A to build. The two nodes of an edge are always on the same target.</p>
 <p>To find the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It builds the SRPM from a detached worktree of the commit, never from <code>packages/DIR</code> (<a href="#run">the run</a>). It reads the requires of the SRPM and matches them against the Provides of the other set packages on the same target. <code>rpmspec</code> in the same chroot gives the Provides. Thus a condition such as <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives the correct edges for each target.</p>
-<p>The SRPM cache (<code>~/.cache/repoctl/srpm/</code>) keeps the result for each package commit and target. The first plan of a target builds all SRPMs and can take minutes. After that, only a new commit makes a new SRPM. The cache is safe to delete.</p>
+<p>The SRPM cache (<code>~/.cache/repoctl/srpm/</code>) keeps the result for each key. The key is the sha256 of four inputs: the package commit, the mock config of the target (the output of <code>mock -r CONFIG --debug-config</code>), the content of the macro files of the target, and the versions of mock and of the plugins of the target. All sets share the cache, but two sets with other macros or another mock config never share an entry. The first plan of a target builds all SRPMs and can take minutes. After that, only a new commit or a change of these inputs makes a new SRPM. repoctl writes each entry to a temporary file and then renames it. Thus a reader never sees a part of an entry, and two writers of one key give the same entry. The cache is safe to delete.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 276" role="img" aria-labelledby="fig-graph-t"><title id="fig-graph-t">How repoctl makes the graph of one target</title>
 <rect class="box" x="16" y="40" width="184" height="72" rx="8"/>
@@ -31,7 +31,7 @@
 <rect class="box-accent" x="232" y="40" width="200" height="72" rx="8"/>
 <text class="t-title t-on" x="244" y="60">SRPM in the target chroot</text>
 <text class="t-small t-on" x="244" y="77">mock --buildsrpm,</text>
-<text class="t-small t-on" x="244" y="92">one per commit and target</text>
+<text class="t-small t-on" x="244" y="92">one per commit and build inputs</text>
 <rect class="box" x="464" y="40" width="200" height="72" rx="8"/>
 <text class="t-title" x="476" y="60">requires of the SRPM</text>
 <text class="t-small" x="476" y="77">kept in the SRPM cache</text>
