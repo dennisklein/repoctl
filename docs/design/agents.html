@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <title>Agents</title>
-<meta name="description" content="How LLM agents work with repoctl: the generic skills, the tool list of each task, the deny list, the MCP server and its tools, and the read-only agent behind the advisory buttons of the web UI.">
+<meta name="description" content="How LLM agents work with repoctl: the generic skills, the tool list of each task, the deny list and the guard hook, the MCP server and its tools, and the read-only agent behind the advisory buttons of the web UI.">
 </head>
 <body>
 <h1>Agents</h1>
-<p class="lede">This chapter specifies how an LLM agent works with repoctl. It gives the generic skills, the tools of each task and the MCP server with its tool table. It also gives the agent that the web UI starts for an advisory button. The deterministic core does the work. The agent explains and proposes. A human takes every step that changes shared state.</p>
+<p class="lede">An LLM agent works with repoctl through the generic skills, a tool list per task and the MCP server. The web UI starts a read-only agent for its advisory buttons. The deterministic core does the work, the agent explains and proposes, and a human takes every step that changes shared state.</p>
 <ul class="keypoints">
-  <li>Five generic skills ship with repoctl: <code>repoctl</code>, <code>package-updates</code>, <code>bump-package</code>, <code>triage-build</code> and <code>rebuild-check</code>. Package facts live in <code>repoctl.yaml</code>, not in a skill.</li>
+  <li>Five generic skills ship with repoctl. Package facts live in <code>repoctl.yaml</code>, not in a skill.</li>
   <li>A set can add skills for local policy. A set-local skill can never replace a generic skill.</li>
   <li>Each task has its own tool list. <code>allowed-tools</code> only grants, so each install path for Claude Code also adds a deny list and the guard hook.</li>
-  <li><code>repoctl mcp start</code> serves 28 tools for one set. <code>--tools read</code> limits the server to the 23 read tools. No tool changes shared state.</li>
+  <li><code>repoctl mcp start</code> serves 28 tools for one set, or only the 23 read tools with <code>--tools read</code>. No tool changes shared state.</li>
   <li>A step that only a human can take comes back as a problem with a <dfn>humanAction</dfn>. The agent stops and shows the command.</li>
   <li>The web UI has four advisory buttons. Each runs a local agent with a fixed skill, a fixed input and the read-only MCP server.</li>
-  <li>The result shows in the agent panel. Proposed actions are normal buttons. Nothing runs until the human clicks. There is no chat.</li>
+  <li>The agent panel shows the result. Proposed actions are normal buttons, and nothing runs until the human clicks. There is no chat.</li>
 </ul>
 
 <h2 id="principles">Principles</h2>
@@ -46,19 +46,19 @@
 <path class="edge" d="M749,150 V196 H131 V154" marker-end="url(#arrow)"/>
 <text class="t-small" x="440" y="218" text-anchor="middle">shared-state command, confirmed by the human (terminal or UI)</text>
 </svg>
-<figcaption>Three roles. The agent reads through the MCP read tools or <code>--json</code>. It gives the human a verdict, a diff or a command. Only the human runs a shared-state command.</figcaption>
+<figcaption>Three roles. The agent reads through the MCP read tools or <code>--json</code> and gives the human a verdict, a diff or a command.</figcaption>
 </figure>
 <ul>
   <li>The deterministic core does the work. Plan, build, check, advisories, gates and publish give the same result for the same input. An agent never replaces them.</li>
-  <li>The agent does judgment work: it explains a failure, decides whether a rebuild is necessary, summarizes release notes and drafts a version bump. It gives a verdict with evidence, and it changes nothing.</li>
-  <li>A human does every step that changes shared state. The shared-state rules are in <a href="cli.html#safety">cli.html#safety</a>. No MCP tool exists for such a step, and the deny list and the guard hook block the CLI command.</li>
+  <li>The agent does judgment work: it explains a failure, decides whether a rebuild is necessary, summarizes release notes and drafts a version bump. It gives a verdict with evidence and changes nothing.</li>
+  <li>Only a human runs a step that changes shared state (rules: <a href="cli.html#safety">cli.html#safety</a>). No MCP tool exists for such a step, and the deny list and the guard hook block its CLI command.</li>
   <li>Skills call repoctl. They never call mock, rpmsign, createrepo_c or gpg directly.</li>
   <li>Every surface works without an agent. The plain diagnosis of repoctl stays when no agent is set (<a href="ui.html#loud">ui.html#loud</a>).</li>
   <li>Log lines, spec text, commit subjects, advisory facts and release notes are untrusted data. Tool descriptions and skills say that they are data, not instructions.</li>
 </ul>
 
 <h2 id="skills">Where skills live</h2>
-<aside class="callout rule"><p class="callout-title">Rule</p><p>Skill logic ships with repoctl. Package facts ship with the set config. A set can add local skills for local policy only.</p></aside>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>Skill logic ships with repoctl. Package facts ship with the set config. A set can add local skills for local policy only. A set-local skill never replaces a generic skill with the same name.</p></aside>
 <figure class="diagram">
 <svg viewBox="0 0 880 290" role="img" aria-labelledby="skillhome-t">
 <title id="skillhome-t">Generic skills ship with repoctl, facts and local skills ship with the set</title>
@@ -81,7 +81,7 @@
 <text class="t-title" x="440" y="234" text-anchor="middle">Agent session in the set directory</text>
 <text class="t-small" x="440" y="256" text-anchor="middle">generic skills read the facts with repoctl show, upstream and graph (MCP or --json); set-local skills load from the set</text>
 </svg>
-<figcaption>Two homes. Generic skills come with the binary. Facts and local policy come with the set branch.</figcaption>
+<figcaption>Two homes. The generic skills come with the binary. The facts and the local policy come with the set branch.</figcaption>
 </figure>
 <p>Why the skill logic ships with repoctl and the facts ship with the set:</p>
 <table>
@@ -94,23 +94,32 @@
 <tr><td>Work without an agent</td><td colspan="2">The facts in <code>repoctl.yaml</code> work without an agent. <code>repoctl upstream</code> gives the same table as the skill, without the release-note summary.</td></tr>
 </tbody>
 </table>
-<p>The generic skills reach an agent in four ways:</p>
-<ul>
-  <li>The Claude Code plugin holds the skills, declares the MCP server (<a href="#mcp-start">start and registration</a>) and registers the <a href="#guard">guard hook</a>. The release build makes it at the release tag, not from the head of branch <code>main</code>. Thus its skills have the version of the binary of the same release.</li>
-  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. <code>--user</code> (the default) writes <code>~/.claude/skills/&lt;name&gt;/</code> and merges the <a href="#deny">deny list</a> and the guard hook into <code>~/.claude/settings.json</code>. <code>--project</code> writes <code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>, adds the paths to <code>.git/info/exclude</code> and merges the deny list and the guard hook into <code>&lt;set&gt;/.claude/settings.json</code>. The command replaces copies that repoctl installed and refuses a file that a human changed. The manifest <code>.repoctl-skills.json</code> tells which copies repoctl installed (<a href="#frontmatter">skill frontmatter</a>). install never writes a name that a set-local skill uses in the same directory.</li>
-  <li><code>repoctl skills uninstall</code> removes the copies of the manifest, and the deny rules and the guard hook that install added to <code>settings.json</code>. With <code>--project</code>, it also removes the exclude lines. It refuses a file that a human changed, and it leaves set-local skills alone.</li>
-  <li>The RPM puts them in <code>/usr/share/repoctl/skills/</code> (<code>repoctl skills path</code>).</li>
-  <li>The MCP resource <code>repoctl://skills/{name}</code> serves them to a client without skill support.</li>
-</ul>
-<p>The <code>skills:</code> key of <code>repoctl.yaml</code> names the set-local skill directories, for example <code>.claude/skills</code> (<a href="config.html#set-config">config.html#set-config</a>). A set-local skill can add a skill, but it can never replace a generic skill with the same name. <code>repoctl skills ls</code> shows the source, version and install place of each skill and marks a name conflict (<a href="cli.html#cmd-skills">cli.html#cmd-skills</a>). <code>repoctl doctor</code> warns about a conflict and about each installed copy with another version than the binary, older or newer (<code>skills.version-mismatch</code>). It reads the version from <code>metadata.repoctl-version</code> of each copy.</p>
+<p>The <code>skills:</code> key of <code>repoctl.yaml</code> names the set-local skill directories, for example <code>.claude/skills</code> (<a href="config.html#set-config">config.html#set-config</a>). <code>repoctl skills ls</code> shows the source, version and install place of each skill and marks a name conflict (<a href="cli.html#cmd-skills">cli.html#cmd-skills</a>). <code>repoctl doctor</code> warns about a conflict.</p>
 <p>The <code>CLAUDE.md</code> of a builder branch holds notes about the set. It points to the <code>repoctl</code> skill and to the help topics <code>new-set</code> and <code>packages</code>. It holds no generic workflow.</p>
-<h2 id="skill-list">Skills</h2>
-<p>These rules apply to each generic skill:</p>
+<h3 id="install">Install paths</h3>
+<table class="compact">
+<thead><tr><th>Install path</th><th>Skills</th><th>Guard hook and deny list</th></tr></thead>
+<tbody>
+<tr><td>Claude Code plugin (branch <code>main</code>)</td><td>In the plugin. The release build makes it at the release tag, not from the head of <code>main</code>. Thus its skills have the version of the binary of the same release.</td><td><code>hooks/hooks.json</code> of the plugin registers the <a href="#guard">guard hook</a>. The guard also applies the static <a href="#deny">deny list</a>, so the plugin needs no settings file.</td></tr>
+<tr><td><code>skills install --user</code> (the default)</td><td><code>~/.claude/skills/&lt;name&gt;/</code></td><td>merged into <code>~/.claude/settings.json</code></td></tr>
+<tr><td><code>skills install</code> <code>--project</code></td><td><code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>; install adds the paths to <code>.git/info/exclude</code></td><td>merged into <code>&lt;set&gt;/.claude/settings.json</code></td></tr>
+<tr><td>RPM</td><td><code>/usr/share/repoctl/skills/</code> (<code>repoctl skills path</code>)</td><td rowspan="2">None. An agent that reads the skills in this way has no guard hook. The MCP server has no shared-state tool (<a href="#not-exposed">not exposed</a>).</td></tr>
+<tr><td>MCP resource</td><td><code>repoctl://skills/{name}</code>, for a client without skill support</td></tr>
+</tbody>
+</table>
 <ul>
-  <li>The skill works with the MCP tools or with the CLI through Bash, whichever the session has. It uses MCP when the tools are present.</li>
-  <li>The skill reads only <code>repoctl/v1alpha1</code> output. It stops when <code>apiVersion</code> has another value (<a href="contract.html#versioning">contract.html#versioning</a>).</li>
-  <li>The skill states its tool list for each mode (<a href="#tool-lists">tool lists</a>). A terminal session has the permissions of the human. A task of the web UI has read tools only.</li>
-  <li>The skill stops at each problem with a <code>humanAction</code> (<a href="#human-action">needs human</a>). It never tries another way to the same step.</li>
+  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. It replaces the copies that repoctl installed and refuses a file that a human changed. The <a href="#frontmatter">manifest</a> tells which copies repoctl installed.</li>
+  <li>install never writes a name that a set-local skill uses in the same directory.</li>
+  <li><code>repoctl skills uninstall</code> removes the copies of the manifest, and the deny rules and the guard hook that install added to <code>settings.json</code>. With <code>--project</code>, it also removes the exclude lines. It refuses a file that a human changed and leaves set-local skills alone.</li>
+</ul>
+
+<h2 id="skill-list">Skills</h2>
+<p>Each generic skill follows these rules:</p>
+<ul>
+  <li>It uses the MCP tools when the session has them. Else it uses the CLI through Bash.</li>
+  <li>It reads only <code>repoctl/v1alpha1</code> output. It stops when <code>apiVersion</code> has another value (<a href="contract.html#versioning">contract.html#versioning</a>).</li>
+  <li>It states its <a href="#tool-lists">tool list</a> for each mode.</li>
+  <li>It stops at each problem with a <code>humanAction</code> (<a href="#human-action">needs human</a>).</li>
 </ul>
 <table class="compact">
 <thead><tr><th>Skill</th><th>Purpose</th><th>Input</th><th>Result</th><th>Stops at</th></tr></thead>
@@ -124,7 +133,14 @@
 </tbody>
 </table>
 <h3 id="bump-modes">The two modes of bump-package</h3>
-<p>Mode draft reads and plans only. The UI button "Draft version bump" uses it, and so does <code>/bump-package DIR VERSION --draft</code> in a terminal. Mode apply runs in a terminal only, for example <code>/bump-package ucx 1.22.1</code>. The human sees every step there and gives each OK in the terminal. The skill edits <code>ucx.spec</code>, commits "Bump to 1.22.1" on <code>ucx/slurm-26.05</code> and pins the commit. The push of the package branch and the commit of <code>repoctl.lock</code> stay steps for the human.</p>
+<table class="compact">
+<thead><tr><th>Mode</th><th>Draft</th><th>Apply</th></tr></thead>
+<tbody>
+<tr><td>Started by</td><td>The UI button "Draft version bump", or <code>/bump-package DIR VERSION --draft</code> in a terminal</td><td>A terminal only, for example <code>/bump-package ucx 1.22.1</code></td></tr>
+<tr><td>Steps</td><td>It reads and plans only.</td><td>The skill edits <code>ucx.spec</code>, commits "Bump to 1.22.1" on <code>ucx/slurm-26.05</code> and pins the commit. The human sees every step and gives each OK. The push of the package branch and the commit of <code>repoctl.lock</code> stay with the human.</td></tr>
+<tr><td>Tool list</td><td>No frontmatter of its own. With <code>--draft</code>, the skill text tells the agent to use only the draft list. The web UI enforces this list with <code>--allowedTools</code> and the read-only MCP server.</td><td>The frontmatter of <code>bump-package</code> grants the tools of mode apply.</td></tr>
+</tbody>
+</table>
 <h3 id="playbook">Playbook of triage-build</h3>
 <table class="compact">
 <thead><tr><th>error.class</th><th>What the skill looks at</th></tr></thead>
@@ -140,8 +156,8 @@
 </table>
 <p>For slurm@el10 in run <code>r-20261102-1750-a3f</code> the skill reports: "slurm.spec requires rocm-smi-devel without a condition. rocm-smi has targets: [el9]. Fix A: put the BuildRequires and the <code>--with-rsmi</code> configure flag under <code>%if 0%{?rhel} &lt; 10</code>. Fix B: build rocm-smi for el10 too."</p>
 
-<h2 id="frontmatter">Skill frontmatter</h2>
-<p>Each skill is one <code>SKILL.md</code> with a YAML frontmatter: <code>name</code>, <code>description</code>, <code>allowed-tools</code> and <code>metadata</code>. The list names the Bash prefixes for the CLI and the MCP tools. <code>metadata</code> gives <code>repoctl-version</code> and <code>api-version</code>; the release build writes both. Example of <code>triage-build</code>:</p>
+<h2 id="frontmatter">Skill frontmatter and versions</h2>
+<p>Each skill is one <code>SKILL.md</code> with a YAML frontmatter: <code>name</code>, <code>description</code>, <code>allowed-tools</code> and <code>metadata</code>. <code>allowed-tools</code> names the Bash prefixes for the CLI and the MCP tools. The release build writes <code>repoctl-version</code> and <code>api-version</code> into <code>metadata</code>. Example of <code>triage-build</code>:</p>
 <pre><code class="language-yaml">---
 name: triage-build
 description: Find the cause of a failed node in a repoctl run and propose a fix. Use after a build
@@ -164,13 +180,22 @@ metadata:
   repoctl-version: 0.4.0
   api-version: repoctl/v1alpha1
 ---</code></pre>
-<p>Thus each copy tells its version: the plugin, the RPM, an installed copy and a copy that a human made by hand. <code>repoctl skills install</code> also writes the manifest <code>.repoctl-skills.json</code> into the install root (<code>~/.claude/skills/</code> or <code>&lt;set&gt;/.claude/skills/</code>). It holds, per skill, the name, the version and the sha256 of each file that install wrote. For <code>--project</code> it also holds the exclude lines and the deny rules that install added. A file whose sha256 differs from the manifest is a change by a human. <code>skills ls</code> shows the state of each copy: same, older, newer or changed.</p>
-<p>The frontmatter of <code>bump-package</code> grants the tools of mode apply. Mode draft has no frontmatter of its own. When the input has <code>--draft</code>, the skill text tells the agent to use only the tools of the draft list. In the web UI, repoctl enforces the draft list with <code>--allowedTools</code> and the read-only MCP server. The frontmatter of the <code>repoctl</code> skill grants the read commands of the CLI, <code>repoctl build</code>, the 23 read tools and <code>repoctl_build</code>. The full lists are in the next section.</p>
+<p>Thus each copy tells its version: the plugin, the RPM, an installed copy and a copy that a human made by hand. <code>repoctl skills install</code> also writes the manifest <code>.repoctl-skills.json</code> into the install root (<code>~/.claude/skills/</code> or <code>&lt;set&gt;/.claude/skills/</code>):</p>
+<ul>
+  <li>Per skill, the manifest holds the name, the version and the sha256 of each file that install wrote. For <code>--project</code>, it also holds the exclude lines and the deny rules that install added.</li>
+  <li>A file whose sha256 differs from the manifest is a change by a human.</li>
+  <li><code>skills ls</code> shows the state of each copy: same, older, newer or changed.</li>
+  <li><code>repoctl doctor</code> warns with <code>skills.version-mismatch</code> about each installed copy with another version than the binary, older or newer. It reads the version from <code>metadata.repoctl-version</code> of each copy.</li>
+</ul>
 
 <h2 id="tool-lists">Tool list per task</h2>
-<p>Each task has its own tool list. A terminal session runs with the permissions of the human, and the list of the skill grants its tools. A task of the web UI gets the list of its row and nothing else. Its MCP server runs with <code>--tools read</code>. repoctl passes the list with <code>--allowedTools</code> and denies Bash, Edit, Write and NotebookEdit. Thus the UI agent has no way around the MCP server.</p>
+<p>Each task has its own tool list:</p>
+<ul>
+  <li>A terminal session runs with the permissions of the human. The <code>allowed-tools</code> of the skill grant the tools of its terminal row.</li>
+  <li>A task of the web UI gets the list of its row and nothing else. It never gets <code>repoctl_build</code>, <code>repoctl_rebuild</code>, Edit or Bash. Its MCP server runs with <code>--tools read</code>. repoctl passes the list with <code>--allowedTools</code> and denies Bash, Edit, Write and NotebookEdit. Thus the UI agent has no way around the MCP server.</li>
+</ul>
 <table class="compact">
-<thead><tr><th>Task</th><th>Skill and mode</th><th>MCP tools</th><th>Other tools</th></tr></thead>
+<thead><tr><th>Task</th><th>Skill and mode</th><th>MCP tools (without the prefix <code>repoctl_</code>)</th><th>Other tools</th></tr></thead>
 <tbody>
 <tr><td>terminal</td><td><code>repoctl</code></td><td>the 23 read tools, <code>repoctl_build</code></td><td>Bash: the read commands and <code>repoctl build</code></td></tr>
 <tr><td>terminal</td><td><code>package-updates</code></td><td><code>upstream</code>, <code>show</code></td><td>WebFetch, WebSearch, Agent</td></tr>
@@ -181,20 +206,17 @@ metadata:
 <tr><td>UI: Is a rebuild necessary?; terminal</td><td><code>rebuild-check</code></td><td><code>advisory</code>, <code>advisories</code>, <code>plan</code>, <code>graph</code>, <code>show</code>, <code>repo_diff</code></td><td>Read, Grep</td></tr>
 </tbody>
 </table>
-<p>The table drops the prefix <code>repoctl_</code> of the MCP tool names. A UI task never gets <code>repoctl_build</code>, <code>repoctl_rebuild</code>, Edit or Bash.</p>
 
 <h2 id="deny">Deny list</h2>
-<p><code>allowed-tools</code> only grants. It cannot forbid. For this reason each install path for Claude Code adds two guards: a static deny list in the Claude Code settings and the <a href="#guard">guard hook</a>. They cover every command of the safety class shared state, the trust commands, the tools that repoctl calls for the human, the git commands that only a human runs, and the set inputs (<a href="security.html#set-inputs">security.html#set-inputs</a>).</p>
-<table class="compact">
-<thead><tr><th>Install path</th><th>Skills</th><th>Guard hook and static deny list</th></tr></thead>
-<tbody>
-<tr><td>Claude Code plugin (branch <code>main</code>)</td><td>in the plugin</td><td><code>hooks/hooks.json</code> of the plugin registers the guard hook. The guard also applies the static deny list, so the plugin needs no settings file.</td></tr>
-<tr><td><code>skills install --user</code> (the default)</td><td><code>~/.claude/skills/&lt;name&gt;/</code></td><td>merged into <code>~/.claude/settings.json</code></td></tr>
-<tr><td><code>skills install --project</code></td><td><code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code></td><td>merged into <code>&lt;set&gt;/.claude/settings.json</code></td></tr>
-<tr><td>RPM files, MCP resource</td><td><code>/usr/share/repoctl/skills/</code>, <code>repoctl://skills/{name}</code></td><td>None. An agent that reads the skills in this way has no guard hook. The MCP server has no shared-state tool (<a href="#not-exposed">not exposed</a>).</td></tr>
-</tbody>
-</table>
-<p>The settings that <code>skills install</code> merges. The list has no rule for one set, so it stays correct when a package or a set is added:</p>
+<p><code>allowed-tools</code> only grants. It cannot forbid. Thus each <a href="#install">install path</a> for Claude Code adds two guards: a static deny list in the Claude Code settings and the <a href="#guard">guard hook</a>. They cover:</p>
+<ul>
+  <li>every command of the safety class shared state;</li>
+  <li>the trust commands;</li>
+  <li>the tools that repoctl calls for the human;</li>
+  <li>the git commands that only a human runs;</li>
+  <li>the set inputs (<a href="security.html#set-inputs">security.html#set-inputs</a>).</li>
+</ul>
+<p>These are the settings that <code>skills install</code> merges. The list has no rule for one set, so it stays correct when a package or a set is added:</p>
 <pre><code class="language-json">{
   "permissions": {
     "deny": [
@@ -218,10 +240,15 @@ metadata:
     ]
   }
 }</code></pre>
-<p>A prefix rule cannot see a path. The rule <code>Bash(git push:*)</code> does not match <code>git -C packages/ucx push</code>, and mode apply of bump-package allows the prefix <code>git -C packages/</code>. That prefix also matches <code>git -C packages/ucx/.. commit</code>, which commits on the builder branch. The guard hook closes these gaps. A deny rule wins over an allow rule. Test V21 checks the rules and the hook (<a href="delivery.html#verification">delivery.html#verification</a>).</p>
-<p><code>Bash(repoctl sign:*)</code> also blocks <code>repoctl sign ls</code>. An agent reads the signing keys through the MCP tools <code>repoctl_sign_ls</code>, <code>repoctl_sign_onboard</code>, <code>repoctl_sign_offboard</code> and <code>repoctl_sign_keyfile</code>.</p>
+<p>A deny rule wins over an allow rule. But a prefix rule cannot see a path, so the guard hook closes these gaps:</p>
+<ul>
+  <li>The rule <code>Bash(git push:*)</code> does not match <code>git -C packages/ucx push</code>.</li>
+  <li>Mode apply of bump-package allows the prefix <code>git -C packages/</code>. That prefix also matches <code>git -C packages/ucx/.. commit</code>, which commits on the builder branch.</li>
+</ul>
+<p><code>Bash(repoctl sign:*)</code> also blocks <code>repoctl sign ls</code>. An agent reads the signing keys through the MCP tools <code>repoctl_sign_ls</code>, <code>repoctl_sign_onboard</code>, <code>repoctl_sign_offboard</code> and <code>repoctl_sign_keyfile</code>. Test V21 checks the rules and the hook (<a href="delivery.html#verification">delivery.html#verification</a>).</p>
 <h3 id="guard">Guard hook</h3>
-<p><code>repoctl skills guard</code> is a PreToolUse hook of Claude Code. Claude Code runs it before each call of Bash, Edit, Write and NotebookEdit and gives it the call as JSON on stdin. The guard finds the set from the working directory of the call (<a href="config.html#discovery">config.html#discovery</a>). Outside a set directory, it gives no decision. In a set directory, it reads <code>repoctl.yaml</code> at each call, so a new or renamed package needs no new rule. The guard denies the call when a row of the table matches. Else it gives no decision, and the normal permission rules apply.</p>
+<p><code>repoctl skills guard</code> is a PreToolUse hook of Claude Code. Before each call of Bash, Edit, Write and NotebookEdit, Claude Code gives it the call as JSON on stdin. The guard writes its decision on stdout in the hook format of Claude Code, not in the <code>--json</code> envelope.</p>
+<p>The guard finds the set from the working directory of the call (<a href="config.html#discovery">config.html#discovery</a>). In a set directory, it reads <code>repoctl.yaml</code> at each call, so a new or renamed package needs no new rule. It denies the call when a row of the table matches. Else, and outside a set directory, the normal permission rules apply.</p>
 <table class="compact">
 <thead><tr><th>Call</th><th>The guard denies when</th></tr></thead>
 <tbody>
@@ -234,26 +261,29 @@ metadata:
 <tr><td>Edit, Write, NotebookEdit; in Bash a redirection and the paths of <code>tee</code>, <code>cp</code>, <code>mv</code>, <code>rm</code>, <code>ln</code> and <code>sed -i</code></td><td>The resolved path is a set input, or it is in <code>.repoctl/</code>, <code>.claude/</code>, <code>.git/</code>, <code>.mcp.json</code>, <code>CLAUDE.md</code>, <code>~/.claude/</code> or the repoctl user config directory.</td></tr>
 </tbody>
 </table>
-<p>A deny goes back to the agent with the reason, and the agent shows the command to the human. Claude Code applies the deny of a hook in each permission mode. The guard writes the decision in the hook format of Claude Code, not in the <code>--json</code> envelope.</p>
-<p><code>repoctl doctor</code> warns with <code>skills.guard</code> when a skill of repoctl is installed or the plugin is on and no guard hook covers the set directory. It also warns when the static deny list of a settings file differs from the list of this binary. The fix is <code>repoctl skills install</code> with the same scope.</p>
+<p>A deny goes back to the agent with the reason, and the agent shows the command to the human. Claude Code applies the deny of a hook in each permission mode.</p>
+<p><code>repoctl doctor</code> warns with <code>skills.guard</code> when a skill of repoctl is installed or the plugin is on, and no guard hook covers the set directory. It also warns when the static deny list of a settings file differs from the list of this binary. The fix is <code>repoctl skills install</code> with the same scope.</p>
 
 <h2 id="mcp">MCP server</h2>
-<p>The MCP server gives an agent the repoctl commands as tools with typed input and the <code>--json</code> envelope as output. The tool definitions are in <a href="contract/schema/mcp-tools.json"><code>contract/schema/mcp-tools.json</code></a>. <code>repoctl mcp tools</code> prints the same file. Command block: <a href="cli.html#cmd-mcp">cli.html#cmd-mcp</a>.</p>
+<p>The MCP server gives an agent the repoctl commands as tools with typed input and the <code>--json</code> envelope as output. Tool names are <code>repoctl_COMMAND[_SUB]</code>. The tool definitions are in <a href="contract/schema/mcp-tools.json"><code>contract/schema/mcp-tools.json</code></a>, and <code>repoctl mcp tools</code> prints the same file. Synopsis and exit codes: <a href="cli.html#cmd-mcp">cli.html#cmd-mcp</a>.</p>
 <h3 id="mcp-start">Start and registration</h3>
 <pre class="term">$ repoctl mcp start                     # stdio server for the set in the current directory (or -C)
 $ repoctl mcp start --tools read        # only the read tools; the web UI agent uses this
 $ repoctl mcp tools [--tools read]      # print the tool definitions as JSON
 $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <ul>
-  <li>The Claude Code plugin that ships the generic skills also declares this server. <code>claude mcp add</code> registers it by hand.</li>
+  <li>The Claude Code plugin of the generic skills (<a href="#install">install paths</a>) also declares this server. <code>claude mcp add</code> registers it by hand.</li>
   <li>A server serves one set: the set that it finds from its working directory at start. No tool takes a path.</li>
   <li>The transport is stdio. The server has no HTTP mode.</li>
   <li><code>--tools read|all|NAME,...</code> limits the server. The default is <code>all</code>. A name that is not in the tool table is a usage error. In mode <code>read</code>, <code>tools/list</code> returns only the tools of class read.</li>
 </ul>
 <h3 id="mcp-exec">Execution model</h3>
 <ul>
-  <li>Read tools run in the server process. They use the effective user config path and read no <code>REPOCTL_*</code> variable that the environment rule removes from a child (<a href="config.html#env">config.html#env</a>). Each call gets its own event bus. If the call has a <code>progressToken</code>, a progress notifier listens on the bus. The server closes the bus, then the notifier, then it answers. This matters for <code>repoctl_plan</code>, which can build SRPMs for minutes.</li>
-  <li><code>repoctl_build</code> starts <code>repoctl build --json --progress none</code> as a detached child: own session, <code>TRACEPARENT</code> set, <code>--config</code>, <code>--jobs</code> and <code>--lock-wait 0</code> as flags, the variables of the environment rule removed (<a href="config.html#env">config.html#env</a>). The server picks the run id and passes it, with its server session id, in hidden flags. The run records the session id in <code>origin.session</code>. The server waits for <code>plan.ready</code> (at most 60 s) and returns the Run. The run continues when the MCP session ends.</li>
+  <li>Read tools run in the server process with the code of their command. They use the effective user config path and read no <code>REPOCTL_*</code> variable that the environment rule removes from a child (<a href="config.html#env">config.html#env</a>).</li>
+  <li>Each call gets its own event bus. If the call has a <code>progressToken</code>, a progress notifier listens on the bus. The server closes the bus, then the notifier, then it answers. This order matters for <code>repoctl_plan</code>, which can build SRPMs for minutes.</li>
+  <li><code>repoctl_build</code> starts <code>repoctl build --json --progress none</code> as a detached child in its own session. The child gets <code>TRACEPARENT</code>, the flags <code>--config</code>, <code>--jobs</code> and <code>--lock-wait 0</code>, and no variable of the environment rule.</li>
+  <li>The server picks the run id and passes it, with its server session id, in hidden flags. The run records the session id in <code>origin.session</code>.</li>
+  <li><code>repoctl_build</code> waits for <code>plan.ready</code> (at most 60 s) and returns the Run. The run continues when the MCP session ends.</li>
   <li>There is no build queue. When another command of this user holds the set lock on this host, <code>repoctl_build</code> fails with <code>set.busy</code> (exit 7). The error names the active run (<a href="build.html#lock">build.html#lock</a>).</li>
   <li><code>repoctl_run_wait</code> reads the journal of the run through the same fold as the CLI. It returns at <code>run.finished</code> or after <code>timeoutSeconds</code> (at most 600).</li>
   <li>The server validates each input against its id pattern (Dir, NodeId, RunId, TargetId) before use. It builds argument vectors from validated values only. It never runs a shell.</li>
@@ -289,7 +319,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 </svg>
 <figcaption>The web UI starts its agent in mode read. A terminal client gets mode all. The commands outside the server stay with the human.</figcaption>
 </figure>
-<p>This is the one tool table. An asterisk marks a required argument. The class is the safety class of the command (<a href="model.html#safety">model.html#safety</a>).</p>
+<p>An asterisk marks a required argument. The class is the safety class of the command (<a href="model.html#safety">model.html#safety</a>).</p>
 <table class="compact">
 <thead><tr><th>Tool</th><th>Arguments</th><th>Returns</th><th>Class</th><th>Note</th></tr></thead>
 <tbody>
@@ -318,8 +348,8 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>repoctl_sign_keyfile</code></td><td>targets, tree, checksum</td><td>File</td><td><span class="tag read">read</span></td><td>Network. The key file in latest of each target, or its sha256: the pin of the client bootstrap.</td></tr>
 <tr><td><code>repoctl_config_show</code></td><td>key</td><td>Config</td><td><span class="tag read">read</span></td><td>Each value with the layer that gave it.</td></tr>
 <tr><td><code>repoctl_schema</code></td><td>name*</td><td>schema</td><td><span class="tag read">read</span></td><td><code>config</code>, <code>output</code> or <code>events</code>. The result is the schema, not an envelope.</td></tr>
-<tr><td><code>repoctl_build</code></td><td>dirs, targets, force, jobs, from, failFast, withDeps, rdeps</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Network. Returns at <code>plan.ready</code>. <code>set.busy</code> when a build runs. <code>from: worktree</code> is never publishable.</td></tr>
-<tr><td><code>repoctl_run_cancel</code></td><td>run*, force</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Destructive. Only runs that this server started: origin <code>mcp</code> with the session id of this server.</td></tr>
+<tr><td><code>repoctl_build</code></td><td>dirs, targets, force, jobs, from, failFast, withDeps, rdeps</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Network. Returns at <code>plan.ready</code>. <code>set.busy</code> when a build runs (<a href="#mcp-exec">execution model</a>).</td></tr>
+<tr><td><code>repoctl_run_cancel</code></td><td>run*, force</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Destructive. Only a run that this server started (<a href="#mcp-safety">safety</a>).</td></tr>
 <tr><td><code>repoctl_checkout</code></td><td>dirs, create, from, fromSet, orphan</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Network. Never discards changes, never pushes. A kept worktree is the warning <code>worktree.dirty</code>, exit 0, as in the CLI.</td></tr>
 <tr><td><code>repoctl_pin</code></td><td>dirs*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Does not commit <code>repoctl.lock</code>. Warns <code>lock.unpushed</code>. Refuses a behind worktree (<code>lock.behind</code>): an agent never pins an older commit.</td></tr>
 <tr><td><code>repoctl_rebuild</code></td><td>dirs*, reason*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Empty commit (<a href="build.html#rebuild">build.html#rebuild</a>). Reason of 8 characters or more. Pins, as the CLI does. No push or build. An in-tree package gives <code>rebuild.in-tree</code>.</td></tr>
@@ -327,7 +357,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 </table>
 <p>Annotations follow the class. Read tools have <code>readOnlyHint</code>. Of the other five, only <code>repoctl_run_cancel</code> has <code>destructiveHint</code>. "Network" means <code>openWorldHint</code>. A client asks the human before a call that is not read-only, unless the human allowed it.</p>
 <h3 id="not-exposed">Not exposed</h3>
-<p>These commands have no tool, on purpose. The list is <code>notExposed</code> in <code>mcp-tools.json</code>.</p>
+<p>These commands have no tool, on purpose. The list is <code>notExposed</code> in <code>mcp-tools.json</code>. Also, no tool commits <code>repoctl.lock</code> or edits <code>repoctl.yaml</code> or the user config.</p>
 <table class="compact">
 <thead><tr><th>Commands</th><th>Why there is no tool</th></tr></thead>
 <tbody>
@@ -341,12 +371,11 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 </table>
 <h3 id="mcp-safety">Safety policy and read-only mode</h3>
 <ul>
-  <li>No tool publishes, signs, pushes, restores, prunes, commits <code>repoctl.lock</code>, deletes caches, changes a mock chroot, records a deployment, dismisses or accepts an advisory, or edits <code>repoctl.yaml</code> or the user config.</li>
   <li><code>repoctl_build</code> writes only to the staging of its own run (<code>$XDG_DATA_HOME/repoctl/&lt;set&gt;/staging/</code>) and to the state directory. Only <code>repoctl publish</code> writes to the registry.</li>
   <li>Builds use committed, pinned sources only. A dirty worktree, or a worktree ahead of the lock, gives <code>lock.dirty</code> with a humanAction. <code>from: worktree</code> builds the committed worktree HEADs, but the run is unpinned and never publishable.</li>
-  <li><code>repoctl_run_cancel</code> cancels only a run that this server started: <code>origin.via</code> is <code>mcp</code> and <code>origin.session</code> is the session id of this server. Each other run gives <code>cancel.foreign-run</code>, also a run of an earlier MCP session of the same user. After the MCP session ends, only a human can cancel its runs, with <code>repoctl cancel RUN</code> or Cancel in the web UI.</li>
-  <li>In mode <code>read</code> a call to a tool outside the mode fails with the problem <code>mcp.tool-not-allowed</code> (<code>isError: true</code>). The limit holds for every client, not only for Claude Code.</li>
-  <li>The web UI starts its agent with <code>--tools read</code> and the tool list of the task. A write step that the agent proposes becomes a button. The button runs the command with the confirmation of the human.</li>
+  <li><code>repoctl_run_cancel</code> cancels only a run that this server started: <code>origin.via</code> is <code>mcp</code> and <code>origin.session</code> is the session id of this server. Each other run gives <code>cancel.foreign-run</code>, also a run of an earlier MCP session of the same user.</li>
+  <li>After the MCP session ends, only a human can cancel its runs, with <code>repoctl cancel RUN</code> or Cancel in the web UI.</li>
+  <li>In mode <code>read</code>, a call to a tool outside the mode fails with the problem <code>mcp.tool-not-allowed</code> (<code>isError: true</code>). The limit holds for every client, not only for Claude Code.</li>
 </ul>
 <h3 id="mcp-results">Result shape</h3>
 <ul>
@@ -402,13 +431,13 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 </tbody>
 </table>
 <h3 id="progress">Progress</h3>
-<p>A call with a <code>progressToken</code> gets <code>notifications/progress</code>. The server builds them from the journal of the run with the same fold as the CLI, not from the terminal progress log. <code>repoctl_run_wait</code> sends the nodes that ended of the build nodes. <code>repoctl_plan</code> sends the SRPM steps. Example during a wait on run <code>r-20261102-1750-a3f</code> at 18:01:</p>
+<p>A call with a <code>progressToken</code> gets <code>notifications/progress</code>. The server builds them from the journal of the run with the same fold as the CLI, not from the terminal progress log. <code>repoctl_run_wait</code> counts the build nodes that ended. <code>repoctl_plan</code> counts the SRPM steps. Example during a wait on run <code>r-20261102-1750-a3f</code> at 18:01:</p>
 <pre><code class="language-json">{"jsonrpc": "2.0", "method": "notifications/progress",
  "params": {"progressToken": "w-9", "progress": 4, "total": 8,
             "message": "build: 4/8 done, 1 failed, 1 blocked"}}</code></pre>
 
 <h2 id="ui-agent">The UI agent</h2>
-<p>The web UI uses an agent in one way only: an advisory button runs a local agent with a fixed skill and a fixed input. The agent can read, but it cannot change anything. Its result shows in the agent panel. Each proposed action is a normal UI button that the human clicks. The screens are in <a href="ui-build.html#agent-panel">ui-build.html#agent-panel</a>.</p>
+<p>The web UI uses an agent in one way only: an advisory button runs a local agent with a fixed skill and a fixed input. The agent can read, but it cannot change anything.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 270" role="img" aria-labelledby="uiagent-t">
 <title id="uiagent-t">From the agent button to the agent panel and back to a normal action</title>
@@ -457,14 +486,33 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 </tbody>
 </table>
 <ul>
-  <li>An agent button is a quiet secondary button with the ✦ mark. Its title names the skill. A row has one agent button at most. The button does not show where the plain text already gives the answer. Example: the ucx plan row says "sonames unchanged: rebuild not necessary", so it has no "Is a rebuild necessary?" (rule R6, <a href="ui.html#calm">ui.html#calm</a>).</li>
-    <li>The click sends <code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code> with the input and the CSRF header. The server starts the agent and answers with the panel. <code>POST /s/&lt;set&gt;/-/agent/&lt;id&gt;/stop</code> stops the agent: SIGINT to its process group, SIGTERM after 10 s, SIGKILL after 10 s more.</li>
+  <li>An agent button follows the calm rule R6 (<a href="ui.html#calm">ui.html#calm</a>). Its title names the skill. Example of R6: the ucx plan row says "sonames unchanged: rebuild not necessary", so it has no "Is a rebuild necessary?".</li>
   <li>One agent runs per set at a time. A second click shows the panel of the agent that runs. The slot is free again when the agent has a final state.</li>
-  <li>An agent has one of four states. <code>running</code>: the process runs. <code>done</code>: it exited 0 and its stream ended with a result. <code>stopped</code>: the human clicked Stop. <code>failed</code>: a non-zero exit, a stream that repoctl cannot parse, the time limit or a stop of the server. For failed, Details gives the cause and the last 20 lines of stderr.</li>
-  <li>The time limit is <code>agent.timeout</code> (user config, default 10m). At the limit, the server stops the agent as Stop does, and the state is failed with the cause "time limit 10m".</li>
-  <li>The agent is a child of the server in its own process group. It is not detached, because it only reads. A stop of the server stops each running agent as Stop does. At its start, the server changes each stored result with state running to failed, with the cause "the server stopped". Thus no old result holds the slot of a set.</li>
-  <li>The server keeps each result in <code>$XDG_STATE_HOME/repoctl/&lt;set&gt;/agent/&lt;id&gt;.json</code>. The agent id has the form <code>a-YYYYMMDD-HHMM-xxx</code>, for example <code>a-20261102-1800-7c1</code>. <code>?agent=&lt;id&gt;</code> on any set page opens the panel again.</li>
-  <li>The server keeps the newest <code>state.keep_agent</code> results of a set (user config, default 50). When it stores a result, it deletes the older results and each result whose input run is gone. <code>repoctl clean --logs</code> applies the same rule. <code>?agent=&lt;id&gt;</code> of a deleted result gives the 404 page.</li>
+</ul>
+<table class="compact">
+<thead><tr><th>Route or event</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code></td><td>The click sends it with the input and the CSRF header. The server starts the agent and answers with the panel.</td></tr>
+<tr><td><code>POST /s/&lt;set&gt;/-/agent/&lt;id&gt;/stop</code></td><td>Stops the agent: SIGINT to its process group, SIGTERM after 10 s, SIGKILL after 10 s more.</td></tr>
+<tr><td><code>?agent=&lt;id&gt;</code> on any set page</td><td>Opens the panel again. A deleted result gives the 404 page.</td></tr>
+<tr><td>SSE event <code>agent:&lt;id&gt;</code></td><td>Sends each update to the panel. The page opens its stream again with <code>&amp;agent=&lt;id&gt;</code> (<a href="ui.html#live">ui.html#live</a>).</td></tr>
+</tbody>
+</table>
+<table class="compact">
+<thead><tr><th>Agent state</th><th>When</th></tr></thead>
+<tbody>
+<tr><td><code>running</code></td><td>The process runs.</td></tr>
+<tr><td><code>done</code></td><td>The process exited 0, and its stream ended with a result.</td></tr>
+<tr><td><code>stopped</code></td><td>The human clicked Stop.</td></tr>
+<tr><td><code>failed</code></td><td>A non-zero exit, a stream that repoctl cannot parse, the time limit or a stop of the server. Details gives the cause and the last 20 lines of stderr.</td></tr>
+</tbody>
+</table>
+<ul>
+  <li>The time limit is <code>agent.timeout</code> (user config, default 10m). At the limit, the server stops the agent as Stop does. The state is failed with the cause "time limit 10m".</li>
+  <li>The agent is a child of the server in its own process group. It is not detached, because it only reads. A stop of the server stops each running agent as Stop does.</li>
+  <li>At its start, the server changes each stored result with state running to failed, with the cause "the server stopped". Thus no old result holds the slot of a set.</li>
+  <li>The server keeps each result in <code>$XDG_STATE_HOME/repoctl/&lt;set&gt;/agent/&lt;id&gt;.json</code>. The agent id has the form <code>a-YYYYMMDD-HHMM-xxx</code>, for example <code>a-20261102-1800-7c1</code>.</li>
+  <li>The server keeps the newest <code>state.keep_agent</code> results of a set (user config, default 50). When it stores a result, it deletes the older results and each result whose input run is gone. <code>repoctl clean --logs</code> applies the same rule.</li>
 </ul>
 <p>The server runs the agent in the set directory with this command line. <code>agent.command</code> and <code>agent.args</code> come from the <a href="#agent-config">user config</a>. repoctl adds the rest:</p>
 <pre class="term">$ claude -p "/repoctl-ui:triage-build r-20261102-1750-a3f/slurm@el10" \
@@ -475,23 +523,35 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
     --allowedTools mcp__repoctl__repoctl_runs mcp__repoctl__repoctl_run_get mcp__repoctl__repoctl_logs \
                    mcp__repoctl__repoctl_graph mcp__repoctl__repoctl_show mcp__repoctl__repoctl_doctor Read Grep \
     --disallowedTools Bash Edit Write NotebookEdit</pre>
-<p>The skill comes from the binary of the server, never from a copy that the agent finds. At its start, the server writes its embedded skills into the private plugin directory <code>$XDG_RUNTIME_DIR/repoctl/ui/plugin/</code> (mode 0700), with the plugin name <code>repoctl-ui</code> and the version of the binary. <code>--plugin-dir</code> loads this plugin, and the prompt names the skill with the plugin prefix <code>repoctl-ui:</code>. A user, project, plugin or set-local skill with the name <code>triage-build</code> thus cannot replace it, and an older or newer installed copy plays no part. No repoctl distribution uses the plugin name <code>repoctl-ui</code>.</p>
-<p>repoctl reads the stream. Tool calls go to "Tools used". Text goes to the result parts. The session id of the stream gives the command for "Continue in terminal". The panel gets each update through the SSE event <code>agent:&lt;id&gt;</code>. The page opens its stream again with <code>&amp;agent=&lt;id&gt;</code> (<a href="ui.html#live">ui.html#live</a>).</p>
+<p>The skill comes from the binary of the server, never from a copy that the agent finds:</p>
+<ul>
+  <li>At its start, the server writes its embedded skills into the private plugin directory <code>$XDG_RUNTIME_DIR/repoctl/ui/plugin/</code> (mode 0700).</li>
+  <li>The plugin has the name <code>repoctl-ui</code> and the version of the binary. No repoctl distribution uses this plugin name.</li>
+  <li><code>--plugin-dir</code> loads this plugin, and the prompt names the skill with the plugin prefix <code>repoctl-ui:</code>.</li>
+  <li>Thus a user, project, plugin or set-local skill with the name <code>triage-build</code> cannot replace it. An older or newer installed copy plays no part.</li>
+</ul>
+<p>repoctl reads the stream. Tool calls go to "Tools used", and text goes to the result parts. The session id of the stream gives the command for "Continue in terminal".</p>
 <h3 id="agent-panel">Agent panel</h3>
-<p>The agent panel is a drawer on the right, 600 px wide, under the top bar. It does not block the page. The page under it reflows, and the source row stays marked as selected while the drawer is open. Below 760 px the drawer covers the full screen. Mockups: <a href="mockups/ui/agent-running.html">agent-running.html</a> and <a href="mockups/ui/agent-panel.html">agent-panel.html</a>.</p>
-<ol>
-  <li>Head: the task, the node chip and a close button. One muted line gives the state, the skill, the agent command, the start time, the input run and "read only, changes nothing". While the agent runs, the line has the elapsed time and Stop.</li>
-  <li>Verdict first: one bold sentence. Example: "slurm needs rocm-smi-devel on el10, but rocm-smi is built for el9 only."</li>
-  <li>Proposed actions, right after the verdict and above the fold. When the agent finds two fixes, it gives both and the human picks one. Example: Fix A "Build slurm without the rsmi plugin on el10" has the primary button "Pin fix and build…". Fix B "Build rocm-smi for el10 too" needs an edit of <code>repoctl.yaml</code> by the human.</li>
-  <li>Four folds, each with a count or a summary: "Show diff (+3 −1)", "Evidence (5 lines)", "Tools used (5)" and "Details". The summary of Evidence has the <code>file:line</code> links. Details holds skill, agent, start, input and agent id.</li>
-  <li>Foot: "Suggestions only. repoctl changes nothing until you click." and the link "Continue in terminal".</li>
-</ol>
+<p>The agent panel is a drawer that does not block the page. Its layout and screenshots are in <a href="ui-build.html#agent-panel">ui-build.html#agent-panel</a>. Mockups: <a href="mockups/ui/agent-running.html">agent-running.html</a> and <a href="mockups/ui/agent-panel.html">agent-panel.html</a>.</p>
+<table class="compact">
+<thead><tr><th>Part, in order</th><th>What it holds</th></tr></thead>
+<tbody>
+<tr><td>Head</td><td>The task, the node chip and a close button. One muted line gives the state, the skill, the agent command, the start time, the input run and "read only, changes nothing".</td></tr>
+<tr><td>Verdict</td><td>First, one bold sentence.</td></tr>
+<tr><td>Proposed actions</td><td>Right after the verdict, above the fold. When the agent finds two fixes, it gives both, and the human picks one.</td></tr>
+<tr><td>Four folds</td><td>Each fold has a count or a summary. The summary of Evidence has the <code>file:line</code> links. Details holds skill, agent, start, input and agent id.</td></tr>
+<tr><td>Foot</td><td>The line "Suggestions only" and the link "Continue in terminal".</td></tr>
+</tbody>
+</table>
+<p>Example: Fix A "Build slurm without the rsmi plugin on el10" has the primary button "Pin fix and build…". Fix B "Build rocm-smi for el10 too" needs an edit of <code>repoctl.yaml</code> by the human.</p>
 <p>Rules of the panel:</p>
 <ul>
   <li>The panel is read only. repoctl never applies a diff. "Copy diff" copies it, and the human applies it in the package worktree.</li>
-  <li>A proposed action is a normal UI action with its normal dialog and confirmation. "Pin fix and build…" is off until the package branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog. The dialog selects the dirs of the failed nodes of the run and the dirs of the nodes that they block, for example <code>slurm slurm-singularity-exec</code>.</li>
-  <li>"Continue in terminal" copies <code>claude --resume &lt;session&gt;</code> for the set directory. The conversation stays in the agent tool, and repoctl keeps no copy. A "?" next to the link tells the human before the click: the terminal session has the permissions of the human's own agent setup, not the read-only tool list of the panel. Mode apply of <code>bump-package</code> runs only there.</li>
-  <li>While the agent runs, "Tools used" lists each call with a short argument, and a spinner marks the call that runs now.</li>
+  <li>A proposed action is a normal UI action with its normal dialog and confirmation.</li>
+  <li>"Pin fix and build…" is off until the package branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog. The dialog selects the dirs of the failed nodes of the run and the dirs of the nodes that they block, for example <code>slurm slurm-singularity-exec</code>.</li>
+  <li>"Continue in terminal" copies <code>claude --resume &lt;session&gt;</code> for the set directory. The conversation stays in the agent tool, and repoctl keeps no copy.</li>
+  <li>A "?" next to the link gives a note before the click. The terminal session has the permissions of the human's own agent setup, not the read-only tool list of the panel. Mode apply of <code>bump-package</code> runs only there.</li>
+  <li>While the agent runs, the head line has the elapsed time and Stop. "Tools used" lists each call with a short argument, and a spinner marks the call that runs now.</li>
 </ul>
 <p>Accessibility of the panel:</p>
 <ul>
@@ -508,7 +568,15 @@ agent:
   timeout: 10m           # the time limit of one agent run</code></pre>
 <p>The agent must run a skill of a plugin from <code>--plugin-dir</code> by its prompt and use an MCP server from <code>--mcp-config</code>. It must accept the tool flags above and write the stream-json format of Claude Code. repoctl reads only this format. The agent uses the sign-in and model settings of the human.</p>
 <h3 id="no-agent">No agent configured</h3>
-<p>Without <code>agent</code> in the user config, the server leaves the agent buttons out of the HTML. It does not show disabled buttons. All other actions stay. The Advisories card has one quiet line in its foot: "Agent buttons are off. How to turn them on". The same applies when <code>agent.command</code> is set but cannot run: the program is not on the PATH, or <code>COMMAND --version</code> fails. The server checks this at its start and after each change of the user config. The foot line then names the cause, for example "Agent buttons are off: claude not found. Run repoctl doctor". The plain diagnosis of repoctl stays, for example the Needs you item "slurm@el10 failed: rocm-smi-devel is not available for el10".</p>
+<p>When the agent cannot run, the server leaves the agent buttons out of the HTML. It does not show disabled buttons. All other actions stay. The Advisories card has one quiet line in its foot:</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Foot line of the Advisories card</th></tr></thead>
+<tbody>
+<tr><td>No <code>agent</code> in the user config</td><td>"Agent buttons are off. How to turn them on"</td></tr>
+<tr><td><code>agent.command</code> is set, but it cannot run: the program is not on the PATH, or <code>COMMAND --version</code> fails</td><td>The line names the cause, for example "Agent buttons are off: claude not found. Run repoctl doctor"</td></tr>
+</tbody>
+</table>
+<p>The server checks <code>agent.command</code> at its start and after each change of the user config. <code>repoctl doctor</code> warns in the same case with the host check <code>agent.command</code>. The plain diagnosis of repoctl stays, for example the Needs you item "slurm@el10 failed: rocm-smi-devel is not available for el10".</p>
 <figure class="shot"><a href="mockups/ui/overview-no-agent.html"><img src="img/ui-overview-no-agent.webp" alt="Advisories card of the Overview without agent buttons. Rows have Rebuild…, Show closure and Dismiss only." loading="lazy"></a><figcaption>No agent configured. The card has the same layout and no agent buttons.</figcaption></figure>
 <h3 id="no-chat">Why no chat</h3>
 <p>The UI has advisory buttons and no chat panel. For a free conversation, the human uses "Continue in terminal".</p>
