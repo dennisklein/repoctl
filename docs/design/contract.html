@@ -421,8 +421,8 @@
 <table class="compact">
 <thead><tr><th>type</th><th>When</th><th>Keys</th></tr></thead>
 <tbody>
-<tr><td><code>run.started</code></td><td>first line</td><td><code>set</code>, <code>kind</code>, <code>publishKind</code>, <code>trace</code>, <code>traceParent</code>, <code>origin</code>, <code>selection</code>, <code>setCommit</code>, <code>repoctl</code></td></tr>
-<tr><td><code>plan.ready</code></td><td>the plan is done</td><td><code>summary</code>, <code>build[]</code> with reasons, <code>current[]</code>, <code>staged[]</code>, <code>skip[]</code></td></tr>
+<tr><td><code>run.started</code></td><td>first line</td><td><code>set</code>, <code>kind</code>, <code>publishKind</code>, <code>trace</code>, <code>traceParent</code>, <code>origin</code>, <code>selection</code>, <code>setCommit</code>, <code>lockDigest</code>, <code>repoctl</code></td></tr>
+<tr><td><code>plan.ready</code></td><td>the plan is done</td><td><code>summary</code>, <code>build[]</code> with reasons, <code>current[]</code>, <code>staged[]</code>, <code>skip[]</code>, <code>commits</code> (the commit of each node that is not skip), <code>fromRun</code> (the run of each staged node)</td></tr>
 <tr><td><code>node.state</code></td><td>each change after the first state</td><td><code>state</code>, <code>prev</code>, <code>durationMs</code>, <code>error</code>, <code>blockedBy</code>, <code>nvrs</code>, <code>checks</code></td></tr>
 <tr><td><code>node.step</code></td><td>start and end of srpm, rpm, stage</td><td><code>step</code>, <code>phase</code>, <code>status</code>, <code>exitCode</code>, <code>durationMs</code></td></tr>
 <tr><td><code>node.log</code></td><td>1 line per node every 2 s, and each line that matches an error pattern</td><td><code>step</code>, <code>line</code> (512 bytes or less), <code>offset</code>, <code>dropped</code>, <code>level</code></td></tr>
@@ -443,7 +443,7 @@
 
 <h3 id="excerpt">Story excerpt</h3>
 <p>Dennis ran <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code> and <code>repoctl pin</code>, then <code>repoctl build</code> with <code>jobs: 3</code>. The listing shows lines of <code>runs/r-20261102-1750-a3f.jsonl</code> up to 18:01:06, the time of the live frames, and the last line. Gaps in <code>seq</code> are lines that the listing leaves out; <a href="contract/examples/journal.jsonl">journal.jsonl</a> has more lines.</p>
-<pre><code class="language-json">{"v":1,"run":"r-20261102-1750-a3f","seq":1,"time":"2026-11-02T17:50:04.112Z","type":"run.started","span":"c71e0a94b25d3f10","set":"slurm-26.05","kind":"build","trace":"4bf92f3577b34da6a3ce929d0e0e4736","origin":{"via":"cli","user":"dklein","host":"hpc-a1","pid":48213},"selection":{"dirs":[],"targets":["el9","el10"],"from":"lock","force":false,"failFast":false,"jobs":3},"setCommit":"5d81c3e09f7a2b64c1e8d0f3a6b9c27e41d5f803","repoctl":"v0.4.0"}
+<pre><code class="language-json">{"v":1,"run":"r-20261102-1750-a3f","seq":1,"time":"2026-11-02T17:50:04.112Z","type":"run.started","span":"c71e0a94b25d3f10","set":"slurm-26.05","kind":"build","trace":"4bf92f3577b34da6a3ce929d0e0e4736","origin":{"via":"cli","user":"dklein","host":"hpc-a1","pid":48213},"selection":{"dirs":[],"targets":["el9","el10"],"from":"lock","force":false,"failFast":false,"jobs":3},"setCommit":"5d81c3e09f7a2b64c1e8d0f3a6b9c27e41d5f803","lockDigest":"sha256:b9002aaaed380dd0704b6bd8a3d1b987544b32c0e1938d60c563d931b1eb26f4","repoctl":"v0.4.0"}
 {"v":1,"run":"r-20261102-1750-a3f","seq":5,"time":"2026-11-02T17:50:08.312Z","type":"warning","span":"c71e0a94b25d3f11","node":"slurm@el10","code":"dep.not-for-target","target":"el10","message":"slurm@el10 requires rocm-smi-devel. Only rocm-smi@el9 provides it; rocm-smi is not built for el10."}
 {"v":1,"run":"r-20261102-1750-a3f","seq":44,"time":"2026-11-02T17:54:13.330Z","type":"node.state","node":"ucx@el9","span":"5a0e3b7c9d1f2a01","parent":"c71e0a94b25d3f12","state":"ok","prev":"running","durationMs":245000,"nvrs":["ucx-1.22.1-1.el9.x86_64","ucx-cma-1.22.1-1.el9.x86_64","ucx-devel-1.22.1-1.el9.x86_64","ucx-examples-1.22.1-1.el9.x86_64","ucx-ib-1.22.1-1.el9.x86_64","ucx-ib-efa-1.22.1-1.el9.x86_64","ucx-ib-mlx5-1.22.1-1.el9.x86_64","ucx-knem-1.22.1-1.el9.x86_64","ucx-mad-1.22.1-1.el9.x86_64","ucx-rdmacm-1.22.1-1.el9.x86_64","ucx-rocm-1.22.1-1.el9.x86_64","ucx-static-1.22.1-1.el9.x86_64","ucx-vfs-1.22.1-1.el9.x86_64","ucx-xpmem-1.22.1-1.el9.x86_64"],"checks":{"soname":"unchanged"}}
 {"v":1,"run":"r-20261102-1750-a3f","seq":77,"time":"2026-11-02T17:58:52.027Z","type":"node.state","node":"openmpi@el10","span":"5a0e3b7c9d1f2a04","parent":"c71e0a94b25d3f12","state":"queued","prev":"waiting"}
@@ -522,6 +522,9 @@
 </table>
 <aside class="callout rule"><p class="callout-title">Rule</p>
 <p>A program that shows node state reads it through <code>journal.Fold</code> or through a result that <code>journal.Fold</code> made. Thus <code>repoctl runs</code>, the web UI and the MCP tools always show the same state. MCP resources for runs are in <a href="agents.html#resources">Resources</a>.</p>
+</aside>
+<aside class="callout rule"><p class="callout-title">Rule: the commit of a node</p>
+<p><code>journal.Fold</code> takes the commit of each node from <code>commits</code> of <code>plan.ready</code>. <code>NodeResult.commit</code> comes from there. The staged rule of the plan compares the commit and the target with this value of the earlier run (<a href="build.html#actions">plan actions</a>). It never uses <code>setCommit</code> or the lock of today. <code>setCommit</code> and <code>lockDigest</code> record the set inputs of the run for a human.</p>
 </aside>
 
 <h2 id="examples">Example files</h2>

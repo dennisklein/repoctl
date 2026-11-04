@@ -315,6 +315,10 @@
         "setCommit": {
           "$ref": "output.json#/$defs/Commit"
         },
+        "lockDigest": {
+          "$ref": "output.json#/$defs/Digest",
+          "description": "sha256 of the bytes of repoctl.lock that the run read. The set commit can differ: the lock is often not committed yet."
+        },
         "repoctl": {
           "type": "string"
         },
@@ -330,11 +334,12 @@
       }
     },
     "PlanReady": {
-      "description": "Gives every node its first state. Build nodes start waiting. When the dependencies of a node are done, the node starts if a job slot is free, else it is queued. Current and staged nodes keep their plan state. No node.state line is written for a first state.",
+      "description": "Gives every node its first state. Build nodes start waiting. When the dependencies of a node are done, the node starts if a job slot is free, else it is queued. Current and staged nodes keep their plan state. No node.state line is written for a first state. commits gives the package commit of each node: journal.Fold and the staged rule read the commit of a node only here.",
       "required": [
         "summary",
         "build",
-        "current"
+        "current",
+        "commits"
       ],
       "properties": {
         "summary": {
@@ -405,6 +410,26 @@
           "items": {
             "$ref": "output.json#/$defs/NodeId"
           }
+        },
+        "commits": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "output.json#/$defs/NodeId"
+          },
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/Commit"
+          },
+          "description": "One key per node of build[], current[] and staged[]: the package commit that the node builds or reuses. With from lock, the commit of repoctl.lock; with from worktree, the worktree HEAD at plan time."
+        },
+        "fromRun": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "output.json#/$defs/NodeId"
+          },
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/RunId"
+          },
+          "description": "One key per node of staged[]: the build run whose staging the node reuses."
         }
       }
     },
