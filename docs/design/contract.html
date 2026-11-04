@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 85 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 86 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -314,6 +314,7 @@
 <tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin --orphans</code></td></tr>
 <tr><td><code>lock.unpushed</code></td><td>5</td><td>The set commit or a pinned commit is not on its remote branch.</td><td>The exact <code>git push</code> commands (<code>push</code>).</td></tr>
 <tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The human runs the command.</td></tr>
+<tr><td><code>mock.busy</code></td><td>7</td><td><code>repoctl mock update</code> or <code>mock clean</code> holds the host mock lock, or a repoctl mock runs while one of them waits for it. The problem names the holder.</td><td>Wait, or use <code>--lock-wait</code> (<a href="build.html#mock">Mock roots</a>).</td></tr>
 <tr><td><code>mock.config-missing</code></td><td>9</td><td>The mock config of a target is not on this host.</td><td>Install it, or correct <code>targets[].mock</code>.</td></tr>
 <tr><td><code>mock.unavailable</code></td><td>9</td><td>mock is not installed, or the user is not in the group <code>mock</code>.</td><td>Install mock (<code>install-tool</code>).</td></tr>
 <tr><td><code>node.blocked</code></td><td>3</td><td>A dependency failed. The node did not run.</td><td>Repair the failed dependency.</td></tr>
@@ -440,7 +441,7 @@
 <tr><td><code>run.started</code></td><td>first line</td><td><code>set</code>, <code>kind</code>, <code>publishKind</code>, <code>trace</code>, <code>traceParent</code>, <code>origin</code>, <code>selection</code>, <code>setCommit</code>, <code>lockDigest</code>, <code>repoctl</code></td></tr>
 <tr><td><code>plan.ready</code></td><td>the plan is done</td><td><code>summary</code>, <code>build[]</code> with reasons, <code>current[]</code>, <code>staged[]</code>, <code>skip[]</code>, <code>commits</code> (the commit of each node that is not skip), <code>fromRun</code> (the run of each staged node)</td></tr>
 <tr><td><code>node.state</code></td><td>each change after the first state</td><td><code>state</code>, <code>prev</code>, <code>durationMs</code>, <code>error</code>, <code>blockedBy</code>, <code>nvrs</code>, <code>checks</code></td></tr>
-<tr><td><code>node.step</code></td><td>start and end of srpm, rpm, stage</td><td><code>step</code>, <code>phase</code>, <code>status</code>, <code>exitCode</code>, <code>durationMs</code></td></tr>
+<tr><td><code>node.step</code></td><td>start and end of srpm, rpm, stage</td><td><code>step</code>, <code>phase</code>, <code>status</code>, <code>exitCode</code>, <code>durationMs</code>, <code>root</code></td></tr>
 <tr><td><code>node.log</code></td><td>1 line per node every 2 s, and each line that matches an error pattern</td><td><code>step</code>, <code>line</code> (512 bytes or less), <code>offset</code>, <code>dropped</code>, <code>level</code></td></tr>
 <tr><td><code>artifact.added</code></td><td>each RPM or SRPM in staging</td><td><code>kind</code>, <code>repo</code>, <code>nvra</code>, <code>file</code>, <code>sizeBytes</code>, <code>sha256</code></td></tr>
 <tr><td><code>staging.updated</code></td><td>after <code>createrepo_c --update</code></td><td><code>target</code>, <code>repo</code>, <code>packages</code>, <code>revision</code></td></tr>

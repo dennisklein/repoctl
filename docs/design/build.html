@@ -553,10 +553,11 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <p>The journal of this run is the example of the machine contract (<a href="contract.html#journal">journal</a>). The publish of el9 on the next day takes the staged el9 nodes (<a href="publish.html#takes">what a publish takes</a>).</p>
 
 <h2 id="lock">Set lock and no queue</h2>
-<p>Two different things have the name "lock". The help and the messages always say which one.</p>
+<p>Three different things have the name "lock". The help and the messages always say which one.</p>
 <dl>
   <dt>Lock file</dt><dd><code>repoctl.lock</code> in the set: the pinned commits, committed to git (<a href="config.html#lock">lock file</a>).</dd>
   <dt>Set lock</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>: one writer per set at a time, for one user on one host. It records the holder: command, pid, host, user, start time and run id. Without <code>XDG_RUNTIME_DIR</code>, for example after <code>su</code>, in cron or in CI, the path is <code>$XDG_STATE_HOME/repoctl/SET.lock</code>.</dd>
+  <dt>Host mock lock</dt><dd><code>/var/lib/mock/.repoctl.lock</code>: shared by each command that runs mock, exclusive for <code>mock update</code> and <code>mock clean</code>, for all users and sets of the host (<a href="#mock">mock roots</a>).</dd>
 </dl>
 <p>A command that writes the set or its build state takes the set lock: checkout, pin, rebuild, build (for the whole run), publish, repo pull and the repo commands that make a snapshot, sign add, retire, remove and deployed, release write, clean, mock update and mock clean. repo verify takes it shared. A read command takes no set lock and never waits. <code>repoctl check</code> takes none, so a check can run while a build runs. Each command block gives its lock (<a href="cli.html#commands">commands</a>).</p>
 <p>All sets share the bare clone of an external package. Each git step on the clone also takes its clone lock (<a href="lifecycle.html#clones">external package clones</a>).</p>
@@ -643,11 +644,23 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 
 <h2 id="mock">Mock roots and verify roots</h2>
 <p>Each target names a mock config: <code>rocky+epel-9-x86_64</code> for el9 and <code>rocky+epel-10-x86_64</code> for el10 (<a href="config.html#targets">targets</a>). repoctl runs on Fedora. The mock chroots are EL9 and EL10.</p>
+<p>repoctl gives each root that it makes a name with <code>--uniqueext</code>. The name starts with <code>repoctl-UID</code>, the numeric id of the user. Thus repoctl knows its own roots, and the roots of two users or two sets never meet.</p>
+<table class="compact">
+<thead><tr><th>Root</th><th><code>--uniqueext</code></th><th>Made by</th><th>Removed</th></tr></thead>
+<tbody>
+<tr><td>Build root</td><td><code>repoctl-UID-SET-RUN-SLOT</code>, for example <code>repoctl-1000-slurm-26.05-r-20261102-1750-a3f-3</code></td><td>a node of a build, in job slot SLOT</td><td>When the node ends ok. The root of a failed or canceled node stays for a look with mock until the next build of the set on this host.</td></tr>
+<tr><td>Plan root</td><td><code>repoctl-UID-plan-PID</code></td><td>plan, graph, list, show and the step plan of a build, for the SRPMs of the graph</td><td>At the end of the command.</td></tr>
+<tr><td>Shell root</td><td><code>repoctl-UID-shell-PID</code></td><td><code>repoctl mock shell</code></td><td>When the shell ends.</td></tr>
+<tr><td>Verify root</td><td><code>repoctl-UID-SET-verify-TARGET</code></td><td><code>repoctl mock update</code>, for the publish step verify-el</td><td>By <code>repoctl mock clean</code>.</td></tr>
+</tbody>
+</table>
 <ul>
-  <li>Build roots: one per job. <code>--uniqueext</code> gives each job its own root, for example <code>rocky+epel-10-x86_64-r1750a3f-3</code>. The mock plugin <code>buildroot_lock</code> is on in each build root.</li>
-  <li>Verify roots: one per target, for publish step verify-el. A verify root has the mock config of the target, plus rpm, dnf and gnupg2. It checks the signatures with the client tools (<a href="signing.html#verify-el">verify in the EL chroot</a>).</li>
+  <li>Build roots: one per job. The mock plugin <code>buildroot_lock</code> is on in each build root. <code>NodeResult.root</code> records the root of each node.</li>
+  <li>Verify roots: one per set and target. A verify root has the mock config of the target, plus rpm, dnf and gnupg2. It checks the signatures with the client tools (<a href="signing.html#verify-el">verify in the EL chroot</a>).</li>
 </ul>
-<p><code>repoctl mock update</code> runs <code>mock --update</code> for each selected target, with the config, macros and plugins of the target. It also makes or updates the verify root of each target. <code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots that repoctl made, also on the <code>--uniqueext</code> roots. Both commands take the set lock. <code>repoctl mock shell TARGET</code> opens a shell in a root with its own <code>--uniqueext</code>, for debugging. The doctor check <code>sign.verify-el</code> says when a verify root is missing.</p>
+<p><code>repoctl mock update</code> runs <code>mock --update</code> for each selected target, with the config, macros and plugins of the target. It also makes or updates the verify root of each target. <code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots of this user whose name starts with <code>repoctl-UID</code>. It never touches a root of another user or a root without this prefix. Both commands take the set lock.</p>
+<aside class="callout rule"><p class="callout-title">Rule: the host mock lock</p><p>The mock config, its root cache and its package cache are shared by all users and sets of the host. Thus repoctl has one <dfn>host mock lock</dfn>, the file lock <code>/var/lib/mock/.repoctl.lock</code>, which the group mock can write. Each command that runs mock takes it shared: build (for the whole run), plan, graph, list, show, mock shell and the publish step verify-el. <code>repoctl mock update</code> and <code>repoctl mock clean</code> take it exclusive. Thus they never change a cache while a repoctl mock of any user runs. A busy host mock lock waits up to <code>--lock-wait</code>, then stops with exit 7 and <code>mock.busy</code>.</p></aside>
+<p><code>repoctl mock shell TARGET</code> opens a shell in a shell root, for debugging. The doctor check <code>sign.verify-el</code> says when a verify root is missing.</p>
 <pre class="term">$ repoctl mock shell el10 -- rpm -q --whatprovides rocm-smi-devel
 no package provides rocm-smi-devel</pre>
 <p>A change in the mock config or the macros of a target gives the advisory <code>mock.drift</code> for the nodes that the old config built. It does not start a build (<a href="#force">forced builds</a>). Command: <a href="cli.html#cmd-mock">repoctl mock</a>.</p>

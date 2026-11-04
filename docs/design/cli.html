@@ -368,7 +368,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 <tr><td>4</td><td><code>ExitNothingToPublish</code></td><td>Nothing to do: no node is staged, or prune, gc or resign finds nothing.</td><td><code>publish.nothing-to-publish</code></td></tr>
 <tr><td>5</td><td><code>ExitLockDirty</code></td><td>A worktree is not in-sync with <code>repoctl.lock</code>, or a set input is not committed or not pushed. A lock that does not agree with <code>repoctl.yaml</code> and a stale key file also give 5.</td><td><code>lock.dirty</code>, <code>lock.behind</code> (pin DIR), <code>lock.diverged</code>, <code>lock.unpushed</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code>, <code>sign.keyfile-stale</code></td></tr>
 <tr><td>6</td><td><code>ExitNeedsConfirmation</code></td><td>The command needs a human: no terminal, a wrong answer, or a trust change without the typed key id. Without a terminal, <code>--yes</code> also needs <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code>.</td><td><code>publish.needs-confirmation</code>, <code>publish.unattended-refused</code>, <code>sign.trust-change</code></td></tr>
-<tr><td>7</td><td><code>ExitBusy</code></td><td>Another process holds the set lock or the clone lock of an external package, and <code>--lock-wait</code> ended. There is no build queue.</td><td><code>set.busy</code>, <code>git.busy</code></td></tr>
+<tr><td>7</td><td><code>ExitBusy</code></td><td>Another process holds the set lock, the clone lock of an external package or the host mock lock, and <code>--lock-wait</code> ended. There is no build queue.</td><td><code>set.busy</code>, <code>git.busy</code>, <code>mock.busy</code></td></tr>
 <tr><td>8</td><td><code>ExitDoctorWarning</code></td><td>Only with <code>doctor --strict</code>: a check gave a warning, none failed.</td><td></td></tr>
 <tr><td>9</td><td><code>ExitHostNotReady</code></td><td>A required host check failed, in doctor or in the preflight of build, publish, check or mock.</td><td><code>host.not-ready</code>, <code>mock.unavailable</code>, <code>mock.config-missing</code>, <code>sign.no-key</code>, <code>sign.card-absent</code>, <code>sign.no-pinentry</code>, <code>sign.locked</code>, <code>sign.key-format</code></td></tr>
 <tr><td>10</td><td><code>ExitVerifyFailed</code></td><td>A signature, a checksum or the repodata is wrong, also in the EL chroot, or an RPM has an unknown signer. repoctl pushes nothing.</td><td><code>verify.failed</code>, <code>verify.el-failed</code>, <code>sign.unknown-signer</code></td></tr>
@@ -449,7 +449,7 @@ Next: repoctl pin ucx</pre>
   <pre class="synopsis">repoctl list [SELECTOR...] [--buildrequires] [--provides]
 repoctl ls ...</pre>
   <p>List the packages: version, commit, branch, targets and the dependencies in the set. This replaces <code>scripts/list</code>. The versions and dependencies come from the SRPM of each node, cached by commit and target. A cold cache resolves the SRPMs in mock and shows progress. <code>--buildrequires</code> and <code>--provides</code> add the BuildRequires and the binary RPM names per target.</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache and source cache entries in <code>~/.cache/repoctl/srpm/</code> and <code>sources/</code></dd><dt>Output</dt><dd>kind <code>Package</code>, one item per package</dd><dt>Exit</dt><dd>0; 1; 2</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>no set lock; the host mock lock, shared, while it builds an SRPM</dd><dt>Writes</dt><dd>SRPM cache and source cache entries in <code>~/.cache/repoctl/srpm/</code> and <code>sources/</code></dd><dt>Output</dt><dd>kind <code>Package</code>, one item per package</dd><dt>Exit</dt><dd>0; 1; 2</dd></dl>
   <pre class="term">$ repoctl list
 DIR                     VERSION  COMMIT   BRANCH                  TARGETS   DEPENDS ON
 munge                   0.5.18   3a244fd  munge/slurm-26.05       el9 el10  -
@@ -465,7 +465,7 @@ slurm-release           26.05    -        in tree                 el9 el10  -</p
   <h4><code>repoctl show</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl show SELECTOR</pre>
   <p>Show one package: source, lock state, spec, upstream config and notes. For each target, show the NVR, the dependencies, the dependents, the published build and the plan action. The selector must select one package; <code>slurm@el9</code> shows one target. The skills read this view with <code>--json</code>.</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache and source cache entries</dd><dt>Output</dt><dd>kind <code>Package</code> (one item; <code>targets[]</code> holds the row of each target)</dd><dt>Exit</dt><dd>0; 1; 2 the selector selects more than one package</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>no set lock; the host mock lock, shared, while it builds an SRPM</dd><dt>Writes</dt><dd>SRPM cache and source cache entries</dd><dt>Output</dt><dd>kind <code>Package</code> (one item; <code>targets[]</code> holds the row of each target)</dd><dt>Exit</dt><dd>0; 1; 2 the selector selects more than one package</dd></dl>
   <pre class="term">$ repoctl show slurm                     # 2026-11-02 17:49
 package    slurm · branch slurm/slurm-26.05 (origin) · lock d42f66a, worktree in-sync
 upstream   github SchedMD/slurm · tags ^slurm- · fedora slurm
@@ -559,7 +559,7 @@ Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmp
   <h4><code>repoctl graph</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl graph [SELECTOR...] [--with-deps] [--rdeps] [--run RUN] [--format text|matrix|dot|json]</pre>
   <p>Show the dependency graph of each target (<a href="build.html#graph">build.html#graph</a>). The text form is a lane graph with the layer and the dependencies of each node; <code>repoctl help graph</code> explains it. <code>--format matrix</code> gives one row per package and one column per target, <code>dot</code> gives Graphviz input. <code>--run RUN</code> shows the node states of a run in place of the plan actions. <code>-v</code> adds the requires that no package of the set provides.</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache and source cache entries (<a href="build.html#sources">build.html#sources</a>)</dd><dt>Output</dt><dd>kind <code>Graph</code>, one item per target</dd><dt>Exit</dt><dd>0; 1 a cycle (<code>graph.cycle</code>); 2</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>no set lock; the host mock lock, shared</dd><dt>Writes</dt><dd>SRPM cache and source cache entries (<a href="build.html#sources">build.html#sources</a>)</dd><dt>Output</dt><dd>kind <code>Graph</code>, one item per target</dd><dt>Exit</dt><dd>0; 1 a cycle (<code>graph.cycle</code>); 2; 7 <code>mock.busy</code></dd></dl>
   <pre class="term">$ repoctl graph --format matrix
 PACKAGE                 VERSION  EL9  EL10  NEEDS
 munge                   0.5.18   ≡    ≡     -
@@ -577,7 +577,7 @@ $ repoctl graph --target el9 --format dot | dot -Tsvg &gt; el9.svg</pre>
   <h4><code>repoctl plan</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl plan [SELECTOR...] [--with-deps] [--rdeps] [--force] [--from lock|worktree] [--check]</pre>
   <p>Show what <code>repoctl build</code> with the same arguments does, and why. Each node gets one plan action, and a build node gets its plan reasons (<a href="build.html#plan">build.html#plan</a>). The base is the manifest in the local copy of latest. plan builds nothing. Rows of a package with the same action and reason on all targets merge; current nodes fold into one line per target. <code>--check</code> gives exit 11 when a node has the action build.</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Reads</dt><dd>the digest of latest; without network, a warning and the local copy</dd><dt>Output</dt><dd>kind <code>Plan</code></dd><dt>Exit</dt><dd>0; 1; 2; 11 with <code>--check</code>; 13 <code>state.behind</code></dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>no set lock; the host mock lock, shared</dd><dt>Reads</dt><dd>the digest of latest; without network, a warning and the local copy</dd><dt>Output</dt><dd>kind <code>Plan</code></dd><dt>Exit</dt><dd>0; 1; 2; 7 <code>mock.busy</code>; 11 with <code>--check</code>; 13 <code>state.behind</code></dd></dl>
   <pre class="term">$ repoctl plan                           # 2026-11-02 17:49
 plan  slurm-26.05  from repoctl.lock  base latest p-20260912-1403-c21 (local copy same)
 PACKAGE                 TARGETS   ACTION  REASON
@@ -605,7 +605,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <tr><td><code>--force</code></td><td>Build current nodes too (reason forced), for tests. Publish refuses a reused NVR (<a href="build.html#force">build.html#force</a>).</td></tr>
   </tbody>
   </table>
-  <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run</dd><dt>Preflight</dt><dd>mock, the group mock, the mock configs, the rpmautospec plugin, free disk (<a href="delivery.html#requirements">requirements</a>); no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run; the host mock lock, shared</dd><dt>Preflight</dt><dd>mock, the group mock, the mock configs, the rpmautospec plugin, free disk (<a href="delivery.html#requirements">requirements</a>); no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
   <pre class="term">$ repoctl build
 note: run r-20261102-1750-a3f: 8 to build, 13 current, 3 at a time
 ✓ plan  4.2s    8 build, 13 current
@@ -1049,8 +1049,8 @@ would free 7.0 GiB</pre>
   <h4><code>repoctl mock</code> <span class="tag staging">staging</span></h4>
   <pre class="synopsis">repoctl mock update | clean
 repoctl mock shell TARGET [-- COMMAND...]</pre>
-  <p>Run mock with the config, macros and plugins of each selected target, as a build does (<a href="build.html#mock">build.html#mock</a>). update runs <code>mock --update</code> and updates the verify roots. clean runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots that repoctl made. shell opens <code>mock --shell</code> in a root of one target, with its own <code>--uniqueext</code>.</p>
-  <dl class="facts"><dt>Lock</dt><dd>update and clean: set lock; shell: none</dd><dt>Writes</dt><dd>mock roots and verify roots</dd><dt>Output</dt><dd>one line per target; no <code>--json</code></dd><dt>Exit</dt><dd>0; 1; 7; 9; shell: the status of the shell</dd></dl>
+  <p>Run mock with the config, macros and plugins of each selected target, as a build does (<a href="build.html#mock">build.html#mock</a>). update runs <code>mock --update</code> and updates the verify roots. clean runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots of this user that repoctl made (<code>repoctl-UID-…</code>). shell opens <code>mock --shell</code> in a shell root of one target (<code>repoctl-UID-shell-PID</code>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>update and clean: set lock and the host mock lock, exclusive; shell: the host mock lock, shared (<a href="build.html#mock">build.html#mock</a>)</dd><dt>Writes</dt><dd>mock roots and verify roots</dd><dt>Output</dt><dd>one line per target; no <code>--json</code></dd><dt>Exit</dt><dd>0; 1; 7 <code>set.busy</code> or <code>mock.busy</code>; 9; shell: the status of the shell</dd></dl>
   <pre class="term">$ repoctl mock shell el10 -- rpm -q --whatprovides rocm-smi-devel
 no package provides rocm-smi-devel</pre>
 </section>
