@@ -203,7 +203,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tr><td><code>packages[].branch</code> or <code>.path</code></td><td>one of them</td><td>The package branch, or the path of an in-tree package.</td></tr>
 <tr><td><code>packages[].git.url</code></td><td>no</td><td>An external repository (<a href="#external">external</a>).</td></tr>
 <tr><td><code>packages[].targets</code></td><td>no</td><td>The targets of this package. Default all.</td></tr>
-<tr><td><code>packages[].role</code></td><td>no</td><td><code>release</code> for the release package (<a href="signing.html#release">signing.html#release</a>).</td></tr>
+<tr><td><code>packages[].role</code></td><td>no</td><td><code>release</code> for the release package (<a href="signing.html#release">signing.html#release</a>). At most one package, with <code>path</code>.</td></tr>
 <tr><td><code>packages[].upstream</code>: <code>github</code>, <code>tags</code>, <code>fedora</code></td><td>no</td><td>The input of <code>repoctl upstream</code>: GitHub repository, tag filter (regular expression), Fedora package name.</td></tr>
 <tr><td><code>packages[].notes</code></td><td>no</td><td>Free text for humans and skills.</td></tr>
 <tr><td><code>skills[]</code></td><td>no</td><td>Directories with set-local skills (<a href="agents.html#skills">agents.html#skills</a>).</td></tr>
@@ -219,6 +219,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
   <li>The file has no secrets and no host paths. It has no registry credentials and no publish path. Push credentials come from the container credential store of the user (<a href="publish.html#registry">publish.html#registry</a>). Git credentials come from the git and ssh setup of the user.</li>
   <li>Every target has <code>plugins: [rpmautospec]</code>. Without it, a rebuild commit gives no new NVR. Else <code>config.invalid</code>, exit 1. doctor and status show the plugins of each target.</li>
   <li>A package has exactly one of <code>branch</code> and <code>path</code>.</li>
+  <li>At most one package has <code>role: release</code>, and that package has <code>path</code>. Else <code>config.invalid</code>, exit 1. The release package is in-tree (<a href="signing.html#release">signing.html#release</a>).</li>
   <li>Package facts (upstream repository, tag filter, notes) live in this file, not in a skill. Thus the CLI and the skills read the same facts.</li>
   <li>publish needs <code>repo.url</code>, <code>store.oci</code>, <code>sign.keys</code> and <code>sign.release.keyfile</code>. doctor warns when one is missing.</li>
 </ul>

@@ -372,7 +372,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <p>In the story, the publish of el9 keeps 170 RPMs: 120 of d.klein and 50 of the retiring key hpc-repo. It re-signs none.</p>
 
 <h2 id="release">Release package</h2>
-<p>The release package has one form: an in-tree package in the set repository, for example <code>packages/slurm-release/</code>, with <code>role: release</code> in <code>repoctl.yaml</code>.</p>
+<p>The release package has one form: an in-tree package in the set repository, for example <code>packages/slurm-release/</code>, with <code>role: release</code> in <code>repoctl.yaml</code>. A set has at most one. A second <code>role: release</code>, or one on a package with <code>branch</code>, gives <code>config.invalid</code> (<a href="config.html#rules">config rules</a>).</p>
 <ul>
   <li>The build identity of an in-tree package is the last set commit that changed its path, plus the target. repoctl builds it from a checkout of that commit. A key change is a commit on that path, so the plan says build with the reason commit-changed (<a href="build.html#plan">build.html#plan</a>).</li>
   <li>The spec uses <code>%autorelease</code> and <code>%autochangelog</code>. The changelog then shows the commit message of each key change, for example "Trust key a.admin C2F9…52A7". Admins see each trust change in <code>rpm -q --changelog</code>.</li>
