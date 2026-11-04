@@ -929,14 +929,17 @@ repoctl sign deployed ID --keyfile SHA256 [--target ID]... [--note TEXT]</pre>
 release  slurm-release-26.05-3.el9 in latest of el9 · key file holds a.admin C2F9…52A7
 Type the key id to confirm that all clients have this release: a.admin
 committed keys/deployed.yaml "Deployed a.admin on el9 with slurm-release-26.05-3", signed by d.klein
+pin      el9/RPM-GPG-KEY-slurm 1c7f3e2d…  (client bootstrap: update the pin in config management)
 Next: git push origin builder/slurm-26.05</pre>
 </section>
 
 <section class="cmd" id="cmd-sign-keyfile">
   <h4><code>repoctl sign keyfile</code> <span class="tag read">read</span></h4>
-  <pre class="synopsis">repoctl sign keyfile [--checksum]</pre>
-  <p>Print the key file of the release package, or with <code>--checksum</code> its sha256 in the form of <code>sha256sum</code>. Config management installs the key file on a new client with this pinned sum (<a href="signing.html#chain">signing.html#chain</a>).</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1; 5 <code>sign.keyfile-stale</code></dd></dl>
+  <pre class="synopsis">repoctl sign keyfile [--tree] [--checksum]</pre>
+  <p>Print the key file in latest of each selected target: the root key file of the snapshot (<a href="publish.html#format">publish.html#format</a>). With <code>--checksum</code>, print its sha256 in the form of <code>sha256sum</code>, one line per target. This sum is the pin of the client bootstrap (<a href="signing.html#bootstrap">signing.html#bootstrap</a>). <code>--tree</code> reads the key file of the in-tree release package instead, which can be ahead of latest.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>File</code>, one per target</dd><dt>Exit</dt><dd>0; 1 a target has no snapshot; 5 <code>sign.keyfile-stale</code> with <code>--tree</code>; 13</dd></dl>
+  <pre class="term">$ repoctl sign keyfile --target el9 --checksum
+5b0e9a4c…  el9/RPM-GPG-KEY-slurm   slurm-release-26.05-2.el9 in p-20261103-1412-5e1</pre>
 </section>
 
 <section class="cmd" id="cmd-release-write">
