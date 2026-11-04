@@ -871,7 +871,7 @@
     {
       "name": "repoctl_pin",
       "title": "Pin worktree commits",
-      "description": "Write the HEAD commit of the named package worktrees into repoctl.lock. Use it after you commit a spec change in packages/<dir>. It does not commit repoctl.lock and does not push. It refuses a dirty worktree (code lock.dirty, with a humanAction) and warns when the commit is not on the remote (lock.unpushed). Returns kind Lock with previous and new commits.",
+      "description": "Write the HEAD commit of the named package worktrees into repoctl.lock. Use it after you commit a spec change in packages/<dir>. It does not commit repoctl.lock and does not push. It writes a line only when the worktree is ahead of it or the package is unpinned. It refuses a dirty worktree (code lock.dirty, with a humanAction), a diverged worktree (lock.diverged) and a worktree that is behind the lock (lock.behind: run repoctl_checkout; an agent never pins an older commit). When one dir is refused, it writes nothing. It warns when the commit is not on the remote (lock.unpushed). Returns kind Lock with previous and new commits.",
       "inputSchema": {
         "type": "object",
         "required": [

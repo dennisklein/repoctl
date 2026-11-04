@@ -275,7 +275,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 76 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 78 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -303,9 +303,11 @@
 <tr><td><code>graph.dynamic-buildrequires</code></td><td>warning</td><td>The spec uses <code>%generate_buildrequires</code>. Edges can be missing.</td><td>Add the BuildRequires to the spec.</td></tr>
 <tr><td><code>host.not-ready</code></td><td>9</td><td>A required host check failed.</td><td><code>repoctl doctor</code> (<code>install-tool</code>)</td></tr>
 <tr><td><code>journal.sampling-stopped</code></td><td>warning</td><td>The journal is 32 MiB. No more <code>node.log</code> lines come.</td><td>The node log has the full text.</td></tr>
+<tr><td><code>lock.behind</code></td><td>5 in <code>pin DIR</code>; warning in <code>pin</code></td><td>The worktree HEAD is an ancestor of the lock commit. pin does not write the older commit back.</td><td><code>repoctl checkout DIR</code>; <code>repoctl pin DIR --older</code> pins the older commit on purpose.</td></tr>
 <tr><td><code>lock.dirty</code></td><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed.</td><td>The exact git commands (<code>commit-worktree</code>, <code>commit-lock</code>).</td></tr>
+<tr><td><code>lock.diverged</code></td><td>5</td><td>pin: the worktree and the lock commit both have commits that the other does not have.</td><td>Rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code>.</td></tr>
 <tr><td><code>lock.missing-package</code></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line.</td><td><code>repoctl pin DIR</code></td></tr>
-<tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin</code></td></tr>
+<tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin --orphans</code></td></tr>
 <tr><td><code>lock.unpushed</code></td><td>5</td><td>The set commit or a pinned commit is not on its remote branch.</td><td>The exact <code>git push</code> commands (<code>push</code>).</td></tr>
 <tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The human runs the command.</td></tr>
 <tr><td><code>mock.config-missing</code></td><td>9</td><td>The mock config of a target is not on this host.</td><td>Install it, or correct <code>targets[].mock</code>.</td></tr>

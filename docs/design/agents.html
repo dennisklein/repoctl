@@ -277,7 +277,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>repoctl_build</code></td><td>dirs, targets, force, jobs, from, failFast, rdeps</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Network. Returns at <code>plan.ready</code>. <code>set.busy</code> when a build runs. <code>from: worktree</code> is never publishable.</td></tr>
 <tr><td><code>repoctl_run_cancel</code></td><td>run*</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Destructive. Only runs that this server started.</td></tr>
 <tr><td><code>repoctl_checkout</code></td><td>dirs, create, from, fromSet, orphan</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Network. Never discards changes, never pushes. A kept worktree is the warning <code>worktree.dirty</code>, exit 0, as in the CLI.</td></tr>
-<tr><td><code>repoctl_pin</code></td><td>dirs*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Does not commit <code>repoctl.lock</code>. Warns <code>lock.unpushed</code>.</td></tr>
+<tr><td><code>repoctl_pin</code></td><td>dirs*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Does not commit <code>repoctl.lock</code>. Warns <code>lock.unpushed</code>. Refuses a behind worktree (<code>lock.behind</code>): an agent never pins an older commit.</td></tr>
 <tr><td><code>repoctl_rebuild</code></td><td>dirs*, reason*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Empty commit (<a href="build.html#rebuild">build.html#rebuild</a>). Reason of 8 characters or more. Pins, as the CLI does. No push or build.</td></tr>
 </tbody>
 </table>
