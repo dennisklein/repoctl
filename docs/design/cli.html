@@ -426,10 +426,10 @@ warning: upstream notes are not migrated: pmix_v4, rocm-smi
 hint: add notes: to these entries by hand. run: $EDITOR repoctl.yaml
 Next: check the files, then:
   1. add the el10 target, store.oci, repo.url and the release package
-  2. git rm -r packages.lock scripts .claude/skills/package-info .claude/skills/list-package-updates
-  3. update CLAUDE.md: it still tells agents to run ./scripts/build
-  4. repoctl doctor; repoctl plan
-  5. import the published repo: https://dennisklein.github.io/repoctl/runbooks/import.html</pre>
+  2. update CLAUDE.md: it still tells agents to run ./scripts/build
+  3. repoctl doctor; repoctl plan
+  4. import the published repo: https://dennisklein.github.io/repoctl/runbooks/import.html
+     keep packages.lock and scripts/ until the first publish with repoctl</pre>
 </section>
 
 <section class="cmd" id="cmd-status">
@@ -797,7 +797,7 @@ el10  p-20260912-1403-c21  same as the local copy</pre>
 repoctl repo push --from DIR --manifest FILE --target ID [--dry-run] [--yes]
 repoctl repo push --reseed --target ID [--from DIR] [--dry-run] [--yes]</pre>
   <p>Complete a publish that stopped in the push, tag or cache step (<a href="publish.html#complete">publish.html#complete</a>); the default is the newest pushable publish. <code>--target ID</code> completes one target of a partial publish. push refuses a tree whose state file does not record verify and verify-el ok (<code>publish.not-verified</code>, exit 10), and a tree whose files do not give the recorded manifest digest (<code>verify.failed</code>). When latest already is the new digest, push runs only the cache step. When latest is the base, push runs the steps push, tag and cache. When latest moved to another digest, it stops with <code>snapshot.diverged</code>.</p>
-  <p>With <code>--from DIR</code>, push makes the first snapshot of a target from a signed tree, for the import runbook (<a href="../runbooks/import.html#push">../runbooks/import.html#push</a>). The registry must have no snapshot of that target, else <code>import.not-empty</code> (exit 13). push keeps the RPM signatures, adds the manifest from FILE, writes the SBOM of each adopted build, signs the new <code>repomd.xml</code>, runs verify and verify-el, and pushes <code>p-import-YYYYMMDD</code>. Gate 2 applies: first record the old key with <code>repoctl sign deployed</code> (<a href="../runbooks/import.html#record-key">../runbooks/import.html#record-key</a>).</p>
+  <p>With <code>--from DIR</code>, push makes the first snapshot of a target from a signed tree, for the import runbook (<a href="../runbooks/import.html#push">../runbooks/import.html#push</a>). The registry must have no snapshot of that target: its OCI package has no tag latest, else <code>import.not-empty</code> (exit 13). A try that stopped before the tag step left no snapshot; push --from runs again, reuses its blobs and replaces its <code>p-import</code> tag. A wrong import after the tag step needs the recovery of the runbook (<a href="../runbooks/import.html#stop">../runbooks/import.html#stop</a>). push keeps the RPM signatures, adds the manifest from FILE, writes the SBOM of each adopted build, signs the new <code>repomd.xml</code>, runs verify and verify-el, and pushes <code>p-import-YYYYMMDD</code>. Gate 2 applies: first record the old key with <code>repoctl sign deployed</code> (<a href="../runbooks/import.html#record-key">../runbooks/import.html#record-key</a>).</p>
   <p>With <code>--reseed</code>, push makes the snapshot of a target again after the loss of its OCI package (<a href="publish.html#disaster">publish.html#disaster</a>). DIR is a copy of the last latest: the local copy (the default) or a copy of the served tree. push keeps each file as it is, signs nothing and needs no gates. It verifies the tree as repo pull does, runs verify-el and pushes <code>p-reseed-YYYYMMDD</code> without a parent. <code>--reseed</code> needs a target without a snapshot in the registry (else <code>snapshot.exists</code>).</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>GHCR blobs, manifest and tags; the local copy; the journal</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>publishKind</code> publish, import or reseed</dd><dt>Exit</dt><dd>0; 1; 6; 7; 10; 12 gate 2; 13</dd></dl>
 </section>
