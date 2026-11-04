@@ -1298,6 +1298,21 @@
             },
             "info": {
               "type": "integer"
+            },
+            "failed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Problem"
+              },
+              "description": "The failures of the last check, as in AdvisoryList.check.failed. Empty when it passed."
+            },
+            "timer": {
+              "enum": [
+                "active",
+                "off",
+                "unknown"
+              ],
+              "description": "The timer instance of this set on this host."
             }
           }
         },
@@ -4049,6 +4064,7 @@
             "plan",
             "build",
             "check",
+            "upstream",
             "publish"
           ],
           "description": "Where repoctl computed the advisory."

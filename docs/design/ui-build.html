@@ -73,6 +73,20 @@
   <dt>Live</dt><dd><code>advisories</code> (the list), <code>advisory:ID</code> (one row)</dd>
 </dl>
 
+<h2 id="upstream-page">Upstream page</h2>
+<p>Purpose: the page shows the output of <code>repoctl upstream</code> as a table: for each package, the version at the lock commit against the newest upstream release (status values: <a href="cli.html#cmd-upstream">cli.html#cmd-upstream</a>). It has no mockup.</p>
+<ul>
+  <li><b>Head.</b> "Checked TIME" and "from the cache" when the answer is less than one hour old. Refresh (quiet) loads the page with <code>?refresh=1</code>, which runs <code>repoctl upstream --refresh</code>. CLI toggle.</li>
+  <li><b>Table.</b> The columns of the CLI: Package, Current, Latest, Released, Fedora, Status, Note. update-available, ahead, frozen and unknown rows show; up-to-date and none rows fold into one line with a count per status, as the totals line of the CLI does.</li>
+  <li><b>Rows.</b> An update-available row links to its advisory <code>upstream.release/DIR</code> on the Advisories page. A dismissed update shows the note of its dismissal. The fold of a row lists the newer releases with date and URL (<code>--releases</code>). ✦ Summarize upstream release is in ⋯ when an agent is set up.</li>
+</ul>
+<p>The Upstream tab of the package page shows the same row for one package (<a href="ui-publish.html#package">ui-publish.html#package</a>).</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/upstream[?refresh=1]</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-upstream"><code>repoctl upstream</code></a>, <code>--releases</code>, <code>--refresh</code></dd>
+  <dt>Live</dt><dd><code>upstream</code> (the table), <code>advisory:ID</code> (the dismissal note)</dd>
+</dl>
+
 <h2 id="graph">Graph</h2>
 <figure class="shot"><a href="mockups/ui/graph.html"><img src="img/ui-graph.webp" alt="Graph of el9 at 18:01: four lanes, ucx ok, slurm and openmpi running, the rest current" loading="lazy"></a><figcaption>Graph of el9 during run a3f. Δ marks the 4 nodes that the plan builds.</figcaption></figure>
 <p>Purpose: the Graph shows the build graph of one target with the live state of the current run: "why does this node build, and what waits for it" (edges: <a href="build.html#graph">build.html#graph</a>).</p>

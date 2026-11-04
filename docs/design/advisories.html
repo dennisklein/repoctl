@@ -93,7 +93,7 @@
 <tr><td><code>hostFacts</code></td><td>Values of this host that explain the advisory. They are not in the digest.</td></tr>
 <tr><td><code>closure</code></td><td>Required level only: the dirs whose publish the advisory blocks.</td></tr>
 <tr><td><code>suggestion</code></td><td>A text and a command.</td></tr>
-<tr><td><code>source</code>, <code>seen</code></td><td>Where the check ran (plan, build, check or publish) and when.</td></tr>
+<tr><td><code>source</code>, <code>seen</code></td><td>Where the check ran (plan, build, check, upstream or publish) and when.</td></tr>
 <tr><td><code>dismissal</code></td><td>By, at, note, and <code>stale</code> when the dismissal no longer matches.</td></tr>
 </tbody>
 </table>
@@ -628,7 +628,7 @@ A required advisory is never dismissed. Remove its cause:
 <tr><td>CLI</td><td><code>repoctl check</code>, <code>repoctl advisories ls|show|dismiss|undismiss</code>, the advisories line of status and plan, the gate rows of the publish summary.</td><td><a href="cli.html#cmd-advisories">repoctl advisories</a>, <a href="terminal.html#check">terminal frame</a></td></tr>
 <tr><td>JSON</td><td>Kinds <code>Advisory</code> and <code>AdvisoryList</code>; <code>Plan.advisories[]</code>, <code>Run.advisories[]</code>; journal events <code>advisory</code>, <code>advisory.gone</code>, <code>advisory.accepted</code>.</td><td><a href="contract.html#kinds">kinds</a>, <a href="contract.html#events">events</a></td></tr>
 <tr><td>MCP</td><td>Read tools <code>repoctl_advisories</code>, <code>repoctl_advisory</code> and <code>repoctl_check</code>. No dismiss tool and no accept tool. A skill that wants a dismissal returns the humanAction <code>dismiss-advisory</code> with the command.</td><td><a href="agents.html#mcp-tools">MCP tools</a></td></tr>
-<tr><td>Web UI</td><td>The badge in the sidebar, the Advisories card, the Advisories page, the panel of the Plan page, the Dismiss dialog, and the accept rows of the publish review. A required row has no Dismiss button.</td><td><a href="ui-build.html#advisories-page">Advisories page</a>, <a href="ui-build.html#plan">Plan page</a></td></tr>
+<tr><td>Web UI</td><td>The badge in the sidebar, the Advisories card, the Advisories page, the panel of the Plan page, the Dismiss dialog, the accept rows of the publish review and the Upstream page. A required row has no Dismiss button.</td><td><a href="ui-build.html#advisories-page">Advisories page</a>, <a href="ui-build.html#plan">Plan page</a>, <a href="ui-build.html#upstream-page">Upstream page</a></td></tr>
 <tr><td>Agent buttons</td><td>"Is a rebuild necessary?" (skill rebuild-check) and "Summarize upstream release" (skill package-updates) on an advisory row.</td><td><a href="agents.html#agent-buttons">agent buttons</a></td></tr>
 </tbody>
 </table>
