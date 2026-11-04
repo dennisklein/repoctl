@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Security model</title>
+<meta name="description" content="The security model of repoctl: the assets, the actors, the trust boundaries, the rules that protect the set inputs and the GitHub branches, the threats with their mitigations, the public fields and the residual risks.">
+</head>
+<body>
+<h1>Security model</h1>
+<p class="lede">This chapter specifies the security model of repoctl. It names the assets, the actors and the trust boundaries. It gives the rules that protect the set inputs, the GitHub branches and the agent sessions. It ends with the threats, the public fields and the residual risks. The chapter on signing gives the key rules (<a href="signing.html">Signing and trust</a>).</p>
+<ul class="keypoints">
+  <li>The clients trust only OpenPGP signatures. GHCR, the HTTP server and the network hold signed files, but they are not trusted.</li>
+  <li>The builder branch is the root of trust. It holds <code>sign.keys</code>, the public keys and the deployment records.</li>
+  <li>The admin host is the builder. One human builds, signs and publishes there, with a personal key on a YubiKey.</li>
+</ul>
+
+<h2 id="assets">Assets</h2>
+<p>An asset is a thing that an attacker wants to read, change or use. The table gives each asset, where it is, what an attacker gets from it and the guard of the design.</p>
+<table class="compact">
+<thead><tr><th>#</th><th>Asset</th><th>Where</th><th>What an attacker gets</th><th>Guard</th></tr></thead>
+<tbody>
+<tr><td>A1</td><td>Signing keys</td><td>The private key of each admin, on a YubiKey or in a gpg keyring of the admin host.</td><td>A signature that all clients trust.</td><td>The card does not give out the key. PIN and touch. Gate 1 (<a href="signing.html#gates">signing.html#gates</a>). Offboarding (<a href="signing.html#offboarding">signing.html#offboarding</a>).</td></tr>
+<tr><td>A2</td><td>Trust records</td><td><code>sign.keys</code> in <code>repoctl.yaml</code>, <code>keys/ID.asc</code> and <code>keys/deployed.yaml</code> on <code>builder/&lt;set&gt;</code>.</td><td>A new trusted key, or a key that signs before the clients have it.</td><td>The trust block, gate 2 and the mirror job (<a href="signing.html#trust-block">signing.html#trust-block</a>).</td></tr>
+<tr><td>A3</td><td>Set inputs</td><td><code>repoctl.yaml</code>, <code>repoctl.lock</code>, the macros files, the in-tree packages and <code>keys/</code> on <code>builder/&lt;set&gt;</code>.</td><td>A change of what the next publish builds, for example a pin to a bad package commit.</td><td>The publish summary (<a href="publish.html#summary">publish.html#summary</a>).</td></tr>
+<tr><td>A4</td><td>Package sources</td><td>The package branches and the source archives of upstream.</td><td>Bad code in a build.</td><td>The lock pins each package commit. A human reviews each version bump. The provenance records the digest of each source and buildroot RPM (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>).</td></tr>
+<tr><td>A5</td><td>Snapshots</td><td>GHCR: the snapshot artifacts and the tag <code>latest</code>.</td><td>A change of what the mirror job pulls.</td><td>Each RPM and each <code>repomd.xml.asc</code> is signed. The mirror job verifies them (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
+<tr><td>A6</td><td>Served tree</td><td>The HTTP server.</td><td>A change of what the clients download.</td><td>dnf checks <code>repomd.xml.asc</code> and rpm checks each RPM (<a href="signing.html#chain">signing.html#chain</a>).</td></tr>
+<tr><td>A7</td><td>Client keyrings</td><td>The rpmdb keys and the dnf repository keyring of each client.</td><td>Trust for any key.</td><td>Only the release package and config management write them.</td></tr>
+<tr><td>A8</td><td>Credentials</td><td>The GHCR token of each admin in the container credential store. The GitHub login with push access to the set repository.</td><td>A push of snapshots and tags, a delete of snapshots, a push of commits.</td><td>Team membership and package access (<a href="publish.html#registry">publish.html#registry</a>). OpenPGP stops a change of a signed file.</td></tr>
+<tr><td>A9</td><td>The tool</td><td>repoctl and its skills on branch <code>main</code>, the release RPMs of repoctl and the mirror job script <code>contrib/mirror/</code>.</td><td>Code that runs on each admin host and on the HTTP server.</td><td>The records of the tool (<a href="supply-chain.html#tool">supply-chain.html#tool</a>).</td></tr>
+</tbody>
+</table>
+
+<h2 id="actors">Actors</h2>
+<p>An actor is a human or a process that can change an asset. The table gives what each actor has and what it can do in the design.</p>
+<table class="compact">
+<thead><tr><th>Actor</th><th>Has</th><th>Can</th></tr></thead>
+<tbody>
+<tr><td>Admin</td><td>An active and deployed key, push access to the set repository, a GHCR token.</td><td>Build, sign and publish. Change the trust records.</td></tr>
+<tr><td>New admin</td><td>An active key without a deployment record.</td><td>Build into staging. A publish stops at gate 2 (<a href="signing.html#onboarding">signing.html#onboarding</a>).</td></tr>
+<tr><td>Leaver</td><td>A retiring or removed key. Push access and a token until the offboarding ends.</td><td>Gate 1 refuses the key. The access ends with step 6 of the offboarding (<a href="signing.html#offboarding">signing.html#offboarding</a>).</td></tr>
+<tr><td>Agent in a terminal</td><td>The permissions of the human, limited by the tool list of the skill (<a href="agents.html#tool-lists">agents.html#tool-lists</a>).</td><td>Read, build into staging, edit and commit in a package worktree. It never pushes, publishes or signs.</td></tr>
+<tr><td>UI agent</td><td>The read-only MCP server (<a href="agents.html#ui-agent">agents.html#ui-agent</a>).</td><td>Read.</td></tr>
+<tr><td>Organization owner</td><td>Owner rights in the GitHub organization.</td><td>Set the rulesets, the package visibility and the team members.</td></tr>
+<tr><td>Config management</td><td>Root on the clients and on the HTTP server.</td><td>Install the release package. Remove a key from the clients.</td></tr>
+<tr><td>Mirror job</td><td>A system user on the HTTP server and an anonymous pull token.</td><td>Serve a tree that its key file verifies, and no other tree.</td></tr>
+<tr><td>Client</td><td>dnf and rpm with the keys of the release package.</td><td>Install a package that verifies.</td></tr>
+<tr><td>Outside attacker</td><td>Anonymous read access to GHCR and to a public set repository. Possibly a stolen token or a stolen login.</td><td>Read the public data. With a stolen token: push to GHCR. With a stolen login: push to GitHub.</td></tr>
+</tbody>
+</table>
+
+<h2 id="boundaries">Trust boundaries</h2>
+<p>A trust boundary is a line where data goes from one zone to another zone with a different trust. Each crossing has a check. The diagram shows the zones, and the table gives the check of each crossing.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 1040 480" role="img" aria-labelledby="bound-t">
+<title id="bound-t">The trust boundaries of repoctl: upstream, the admin host with the agent session, GitHub, GHCR, the HTTP server, config management and the clients, and the crossings B1 to B7</title>
+
+<!-- upstream -->
+<rect class="zone" x="16" y="40" width="164" height="162" rx="12"/>
+<text class="t-title" x="30" y="64">Upstream</text>
+<rect class="box-soft" x="30" y="80" width="136" height="48" rx="8"/>
+<text class="t" x="42" y="100">Source archives</text>
+<text class="t-small t-muted" x="42" y="118">upstream releases</text>
+<rect class="box-soft" x="30" y="138" width="136" height="48" rx="8"/>
+<text class="t" x="42" y="158">Rocky, EPEL</text>
+<text class="t-small t-muted" x="42" y="176">buildroot RPMs</text>
+<path class="edge" d="M180,121 C208,121 208,222 250,222" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="208" y="110" text-anchor="middle">B2</text>
+
+<!-- admin host -->
+<rect class="zone" x="236" y="40" width="300" height="420" rx="12"/>
+<text class="t-title" x="250" y="64">Admin host</text>
+<text class="t-small t-muted" x="522" y="64" text-anchor="end">own user, own key</text>
+<rect class="box" x="252" y="80" width="128" height="56" rx="8"/>
+<text class="t-title" x="266" y="104">Human</text>
+<text class="t-small" x="266" y="124">reads, confirms</text>
+<rect class="box" x="392" y="80" width="128" height="56" rx="8"/>
+<text class="t-title" x="406" y="104">YubiKey</text>
+<text class="t-small" x="406" y="124">private key, PIN</text>
+<line class="edge" x1="316" y1="136" x2="316" y2="180" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="324" y="162">runs</text>
+<line class="edge" x1="456" y1="136" x2="456" y2="180" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="464" y="162">signs</text>
+<rect class="box-accent" x="252" y="182" width="268" height="80" rx="8"/>
+<text class="t-title t-on" x="268" y="208">repoctl</text>
+<text class="t-small t-on" x="268" y="228">build, sign, publish</text>
+<text class="t-small t-on" x="268" y="246">gates, trust block</text>
+<rect class="box-warn" x="252" y="322" width="268" height="72" rx="8"/>
+<text class="t-title" x="268" y="346">Agent session</text>
+<text class="t-small" x="268" y="366">skills, read MCP tools</text>
+<text class="t-small" x="268" y="384">tool list, deny list</text>
+<line class="edge-accent" x1="386" y1="322" x2="386" y2="266" marker-end="url(#arrow-accent)"/>
+<text class="t-small t-accent" x="396" y="298">B7 tool calls</text>
+<rect class="box-soft" x="252" y="408" width="268" height="36" rx="8"/>
+<text class="t-small" x="268" y="431">local copy, staging, journals</text>
+
+<!-- GitHub -->
+<rect class="zone" x="592" y="40" width="200" height="162" rx="12"/>
+<text class="t-title" x="606" y="64">GitHub</text>
+<text class="t-small t-muted" x="778" y="64" text-anchor="end">set repository</text>
+<rect class="box" x="606" y="78" width="172" height="50" rx="8"/>
+<text class="t-title t-mono" x="618" y="98">builder/&lt;set&gt;</text>
+<text class="t-small" x="618" y="118">set inputs, keys/</text>
+<rect class="box-soft" x="606" y="136" width="172" height="26" rx="6"/>
+<text class="t-small" x="618" y="153">package branches</text>
+<rect class="box-soft" x="606" y="168" width="172" height="26" rx="6"/>
+<text class="t-small" x="618" y="185">main: tool, skills</text>
+<path class="edge" d="M522,206 C566,206 566,103 604,103" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="554" y="152" text-anchor="end">B1</text>
+
+<!-- GHCR -->
+<rect class="zone" x="592" y="250" width="200" height="130" rx="12"/>
+<text class="t-title" x="606" y="274">GHCR</text>
+<text class="t-small t-muted" x="778" y="274" text-anchor="end">public</text>
+<rect class="box" x="606" y="290" width="172" height="72" rx="8"/>
+<text class="t-title" x="618" y="314">snapshots</text>
+<text class="t-small" x="618" y="334">tag latest</text>
+<text class="t-small" x="618" y="352">signed RPMs, repomd</text>
+<path class="edge-accent" d="M522,240 C566,240 566,326 604,326" marker-end="url(#arrow-accent)"/>
+<text class="t-small t-accent" x="554" y="292" text-anchor="end">B3</text>
+
+<!-- clients -->
+<rect class="zone" x="848" y="40" width="150" height="162" rx="12"/>
+<text class="t-title" x="862" y="64">Clients</text>
+<rect class="box" x="862" y="78" width="122" height="50" rx="8"/>
+<text class="t-title" x="874" y="98">dnf, rpm</text>
+<text class="t-small" x="874" y="118">check each file</text>
+<rect class="box-soft" x="862" y="138" width="122" height="50" rx="8"/>
+<text class="t" x="874" y="158">keyrings</text>
+<text class="t-small" x="874" y="176">from the key file</text>
+
+<!-- HTTP server -->
+<rect class="zone" x="848" y="250" width="150" height="130" rx="12"/>
+<text class="t-title" x="862" y="274">HTTP server</text>
+<rect class="box" x="862" y="290" width="122" height="72" rx="8"/>
+<text class="t-title" x="874" y="314">mirror job</text>
+<text class="t-small" x="874" y="334">its key file</text>
+<text class="t-small" x="874" y="352">served tree</text>
+<line class="edge" x1="778" y1="326" x2="858" y2="326" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="820" y="316" text-anchor="middle">B4</text>
+<line class="edge" x1="970" y1="290" x2="970" y2="192" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="960" y="232" text-anchor="end">B5</text>
+
+<!-- config management -->
+<rect class="zone" x="848" y="404" width="150" height="56" rx="12"/>
+<text class="t" x="862" y="426">Config management</text>
+<text class="t-small t-muted" x="862" y="446">release package</text>
+<line class="edge-muted" x1="900" y1="404" x2="900" y2="384" marker-end="url(#arrow-muted)"/>
+<path class="edge-muted" d="M998,432 H1022 V103 H988" marker-end="url(#arrow-muted)"/>
+<text class="t-small t-accent" x="1010" y="272" text-anchor="middle">B6</text>
+</svg>
+<figcaption>The trust boundaries. Each zone is a trust domain, and each arrow that leaves a zone is a crossing. The table gives the check of each crossing.</figcaption>
+</figure>
+<table class="compact">
+<thead><tr><th>#</th><th>Crossing</th><th>Check at the crossing</th></tr></thead>
+<tbody>
+<tr><td>B1</td><td>Admin host and GitHub: set commits and package commits, push and fetch.</td><td>Publish checks that the set inputs are committed and pushed (<a href="publish.html#checks">publish.html#checks</a>). The lock pins each package commit.</td></tr>
+<tr><td>B2</td><td>Upstream to the admin host: source archives and buildroot RPMs.</td><td>mock checks the signatures of the Rocky and EPEL RPMs. The provenance records each digest. A human reviews each version bump.</td></tr>
+<tr><td>B3</td><td>Admin host to GHCR: the push of a snapshot and the tag.</td><td>The GHCR token. GHCR is storage only: nothing in it is trusted without its OpenPGP signature.</td></tr>
+<tr><td>B4</td><td>GHCR to the HTTP server: the pull of the mirror job.</td><td>The mirror job verifies each <code>repomd.xml.asc</code> and each RPM with the key file that config management installed (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
+<tr><td>B5</td><td>HTTP server to the clients: dnf over HTTPS.</td><td><code>repo_gpgcheck=1</code> and <code>gpgcheck=1</code> with the client keyrings (<a href="signing.html#chain">signing.html#chain</a>).</td></tr>
+<tr><td>B6</td><td>Config management to the clients and the HTTP server: the release package and the key removal.</td><td>Outside repoctl. A human confirms the result with a deployment record (<a href="signing.html#deployment-record">signing.html#deployment-record</a>).</td></tr>
+<tr><td>B7</td><td>Agent session to the admin host: tool calls.</td><td>The tool list of the skill, the MCP server without shared-state tools and the deny list (<a href="agents.html#deny">agents.html#deny</a>).</td></tr>
+</tbody>
+</table>
+</body>
+</html>
