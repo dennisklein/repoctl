@@ -11,7 +11,7 @@
 <ul class="keypoints">
   <li>Every <code>--json</code> result is one envelope: <code>apiVersion</code>, <code>kind</code>, <code>metadata</code>, <code>items[]</code>, <code>warnings[]</code>, <code>errors[]</code>. The MCP server returns the same envelope as <code>structuredContent</code>.</li>
   <li>One version string, <code>repoctl/v1alpha1</code>, covers the JSON output, the MCP results and the set files. The journal has its own integer version <code>v</code>.</li>
-  <li>Programs match on codes and enum values. Text fields are for people.</li>
+  <li>Programs match on codes and enum values. Text fields are for humans.</li>
   <li>A problem code names the cause. The exit code names the class of the result.</li>
   <li>A run writes two JSON Lines files: the journal <code>runs/&lt;run&gt;.jsonl</code> and the go-clikit progress log <code>runs/&lt;run&gt;.progress.jsonl</code>.</li>
   <li>One function, <code>journal.Fold</code>, gives the node state to the CLI, the web UI and the MCP server.</li>
@@ -196,7 +196,7 @@
 <tr><td>CheckStatus</td><td><code>ok</code> <code>warning</code> <code>failed</code></td><td><a href="cli.html#cmd-doctor">repoctl doctor</a></td></tr>
 <tr><td>MCP tool class</td><td><code>read</code> <code>staging</code> <code>local-write</code></td><td><a href="model.html#safety">Safety classes</a>; shared state has no tool</td></tr>
 <tr><td><code>HumanAction.action</code></td><td><code>commit-worktree</code> <code>commit-lock</code> <code>confirm</code> <code>trust-change</code> <code>repo-pull</code> <code>repo-push</code> <code>sign-deployed</code> …</td><td><a href="agents.html#human-action">Needs human</a></td></tr>
-<tr><td><code>NextStep.action</code></td><td><code>triage</code> <code>fix-spec</code> <code>rebuild</code> <code>pin</code> <code>commit</code> <code>push</code> <code>build</code> <code>publish</code> <code>cancel</code></td><td><code>Run.next</code>; <code>human: true</code> marks a step for a person</td></tr>
+<tr><td><code>NextStep.action</code></td><td><code>triage</code> <code>fix-spec</code> <code>rebuild</code> <code>pin</code> <code>commit</code> <code>push</code> <code>build</code> <code>publish</code> <code>cancel</code></td><td><code>Run.next</code>; <code>human: true</code> marks a step for a human</td></tr>
 </tbody>
 </table>
 
@@ -271,7 +271,7 @@
 <ul>
   <li>The list is open. A consumer treats an unknown code as a generic error or warning.</li>
   <li><code>hint</code> is one sentence: what to do next. The terminal prints it as <code>hint: WHAT TO DO. run: CMD</code> (<a href="cli.html#errors">Error messages</a>).</li>
-  <li>When only a person can resolve a refusal, the problem has a <code>humanAction</code> with the exact command. The MCP text then starts with <code>NEEDS HUMAN:</code> (<a href="agents.html#human-action">Needs human</a>). The table gives the action in parentheses.</li>
+  <li>When only a human can resolve a refusal, the problem has a <code>humanAction</code> with the exact command. The MCP text then starts with <code>NEEDS HUMAN:</code> (<a href="agents.html#human-action">Needs human</a>). The table gives the action in parentheses.</li>
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
@@ -284,7 +284,7 @@
 <tr><td><code>advisory.unknown</code></td><td>1</td><td>No advisory has this id.</td><td><code>repoctl advisories ls</code></td></tr>
 <tr><td><code>branch.exists-remote</code></td><td>1</td><td><code>checkout --create</code>: the branch is on the remote.</td><td><code>repoctl checkout DIR</code></td></tr>
 <tr><td><code>branch.start-missing</code></td><td>1</td><td><code>checkout --create --from-set SET</code>: SET has no such dir.</td><td>Name another start point.</td></tr>
-<tr><td><code>cancel.foreign-run</code></td><td>1</td><td>The MCP server cancels only the runs that it started.</td><td>The person runs <code>repoctl cancel RUN</code> (<code>cancel-foreign-run</code>).</td></tr>
+<tr><td><code>cancel.foreign-run</code></td><td>1</td><td>The MCP server cancels only the runs that it started.</td><td>The human runs <code>repoctl cancel RUN</code> (<code>cancel-foreign-run</code>).</td></tr>
 <tr><td><code>check.failed</code></td><td>warning</td><td>The last check failed.</td><td><code>repoctl check</code></td></tr>
 <tr><td><code>check.never</code></td><td>warning</td><td>No check ran for this set on this host.</td><td><code>repoctl check --install-timer</code></td></tr>
 <tr><td><code>check.no-linger</code></td><td>note</td><td>Lingering is off. The timer runs only while the user is logged in.</td><td><code>loginctl enable-linger USER</code></td></tr>
@@ -307,7 +307,7 @@
 <tr><td><code>lock.missing-package</code></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line.</td><td><code>repoctl pin DIR</code></td></tr>
 <tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin</code></td></tr>
 <tr><td><code>lock.unpushed</code></td><td>5</td><td>The set commit or a pinned commit is not on its remote branch.</td><td>The exact <code>git push</code> commands (<code>push</code>).</td></tr>
-<tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The person runs the command.</td></tr>
+<tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The human runs the command.</td></tr>
 <tr><td><code>mock.config-missing</code></td><td>9</td><td>The mock config of a target is not on this host.</td><td>Install it, or correct <code>targets[].mock</code>.</td></tr>
 <tr><td><code>mock.unavailable</code></td><td>9</td><td>mock is not installed, or the user is not in the group <code>mock</code>.</td><td>Install mock (<code>install-tool</code>).</td></tr>
 <tr><td><code>node.blocked</code></td><td>3</td><td>A dependency failed. The node did not run.</td><td>Repair the failed dependency.</td></tr>
@@ -315,7 +315,7 @@
 <tr><td><code>nvr.removed</code></td><td>12</td><td>A prune or a restore removed this NVR, and the new build has other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
 <tr><td><code>nvr.reused</code></td><td>12</td><td>latest holds this NVR with other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
 <tr><td><code>prune.not-retired</code></td><td>1</td><td><code>repo prune --package NAME --all</code>: NAME is not retired.</td><td>Retire it first (<a href="lifecycle.html#retire">Retire</a>).</td></tr>
-<tr><td><code>publish.needs-confirmation</code></td><td>6</td><td>No terminal for the confirmation, or the person answers no.</td><td>Publish in a terminal or in the UI (<code>confirm</code>).</td></tr>
+<tr><td><code>publish.needs-confirmation</code></td><td>6</td><td>No terminal for the confirmation, or the human answers no.</td><td>Publish in a terminal or in the UI (<code>confirm</code>).</td></tr>
 <tr><td><code>publish.not-ready</code></td><td>12</td><td>A node of a selected target is not current or staged.</td><td>Build it, or publish the other targets.</td></tr>
 <tr><td><code>publish.nothing-to-publish</code></td><td>4</td><td>No node is staged, or prune finds nothing.</td><td>-</td></tr>
 <tr><td><code>publish.unattended-refused</code></td><td>6</td><td><code>--yes</code> without a terminal, and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is not 1.</td><td><a href="cli.html#safety">Shared-state safety</a></td></tr>
@@ -341,7 +341,7 @@
 <tr><td><code>sign.not-deployed</code></td><td>12</td><td>Gate 2: <code>keys/deployed.yaml</code> has no record of the key for a selected target.</td><td><code>repoctl sign onboard ID</code> (<code>sign-deployed</code>)</td></tr>
 <tr><td><code>sign.removed-signer</code></td><td>12</td><td>A kept RPM has the signature of a removed key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
 <tr><td><code>sign.retiring</code></td><td>warning in doctor</td><td>RPMs in latest have the signature of a retiring key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
-<tr><td><code>sign.trust-change</code></td><td>6</td><td>The publish changes the trust set. The person must type the key id.</td><td>Use a terminal or the UI (<code>trust-change</code>).</td></tr>
+<tr><td><code>sign.trust-change</code></td><td>6</td><td>The publish changes the trust set. The human must type the key id.</td><td>Use a terminal or the UI (<code>trust-change</code>).</td></tr>
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files.</td></tr>
 <tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
 <tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>)</td></tr>
@@ -428,7 +428,7 @@
 <tr><td><code>publish.finished</code></td><td>end of a publish run</td><td><code>state</code>, <code>targets</code>, <code>exitCode</code>, <code>snapshots</code></td></tr>
 <tr><td><code>advisory</code></td><td>a plan, a node build or a check finds an advisory or changes its state</td><td><code>id</code>, <code>state</code>, <code>level</code>, <code>factsDigest</code></td></tr>
 <tr><td><code>advisory.gone</code></td><td>the check does not find the advisory any more</td><td><code>id</code></td></tr>
-<tr><td><code>advisory.accepted</code></td><td>a person accepts a blocking advisory for one publish</td><td><code>id</code>, <code>factsDigest</code>, <code>reason</code>, <code>user</code>, <code>host</code></td></tr>
+<tr><td><code>advisory.accepted</code></td><td>a human accepts a blocking advisory for one publish</td><td><code>id</code>, <code>factsDigest</code>, <code>reason</code>, <code>user</code>, <code>host</code></td></tr>
 </tbody>
 </table>
 <p>A reader skips a line whose type it does not know. A check writes a journal with <code>kind: check</code> and only advisory events between <code>run.started</code> and <code>run.finished</code>.</p>

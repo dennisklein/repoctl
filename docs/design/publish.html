@@ -10,7 +10,7 @@
 <p class="lede">This chapter specifies the path of a publish from the admin host to the clients. It gives the publish order, the records of what is published, the snapshot format and the mirror job on the HTTP server. It also gives the rules to keep, prune, restore and delete snapshots. The signing rules are in <a href="signing.html">Signing and trust</a>.</p>
 <ul class="keypoints">
   <li>GHCR is the authority. The tag <code>latest</code> of each set and target says what is published. All other records are copies.</li>
-  <li>Publish has one fixed order: check, sign, repodata, verify, verify-el, push, tag, cache. Only step 7 (tag) changes what other people see.</li>
+  <li>Publish has one fixed order: check, sign, repodata, verify, verify-el, push, tag, cache. Only step 7 (tag) changes what other humans see.</li>
   <li>A failed push or tag leaves the signed tree. <code>repoctl repo push</code> completes the publish.</li>
   <li>A mirror job on the HTTP server pulls latest, verifies it with the keys of the clients and swaps the served tree. It uses only curl, jq, gpgv and rpmkeys.</li>
   <li>There is no lease between admins. Publish compares latest with its base in step 1 and again in step 7.</li>
@@ -20,7 +20,7 @@
 </ul>
 
 <h2 id="topology">Topology</h2>
-<p>Clients read the repository from an HTTP server. GHCR holds the snapshots and is the authority. The set repository and its OCI packages are public. Each admin builds as an own user, on an own host or on a shared host (<a href="model.html#people">people and hosts</a>). The admin hosts share only the git remote and GHCR. repoctl runs on the admin hosts only.</p>
+<p>Clients read the repository from an HTTP server. GHCR holds the snapshots and is the authority. The set repository and its OCI packages are public. Each admin builds as an own user, on an own host or on a shared host (<a href="model.html#humans">humans and hosts</a>). The admin hosts share only the git remote and GHCR. repoctl runs on the admin hosts only.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 400" role="img" aria-labelledby="topo-t">
 <title id="topo-t">The publish path from the admin hosts through GHCR and the mirror job to the clients</title>
@@ -49,7 +49,7 @@
 <text class="t-small" x="720" y="218">pull latest, verify, swap</text>
 <text class="t-small t-muted" x="720" y="236">curl, jq, gpgv, rpmkeys</text>
 <rect class="box-soft" x="16" y="296" width="240" height="88" rx="8"/>
-<text class="t t-title" x="32" y="322">A person confirms</text>
+<text class="t t-title" x="32" y="322">A human confirms</text>
 <text class="t-small" x="32" y="344">the new release is on all clients</text>
 <text class="t-small t-muted" x="32" y="364">repoctl sign deployed: set commit</text>
 <rect class="box-muted" x="352" y="296" width="256" height="88" rx="8"/>
@@ -75,7 +75,7 @@
 <path class="edge-muted" d="M584,296 L584,276 L736,276 L736,258" marker-end="url(#arrow-muted)"/>
 <text class="t-small t-muted" x="600" y="270">key file</text>
 </svg>
-<figcaption>The publish path. The numbers give the order of one publish: 1 push and tag, 2 pull by the mirror job, 3 dnf on the clients. The admin hosts share only the git remote and GHCR. A person confirms a new key deployment with a set commit.</figcaption>
+<figcaption>The publish path. The numbers give the order of one publish: 1 push and tag, 2 pull by the mirror job, 3 dnf on the clients. The admin hosts share only the git remote and GHCR. A human confirms a new key deployment with a set commit.</figcaption>
 </figure>
 
 <h2 id="paths">Paths and URLs</h2>
@@ -193,7 +193,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <svg viewBox="0 0 960 400" role="img" aria-labelledby="order-t">
 <title id="order-t">The eight publish steps and the state of the three records after each step</title>
 <rect class="zone" x="8" y="8" width="272" height="204" rx="8"/>
-<text class="t-small t-muted" x="20" y="26">steps 1–5: files of this person only</text>
+<text class="t-small t-muted" x="20" y="26">steps 1–5: files of this human only</text>
 <rect class="box" x="20" y="36" width="248" height="28" rx="6"/><text class="t" x="32" y="55">1 check</text>
 <rect class="box" x="20" y="70" width="248" height="28" rx="6"/><text class="t" x="32" y="89">2 sign</text>
 <rect class="box" x="20" y="104" width="248" height="28" rx="6"/><text class="t" x="32" y="123">3 repodata</text>
@@ -251,7 +251,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <text class="t t-ok" x="320" y="270" data-f="7">End: all three records hold p-20261103-1412-5e1.</text>
 <text class="t" x="320" y="296" data-f="7">dnf on the clients gets ucx 1.22.1-1 and the three rebuilds.</text>
 </svg>
-<script type="application/json" class="steps">["Start. GHCR, the local copy and the served tree all hold p-20260912-1403-c21. This snapshot is the base of the story publish.", "Step 1, check. All checks run before the first signature. The base must equal latest.", "Steps 2 to 5 make a new signed tree next to the local copy. They change nothing that other people see. A failure here leaves the published state as it was.", "Step 6 uploads only the blobs that GHCR does not have, then the manifest with the tag p-20261103-1412-5e1. latest does not move yet. If the push fails, repoctl keeps the signed tree and gives the repo push hint.", "Step 7 reads latest again. If it still is the base, repoctl moves latest to the new digest and reads it back. If another admin published in the meantime, repoctl stops, and the new snapshot stays as a tag that nobody serves.", "Step 8 makes the new snapshot the local copy. The publish is now a success. The HTTP server still serves the base, so status says served: behind.", "The mirror job on the HTTP server pulls the new snapshot, verifies it with the keys of the clients and swaps the tree in one rename.", "End. All records hold p-20261103-1412-5e1. A failure at any step leaves one consistent state, and one command completes the publish or deletes its tree."]</script>
+<script type="application/json" class="steps">["Start. GHCR, the local copy and the served tree all hold p-20260912-1403-c21. This snapshot is the base of the story publish.", "Step 1, check. All checks run before the first signature. The base must equal latest.", "Steps 2 to 5 make a new signed tree next to the local copy. They change nothing that other humans see. A failure here leaves the published state as it was.", "Step 6 uploads only the blobs that GHCR does not have, then the manifest with the tag p-20261103-1412-5e1. latest does not move yet. If the push fails, repoctl keeps the signed tree and gives the repo push hint.", "Step 7 reads latest again. If it still is the base, repoctl moves latest to the new digest and reads it back. If another admin published in the meantime, repoctl stops, and the new snapshot stays as a tag that nobody serves.", "Step 8 makes the new snapshot the local copy. The publish is now a success. The HTTP server still serves the base, so status says served: behind.", "The mirror job on the HTTP server pulls the new snapshot, verifies it with the keys of the clients and swaps the tree in one rename.", "End. All records hold p-20261103-1412-5e1. A failure at any step leaves one consistent state, and one command completes the publish or deletes its tree."]</script>
 <figcaption>The publish order on the story publish of el9. Use Back, Play and Next to step through it.</figcaption>
 </figure>
 <table class="compact">
@@ -269,7 +269,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 </table>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>Steps 1 to 5 change only files of the person who publishes. Step 7 is the only step that changes what other people see. A publish is a success when step 7 is done.</p>
+<p>Steps 1 to 5 change only files of the human who publishes. Step 7 is the only step that changes what other humans see. A publish is a success when step 7 is done.</p>
 </aside>
 <h3 id="complete">Stop and complete</h3>
 <p>Ctrl-C before step 6 stops the publish, and nothing shared changes (exit 130). A second Ctrl-C during step 6 or 7 stops repoctl at once. The signed tree stays.</p>
@@ -287,7 +287,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <tr><td>No node gives a published or removed NVR again with new content.</td><td><code>nvr.reused</code>, <code>nvr.removed</code></td><td>12</td></tr>
 <tr><td>The advisory gate (<a href="advisories.html#gate">advisories.html#gate</a>).</td><td><code>advisory.open</code></td><td>12</td></tr>
 <tr><td>Gates 1 to 3, unknown and removed signers in the base, the key file (<a href="signing.html#gates">signing.html#gates</a>).</td><td><code>sign.*</code></td><td>5, 9, 10, 12</td></tr>
-<tr><td>Trust change: the summary shows the trust block, and the person types the key id (<a href="signing.html#trust-block">signing.html#trust-block</a>).</td><td><code>sign.trust-change</code></td><td>6</td></tr>
+<tr><td>Trust change: the summary shows the trust block, and the human types the key id (<a href="signing.html#trust-block">signing.html#trust-block</a>).</td><td><code>sign.trust-change</code></td><td>6</td></tr>
 </tbody>
 </table>
 <p>The hints of each code are in <a href="contract.html#problems">contract.html#problems</a>. The exit codes are in <a href="cli.html#exit">cli.html#exit</a>.</p>
@@ -297,7 +297,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <p>The import works only when the registry has no snapshot of that target. It verifies each RPM with <code>sign.keys</code> and keeps the RPM signatures. It adds the RepoManifest from FILE with <code>modifyrepo_c</code> and signs the new <code>repomd.xml</code> with one signature. Then it runs verify and verify-el, and pushes. The publish id is <code>p-import-YYYYMMDD</code>.</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>Gate 2 applies to an import. Before the import, the person records the deployment of the old key, for example <code>repoctl sign deployed hpc-repo --release slurm-release-26.05-1 --target el9 --path DIR</code>. Only a target that no client uses yet skips gate 2.</p>
+<p>Gate 2 applies to an import. Before the import, the human records the deployment of the old key, for example <code>repoctl sign deployed hpc-repo --release slurm-release-26.05-1 --target el9 --path DIR</code>. Only a target that no client uses yet skips gate 2.</p>
 </aside>
 <p>In the story, d.klein confirmed the deployment of hpc-repo on 2026-08-28 and imported the bash-era el9 repository as <code>p-import-20260828</code>. The steps are in the runbook <a href="../runbooks/import.html">Import the existing repositories</a>.</p>
 
@@ -465,7 +465,7 @@ Next: repoctl status</pre>
 <ul>
   <li>The summary lists each NVR that leaves the repository. It says that clients keep these NVRs, because dnf does not downgrade.</li>
   <li>These NVRs go into <code>removed[]</code>. After a restore, publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</li>
-  <li>RPMs in REF that a key in state removed signed get a new signature from the person who restores (<a href="signing.html#resign">re-sign rules</a>).</li>
+  <li>RPMs in REF that a key in state removed signed get a new signature from the human who restores (<a href="signing.html#resign">re-sign rules</a>).</li>
 </ul>
 <p>Publish has no rollback flag. Restore and fix forward cover both cases. Command: <a href="cli.html#cmd-repo-restore">repo restore</a>.</p>
 

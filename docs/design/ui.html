@@ -73,23 +73,23 @@
   <li>Server-rendered pages. Go templates render each page and each fragment. htmx swaps the fragments. The only scripts are htmx, its SSE extension and <code>shell.js</code> (theme, copy, keys, live state). The graph page adds <code>graph.js</code> (<a href="ui-build.html#graph">ui-build.html#graph</a>).</li>
   <li>CLI parity. Each page shows the data of a CLI command. Each action has a CLI equivalent, and the CLI toggle of the page holds it (<a href="#calm">R10</a>). The browser never sends a command line. The server runs the command as a child, as the CLI would run it.</li>
   <li>GET never changes state. Each action is a POST with the CSRF header.</li>
-  <li>Shared state needs a person. A shared-state action shows the summary, then asks for the typed set name. For a trust change, it first asks for the typed key id of each added key. The UI never passes <code>--yes</code> to a child without that confirmation (<a href="cli.html#safety">cli.html#safety</a>).</li>
+  <li>Shared state needs a human. A shared-state action shows the summary, then asks for the typed set name. For a trust change, it first asks for the typed key id of each added key. The UI never passes <code>--yes</code> to a child without that confirmation (<a href="cli.html#safety">cli.html#safety</a>).</li>
   <li>No shortcut starts a build, a cancel or a publish.</li>
   <li>Calm by default. Every page follows the calm rules below.</li>
 </ul>
 
 <h2 id="calm">Calm rules</h2>
-<p>A page shows the exceptions and the next step. Normal states are quiet, and a fold holds the text that a person reads once. The rules apply to every page and, where they fit, to the terminal output. The examples use run <code>r-20261102-1750-a3f</code> at 18:01 and the publish review of el9.</p>
+<p>A page shows the exceptions and the next step. Normal states are quiet, and a fold holds the text that a human reads once. The rules apply to every page and, where they fit, to the terminal output. The examples use run <code>r-20261102-1750-a3f</code> at 18:01 and the publish review of el9.</p>
 <table class="compact">
 <thead><tr><th>Rule</th><th>What to do</th><th>Example</th></tr></thead>
 <tbody>
 <tr><td>R1 One shell</td><td>Use the same frame on every page: the same top bar, sidebar and badges. The run chip has one format and is the only place that says "a run is active". A page body repeats the run state only when the page is that run.</td><td>The chip reads <code>r-…a3f 2/8 builds · 1 failed · 11m02s</code> on every page.</td></tr>
 <tr><td>R2 Exceptions first</td><td>Fold rows in the default state (current, ok, clean, same, up to date) into one row with a count. Show the rows that differ.</td><td>The Overview matrix shows ucx, slurm, openmpi and slurm-singularity-exec, then "▸ 7 packages current on all their targets".</td></tr>
 <tr><td>R3 Pills mean "look here"</td><td>Use a pill only for failed, blocked, required, running, accepted, retiring, behind and not ready. Show a normal state as quiet text, or leave the cell empty. Do not show zero counts.</td><td>"current" is quiet text. "canceled 0" shows nothing.</td></tr>
-<tr><td>R4 Say it once</td><td>Show each fact once, where the person acts on it. Do not repeat a card in a banner.</td><td><code>closure.broken/pmix@el9</code> shows once on the Overview, as Needs you item 2.</td></tr>
+<tr><td>R4 Say it once</td><td>Show each fact once, where the human acts on it. Do not repeat a card in a banner.</td><td><code>closure.broken/pmix@el9</code> shows once on the Overview, as Needs you item 2.</td></tr>
 <tr><td>R5 One primary</td><td>Use one filled button per page, for the real next step. A row has one visible button; the other actions go in a "⋯" menu. A long page keeps its primary button in a sticky footer. On a required advisory row, "Rebuild…" is the primary of its row only.</td><td>Run detail: "Review el9 publish ›" is the filled button, off until the el9 nodes end. "Retry failed" is in ⋯, off, with its reason.</td></tr>
 <tr><td>R6 Quiet agent button</td><td>The ✦ agent button is a quiet secondary button. Show one per row at most. Do not show it where the plain text already gives the answer.</td><td>The Overview has one outline "Explain failure". "Is a rebuild necessary?" is in the ⋯ menu of the advisory item.</td></tr>
-<tr><td>R7 Explain once</td><td>Put text that a person reads once behind a "?" or a fold with a one-line summary.</td><td>"What happens: 8 steps · latest does not change before step 7 ▸"</td></tr>
+<tr><td>R7 Explain once</td><td>Put text that a human reads once behind a "?" or a fold with a one-line summary.</td><td>"What happens: 8 steps · latest does not change before step 7 ▸"</td></tr>
 <tr><td>R8 Words before codes</td><td>Start with a plain sentence. Problem codes, rule ids and exit codes come after it, small and muted, or in a fold.</td><td>"slurm@el10 failed: rocm-smi-devel is not available for el10", then <code>dep.not-for-target</code> in small muted text.</td></tr>
 <tr><td>R9 Short ids</td><td>Use a short id or a time as link text. Put the full id in the tooltip and the copy action.</td><td><code>r-20261102-1750-a3f</code> shows as "today 17:50 · a3f".</td></tr>
 <tr><td>R10 One CLI toggle</td><td>One "CLI" toggle in the page head holds the CLI commands of the page. No CLI chip on each card. A dialog shows its CLI command in the CLI toggle of the page that opens it. The publish confirm dialog has no CLI line; the review page shows <code>repoctl publish</code>.</td><td>The Overview toggle holds <code>repoctl status</code>, <code>repoctl advisories</code> and <code>repoctl runs</code>.</td></tr>
@@ -109,7 +109,7 @@
   <li>A group with an exception opens by default: a source package with another signer, a node that is not current, a check that fails.</li>
   <li>The plain diagnosis stays when no agent is set. An agent button never replaces the deterministic hint.</li>
   <li>Push stays a numbered step after a rebuild. Occasional users forget it.</li>
-  <li><code>upstream.release</code> stays as a count on the Plan page and the Overview, so a person sees that a new Slurm release exists.</li>
+  <li><code>upstream.release</code> stays as a count on the Plan page and the Overview, so a human sees that a new Slurm release exists.</li>
 </ul>
 
 <h2 id="sitemap">Sitemap and URL scheme</h2>
@@ -143,7 +143,7 @@
   <li>A node id is <code>&lt;dir&gt;@&lt;target&gt;</code> in paths, in SSE event names, in the jump box and in the page text, for example <code>slurm@el10</code>.</li>
   <li>An advisory row has the element id <code>adv-</code> plus the advisory id with <code>/</code> and <code>@</code> changed to <code>-</code>, for example <code>adv-closure.broken-pmix-el9</code>. The full id is in <code>data-advisory-id</code>.</li>
   <li>Per-target pages take <code>?target=</code>. The repository takes the target in the path, because a target is one repository tree. Without a target, a page uses the first target of the set (el9).</li>
-  <li>The URL holds all state that a person wants to share or bookmark: set, target, run, node, package and filters. Dialog steps are not in the URL.</li>
+  <li>The URL holds all state that a human wants to share or bookmark: set, target, run, node, package and filters. Dialog steps are not in the URL.</li>
   <li>Pages are full server pages. Sidebar and in-page links use <code>hx-boost</code> with <code>hx-push-url</code>. Back and reload give the same page.</li>
 </ul>
 <h3 id="endpoints">Endpoints that are not pages</h3>
@@ -339,14 +339,14 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
 <h2 id="toasts">Toasts</h2>
 <ul>
   <li>Toasts show at the bottom right, newest on top, at most 3. They come from the SSE event <code>toast</code> or from the <code>HX-Trigger</code> header of an action.</li>
-  <li>Ok and info toasts close after 6 s. Error toasts stay until the person closes them, and they use <code>role="alert"</code>.</li>
+  <li>Ok and info toasts close after 6 s. Error toasts stay until the human closes them, and they use <code>role="alert"</code>.</li>
   <li>Toasts tell: run started, run done (ok or failed), node failed, publish done or failed, check done, and a new <code>repoctl.lock</code> or <code>repoctl.yaml</code> on disk. Each toast links to the object.</li>
   <li>A toast never holds the only copy of a fact. The same fact is on a page, for example in Needs you or on the run page.</li>
 </ul>
 
 <h2 id="states">Empty, error and offline states</h2>
 <table class="compact">
-<thead><tr><th>State</th><th>Where</th><th>What the person sees</th></tr></thead>
+<thead><tr><th>State</th><th>Where</th><th>What the human sees</th></tr></thead>
 <tbody>
 <tr><td>No runs yet</td><td>Overview, Runs</td><td>Empty state "No runs yet" with <code>repoctl build</code> and a Build… button.</td></tr>
 <tr><td>Never published</td><td>Overview, Publish, Repository</td><td>Empty state "Not published yet": a publish signs the staged nodes, makes the first snapshot and moves latest. Button Publish….</td></tr>
@@ -397,7 +397,7 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
   <li>Without a valid session, a page GET gets 303 to <code>/-/session?next=…</code>, which answers 401. An htmx request gets 401 and <code>HX-Redirect</code>. An SSE stream gets 401; <code>shell.js</code> calls <code>/-/ping</code> and redirects.</li>
 </ul>
 <figure class="shot"><a href="mockups/ui/session.html"><img src="img/ui-session.webp" alt="Session ended page: This session has ended, with the command repoctl ui and a copy button." loading="lazy"></a><figcaption>Session page. It shows no shell and no set data.</figcaption></figure>
-<p>The session page says why the session ended, for example "The server restarted at 18:21. Sessions do not live longer than the server." It tells the person to run <code>repoctl ui</code> in a terminal on this host, with a copy button. It says that the UI uses a one-time launch token and a session cookie, and no passwords.</p>
+<p>The session page says why the session ended, for example "The server restarted at 18:21. Sessions do not live longer than the server." It tells the human to run <code>repoctl ui</code> in a terminal on this host, with a copy button. It says that the UI uses a one-time launch token and a session cookie, and no passwords.</p>
 
 <h2 id="components">Component sheet</h2>
 <p>The component sheet shows every shared part of the UI. Pages use these classes and define no new state colours.</p>

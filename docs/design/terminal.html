@@ -32,12 +32,12 @@
 <tr><td>ok</td><td><code>✓</code></td><td><code>+</code></td><td>none</td><td>The node or the step ended without an error.</td></tr>
 <tr><td>failed</td><td><code>✗</code></td><td><code>x</code></td><td>red</td><td>The node, the step or a required check failed.</td></tr>
 <tr><td>blocked</td><td><code>⊘</code></td><td><code>/</code></td><td>amber</td><td>A dependency failed. The node did not start.</td></tr>
-<tr><td>canceled</td><td><code>⊖</code></td><td><code>~</code></td><td>none</td><td>A person, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
+<tr><td>canceled</td><td><code>⊖</code></td><td><code>~</code></td><td>none</td><td>A human, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
 <tr><td>build (plan action)</td><td><code>◆</code></td><td><code>#</code></td><td>none</td><td>The plan builds the node.</td></tr>
 <tr><td>current (plan action)</td><td><code>≡</code></td><td><code>=</code></td><td>none</td><td>The commit of the node is in latest.</td></tr>
 <tr><td>staged (plan action)</td><td><code>●</code></td><td><code>*</code></td><td>none</td><td>A run built the node for this lock. Nobody published it.</td></tr>
 <tr><td>skip (plan action)</td><td><code>–</code></td><td><code>-</code></td><td>none</td><td>The node is not selected and not needed.</td></tr>
-<tr><td>warning</td><td><code>!</code></td><td><code>!</code></td><td>amber</td><td>A check or a plan row needs a step from the person. It does not stop the command.</td></tr>
+<tr><td>warning</td><td><code>!</code></td><td><code>!</code></td><td>amber</td><td>A check or a plan row needs a step from the human. It does not stop the command.</td></tr>
 </tbody>
 </table>
 <p>Each colour has one meaning:</p>
@@ -104,7 +104,7 @@
   <li>Tables: UPPERCASE headers, two spaces between columns, numbers right-aligned, one totals line under the table.</li>
   <li>Key-value blocks: a lowercase key in dim, padded to one column, then the value.</li>
   <li>A node is always <code>DIR@TARGET</code>. A commit has 7 hex digits. A snapshot digest has 4 hex digits (<code>sha256:9d07…</code>). A key fingerprint shows in groups of 4, or as its last 8 digits (<code>…41D8 0B6E</code>).</li>
-  <li>Run ids and publish ids are always complete, because a person copies them into the next command.</li>
+  <li>Run ids and publish ids are always complete, because a human copies them into the next command.</li>
   <li>Durations: <code>4.2s</code>, <code>26s</code>, <code>6m53s</code>, <code>41m07s</code>, <code>1h12m</code>. The elapsed time of a live tree: <code>11:02.4</code>. A plain line starts with <code>[m:ss]</code>. Times of day: <code>17:50</code>. Dates: <code>2026-11-02</code>.</li>
   <li>Tree rows: mark, name, elapsed time, step, and the last line of the child process in dim.</li>
   <li>Plain lines: <code>[m:ss] mark path: text</code>. The parts of the path use <code>›</code>, or <code>&gt;</code> without a UTF-8 locale.</li>
@@ -121,7 +121,7 @@
 <tbody>
 <tr><td>Exceptions first</td><td>Show the rows that differ from the default state (current, ok, in-sync, same, up-to-date). Fold the other rows into the totals line. <code>-v</code> shows all rows.</td><td><a href="#status">status</a>, <a href="#upstream">upstream</a>, <a href="#checkout">checkout</a></td></tr>
 <tr><td>A fold keeps its count</td><td>A folded group shows its count, and its names when they fit. Thus "all fine" and "not shown" do not look the same.</td><td><a href="#plan">plan</a>: <code>7 current: munge rocm-smi …</code></td></tr>
-<tr><td>Say it once</td><td>A column with the same value on every row goes into the header line. Rows with the same action and reason on all targets merge into one row. Each fact shows in one command where the person acts on it.</td><td><a href="#publish">publish</a>, <a href="#plan">plan</a></td></tr>
+<tr><td>Say it once</td><td>A column with the same value on every row goes into the header line. Rows with the same action and reason on all targets merge into one row. Each fact shows in one command where the human acts on it.</td><td><a href="#publish">publish</a>, <a href="#plan">plan</a></td></tr>
 <tr><td>All-pass lists fold</td><td>A list where all items pass folds to one line. Passed checks that stay visible are dim.</td><td><a href="#publish">publish</a> steps, <a href="#doctor">doctor</a></td></tr>
 <tr><td>Explain once</td><td>No tutorial hints. A legend or an explanation goes into a help topic.</td><td><a href="#graph">graph</a>: the legend is in <code>repoctl help graph</code></td></tr>
 <tr><td>Fixed end of a failed command</td><td>One summary line, one error line, then 0 to 3 hints. Hint form: <code>hint: WHAT TO DO. run: CMD</code> (<a href="cli.html#errors">error messages</a>). A command that succeeds can end with one <code>Next: CMD</code> line instead.</td><td><a href="#build-failed">build-failed</a>, <a href="#status">status</a></td></tr>
@@ -162,7 +162,7 @@
 
 <h2 id="publish">repoctl publish</h2>
 <figure class="shot term"><a href="mockups/term/publish.html"><img src="img/term-publish.webp" alt="repoctl publish of el9: header with publish id, target and source run, base, store, signer, a table of four changed packages, sign and checks lines, the typed set name, one folded step line, published and served behind" loading="lazy"></a><figcaption>repoctl publish of el9 on 2026-11-03 14:12: 38 new RPMs, 170 kept, 208 after.</figcaption></figure>
-<p>The header line names the publish id, the target and the source run, because they are the same for every row. The table has one row per source package that changes. The checks line holds the inputs, the trust block and the gates; a failed check has its own red line. <code>closure.broken/pmix@el9</code> is open, but this publish does not change its closure, so the line has no colour. The person types the set name; a trust change first asks for each added key id (<a href="signing.html#trust-block">Signing: trust block</a>). After success, the eight steps fold to one line. <code>-v</code> shows each step, for example <code>push 38s 54 new blobs (412 MiB), 170 known</code>. <code>served</code> stays behind until the mirror job runs. <code>Next: repoctl status</code> shows when the served tree is the same as latest. The retiring key hpc-repo shows in <a href="#status">status</a> and <a href="#doctor">doctor</a>, not here. Command: <a href="cli.html#cmd-publish">repoctl publish</a>; summary and steps: <a href="publish.html#summary">Publish: summary</a>, <a href="publish.html#order">Publish: order</a>; gate: <a href="advisories.html#gate">Advisories: publish gate</a>.</p>
+<p>The header line names the publish id, the target and the source run, because they are the same for every row. The table has one row per source package that changes. The checks line holds the inputs, the trust block and the gates; a failed check has its own red line. <code>closure.broken/pmix@el9</code> is open, but this publish does not change its closure, so the line has no colour. The human types the set name; a trust change first asks for each added key id (<a href="signing.html#trust-block">Signing: trust block</a>). After success, the eight steps fold to one line. <code>-v</code> shows each step, for example <code>push 38s 54 new blobs (412 MiB), 170 known</code>. <code>served</code> stays behind until the mirror job runs. <code>Next: repoctl status</code> shows when the served tree is the same as latest. The retiring key hpc-repo shows in <a href="#status">status</a> and <a href="#doctor">doctor</a>, not here. Command: <a href="cli.html#cmd-publish">repoctl publish</a>; summary and steps: <a href="publish.html#summary">Publish: summary</a>, <a href="publish.html#order">Publish: order</a>; gate: <a href="advisories.html#gate">Advisories: publish gate</a>.</p>
 <p>A target that is not publishable gives a refusal in the fixed end form:</p>
 <pre class="term">$ repoctl publish --target el10
 repoctl: error: el10 is not publishable: slurm@el10 failed, slurm-singularity-exec@el10 is blocked

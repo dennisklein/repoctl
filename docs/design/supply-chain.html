@@ -124,13 +124,13 @@
 </figure>
 
 <h3 id="in-toto">in-toto attestations</h3>
-<p>in-toto (CNCF) gives the common frame. An in-toto <em>Statement</em> binds a <em>predicate</em> (the facts, for example SLSA provenance or an SBOM) to one or more <em>subjects</em> (artifacts, by name and digest). A DSSE envelope can sign the Statement. A bundle is a JSON Lines file with many envelopes. in-toto also has <em>layouts</em>: a signed policy that names the steps of a supply chain and the persons that can do each step.</p>
+<p>in-toto (CNCF) gives the common frame. An in-toto <em>Statement</em> binds a <em>predicate</em> (the facts, for example SLSA provenance or an SBOM) to one or more <em>subjects</em> (artifacts, by name and digest). A DSSE envelope can sign the Statement. A bundle is a JSON Lines file with many envelopes. in-toto also has <em>layouts</em>: a signed policy that names the steps of a supply chain and the humans that can do each step.</p>
 
 <h3 id="sigstore">Sigstore and cosign</h3>
 <p>Sigstore (OpenSSF) signs artifacts and attestations. <code>cosign</code> is its client. It signs with a key pair, a KMS key or a hardware key (PIV, for example on a YubiKey). In keyless mode, Fulcio gives a short-lived certificate for an OIDC identity, for example a GitHub workflow or an e-mail address. Rekor is a public transparency log: each signature gets a log entry that anyone can audit. For OCI artifacts, cosign stores signatures and attestations in the registry next to the artifact, with the OCI referrers API or a tag scheme.</p>
 <aside class="callout note">
 <p class="callout-title">What the EL clients verify</p>
-<p>rpm and dnf on EL9 and EL10 verify OpenPGP signatures only: the RPM signature and <code>repomd.xml.asc</code> (<a href="signing.html#facts">signing facts</a>). They do not read SBOMs, provenance or Sigstore signatures. Thus no record changes what a client installs. The records are for people and tools that ask questions about the packages.</p>
+<p>rpm and dnf on EL9 and EL10 verify OpenPGP signatures only: the RPM signature and <code>repomd.xml.asc</code> (<a href="signing.html#facts">signing facts</a>). They do not read SBOMs, provenance or Sigstore signatures. Thus no record changes what a client installs. The records are for humans and tools that ask questions about the packages.</p>
 </aside>
 
 <h2 id="value">Threats and value</h2>
@@ -143,7 +143,7 @@
 <tr><td>T3</td><td>"A CVE is out for UCX 1.22.0 (or for a library that slurm bundles). Which of our RPMs hold it?"</td><td>SBOM.</td><td>The upstream purl and version of each component. Grype or Trivy match them with OSV and GHSA.</td></tr>
 <tr><td>T4</td><td>"A buildroot package was bad (as the xz backdoor, CVE-2024-3094). Which of our builds used it?"</td><td>Provenance.</td><td>Each buildroot RPM with its signer key and digest, in a standard form.</td></tr>
 <tr><td>T5</td><td>"Show me how this RPM was built." An auditor, a user site, a security team.</td><td>Provenance and SBOM.</td><td>Standard formats, next to the RPMs, readable with curl and jq.</td></tr>
-<tr><td>T6</td><td>An admin host is compromised. It builds a bad RPM, and the admin signs it.</td><td>Personal keys, gates 1 to 3, the journal. The design has no two-person review.</td><td>None at L1. The host writes the record, so the host can forge it. Only a hosted build (L2) or an independent rebuild helps.</td></tr>
+<tr><td>T6</td><td>An admin host is compromised. It builds a bad RPM, and the admin signs it.</td><td>Personal keys, gates 1 to 3, the journal. The design has no two-human review.</td><td>None at L1. The host writes the record, so the host can forge it. Only a hosted build (L2) or an independent rebuild helps.</td></tr>
 <tr><td>T7</td><td>An admin key is stolen and signs outside repoctl.</td><td>Offboarding, re-sign (<a href="signing.html#offboarding">offboarding</a>).</td><td>None. A transparency log (Rekor) can show the use of a key (<a href="#not-used">not used</a>).</td></tr>
 <tr><td>T8</td><td>A customer or a regulation asks for an SBOM.</td><td>SBOM.</td><td>CycloneDX 1.6 (<a href="#regulation">regulation</a>).</td></tr>
 </tbody>
@@ -299,8 +299,8 @@
     }
   }
 }</code></pre>
-<p id="build-type"><b>Build type <code>mock-rpm/v1</code>.</b> One node build: repoctl checks out <code>commit</code> of <code>source</code>, makes the SRPM and the RPMs with mock in the config <code>mockConfig</code> of <code>target</code>, with rpmautospec, and with the staging of the run and the local copy of latest as extra repositories. <code>externalParameters</code> are the values a person controls through the set. <code>internalParameters</code> are the values of the admin host. Two builds with equal <code>externalParameters</code> and equal <code>resolvedDependencies</code> are the same build.</p>
-<p id="builder"><b>Builder <code>admin-host</code>.</b> The builder is the repoctl process of one admin on one host. The admin is the trust boundary: the same person builds, signs and publishes. This is SLSA Build L1. The record is unsigned in itself (L1 allows it), and the repository signature covers it.</p>
+<p id="build-type"><b>Build type <code>mock-rpm/v1</code>.</b> One node build: repoctl checks out <code>commit</code> of <code>source</code>, makes the SRPM and the RPMs with mock in the config <code>mockConfig</code> of <code>target</code>, with rpmautospec, and with the staging of the run and the local copy of latest as extra repositories. <code>externalParameters</code> are the values a human controls through the set. <code>internalParameters</code> are the values of the admin host. Two builds with equal <code>externalParameters</code> and equal <code>resolvedDependencies</code> are the same build.</p>
+<p id="builder"><b>Builder <code>admin-host</code>.</b> The builder is the repoctl process of one admin on one host. The admin is the trust boundary: the same human builds, signs and publishes. This is SLSA Build L1. The record is unsigned in itself (L1 allows it), and the repository signature covers it.</p>
 <p>The buildroot digests are <code>SIGMD5</code> values from the buildroot lock, marked as such. MD5 is weak, but the record uses it to identify a package, not to trust it. The rpm signature of each buildroot package (the <code>signer</code> annotation) gives the trust. When test V23 passes, each entry also gets the <code>SHA256HEADER</code> of the package.</p>
 
 <h3 id="sbom-record">SBOM record</h3>
@@ -421,7 +421,7 @@ steps:
 <tr><td>cosign signature of the snapshot</td><td>Each admin needs a second key (a PIV key on the YubiKey) and its own lifecycle: onboarding, deployment record, offboarding. The mirror job needs cosign. The clients still use OpenPGP only.</td><td>A consumer pulls the snapshots from GHCR with a policy engine that needs cosign (for example Kyverno, Ratify).</td></tr>
 <tr><td>Keyless Sigstore and Rekor</td><td>It needs an OIDC sign-in in each publish. The public log shows the e-mail of each admin. It does not fit an offline YubiKey workflow.</td><td>The team wants a public audit log of each publish (T7).</td></tr>
 <tr><td>OCI referrers</td><td>The records are files in the snapshot. Referrers matter when a tool looks for cosign attestations. Referrer support of GHCR is not clear.</td><td>With a cosign signature or keyless Sigstore.</td></tr>
-<tr><td>Hosted builds (L2, L3)</td><td>The build and the signature stay with the admin (<a href="decision.html#choice">decision</a>, <a href="signing.html#choice">signing</a>). mock in CI needs privileged containers, and the signing key cannot be personal.</td><td>The team moves all builds to CI, for example for L3 or for two-person control.</td></tr>
+<tr><td>Hosted builds (L2, L3)</td><td>The build and the signature stay with the admin (<a href="decision.html#choice">decision</a>, <a href="signing.html#choice">signing</a>). mock in CI needs privileged containers, and the signing key cannot be personal.</td><td>The team moves all builds to CI, for example for L3 or for two-human control.</td></tr>
 <tr><td>in-toto layouts</td><td>Gates 1 to 3, the advisories gate and the safety classes enforce who can do what.</td><td>Never, with this team model.</td></tr>
 <tr><td>Independent rebuild check</td><td>It needs old buildroot RPMs. Rocky keeps old packages in its vault, but the EL9 builds are not bit-for-bit reproducible.</td><td>A second admin must confirm the builds of the first admin (T6). The buildroot lock is the input (<code>mock --hermetic-build</code>).</td></tr>
 </tbody>

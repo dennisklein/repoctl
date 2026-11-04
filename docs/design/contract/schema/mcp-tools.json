@@ -229,7 +229,7 @@
     {
       "name": "repoctl_run_get",
       "title": "Run details",
-      "description": "Return one run with every node: state (waiting, running, ok, failed, blocked, canceled), steps with durations and exit codes, NVRs, artifacts, log paths, and for a failed node an error with class and a log excerpt. Works while the run is in progress. publishable lists targets that a person may publish (every node current or staged); publishBlockers says why the others are not. next lists suggested steps; a step with human: true is for the person only. Returns kind Run.",
+      "description": "Return one run with every node: state (waiting, running, ok, failed, blocked, canceled), steps with durations and exit codes, NVRs, artifacts, log paths, and for a failed node an error with class and a log excerpt. Works while the run is in progress. publishable lists targets that a human may publish (every node current or staged); publishBlockers says why the others are not. next lists suggested steps; a step with human: true is for the human only. Returns kind Run.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -395,7 +395,7 @@
     {
       "name": "repoctl_repo_diff",
       "title": "Staging vs published",
-      "description": "Compare the staging repo of a run (or the staged nodes of the plan) with the local copy of latest: added, removed, changed (other EVR) and rebuilt (same NVRA, other payload). Use it to write the summary a person reads before they publish. Returns kind RepoDiff, one item per target and repo.",
+      "description": "Compare the staging repo of a run (or the staged nodes of the plan) with the local copy of latest: added, removed, changed (other EVR) and rebuilt (same NVRA, other payload). Use it to write the summary a human reads before they publish. Returns kind RepoDiff, one item per target and repo.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -523,7 +523,7 @@
     {
       "name": "repoctl_snapshots",
       "title": "List snapshots",
-      "description": "List the snapshots of each target in the registry, newest first, with publish id, digest, parent, kind, signer, person and host. Use it to find the publish that changed an NVR. Returns kind SnapshotList, one item per target.",
+      "description": "List the snapshots of each target in the registry, newest first, with publish id, digest, parent, kind, signer, human and host. Use it to find the publish that changed an NVR. Returns kind SnapshotList, one item per target.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -666,7 +666,7 @@
     {
       "name": "repoctl_sign_onboard",
       "title": "Onboarding checklist for a key",
-      "description": "Check the five onboarding steps of one key: the key is in sign.keys, the key file holds it, a release with the key is published, the deployment is recorded, and the person has write access to the registry. It only prints and checks. Returns kind OnboardReport.",
+      "description": "Check the five onboarding steps of one key: the key is in sign.keys, the key file holds it, a release with the key is published, the deployment is recorded, and the human has write access to the registry. It only prints and checks. Returns kind OnboardReport.",
       "inputSchema": {
         "type": "object",
         "properties": {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Core model</title>
-<meta name="description" content="The mental model of repoctl: sets, targets, nodes, the build identity, the repo as build state, the RepoManifest, records, people, safety classes and the glossary.">
+<meta name="description" content="The mental model of repoctl: sets, targets, nodes, the build identity, the repo as build state, the RepoManifest, records, humans, safety classes and the glossary.">
 </head>
 <body>
 <h1>Core model</h1>
@@ -13,9 +13,9 @@
   <li>A node is one package on one target, written <code>DIR@TARGET</code>. Its build identity is the package commit plus the target.</li>
   <li>The published repo is the build state. Each target repo carries a signed RepoManifest. Only commits that are not in it build.</li>
   <li>A rebuild is an empty commit. rpmautospec raises the release, so every build has a new NVR.</li>
-  <li>repoctl does not rebuild dependents by itself. Advisories suggest a step, and the person decides.</li>
+  <li>repoctl does not rebuild dependents by itself. Advisories suggest a step, and the human decides.</li>
   <li>The GHCR tag <code>latest</code> is the only authority for what is published. All other records are copies.</li>
-  <li>Each command has a safety class. Only a person changes shared state.</li>
+  <li>Each command has a safety class. Only a human changes shared state.</li>
   <li>The CLI, the web UI, the MCP server and the skills share one core and one set of words.</li>
 </ul>
 <aside class="callout note">
@@ -103,14 +103,14 @@
 <tr><td><code>ok</code></td><td>run</td><td>The node built. Its RPMs are in the staging of the run.</td></tr>
 <tr><td><code>failed</code></td><td>run</td><td>The build of the node failed.</td></tr>
 <tr><td><code>blocked</code></td><td>run</td><td>A dependency failed, so the node does not start.</td></tr>
-<tr><td><code>canceled</code></td><td>run</td><td>A person, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
+<tr><td><code>canceled</code></td><td>run</td><td>A human, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
 </tbody>
 </table>
-<p>A run has one <dfn>run state</dfn>: <code>planning</code>, <code>running</code>, <code>ok</code>, <code>failed</code>, <code>canceled</code> or <code>abandoned</code>. <code>abandoned</code> means that the process of the run stopped without a result: the journal has no end, and no process holds the set lock. There is no queued run (<a href="#people">people and hosts</a>). The story run ends <code>failed</code> after 41m07s with exit 3.</p>
+<p>A run has one <dfn>run state</dfn>: <code>planning</code>, <code>running</code>, <code>ok</code>, <code>failed</code>, <code>canceled</code> or <code>abandoned</code>. <code>abandoned</code> means that the process of the run stopped without a result: the journal has no end, and no process holds the set lock. There is no queued run (<a href="#humans">humans and hosts</a>). The story run ends <code>failed</code> after 41m07s with exit 3.</p>
 
 <h2 id="identity">Build identity</h2>
 <p>The <dfn>build identity</dfn> of a node is the package commit plus the target. repoctl builds each identity once. rpmautospec computes the release from the git history. Thus one commit gives one NVR, and each new commit gives a new release.</p>
-<p>The mock config, the macros, the extra repos and the builds of the dependencies are not part of the identity. A change there gives an advisory, for example <code>mock.drift</code>, <code>buildroot.drift</code> or <code>soname.removed</code>. The person decides whether a rebuild is necessary.</p>
+<p>The mock config, the macros, the extra repos and the builds of the dependencies are not part of the identity. A change there gives an advisory, for example <code>mock.drift</code>, <code>buildroot.drift</code> or <code>soname.removed</code>. The human decides whether a rebuild is necessary.</p>
 <aside class="callout why">
 <p class="callout-title">Why the commit is the identity</p>
 <p>A hash over the commit, the configs and the hashes of all dependencies rebuilds every dependent after each change. It can also give a second build with the same NVR and other content, and clients do not update to it. With the commit as identity, every build has its own NVR, and the git history explains each one. repoctl trusts the ABI promise of upstream, as the bash scripts do. The soname check after each build tells when this trust fails.</p>
@@ -156,7 +156,7 @@
 <text class="t-small t-mono" x="626" y="328" data-f="2-3">ucx-1.22.1-1.el9 → staging</text>
 <text class="t-small t-mono t-muted" x="626" y="350" data-f="2-3">r-20261102-1750-a3f</text>
 <rect class="box" x="230" y="240" width="260" height="130" rx="8"/>
-<text class="t-title" x="246" y="264">publish (a person)</text>
+<text class="t-title" x="246" y="264">publish (a human)</text>
 <text class="t-small" x="246" y="288" data-f="3">sign 38 new RPMs (d.klein)</text>
 <text class="t-small" x="246" y="308" data-f="3">repodata + new RepoManifest</text>
 <text class="t-small" x="246" y="328" data-f="3">push, then move latest</text>
@@ -174,7 +174,7 @@
 <path class="edge-accent" data-f="4" d="M360,240 L360,174" marker-end="url(#arrow-accent)"/>
 <text class="t-small t-muted" x="370" y="212">tag latest moves</text>
 </svg>
-<script type="application/json" class="steps">["latest of el9 is p-20260912-1403-c21. Its signed RepoManifest lists each published build with its commit: ucx 1.22.0-2 comes from commit 907c60d.", "plan compares the lock with the manifest. The lock pins ucx at 4b1e9c2, which is not in the manifest, so ucx@el9 gets build with reason commit-changed. munge@el9 is current.", "build runs mock with --addrepo on the staging repo of run r-20261102-1750-a3f and on the local copy of latest. ucx-1.22.1-1.el9 goes to staging. latest does not change.", "A person publishes el9. repoctl signs the 38 new RPMs, writes the repodata with a new RepoManifest, pushes the snapshot and moves the tag latest.", "latest is now p-20261103-1412-5e1. Its manifest lists ucx at 4b1e9c2, so the next plan shows ucx@el9 as current. Another admin gets the same state with repoctl repo pull."]</script>
+<script type="application/json" class="steps">["latest of el9 is p-20260912-1403-c21. Its signed RepoManifest lists each published build with its commit: ucx 1.22.0-2 comes from commit 907c60d.", "plan compares the lock with the manifest. The lock pins ucx at 4b1e9c2, which is not in the manifest, so ucx@el9 gets build with reason commit-changed. munge@el9 is current.", "build runs mock with --addrepo on the staging repo of run r-20261102-1750-a3f and on the local copy of latest. ucx-1.22.1-1.el9 goes to staging. latest does not change.", "A human publishes el9. repoctl signs the 38 new RPMs, writes the repodata with a new RepoManifest, pushes the snapshot and moves the tag latest.", "latest is now p-20261103-1412-5e1. Its manifest lists ucx at 4b1e9c2, so the next plan shows ucx@el9 as current. Another admin gets the same state with repoctl repo pull."]</script>
 <figcaption>The published repo is the build state. The loop closes when the tag moves.</figcaption>
 </figure>
 <p>Every admin host reads the same state. <code>repoctl repo pull</code> makes the local copy equal to <code>latest</code>, so a second admin plans from the same manifest. A lost host loses only its runs and its staging (<a href="#records">records</a>).</p>
@@ -252,9 +252,9 @@
 <tr><td>New target in <code>repoctl.yaml</code></td><td>build, <code>new-target</code></td><td>No manifest for the target yet.</td></tr>
 <tr><td><code>repoctl build --force</code></td><td>build, <code>forced</code>, to staging only</td><td>For tests. Publish refuses an NVR that is published with other content (<a href="build.html#force">build.html#force</a>).</td></tr>
 <tr><td>A dependency in the set was rebuilt</td><td>no build; <code>soname.removed</code> or <code>abi.changed</code></td><td>repoctl trusts the upstream ABI promise. The soname check tells when this is not safe.</td></tr>
-<tr><td>A set package now provides a <code>BuildRequires</code> of a current node</td><td>no build; <code>provider.changed</code></td><td>The person decides.</td></tr>
+<tr><td>A set package now provides a <code>BuildRequires</code> of a current node</td><td>no build; <code>provider.changed</code></td><td>The human decides.</td></tr>
 <tr><td>Upstream binary repos changed (EPEL, Rocky, extra repos)</td><td>no build; <code>closure.broken</code> or <code>buildroot.drift</code></td><td>Repoclosure and buildroot checks.</td></tr>
-<tr><td>mock config or macros changed</td><td>no build; <code>mock.drift</code></td><td>"Built with an older mock config." The person decides.</td></tr>
+<tr><td>mock config or macros changed</td><td>no build; <code>mock.drift</code></td><td>"Built with an older mock config." The human decides.</td></tr>
 </tbody>
 </table>
 <p>A node that an unpublished run built for the current lock is <code>staged</code>. The next run takes it from that staging and does not build it again. Thus a failed run does not rebuild its good nodes (<a href="build.html#staging">build.html#staging</a>). In the story, the plan at 17:49 gives 8 build (ucx on both targets with <code>commit-changed</code>; slurm, openmpi and slurm-singularity-exec on both targets with <code>rebuild</code>), 13 current, 0 staged and 0 skip.</p>
@@ -262,10 +262,10 @@
 <h2 id="rebuild">A rebuild is a commit</h2>
 <p><code>repoctl rebuild DIR... --reason TEXT</code> adds an empty commit <code>Rebuild: TEXT</code> to each package branch and pins it. rpmautospec raises the release for this commit, as it does for Fedora mass rebuilds. Thus every build has a new NVR. repoctl never pushes. The hint gives the push command.</p>
 <p>In the story, Dennis runs <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code> after the ucx bump. The new NVRs are slurm 26.05.4-2, openmpi 5.0.11-2 and slurm-singularity-exec 3.2.0-2. The soname check of ucx then says "sonames unchanged: rebuild not necessary", because <code>libucp.so.0</code> stays. The rebuilds are his choice, not a need.</p>
-<p>A rebuild is always a decision of the person. repoctl never makes a rebuild commit by itself. The command is in <a href="cli.html#cmd-rebuild">cli.html#cmd-rebuild</a>, and the rules are in <a href="build.html#rebuild">build.html#rebuild</a>.</p>
+<p>A rebuild is always a decision of the human. repoctl never makes a rebuild commit by itself. The command is in <a href="cli.html#cmd-rebuild">cli.html#cmd-rebuild</a>, and the rules are in <a href="build.html#rebuild">build.html#rebuild</a>.</p>
 
 <h2 id="advisories">Advisories</h2>
-<p>An <dfn>advisory</dfn> is the result of a deterministic check. It tells the person that a rebuild or another step can be necessary. It suggests a step, and the person decides. The id is <code>CODE/SUBJECT</code>, for example <code>closure.broken/pmix@el9</code>. repoctl computes advisories in plan, after each node build and in <code>repoctl check</code>, which a daily timer runs on each admin host.</p>
+<p>An <dfn>advisory</dfn> is the result of a deterministic check. It tells the human that a rebuild or another step can be necessary. It suggests a step, and the human decides. The id is <code>CODE/SUBJECT</code>, for example <code>closure.broken/pmix@el9</code>. repoctl computes advisories in plan, after each node build and in <code>repoctl check</code>, which a daily timer runs on each admin host.</p>
 <p>A required advisory blocks only a publish that changes a package in its closure. <code>--accept-advisory ID --reason TEXT</code> overrides it for one publish. A dismissal hides an info or warn advisory for the team. In the story, the check of 2026-11-02 06:00 finds <code>closure.broken/pmix@el9</code>: pmix-6.1.0-1.el9 needs <code>libhwloc.so.15</code>, and EPEL 9 now gives only <code>libhwloc.so.16</code>. The el9 publish does not change pmix, so the advisory does not block it. The advisories chapter has the codes, the states and the gate (<a href="advisories.html#codes">advisories.html#codes</a>, <a href="advisories.html#gate">advisories.html#gate</a>).</p>
 
 <h2 id="snapshots">Snapshots</h2>
@@ -327,7 +327,7 @@
 </table>
 <p>No file on an admin host says what is published. After a lost host, <code>repoctl repo pull</code> gives back the local copy. The runs, journals and staged nodes of the lost host are lost. They are personal, and nothing depends on them. The freshness check is in <a href="publish.html#freshness">publish.html#freshness</a>.</p>
 
-<h2 id="people">People and hosts</h2>
+<h2 id="humans">Humans and hosts</h2>
 <ul>
   <li><b>Fedora only.</b> repoctl runs on Fedora. The mock chroots are EL9 and EL10. Admins install repoctl from the Fedora repo on GitHub Pages or from the release RPMs (<a href="decision.html#home">decision.html#home</a>).</li>
   <li><b>Own user, own host, own key.</b> Each admin builds as an own Unix user and/or on an own host, and signs with a personal key. Dennis Klein is <code>dklein</code> on <code>hpc-a1</code> with key <code>d.klein</code>. A. Admin uses <code>hpc-a2</code> with key <code>a.admin</code>.</li>
@@ -345,12 +345,12 @@
 <tr><td><span class="tag read">read</span></td><td>Nothing that matters (a cache file or <code>check.json</code> at most).</td><td>status, plan, graph, check, repo ls, repo verify, sign ls, doctor</td><td>No question, no lock or a shared lock. MCP tools are allowed.</td></tr>
 <tr><td><span class="tag staging">staging</span></td><td>The staging, the logs and the journal of this user.</td><td>build, cancel, clean, mock update</td><td>Takes the set lock. No question, except a delete in clean.</td></tr>
 <tr><td><span class="tag local">local write</span></td><td>Worktrees, branches and set files on this host.</td><td>checkout, pin, rebuild, repo pull, release write, sign add, advisories dismiss</td><td>Takes the set lock. Never pushes; the hint gives the push command.</td></tr>
-<tr><td><span class="tag shared">shared state</span></td><td>What other people see or trust.</td><td>publish, repo push, repo restore, repo prune --apply, repo gc --apply, repo resign, sign deployed</td><td>Dry run, summary, typed confirmation by a person, journal, no MCP tool.</td></tr>
+<tr><td><span class="tag shared">shared state</span></td><td>What other humans see or trust.</td><td>publish, repo push, repo restore, repo prune --apply, repo gc --apply, repo resign, sign deployed</td><td>Dry run, summary, typed confirmation by a human, journal, no MCP tool.</td></tr>
 </tbody>
 </table>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>Every shared-state command shows a summary and has a dry run. A person confirms in a terminal or in the web UI. The person types the set name. For a trust change, the person also types each added key id. <code>sign deployed</code> asks for the key id. The command takes the set lock, writes a journal and has no MCP tool. The full rules are in <a href="cli.html#safety">cli.html#safety</a>. The variable for unattended jobs is in <a href="config.html#env">config.html#env</a>.</p>
+<p>Every shared-state command shows a summary and has a dry run. A human confirms in a terminal or in the web UI. The human types the set name. For a trust change, the human also types each added key id. <code>sign deployed</code> asks for the key id. The command takes the set lock, writes a journal and has no MCP tool. The full rules are in <a href="cli.html#safety">cli.html#safety</a>. The variable for unattended jobs is in <a href="config.html#env">config.html#env</a>.</p>
 </aside>
 
 <h2 id="surfaces">One core, four surfaces</h2>
@@ -358,7 +358,7 @@
 <table>
 <thead><tr><th>Surface</th><th>Used by</th><th>What it gives</th><th>Limit</th></tr></thead>
 <tbody>
-<tr><td>CLI</td><td>a person, a script, CI</td><td>Every command. <code>--json</code> for scripts.</td><td>Shared state needs a person in a terminal.</td></tr>
+<tr><td>CLI</td><td>a human, a script, CI</td><td>Every command. <code>--json</code> for scripts.</td><td>Shared state needs a human in a terminal.</td></tr>
 <tr><td>Web UI (<code>repoctl ui</code>)</td><td>the local user in a browser</td><td>The same data on pages, live over SSE. Each page names its CLI command.</td><td>Local user only. Shared state needs the typed confirmation.</td></tr>
 <tr><td>MCP server (<code>repoctl mcp start</code>)</td><td>an agent</td><td>Typed tools for read, plan, build and rebuild.</td><td>No tool for shared state. <code>--tools read</code> gives read tools only.</td></tr>
 <tr><td>Skills</td><td>an agent</td><td>Instructions that call repoctl: bump-package, triage-build, rebuild-check, package-updates.</td><td>Never call mock or rpmsign. Stop at shared state with <code>humanAction</code>.</td></tr>

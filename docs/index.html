@@ -131,13 +131,13 @@
 <li><a class="decision" href="design/decision.html#choice"><span class="decision-text"><b>One Go binary</b> on go-clikit gives the CLI, the local web UI and the MCP server one core, and mock stays the build isolation.</span><span class="decision-link">Why a Go tool</span></a></li>
 <li><a class="decision" href="design/decision.html#home"><span class="decision-text"><b>Data on branches:</b> the tool lives on <code>main</code>, each <code>builder/&lt;set&gt;</code> branch holds one package set, and each package has its own branch.</span><span class="decision-link">Where the tool lives</span></a></li>
 <li><a class="decision" href="design/model.html#state"><span class="decision-text"><b>The published repo is the build state:</b> only new commits build, and a rebuild is an empty commit.</span><span class="decision-link">Core model</span></a></li>
-<li><a class="decision" href="design/advisories.html#model"><span class="decision-text"><b>Advisories</b> are deterministic checks that suggest a fix, and a person decides.</span><span class="decision-link">Advisories</span></a></li>
+<li><a class="decision" href="design/advisories.html#model"><span class="decision-text"><b>Advisories</b> are deterministic checks that suggest a fix, and a human decides.</span><span class="decision-link">Advisories</span></a></li>
 <li><a class="decision" href="design/publish.html#topology"><span class="decision-text"><b>GHCR is the authority:</b> each snapshot is one OCI artifact, and a mirror job serves latest over HTTP.</span><span class="decision-link">Publish and snapshots</span></a></li>
-<li><a class="decision" href="design/publish.html#order"><span class="decision-text"><b>Publish has eight steps</b>, and only step 7, the tag, changes what other people see.</span><span class="decision-link">Publish order</span></a></li>
+<li><a class="decision" href="design/publish.html#order"><span class="decision-text"><b>Publish has eight steps</b>, and only step 7, the tag, changes what other humans see.</span><span class="decision-link">Publish order</span></a></li>
 <li><a class="decision" href="design/signing.html#choice"><span class="decision-text"><b>Personal signing keys:</b> the clients trust all team keys through the release package, with one signature per file.</span><span class="decision-link">Signing and trust</span></a></li>
 <li><a class="decision" href="design/supply-chain.html#flow"><span class="decision-text"><b>Supply chain records:</b> each build has SLSA provenance and a CycloneDX SBOM in the snapshot, and the repository signature covers them.</span><span class="decision-link">Supply chain records</span></a></li>
-<li><a class="decision" href="design/cli.html#safety"><span class="decision-text"><b>Shared state needs a person:</b> each such command has a dry run, a summary, a confirmation and a journal, and no MCP tool.</span><span class="decision-link">Safety rules</span></a></li>
-<li><a class="decision" href="design/model.html#people"><span class="decision-text"><b>Fedora hosts, EL targets:</b> each admin builds as an own user or on an own host, without a build queue and without a lease.</span><span class="decision-link">People and hosts</span></a></li>
+<li><a class="decision" href="design/cli.html#safety"><span class="decision-text"><b>Shared state needs a human:</b> each such command has a dry run, a summary, a confirmation and a journal, and no MCP tool.</span><span class="decision-link">Safety rules</span></a></li>
+<li><a class="decision" href="design/model.html#humans"><span class="decision-text"><b>Fedora hosts, EL targets:</b> each admin builds as an own user or on an own host, without a build queue and without a lease.</span><span class="decision-link">Humans and hosts</span></a></li>
 <li><a class="decision" href="design/ui.html#principles"><span class="decision-text"><b>The web UI is local</b> to one user, and its agent buttons run a fixed skill with a read-only MCP server.</span><span class="decision-link">Web UI</span></a></li>
 <li><a class="decision" href="design/ui.html#calm"><span class="decision-text"><b>Calm output:</b> the UI and the terminal show exceptions first, one primary action, and red only for the blocker.</span><span class="decision-link">Calm rules</span></a></li>
 <li><a class="decision" href="runbooks/import.html"><span class="decision-text"><b>Import by runbook:</b> an agent imports the bash-era repos with a runbook, not with an import command.</span><span class="decision-link">Import runbook</span></a></li>
@@ -154,9 +154,9 @@
 <h2 id="the-example">The example in this record</h2>
 <div class="story">
 <div class="story-text">
-<p>All examples, mockups, terminal frames and contract files use one data story: one set, one host, one person, two days. When a chapter shows an id, the id comes from this story.</p>
+<p>All examples, mockups, terminal frames and contract files use one data story: one set, one host, one human, two days. When a chapter shows an id, the id comes from this story.</p>
 <dl class="story-facts">
-<dt>Person</dt><dd>Dennis Klein, user <code>dklein</code>, key <code>d.klein</code>, host <code>hpc-a1</code></dd>
+<dt>Human</dt><dd>Dennis Klein, user <code>dklein</code>, key <code>d.klein</code>, host <code>hpc-a1</code></dd>
 <dt>Set</dt><dd><code>slurm-26.05</code> in <code>~/src/slurm-repo</code></dd>
 <dt>Targets</dt><dd><code>el9</code> and <code>el10</code>: 11 packages, 21 nodes</dd>
 <dt>Store</dt><dd><code>ghcr.io/gsi-hpc/slurm-repo</code></dd>

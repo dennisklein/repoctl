@@ -127,10 +127,10 @@
 </table>
 
 <h2 id="assumptions">Assumptions</h2>
-<p>The design depends on these facts. A test or a person confirms each of them. When one is false, the chapter that it names must change.</p>
+<p>The design depends on these facts. A test or a human confirms each of them. When one is false, the chapter that it names must change.</p>
 <ul>
 <li>The clients run Rocky 9 and Rocky 10 with the stock rpm, dnf and librepo of the c9s and c10s spec files. The facts F1 to F18 hold for these versions (<a href="signing.html#facts">client facts</a>; V10 to V18).</li>
-<li>Config management installs the release package on every client and on the HTTP server. A person can tell when the rollout is complete (<a href="signing.html#onboarding">onboarding</a>).</li>
+<li>Config management installs the release package on every client and on the HTTP server. A human can tell when the rollout is complete (<a href="signing.html#onboarding">onboarding</a>).</li>
 <li>The HTTP server can run a systemd timer and has curl, jq, gnupg2 and rpm (<a href="publish.html#mirror">mirror job</a>; V1).</li>
 <li>The mirror job runs every 5 minutes. A shorter interval only adds HEAD requests. Clients read a new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour).</li>
 <li>GHCR has no tag compare-and-swap. publish compares latest in step 1 and in step 7. The window between the two is acceptable, because the team coordinates in its own channel (<a href="publish.html#admins">two admins</a>).</li>

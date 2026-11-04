@@ -11,7 +11,7 @@
 <ul class="keypoints">
   <li>Each admin signs with a personal key (OpenPGP v4, on a YubiKey or in a file). No key is shared.</li>
   <li>Clients trust all team keys through one key file in the release package. Each RPM and each <code>repomd.xml.asc</code> has exactly one signature.</li>
-  <li>Gate 1: the signer is active and valid. Gate 2: a person confirmed the deployment of the key in <code>keys/deployed.yaml</code>. Gate 3: the key format.</li>
+  <li>Gate 1: the signer is active and valid. Gate 2: a human confirmed the deployment of the key in <code>keys/deployed.yaml</code>. Gate 3: the key format.</li>
   <li>A signer probe asks for the PIN at the start of a publish, not in the sign step.</li>
   <li>Publish verifies each target in its EL mock chroot, with the EL rpm and dnf and only the keys that the clients have.</li>
   <li>A normal publish never re-signs old RPMs. <code>repoctl repo resign</code> does it as its own publish.</li>
@@ -49,7 +49,7 @@
 <h2 id="options">Options</h2>
 <p>Five options give a team its signing keys. The client facts decide between them.</p>
 <h3 id="option-a">A. One shared key, encrypted with sops</h3>
-<p>The team keeps the armored secret key in git as a sops file. sops encrypts a file to many recipients: age keys (also SSH keys and age plugins), PGP, cloud KMS and HashiCorp Vault transit. <code>sops updatekeys</code> or <code>sops rotate</code> adds or removes a person.</p>
+<p>The team keeps the armored secret key in git as a sops file. sops encrypts a file to many recipients: age keys (also SSH keys and age plugins), PGP, cloud KMS and HashiCorp Vault transit. <code>sops updatekeys</code> or <code>sops rotate</code> adds or removes a human.</p>
 <p>The decrypt path keeps the key off the disk. repoctl makes a private GnuPG home in <code>$XDG_RUNTIME_DIR/repoctl/g-&lt;run&gt;</code> (mode 0700, a per-user tmpfs under systemd-logind). It pipes <code>sops decrypt</code> into <code>gpg --batch --import</code> and signs with <code>rpmsign --define "_gpg_path &lt;dir&gt;"</code>. At the end, also on an error or SIGINT, it runs <code>gpgconf --kill gpg-agent</code> and deletes the directory. The path must be short, because GnuPG fails when the socket path is too long. <code>sops exec-file --no-fifo</code> writes a temporary file to <code>/tmp</code> and is not usable.</p>
 <ul>
   <li>Each member holds the full private key in clear text during each publish. A member can copy it.</li>
@@ -57,7 +57,7 @@
   <li>A signature does not show who published.</li>
 </ul>
 <h3 id="option-b">B. Personal keys, no sharing</h3>
-<p>Each admin has a personal signing key, on a YubiKey (OpenPGP card) where possible. The set lists all trusted public keys. The release package ships all of them in one file. Each publish signs with the key of the person who runs it.</p>
+<p>Each admin has a personal signing key, on a YubiKey (OpenPGP card) where possible. The set lists all trusted public keys. The release package ships all of them in one file. Each publish signs with the key of the human who runs it.</p>
 <ul>
   <li>Clients: one trusted key verifies an RPM (F2) and a <code>repomd.xml.asc</code> with one signature (F8, F9). dnf imports all keys from the file without a question when it runs with <code>-y</code> (F1, F14).</li>
   <li>The <code>.repo</code> file stays stable: one <code>gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-slurm</code> line, and all keys in that one file. The key file is not <code>%config</code>, so an update always replaces it (F18).</li>
@@ -66,8 +66,8 @@
 </ul>
 <p>Two rules follow from F12 and F13. Gate 2 and the offboarding order enforce them.</p>
 <ol>
-  <li>Add a person before the first signature. A client reads a new key only from its installed release package. If a new key signs <code>repomd.xml.asc</code> first, the client cannot read the metadata, and it cannot get the new release package either. Thus an old key publishes the new release package, and config management deploys it. Only then can the new key sign.</li>
-  <li>Remove a person in this order: re-sign, ship the new key file, remove the key on the clients. If the key goes first, packages with the old signature fail to install.</li>
+  <li>Add a human before the first signature. A client reads a new key only from its installed release package. If a new key signs <code>repomd.xml.asc</code> first, the client cannot read the metadata, and it cannot get the new release package either. Thus an old key publishes the new release package, and config management deploys it. Only then can the new key sign.</li>
+  <li>Remove a human in this order: re-sign, ship the new key file, remove the key on the clients. If the key goes first, packages with the old signature fail to install.</li>
 </ol>
 <h3 id="option-c">C. One primary key, personal signing subkeys</h3>
 <p>The primary key stays offline, for example on an encrypted USB stick in a safe. Each admin gets a signing subkey on a YubiKey. Clients see one key identity.</p>
@@ -90,7 +90,7 @@
 <tbody>
 <tr><td>gpg-agent socket over ssh</td><td>The key is in the gpg-agent (or on a YubiKey) of a sign host. The admin host forwards the extra socket of the agent with <code>ssh -L</code>. Local gpg and rpmsign send only hashes. The forward direction needs a test.</td><td>Good. One host, ssh accounts, one YubiKey. ssh controls access. No audit log by default.</td></tr>
 <tr><td>ssh forced-command signer</td><td>A script on the sign host reads an RPM header or <code>repomd.xml</code> on stdin and returns a signature. <code>authorized_keys</code> pins the command. The script writes an audit log.</td><td>Good, but the team must write and maintain the signer. RPM header signatures outside rpmsign are complex; whole RPMs cost bandwidth.</td></tr>
-<tr><td>OBS signd</td><td>The signd daemon holds the key. The sign client asks it to sign RPMs or to write detached signatures. EL9 packages need a test.</td><td>Medium. Made for build farms. Access control by host, not by person.</td></tr>
+<tr><td>OBS signd</td><td>The signd daemon holds the key. The sign client asks it to sign RPMs or to write detached signatures. EL9 packages need a test.</td><td>Medium. Made for build farms. Access control by host, not by human.</td></tr>
 <tr><td>Sigul or Siguldry (Fedora)</td><td>Server, bridge and client. The server keeps the keys and connects out to the bridge; clients use mutual TLS.</td><td>Poor. Three hosts and a PKI for a few admins.</td></tr>
 </tbody>
 </table>
@@ -174,7 +174,7 @@
   <li>repoctl has no sops back end. Config management removes keys on the clients, and repoctl prints the commands.</li>
   <li>MCP never signs. The web UI signs only through <code>repoctl publish</code>, after the typed confirmation.</li>
 </ul>
-<p>The set config says which keys the clients trust: <code>sign.keys[]</code> (id, file, fingerprint, state), <code>sign.release.keyfile</code> and <code>sign.checks</code> (<code>key_expiry_warn: 180d</code>, <code>key_min_validity: 30d</code>). The user config says which key this person signs with: <code>sign.key</code>, an id of <code>sign.keys</code> or a full fingerprint. <code>sign.gpg_name</code> and <code>REPOCTL_GPG_NAME</code> are aliases of <code>sign.key</code> and <code>REPOCTL_SIGN_KEY</code>. The keys are in <a href="config.html#set-config">config.html#set-config</a>, <a href="config.html#user-config">config.html#user-config</a> and <a href="config.html#env">config.html#env</a>.</p>
+<p>The set config says which keys the clients trust: <code>sign.keys[]</code> (id, file, fingerprint, state), <code>sign.release.keyfile</code> and <code>sign.checks</code> (<code>key_expiry_warn: 180d</code>, <code>key_min_validity: 30d</code>). The user config says which key this human signs with: <code>sign.key</code>, an id of <code>sign.keys</code> or a full fingerprint. <code>sign.gpg_name</code> and <code>REPOCTL_GPG_NAME</code> are aliases of <code>sign.key</code> and <code>REPOCTL_SIGN_KEY</code>. The keys are in <a href="config.html#set-config">config.html#set-config</a>, <a href="config.html#user-config">config.html#user-config</a> and <a href="config.html#env">config.html#env</a>.</p>
 
 <h2 id="chain">Client trust chain</h2>
 <p>A client installs a package only when two checks pass: dnf checks <code>repomd.xml.asc</code> (<code>repo_gpgcheck=1</code>), and rpm checks the RPM signature (<code>gpgcheck=1</code>). Both use the keys that the client got from the release package.</p>
@@ -248,7 +248,7 @@
 <ul>
   <li>CLI: pinentry asks in the terminal or on the desktop. repoctl suspends the progress display for it.</li>
   <li>Web UI: the UI is for the local user only, so pinentry shows on the local desktop. The browser never asks for a PIN. Step 1 of the publish page shows the probe state: card missing, waiting for the PIN on the desktop, touch your key, ready. When a signature takes more than 1 s, the UI shows "touch your key" over SSE (<a href="ui-publish.html#progress">ui-publish.html#progress</a>).</li>
-  <li>If the probe fails or the person cancels pinentry: <code>sign.locked</code>, exit 9. The hint gives <code>gpg --card-status</code>.</li>
+  <li>If the probe fails or the human cancels pinentry: <code>sign.locked</code>, exit 9. The hint gives <code>gpg --card-status</code>.</li>
 </ul>
 <p>The preflight of publish also checks rpmsign, createrepo_c, gpg, the secret key of <code>sign.key</code> and a usable pinentry. A missing card gives <code>sign.card-absent</code>, a missing pinentry gives <code>sign.no-pinentry</code> (both exit 9). A failure in the sign step gives <code>sign.failed</code>. The full table is <a href="contract.html#problems">contract.html#problems</a>.</p>
 
@@ -284,7 +284,7 @@
 <rect class="box-warn" x="16" y="128" width="424" height="104" rx="8"/>
 <text class="t t-title" x="32" y="152">Trust change: the release has a new key file</text>
 <text class="t-small" x="32" y="174">the summary shows the trust block</text>
-<text class="t-small" x="32" y="194">the person types the key id of each added key</text>
+<text class="t-small" x="32" y="194">the human types the key id of each added key</text>
 <text class="t-small t-muted" x="32" y="214">sign.trust-change · 6 without the answer</text>
 <rect class="box-ok" x="460" y="128" width="424" height="104" rx="8"/>
 <text class="t t-title" x="476" y="152">Then: sign the new RPMs only</text>
@@ -309,11 +309,11 @@
 </aside>
 <p>Gate 2 reads only the committed record. The record is in the pushed set commit (<a href="publish.html#checks">publish.html#checks</a>), so all admins see the same record.</p>
 <aside class="callout why">
-<p class="callout-title">Why a person confirms</p>
-<p>Config management gives no feedback to repoctl. A published release package does not prove that the clients have it. If a key signs before the clients have it, dnf on the clients cannot read the metadata. Thus a person checks the clients and confirms the deployment.</p>
+<p class="callout-title">Why a human confirms</p>
+<p>Config management gives no feedback to repoctl. A published release package does not prove that the clients have it. If a key signs before the clients have it, dnf on the clients cannot read the metadata. Thus a human checks the clients and confirms the deployment.</p>
 </aside>
 <h3 id="deployment-record">Deployment record</h3>
-<p><code>repoctl sign deployed ID --release NVR --target ID</code> records that config management installed the release NVR on all clients of the target. The record is per target. repoctl checks that the release is in latest of each selected target and that its key file holds the key. For an import, <code>--path DIR</code> names the tree instead of latest. Then it asks the person to type the key id, writes <code>keys/deployed.yaml</code> and makes a set commit. The person pushes it.</p>
+<p><code>repoctl sign deployed ID --release NVR --target ID</code> records that config management installed the release NVR on all clients of the target. The record is per target. repoctl checks that the release is in latest of each selected target and that its key file holds the key. For an import, <code>--path DIR</code> names the tree instead of latest. Then it asks the human to type the key id, writes <code>keys/deployed.yaml</code> and makes a set commit. The human pushes it.</p>
 <p>The command needs a terminal or the UI dialog "Confirm deployment" (<a href="ui-publish.html#signing">ui-publish.html#signing</a>). It has no unattended mode and no MCP tool. Command: <a href="cli.html#cmd-sign-deployed">sign deployed</a>.</p>
 <pre><code class="language-yaml"># keys/deployed.yaml: the entry of the story, 2026-11-05 09:12 (el9 only)
 apiVersion: repoctl/v1alpha1
@@ -329,7 +329,7 @@ deployments:
 <p>A key is deployed for a command when gate 2 passes for each target in scope that has a latest. The scope is the selected targets of a publish, or the targets of the command. Thus <code>repoctl sign ls</code> shows hpc-repo as not deployed: el10 has a latest, and hpc-repo has no el10 record. hpc-repo signs nothing new, because it is retiring.</p>
 
 <h2 id="trust-block">Trust block</h2>
-<p>When the release package of a publish has a new key file, the summary shows the trust block. No second admin reviews the change. The block is for the person who publishes, and it needs a typed answer even with <code>--yes</code>. The story publish of slurm-release-26.05-3 by d.klein:</p>
+<p>When the release package of a publish has a new key file, the summary shows the trust block. No second admin reviews the change. The block is for the human who publishes, and it needs a typed answer even with <code>--yes</code>. The story publish of slurm-release-26.05-3 by d.klein:</p>
 <pre class="term">trust    slurm-release-26.05-3 changes the key file of all clients
          + a.admin  C2F9 7713 05AB E4D6 18C3  9F2B 70DE A5C1 E93F 52A7
                     added in set commit 7e21d0a by A. Admin &lt;a.admin@gsi.de&gt;
@@ -365,9 +365,9 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 </table>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>repoctl re-signs an RPM only when both conditions are true. Its signature verifies with a key in <code>sign.keys</code>. Its sha256 is in the base snapshot, which has a valid <code>repomd.xml.asc</code>. RPMs of different admins stay side by side. A change of the person who publishes never re-signs old RPMs.</p>
+<p>repoctl re-signs an RPM only when both conditions are true. Its signature verifies with a key in <code>sign.keys</code>. Its sha256 is in the base snapshot, which has a valid <code>repomd.xml.asc</code>. RPMs of different admins stay side by side. A change of the human who publishes never re-signs old RPMs.</p>
 </aside>
-<p><code>repoctl repo resign --signer ID</code> gives a new signature to each RPM of the key ID. It signs with the key of the person who runs the command. It is a publish run of kind resign, with the full publish order and gates. The summary shows the count per target and per repository, debuginfo included, and the size of the new blobs. <code>--repo</code> splits the work. When no RPM carries the key, the command exits with 4. A new signature changes the sha256 of the file. Thus resign also writes new supply chain records for each build that it touches (<a href="supply-chain.html#layout">supply-chain.html#layout</a>).</p>
+<p><code>repoctl repo resign --signer ID</code> gives a new signature to each RPM of the key ID. It signs with the key of the human who runs the command. It is a publish run of kind resign, with the full publish order and gates. The summary shows the count per target and per repository, debuginfo included, and the size of the new blobs. <code>--repo</code> splits the work. When no RPM carries the key, the command exits with 4. A new signature changes the sha256 of the file. Thus resign also writes new supply chain records for each build that it touches (<a href="supply-chain.html#layout">supply-chain.html#layout</a>).</p>
 <p><code>repo restore</code> also re-signs the RPMs of a removed key in the older snapshot (<a href="publish.html#restore">publish.html#restore</a>). Command: <a href="cli.html#cmd-repo-resign">repo resign</a>.</p>
 <p>In the story, the publish of el9 keeps 170 RPMs: 120 of d.klein and 50 of the retiring key hpc-repo. It re-signs none.</p>
 
@@ -376,7 +376,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <ul>
   <li>The build identity of an in-tree package is the last set commit that changed its path, plus the target. repoctl builds it from a checkout of that commit. A key change is a commit on that path, so the plan says build with the reason commit-changed (<a href="build.html#plan">build.html#plan</a>).</li>
   <li>The spec uses <code>%autorelease</code> and <code>%autochangelog</code>. The changelog then shows the commit message of each key change, for example "Trust key a.admin C2F9…52A7". Admins see each trust change in <code>rpm -q --changelog</code>.</li>
-  <li><code>repoctl release write</code> <span class="tag local">local write</span> writes the key file <code>RPM-GPG-KEY-slurm</code> from <code>sign.keys</code>: the keys in state active and retiring, sorted by id. It also writes the <code>baseurl</code> lines of the <code>.repo</code> file from <code>repo.url</code>. It does not commit. <code>sign add</code>, <code>sign retire</code> and <code>sign remove</code> call it and commit both files with the key change. In a new set, the person runs it in step 3 of <a href="lifecycle.html#help-new-set">help new-set</a>. Command: <a href="cli.html#cmd-release-write">release write</a>.</li>
+  <li><code>repoctl release write</code> <span class="tag local">local write</span> writes the key file <code>RPM-GPG-KEY-slurm</code> from <code>sign.keys</code>: the keys in state active and retiring, sorted by id. It also writes the <code>baseurl</code> lines of the <code>.repo</code> file from <code>repo.url</code>. It does not commit. <code>sign add</code>, <code>sign retire</code> and <code>sign remove</code> call it and commit both files with the key change. In a new set, the human runs it in step 3 of <a href="lifecycle.html#help-new-set">help new-set</a>. Command: <a href="cli.html#cmd-release-write">release write</a>.</li>
   <li>The <code>.repo</code> file keeps one <code>gpgkey=</code> URL. It does not change when the team changes (F18).</li>
   <li>The release package cannot remove keys from the clients (F16). <code>repoctl sign offboard ID</code> prints the commands for config management.</li>
   <li>For the bootstrap of a new client, <code>repoctl sign keyfile --checksum</code> prints the sha256 of the key file (<a href="cli.html#cmd-sign-keyfile">sign keyfile</a>).</li>
@@ -464,7 +464,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <text class="t t-title" x="16" y="108">d.klein (hpc-a1)</text>
 <text class="t t-title" x="16" y="168">GHCR, mirror job</text>
 <text class="t t-title" x="16" y="228">Clients</text>
-<text class="t t-title" x="16" y="288">A person</text>
+<text class="t t-title" x="16" y="288">A human</text>
 <line class="edge-muted" x1="160" y1="76" x2="944" y2="76"/>
 <line class="edge-muted" x1="160" y1="136" x2="944" y2="136"/>
 <line class="edge-muted" x1="160" y1="196" x2="944" y2="196"/>
@@ -532,7 +532,7 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
 <text class="t-small t-on" x="598" y="114">rm repo pubring</text>
 <rect class="box" x="736" y="32" width="148" height="104" rx="8"/>
 <text class="t t-title" x="746" y="56">6 team</text>
-<text class="t-small" x="746" y="78">remove the person</text>
+<text class="t-small" x="746" y="78">remove the human</text>
 <text class="t-small" x="746" y="96">from the GitHub team</text>
 <line class="edge" x1="144" y1="84" x2="154" y2="84" marker-end="url(#arrow)"/>
 <line class="edge" x1="284" y1="84" x2="294" y2="84" marker-end="url(#arrow)"/>
@@ -552,7 +552,7 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
   <li><code>repoctl sign remove ID</code>. It refuses while latest of a target holds an RPM of that key. Then: state removed, a new key file without the key, set commit.</li>
   <li>Build and publish the new release package. Config management rolls it out.</li>
   <li>Config management removes the key on each client. <code>repoctl sign offboard ID</code> prints the commands.</li>
-  <li>Remove the person from the GitHub team. The entry in <code>keys/deployed.yaml</code> can stay, because gate 1 refuses a removed key.</li>
+  <li>Remove the human from the GitHub team. The entry in <code>keys/deployed.yaml</code> can stay, because gate 1 refuses a removed key.</li>
 </ol>
 <p>In the story, hpc-repo is the next key to leave. It is in state retiring, and 50 RPMs in latest of el9 carry it; el10 has none. After steps 1 to 4, <code>repoctl sign offboard hpc-repo</code> prints the client commands:</p>
 <pre class="term">Run on every client after "dnf upgrade slurm-release":
@@ -571,7 +571,7 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
 <tr><td><code>sign.keyfiles</code></td><td>Each <code>keys/ID.asc</code> parses, and its fingerprint matches <code>repoctl.yaml</code>.</td></tr>
 <tr><td><code>sign.expiry</code></td><td>No key expires inside <code>key_expiry_warn</code> (180 days). Else a warning with the fix line.</td></tr>
 <tr><td><code>sign.algorithm</code></td><td>Each key meets gate 3: RSA 2048 or more, or Ed25519, and no SHA-1 self-signature.</td></tr>
-<tr><td><code>sign.deployed</code></td><td>The key of this person has a deployment record for each target, and the release of the record is in latest.</td></tr>
+<tr><td><code>sign.deployed</code></td><td>The key of this human has a deployment record for each target, and the release of the record is in latest.</td></tr>
 <tr><td><code>sign.keyfile</code></td><td>The key file of the in-tree release package equals <code>sign.keys</code> (states active and retiring).</td></tr>
 <tr><td><code>sign.release</code></td><td>The release package in latest has the same key file. It warns between a key change and the publish of the new release.</td></tr>
 <tr><td><code>release.url</code></td><td>The <code>baseurl</code> lines of the <code>.repo</code> file equal <code>repo.url</code>.</td></tr>

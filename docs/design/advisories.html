@@ -7,7 +7,7 @@
 </head>
 <body>
 <h1>Advisories</h1>
-<p class="lede">An advisory tells the person that a rebuild or another step can be necessary. It is the result of a deterministic check. It suggests a step, and the person decides. This chapter specifies the codes, the states, where repoctl keeps the data, the check and its timer, and the publish gate.</p>
+<p class="lede">An advisory tells the human that a rebuild or another step can be necessary. It is the result of a deterministic check. It suggests a step, and the human decides. This chapter specifies the codes, the states, where repoctl keeps the data, the check and its timer, and the publish gate.</p>
 <ul class="keypoints">
   <li>An advisory has one id, <code>CODE/SUBJECT</code>, for example <code>closure.broken/pmix@el9</code>. All surfaces use this id.</li>
   <li>repoctl computes advisories and does not store them. It stores only dismissals (a committed file per team) and acceptances (the journal and the snapshot annotation).</li>
@@ -44,7 +44,7 @@
 <text class="t-small" x="284" y="145">soname, ABI</text>
 <rect class="box" x="272" y="156" width="188" height="44" rx="8"/>
 <text class="t-title" x="284" y="176">repoctl check</text>
-<text class="t-small" x="284" y="193">timer, person, UI, MCP</text>
+<text class="t-small" x="284" y="193">timer, human, UI, MCP</text>
 <rect class="box" x="272" y="204" width="188" height="44" rx="8"/>
 <text class="t-title" x="284" y="224">publish gate</text>
 <text class="t-small" x="284" y="241">repoclosure of the result tree</text>
@@ -180,7 +180,7 @@
 <tbody>
 <tr><td>Last check result</td><td><code>$XDG_STATE_HOME/repoctl/SET/check.json</code></td><td>user and host</td><td><code>repoctl check</code></td></tr>
 <tr><td>Advisories of a run</td><td>the run record and the journal of the run</td><td>user and host</td><td>plan, node build</td></tr>
-<tr><td>Dismissals</td><td><code>.repoctl/advisories.yaml</code> in the set, committed</td><td>team, through git</td><td><code>repoctl advisories dismiss</code>, UI Dismiss; the person commits</td></tr>
+<tr><td>Dismissals</td><td><code>.repoctl/advisories.yaml</code> in the set, committed</td><td>team, through git</td><td><code>repoctl advisories dismiss</code>, UI Dismiss; the human commits</td></tr>
 <tr><td>Acceptances</td><td>the journal of the publish; the snapshot annotation <code>io.repoctl.advisories.accepted</code> (<a href="publish.html#format">snapshot format</a>)</td><td>team, through the registry</td><td><code>repoctl publish</code></td></tr>
 </tbody>
 </table>
@@ -341,7 +341,7 @@ note: lingering is off. The timer runs only while you are logged in.
   <li>Make the result tree of the target: the published repo of latest, plus the nodes that the publish takes (<a href="publish.html#takes">what a publish takes</a>). A new NVR is the newest NVR of its name.</li>
   <li>Run <code>dnf repoclosure --newest</code> on the result tree plus the upstream repos of the target. The result is a list of broken requirements: an RPM and a requirement.</li>
   <li>For each broken requirement, find its closure: the dir that built the RPM, plus the dir whose newest published build provided the requirement and whose new build does not provide it.</li>
-  <li>A required advisory blocks the target when its closure contains a dir of the publish on that target, and the person did not accept it.</li>
+  <li>A required advisory blocks the target when its closure contains a dir of the publish on that target, and the human did not accept it.</li>
 </ol>
 <ul>
   <li>A required advisory whose closure has no dir of the publish does not block. The summary shows it as "open, not changed by this publish".</li>
@@ -478,7 +478,7 @@ note: lingering is off. The timer runs only while you are logged in.
 <text class="t-small" x="16" y="296" data-f="6">this publish, or accept</text>
 <text class="t-small" x="16" y="296" data-f="7">openmpi@el9 is open</text>
 </svg>
-<script type="application/json" class="steps">["Story, 2026-11-03 14:05 · Publish of el9. Base: latest p-20260912-1403-c21 with 170 RPMs. The publish takes the staged el9 nodes of r-…a3f: ucx, slurm, openmpi and slurm-singularity-exec, 38 new RPMs. The advisory closure.broken/pmix@el9 is open since the check of 2026-11-02 06:00.", "Step 1 · The gate makes the result tree: latest plus the nodes of this publish, 208 RPMs. A new NVR is the newest NVR of its name. The old NVRs stay in the tree.", "Step 2 · dnf repoclosure --newest runs on the result tree plus Rocky 9 and EPEL 9. One requirement is broken: pmix-6.1.0-1.el9 needs libhwloc.so.15, and EPEL 9 now gives only libhwloc.so.16.", "Step 3 · The closure is the dir that built the RPM (pmix), plus the dir whose newest published build provided the requirement and whose new build does not. hwloc is not in the set, so the closure is {pmix}.", "Step 4 · The closure {pmix} has no dir of this publish. The advisory does not block. The summary shows it as open, not changed by this publish. Info advisories never block. The publish p-20261103-1412-5e1 continues.", "Variant, not the story · Run r-20261102-1720-9b1 builds ucx alone, and ucx 1.22.1 removes libucp.so.0. After the build of ucx@el9, the soname check writes soname.removed/ucx@el9 (required). The publish takes only ucx.", "Variant · The repoclosure finds that openmpi-5.0.11-1.el9 needs libucp.so.0. The closure {ucx, openmpi} holds ucx, a dir of this publish. The gate blocks el9: exit 12, problem advisory.open, humanAction accept-advisory.", "Variant · The person accepts the advisory for this publish, with the reason \"openmpi loads libucp only in mca_pml_ucx; our clusters use ob1\". repoctl writes advisory.accepted to the journal and to the snapshot annotation. After the publish, closure.broken/openmpi@el9 is open until openmpi has a new build."]</script>
+<script type="application/json" class="steps">["Story, 2026-11-03 14:05 · Publish of el9. Base: latest p-20260912-1403-c21 with 170 RPMs. The publish takes the staged el9 nodes of r-…a3f: ucx, slurm, openmpi and slurm-singularity-exec, 38 new RPMs. The advisory closure.broken/pmix@el9 is open since the check of 2026-11-02 06:00.", "Step 1 · The gate makes the result tree: latest plus the nodes of this publish, 208 RPMs. A new NVR is the newest NVR of its name. The old NVRs stay in the tree.", "Step 2 · dnf repoclosure --newest runs on the result tree plus Rocky 9 and EPEL 9. One requirement is broken: pmix-6.1.0-1.el9 needs libhwloc.so.15, and EPEL 9 now gives only libhwloc.so.16.", "Step 3 · The closure is the dir that built the RPM (pmix), plus the dir whose newest published build provided the requirement and whose new build does not. hwloc is not in the set, so the closure is {pmix}.", "Step 4 · The closure {pmix} has no dir of this publish. The advisory does not block. The summary shows it as open, not changed by this publish. Info advisories never block. The publish p-20261103-1412-5e1 continues.", "Variant, not the story · Run r-20261102-1720-9b1 builds ucx alone, and ucx 1.22.1 removes libucp.so.0. After the build of ucx@el9, the soname check writes soname.removed/ucx@el9 (required). The publish takes only ucx.", "Variant · The repoclosure finds that openmpi-5.0.11-1.el9 needs libucp.so.0. The closure {ucx, openmpi} holds ucx, a dir of this publish. The gate blocks el9: exit 12, problem advisory.open, humanAction accept-advisory.", "Variant · The human accepts the advisory for this publish, with the reason \"openmpi loads libucp only in mca_pml_ucx; our clusters use ob1\". repoctl writes advisory.accepted to the journal and to the snapshot annotation. After the publish, closure.broken/openmpi@el9 is open until openmpi has a new build."]</script>
 <figcaption>The gate on the story publish of el9 (frames 0 to 4), and a variant in which the gate blocks (frames 5 to 7). The variant is not part of the story.</figcaption>
 </figure>
 <p>A blocked publish fails with exit 12. The problem code is <code>advisory.open</code>. Its humanAction is <code>accept-advisory</code> with the exact command. For the variant, the output is:</p>
@@ -490,10 +490,10 @@ hint: or accept it for this publish. run: repoctl publish --target el9 --accept-
 <ul>
   <li><code>--accept-advisory</code> takes an id, not a code. One flag accepts one advisory. It does not accept a later advisory with the same code.</li>
   <li><code>--reason</code> is required with <code>--accept-advisory</code>, with at least 8 characters. One reason covers all ids of the call.</li>
-  <li>An id that does not block this publish is a usage error (exit 2). Thus a person cannot accept an advisory in advance.</li>
+  <li>An id that does not block this publish is a usage error (exit 2). Thus a human cannot accept an advisory in advance.</li>
   <li>The acceptance is valid for this publish only. repoctl writes the event <code>advisory.accepted</code> (id, factsDigest, reason, user, host) to the journal and the same list to the snapshot annotation <code>io.repoctl.advisories.accepted</code>.</li>
   <li><code>--yes</code> does not accept an advisory. An unattended publish with a blocking advisory fails with exit 12.</li>
-  <li>MCP has no accept tool. An acceptance is a step of a person (<a href="agents.html#human-action">humanAction</a>).</li>
+  <li>MCP has no accept tool. An acceptance is a step of a human (<a href="agents.html#human-action">humanAction</a>).</li>
 </ul>
 <pre class="term">$ repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 \
     --reason "openmpi loads libucp only in mca_pml_ucx; our clusters use ob1"</pre>
