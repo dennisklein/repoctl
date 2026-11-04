@@ -456,7 +456,8 @@ that gets the commit.
  11. repoctl publish        first snapshot of each target
  12. An organization owner sets each new OCI package public and turns
      on "Inherit access from source repository" (doctor: registry.public).
- 13. Add the set to the mirror job on the HTTP server.
+ 13. Add one mirror line per target to the mirror job on the HTTP
+     server, and put the key file of the release at its keyring.
  14. Install the release package on the clients (config management),
      then confirm it: repoctl sign deployed KEY --release NVR
  15. repoctl check --install-timer

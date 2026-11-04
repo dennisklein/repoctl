@@ -94,18 +94,19 @@
 
 <h2 id="mirror">Mirror job</h2>
 <p>The mirror job is a shell script with systemd units. It ships in the repoctl repository as <code>contrib/mirror/</code> and in the release RPMs of repoctl. It runs on the HTTP server as an own system user. A systemd timer starts it every 5 minutes. The HTTP server needs systemd, curl, jq, gnupg2 and rpm. repoctl does not run there.</p>
-<pre><code class="language-plaintext"># /etc/repoctl-mirror.conf: one line per set and target
-# set          target  package                                         served path
-slurm-26.05    el9     ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9      /srv/repos/slurm-repo/slurm-26.05/el9
-slurm-26.05    el10    ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el10     /srv/repos/slurm-repo/slurm-26.05/el10
-KEYRING=/etc/pki/rpm-gpg/RPM-GPG-KEY-slurm   # from the release package on this host
+<pre><code class="language-plaintext"># /etc/repoctl-mirror.conf: one mirror line per set and target
+# set        target  package                                      served path                             keyring
+slurm-26.05  el9     ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9   /srv/repos/slurm-repo/slurm-26.05/el9   /etc/repoctl-mirror/keys/slurm-26.05-el9.asc
+slurm-26.05  el10    ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el10  /srv/repos/slurm-repo/slurm-26.05/el10  /etc/repoctl-mirror/keys/slurm-26.05-el10.asc
 KEEP_TREES=2</code></pre>
-<p>Each run of the job does these steps for each line:</p>
+<p>Each run of the job takes the lock <code>/run/lock/repoctl-mirror.lock</code> with <code>flock</code>. A second run waits for the first, so a manual run and a timer run never write one tree at the same time. Then the job does these steps for each line:</p>
 <ol class="steps">
   <li>Get an anonymous pull token and the manifest of <code>latest</code> with curl (OCI distribution API). If the digest equals the served digest, stop.</li>
+  <li>Check the manifest. The annotations <code>io.repoctl.set</code> and <code>io.repoctl.target</code> equal the set and the target of the line. Each annotation <code>org.opencontainers.image.title</code> is a relative path: each segment has only the characters <code>A-Z a-z 0-9 . _ + -</code>, and no segment is <code>.</code> or <code>..</code>. No two layers have the same title. Else the job refuses the manifest.</li>
   <li>Download the missing blobs into <code>.objects/sha256/</code>. Check the sha256 of each blob.</li>
-  <li>Make a new tree <code>.trees/&lt;set&gt;-&lt;target&gt;/&lt;digest&gt;/</code> from hard links. Each file gets its path from the annotation <code>org.opencontainers.image.title</code>.</li>
-  <li>Verify the tree with <code>KEYRING</code>. Run <code>gpgv</code> on each <code>repomd.xml.asc</code> (exactly one signature), and check the checksums in <code>repomd.xml</code>. Run <code>rpmkeys --checksig</code> on each RPM with a temporary rpmdb. Check with jq and sha256sum that each supply chain record has the sha256 in the RepoManifest, and that each record subject has the sha256 of its file (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</li>
+  <li>Make a new tree <code>.trees/&lt;set&gt;-&lt;target&gt;/&lt;digest&gt;/</code> from hard links. Each file gets its path from its title annotation.</li>
+  <li>Verify the tree with the keyring of the line. Run <code>gpgv</code> on each <code>repomd.xml.asc</code> (exactly one signature), and check the checksums in <code>repomd.xml</code>. Run <code>rpmkeys --checksig</code> on each RPM with a temporary rpmdb. Check with jq and sha256sum that each supply chain record has the sha256 in the RepoManifest, and that each record subject has the sha256 of its file (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</li>
+  <li>Check that the snapshot does not go back. The <code>&lt;revision&gt;</code> of each <code>repomd.xml</code> in the new tree is not lower than in the served tree. createrepo_c writes the time of the repodata step as the revision, and <code>repomd.xml</code> is signed. Thus an old signed snapshot that a token holder tags as latest again stays unserved. A restore and a prune write new repodata, so they pass.</li>
   <li>Write <code>repoctl-snapshot.json</code> into the tree: set, target, digest, publish id and the time of the pull.</li>
   <li>Swap: replace the symlink of the served path in one rename. Keep <code>KEEP_TREES</code> old trees. Delete the objects that no tree uses.</li>
 </ol>
@@ -113,11 +114,15 @@ KEEP_TREES=2</code></pre>
 <p class="callout-title">Rule</p>
 <p>If a step fails, the job keeps the old tree, writes the error to the journal and exits with a failure. The next run tries again. The job never serves a tree that its keyring does not verify.</p>
 </aside>
-<p>The keyring of the job is the key file of the release package that config management installed on the HTTP server. Thus the job has the same trust as a client. A snapshot that a key signs before the clients have that key stays unserved. This is a second guard behind <a href="signing.html#gates">gate 2</a>. After a key compromise, config management replaces this keyring first. Then the job serves no new snapshot with a file of the revoked key (<a href="signing.html#compromise">signing.html#compromise</a>).</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: keyring of a mirror line</p>
+<p>Each mirror line has its own keyring: the key file of the release package that the clients of that set and target have. Config management puts this file at the keyring path in the same rollout as the clients of the target, for example from the release RPM with <code>rpm2cpio</code>. The HTTP server does not install the release packages of the sets.</p>
+</aside>
+<p>Thus each mirror line has the same trust as its clients. A snapshot that a key signs before the clients of that set and target have the key stays unserved. This is a second guard behind <a href="signing.html#gates">gate 2</a>. A key change in one set or target does not change what the other lines trust. The deployment record of a target covers its clients and the keyring of its mirror line (<a href="signing.html#deployment-record">signing.html#deployment-record</a>). After a key compromise, config management replaces the keyring of each mirror line first. Then the job serves no new snapshot with a file of the revoked key (<a href="signing.html#compromise">signing.html#compromise</a>).</p>
 <p>The file <code>repoctl-snapshot.json</code> tells repoctl what the HTTP server serves:</p>
 <pre><code class="language-json">{"set": "slurm-26.05", "target": "el9", "digest": "sha256:9d07…",
  "publish": "p-20261103-1412-5e1", "pulled": "2026-11-03T14:15:02Z"}</code></pre>
-<p><code>repoctl status</code> reads <code>&lt;repo.url&gt;/&lt;target.path&gt;/repoctl-snapshot.json</code> and shows <code>served: same</code>, <code>served: behind</code> or <code>served: unknown</code>. A new set or target needs one new line in the config of the job (<a href="lifecycle.html#targets">add a target</a>).</p>
+<p><code>repoctl status</code> reads <code>&lt;repo.url&gt;/&lt;target.path&gt;/repoctl-snapshot.json</code> and shows <code>served: same</code>, <code>served: behind</code> or <code>served: unknown</code>. A new set or target needs one new mirror line and its keyring in the config of the job (<a href="lifecycle.html#targets">add a target</a>).</p>
 
 <h2 id="records">Records: where the truth lives</h2>
 <p>One record says what is published: the tag <code>latest</code> in GHCR. The other records are copies, and each copy names the snapshot that it comes from. <a href="model.html#records">model.html#records</a> lists all records of a set.</p>
