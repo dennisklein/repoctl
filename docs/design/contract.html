@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 93 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 94 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -315,6 +315,7 @@
 <tr><td><code>lock.missing-package</code></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line, or publish takes a target that has one.</td><td><code>repoctl pin DIR</code></td></tr>
 <tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin --orphans</code></td></tr>
 <tr><td><code>lock.unpushed</code></td><td>5</td><td>The set commit or a pinned commit is not on its remote branch.</td><td>The exact <code>git push</code> commands (<code>push</code>).</td></tr>
+<tr><td><code>manifest.invalid</code></td><td>1</td><td>The RepoManifest of a snapshot does not agree with the schema <code>manifest</code>, or has an <code>apiVersion</code> that this binary does not know.</td><td>The message names the field. For a newer <code>apiVersion</code>, update repoctl.</td></tr>
 <tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The human runs the command.</td></tr>
 <tr><td><code>mock.busy</code></td><td>7</td><td><code>repoctl mock update</code> or <code>mock clean</code> holds the host mock lock, or a repoctl mock runs while one of them waits for it. The problem names the holder.</td><td>Wait, or use <code>--lock-wait</code> (<a href="build.html#mock">Mock roots</a>).</td></tr>
 <tr><td><code>mock.config-missing</code></td><td>9</td><td>The mock config of a target is not on this host.</td><td>Install it, or correct <code>targets[].mock</code>.</td></tr>

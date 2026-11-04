@@ -672,6 +672,7 @@
         "lock.missing-package",
         "lock.orphaned",
         "lock.unpushed",
+        "manifest.invalid",
         "mcp.tool-not-allowed",
         "mock.busy",
         "mock.config-missing",
@@ -2829,6 +2830,37 @@
         "snapshot": {
           "type": "string",
           "description": "source snapshot: the publish id or digest."
+        },
+        "removed": {
+          "type": "array",
+          "description": "repo ls --removed: the entries of removed[] in the RepoManifest. packages is then empty.",
+          "items": {
+            "type": "object",
+            "required": [
+              "nvr",
+              "publish",
+              "reason"
+            ],
+            "properties": {
+              "nvr": {
+                "type": "string"
+              },
+              "publish": {
+                "type": "string",
+                "description": "The publish that removed the NVR."
+              },
+              "reason": {
+                "enum": [
+                  "prune",
+                  "restore"
+                ]
+              },
+              "rpms": {
+                "type": "integer",
+                "description": "RPMs of the NVR in removed[]."
+              }
+            }
+          }
         }
       }
     },

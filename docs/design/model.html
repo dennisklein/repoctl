@@ -250,6 +250,8 @@
 <tr><td><code>builds[].records</code>, <code>records</code></td><td>Path and sha256 of the supply chain records: the provenance and the SBOM of each build, and the SBOM of the repository (<a href="supply-chain.html#layout">supply-chain.html#layout</a>). An adopted build has no provenance.</td></tr>
 </tbody>
 </table>
+<p>repoctl reads the RepoManifest of a snapshot in plan, build, publish, repo pull and the repo commands. It validates the manifest against the schema <code>manifest</code> (<code>repoctl schema manifest</code>). A manifest that does not agree with the schema, or whose <code>apiVersion</code> this binary does not know, stops the command with <code>manifest.invalid</code> (exit 1). For a newer <code>apiVersion</code>, the hint is to update repoctl. A publish reads the manifest of its base and writes the new manifest in the <code>apiVersion</code> of the binary. It never writes an older <code>apiVersion</code>.</p>
+<p><code>removed[]</code> and <code>history[]</code> only grow. <code>builds[]</code> grows with each publish and gets smaller with a prune or a restore. A set lives for one Slurm release series and gets some publishes per month, so the manifest stays small; V25 measures it with the records (<a href="delivery.html#verification">delivery.html#verification</a>). <code>repoctl repo ls --removed</code> lists <code>removed[]</code>.</p>
 
 <h2 id="triggers">What starts a build</h2>
 <table>
