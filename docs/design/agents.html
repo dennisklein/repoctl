@@ -453,8 +453,11 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 </table>
 <ul>
   <li>An agent button is a quiet secondary button with the ✦ mark. Its title names the skill. A row has one agent button at most. The button does not show where the plain text already gives the answer. Example: the ucx plan row says "sonames unchanged: rebuild not necessary", so it has no "Is a rebuild necessary?" (rule R6, <a href="ui.html#calm">ui.html#calm</a>).</li>
-    <li>The click sends <code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code> with the input and the CSRF header. The server starts the agent and answers with the panel. <code>POST /s/&lt;set&gt;/-/agent/&lt;id&gt;/stop</code> sends SIGINT to the agent.</li>
-  <li>One agent runs per set at a time. A second click shows the panel of the agent that runs.</li>
+    <li>The click sends <code>POST /s/&lt;set&gt;/-/agent/&lt;task&gt;</code> with the input and the CSRF header. The server starts the agent and answers with the panel. <code>POST /s/&lt;set&gt;/-/agent/&lt;id&gt;/stop</code> stops the agent: SIGINT to its process group, SIGTERM after 10 s, SIGKILL after 10 s more.</li>
+  <li>One agent runs per set at a time. A second click shows the panel of the agent that runs. The slot is free again when the agent has a final state.</li>
+  <li>An agent has one of four states. <code>running</code>: the process runs. <code>done</code>: it exited 0 and its stream ended with a result. <code>stopped</code>: the human clicked Stop. <code>failed</code>: a non-zero exit, a stream that repoctl cannot parse, the time limit or a stop of the server. For failed, Details gives the cause and the last 20 lines of stderr.</li>
+  <li>The time limit is <code>agent.timeout</code> (user config, default 10m). At the limit, the server stops the agent as Stop does, and the state is failed with the cause "time limit 10m".</li>
+  <li>The agent is a child of the server in its own process group. It is not detached, because it only reads. A stop of the server stops each running agent as Stop does. At its start, the server changes each stored result with state running to failed, with the cause "the server stopped". Thus no old result holds the slot of a set.</li>
   <li>The server keeps each result in <code>$XDG_STATE_HOME/repoctl/&lt;set&gt;/agent/&lt;id&gt;.json</code>. The agent id has the form <code>a-YYYYMMDD-HHMM-xxx</code>, for example <code>a-20261102-1800-7c1</code>. <code>?agent=&lt;id&gt;</code> on any set page opens the panel again.</li>
 </ul>
 <p>The server runs the agent in the set directory with this command line. <code>agent.command</code> and <code>agent.args</code> come from the <a href="#agent-config">user config</a>. repoctl adds the rest:</p>
@@ -485,7 +488,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <p>Accessibility of the panel:</p>
 <ul>
   <li>The drawer is <code>role="complementary"</code> with <code>aria-labelledby</code> on its heading. When it opens, focus goes to the heading. Esc closes it and returns focus to the button.</li>
-  <li>While the agent runs, the result has <code>aria-busy="true"</code>. A polite status announces only "Agent done" or "Agent stopped", not each text chunk.</li>
+  <li>While the agent runs, the result has <code>aria-busy="true"</code>. A polite status announces only "Agent done", "Agent stopped" or "Agent failed", not each text chunk.</li>
   <li>The caret and the spinner stop with <code>prefers-reduced-motion</code>. Evidence and diff use the log colours (a dark block in both themes).</li>
 </ul>
 <h3 id="agent-config">Agent configuration</h3>
@@ -493,7 +496,8 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <pre><code class="language-yaml"># ~/.config/repoctl/config.yaml
 agent:
   command: claude        # the agent program
-  args: []               # extra arguments before the arguments that repoctl adds</code></pre>
+  args: []               # extra arguments before the arguments that repoctl adds
+  timeout: 10m           # the time limit of one agent run</code></pre>
 <p>The agent must run a skill from a prompt and use an MCP server from <code>--mcp-config</code>. It must accept the tool flags above and write the stream-json format of Claude Code. repoctl reads only this format. The agent uses the sign-in and model settings of the human.</p>
 <h3 id="no-agent">No agent configured</h3>
 <p>Without <code>agent</code> in the user config, the server leaves the agent buttons out of the HTML. It does not show disabled buttons. All other actions stay. The Advisories card has one quiet line in its foot: "Agent buttons are off. How to turn them on". The plain diagnosis of repoctl stays, for example the Needs you item "slurm@el10 failed: rocm-smi-devel is not available for el10".</p>
