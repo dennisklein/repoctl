@@ -98,7 +98,7 @@
 <li>The host runs Fedora. repoctl comes from the Fedora repo on GitHub Pages or from a release RPM (<a href="../design/decision.html#home">where the tool lives</a>). <code>repoctl version</code> supports <code>repo push --from</code>.</li>
 <li>These tools are installed: <code>git</code>, <code>rpm</code>, <code>rpmkeys</code>, <code>rpmspec</code>, <code>rpmautospec</code>, <code>createrepo_c</code>, <code>modifyrepo_c</code>, <code>gpgv</code>, <code>jq</code>, <code>rsync</code>, <code>check-jsonschema</code>.</li>
 <li>The GitHub organisation and the GHCR namespace of <code>store.oci</code> are final (<a href="../design/delivery.html#open">open question</a>). The clone has all branches: <code>git fetch origin '+refs/heads/*:refs/remotes/origin/*'</code>.</li>
-<li>The registry has no snapshot of the set and target: <code>repoctl repo snapshots --target el9</code> lists nothing. <code>repo push --from</code> works only on an empty package.</li>
+<li>The registry has no snapshot of the set and target: <code>repoctl repo snapshots --target el9</code> lists nothing. <code>repo push --from</code> works only on an empty package; otherwise it stops with <code>import.not-empty</code>.</li>
 <li>The human has a byte copy of each served tree, or gives you a path to one (for example, <code>rsync -a HOST:/srv/packages/slurm-26.05/ DIR/</code>). A copy through HTTP is also correct when the repomd check of <a href="#copy">Copy</a> item 2 passes.</li>
 <li>The human who pushes (<a href="#push">Push</a>) holds the secret key of <code>hpc-repo</code>. The repoctl user config on that host selects it: <code>sign.key: hpc-repo</code>.</li>
 </ol>

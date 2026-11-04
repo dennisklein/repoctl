@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 94 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 96 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -308,6 +308,7 @@
 <tr><td><code>graph.dynamic-buildrequires</code></td><td>warning</td><td>The spec uses <code>%generate_buildrequires</code>. Edges can be missing.</td><td>Add the BuildRequires to the spec.</td></tr>
 <tr><td><code>graph.srpm-failed</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>The SRPM of a node failed at plan time. The node has no known dependencies.</td><td>Fix the spec. <code>repoctl graph -v</code> shows the mock output.</td></tr>
 <tr><td><code>host.not-ready</code></td><td>9</td><td>A required host check failed.</td><td><code>repoctl doctor</code> (<code>install-tool</code>)</td></tr>
+<tr><td><code>import.not-empty</code></td><td>13</td><td><code>repo push --from</code>: the registry has a snapshot of the target. An import makes only the first snapshot.</td><td><code>repoctl repo snapshots --target ID</code>; publish on top of latest, or import into a new target.</td></tr>
 <tr><td><code>journal.sampling-stopped</code></td><td>warning</td><td>The journal is 32 MiB. No more <code>node.log</code> lines come.</td><td>The node log has the full text.</td></tr>
 <tr><td><code>lock.behind</code></td><td>5 in <code>pin DIR</code>; warning in <code>pin</code></td><td>The worktree HEAD is an ancestor of the lock commit. pin does not write the older commit back.</td><td><code>repoctl checkout DIR</code>; <code>repoctl pin DIR --older</code> pins the older commit on purpose.</td></tr>
 <tr><td><code>lock.dirty</code></td><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed. Plan and build give it for a selected worktree.</td><td>The exact git commands (<code>commit-worktree</code>, <code>commit-lock</code>).</td></tr>
@@ -361,6 +362,7 @@
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files.</td></tr>
 <tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
 <tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
+<tr><td><code>snapshot.not-found</code></td><td>1</td><td>REF names no snapshot of the target: no tag, publish id or digest has this value.</td><td><code>repoctl repo snapshots --all</code></td></tr>
 <tr><td><code>snapshot.orphaned</code></td><td>warning</td><td>The local copy holds a publish of this user that is not on the parent chain of latest. Another publish won the tag race.</td><td><code>repoctl repo pull</code>, then plan and publish again. The staged nodes of that publish are staged again.</td></tr>
 <tr><td><code>snapshot.push-failed</code></td><td>13</td><td>An upload failed. The signed tree stays.</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>)</td></tr>
 <tr><td><code>source.mismatch</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>A source archive does not have the SHA-512 of its line in the sources file.</td><td>Find out why the archive changed. Then correct the archive or the line, and commit.</td></tr>
