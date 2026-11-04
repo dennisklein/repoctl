@@ -310,7 +310,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 <h3 id="expansion">Dependency expansion</h3>
 <p>For build, plan and graph, the selected nodes are the roots. A dependency is always a node of the same target. The plan action of a node comes from its own commit, not from its dependencies (<a href="build.html#actions">build.html#actions</a>).</p>
 <ul>
-  <li><strong>Needed dependencies.</strong> A node that builds needs the RPMs of its dependencies. A dependency with the action build builds first in the same run. A current dependency comes from the local copy of latest, a staged one from its staging.</li>
+  <li><strong>Needed dependencies.</strong> A node that builds needs the RPMs of its dependencies. A dependency with the action build builds first in the same run. A current dependency comes from the local copy of latest, a staged one from the staged view of the plan (<a href="build.html#staging">build.html#staging</a>).</li>
   <li><strong>No rebuild of dependents.</strong> A change in ucx never selects slurm. The soname check and <code>closure.broken</code> say when a rebuild is necessary; then a human runs <code>repoctl rebuild</code>.</li>
   <li><code>--with-deps</code> adds the transitive dependencies to the selection, <code>--rdeps</code> the transitive dependents. In build, they matter only with <code>--force</code>.</li>
   <li>Nodes that are not selected and not needed get the action skip. The JSON result always has them.</li>

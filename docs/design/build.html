@@ -188,7 +188,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <ul>
   <li>A dependency with action build builds first, in the same run. Thus <code>repoctl build slurm</code> also builds ucx when ucx has a new commit.</li>
   <li>A current dependency comes from the local copy of latest.</li>
-  <li>A staged dependency comes from the staging of its run.</li>
+  <li>A staged dependency comes from the staged view of the plan (<a href="#staging">staging</a>).</li>
 </ul>
 <p>A change in ucx never selects slurm. <code>--with-deps</code> and <code>--rdeps</code> add the transitive dependencies or reverse dependencies to the selection. In a build, they change the result only with <code>--force</code>. A run of a subset is partial. Publish works on the plan, not on one run: it takes all staged nodes of a target, from any run of this user (<a href="publish.html#takes">what a publish takes</a>).</p>
 <p>The text output shows the exceptions and a totals line. Rows of a package with the same action and reason on all targets merge, and the current nodes fold into one line per target. <code>-v</code> shows all rows; <code>--json</code> always has them. <code>--check</code> exits 11 when a node would build, for CI and timers. The plan also says if an open advisory blocks a publish of this plan. This is the plan of the story at 17:49:</p>
@@ -208,11 +208,13 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 
 <h2 id="staging">Staging and node reuse</h2>
 <p>Each run has its own staging repository for each target: <code>$XDG_DATA_HOME/repoctl/SET/staging/RUN/TARGET/</code>, with the sub-repos <code>slurm</code>, <code>slurm-source</code> and <code>slurm-debuginfo</code> (from <code>repo.name</code>). The staging is not signed. It is in the data directory, not in the cache, because it is build state (<a href="config.html#xdg">XDG directories</a>).</p>
-<p>A node that ends ok in a run is a <dfn>staged node</dfn> until a publish takes it. The next plan gives it the action staged and names its run (<code>fromRun</code>). A later build does not build it again. When a staged node is a dependency, mock gets the staging of its run as an extra repository. Thus a failed run keeps its good nodes.</p>
+<p>A node that ends ok in a run is a <dfn>staged node</dfn> until a publish takes it. The next plan gives it the action staged and names its run (<code>fromRun</code>). A later build does not build it again. When a staged node is a dependency, mock gets it through the staged view. Thus a failed run keeps its good nodes.</p>
 <ul>
   <li>Only a node with the terminal state ok in the journal of its run is staged. This is also true for a canceled or an abandoned run.</li>
   <li>Staging belongs to one user on one host. Another admin does not see it and builds the node again. A home directory that two hosts share does not change this: the plan stages only the nodes of runs whose <code>origin.host</code> is this host (<a href="contract.html#readers">runs of another host</a>).</li>
   <li>A new commit of the package ends the reuse. The plan action is then build.</li>
+  <li>The repodata of a staging lists only the RPMs of ok nodes. When a node fails or is canceled after some of its RPMs are in the staging, repoctl removes them and updates the repodata.</li>
+  <li>At <code>plan.ready</code>, repoctl makes one <dfn>staged view</dfn> per target in the work directory of the run. It is a repository with links to the <code>artifact.added</code> files of exactly the staged nodes of the plan, and its own repodata. mock gets the staged view, never the whole staging of an older run. Thus a build sees no RPM of a failed, canceled, older or abandoned node.</li>
   <li>Each staged node keeps its record draft next to its RPMs: the buildroot lock of mock, the sha256 and URL of each source archive, and the run facts. Publish writes the supply chain records from it (<a href="supply-chain.html#capture">supply-chain.html#capture</a>).</li>
   <li><code>repoctl clean</code> keeps a staging that holds staged nodes or a publishable target (<a href="cli.html#cmd-clean">repoctl clean</a>). A human can still delete a staging by hand. Thus the plan checks that each file of a staged node is there with its size. Else the node gets the action build with the reason <code>staging-missing</code>. Publish checks the sha256 of each file that it takes. A file that is gone or changed stops the publish with <code>run.staging-missing</code>, and the next plan builds the node again.</li>
 </ul>
@@ -244,7 +246,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <path class="edge" d="M468,94 L482,94" marker-end="url(#arrow)"/>
 <path class="edge" d="M600,94 L614,94" marker-end="url(#arrow)"/>
 <text class="t-small" x="232" y="150">mock --uniqueext · --addrepo: local copy of latest,</text>
-<text class="t-small" x="232" y="166">staging of this run and of staged dependencies, targets[].repos</text>
+<text class="t-small" x="232" y="166">staging of this run, staged view of the plan, targets[].repos</text>
 <text class="t-small" x="232" y="186">a node starts when its dependencies are ok, current or staged</text>
 <rect class="box" x="752" y="56" width="192" height="100" rx="8"/>
 <text class="t-title" x="764" y="76">3 end</text>
@@ -270,7 +272,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <li>End: repoctl writes the final repodata of each staging, the run result and the event <code>run.finished</code>. After an ok run, the last line is the Next line, for example <code>Next: repoctl publish</code>. A failed run ends with hints and no Next line, for example <code>hint: el9 is publishable now. run: repoctl publish --target el9</code>.</li>
 </ol>
 <aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/DIR</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the worktrees in it at the end of the run.</p></aside>
-<p>Each mock call gets <code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots. It also gets <code>--resultdir</code> in the work directory of the run, and the macros and plugins of the target (<a href="config.html#targets">targets</a>). <code>--addrepo</code> adds the local copy of latest, the staging of this run and of the runs of staged dependencies, and <code>targets[].repos</code>.</p>
+<p>Each mock call gets <code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots. It also gets <code>--resultdir</code> in the work directory of the run, and the macros and plugins of the target (<a href="config.html#targets">targets</a>). <code>--addrepo</code> adds the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>.</p>
 <aside class="callout why"><p class="callout-title">Why the staging of the run</p><p>A node builds against the new builds of its own run, never against a half-written published repository. Thus the build order comes from the graph, and the result does not depend on old state (<a href="decision.html#problems">problems of the scripts</a>).</p></aside>
 <h3 id="jobs">Jobs and order</h3>
 <p>The job count is the maximum number of nodes in mock at the same time. It comes from <code>-j</code>, then <code>REPOCTL_JOBS</code>, then <code>jobs</code> in the user config, else 2 (<a href="config.html#user-config">user config</a>). Each mock build uses all CPUs, so a high value gives little. When more nodes are ready than slots are free, the node with the most dependents starts first, then the oldest.</p>
