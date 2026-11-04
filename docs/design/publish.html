@@ -7,20 +7,19 @@
 </head>
 <body>
 <h1>Publish and snapshots</h1>
-<p class="lede">This chapter specifies the path of a publish from the admin host to the clients. It gives the publish order, the records of what is published, the snapshot format and the mirror job on the HTTP server. It also gives the rules to keep, prune, restore and delete snapshots. The signing rules are in <a href="signing.html">Signing and trust</a>.</p>
+<p class="lede">This chapter gives the path of a publish from the admin host to the clients. It covers the publish order, the records, the snapshot format, the mirror job and the rules to keep, prune, restore and delete snapshots. <a href="signing.html">Signing and trust</a> gives the signing rules.</p>
 <ul class="keypoints">
   <li>GHCR is the authority. The tag <code>latest</code> of each set and target says what is published. All other records are copies.</li>
   <li>Publish has one fixed order: check, sign, repodata, verify, verify-el, push, tag, cache. Only step 7 (tag) changes what other humans see.</li>
-  <li>A failed push or tag leaves the signed and verified tree. <code>repoctl repo push</code> completes the publish. repoctl never pushes a tree that did not pass verify and verify-el.</li>
-  <li>A mirror job on the HTTP server pulls latest, verifies it with the keys of the clients and swaps the served tree. It uses only curl, jq, gpgv and rpmkeys.</li>
+  <li>A failed push or tag leaves the signed and verified tree, and <code>repoctl repo push</code> completes the publish. repoctl never pushes a tree that did not pass verify and verify-el.</li>
   <li>There is no lease between admins. Publish compares latest with its base in step 1 and again in step 7.</li>
-  <li>Publish takes all staged nodes of the plan, per target. It adds files and never deletes them.</li>
-  <li>Prune and restore make a new snapshot, and latest moves forward. Fix forward is the normal way back.</li>
+  <li>A mirror job on the HTTP server pulls latest, verifies it with the keys of the clients and swaps the served tree. It uses only curl, jq, gpgv and rpmkeys.</li>
+  <li>Publish takes all staged nodes of the plan, per target, and never deletes a file. Prune and restore make a new snapshot, and latest moves forward. Fix forward is the normal way back.</li>
   <li>A snapshot is one OCI artifact with one blob per file. gc deletes old snapshots only with <code>--apply</code>. It keeps each file that a client can have for <code>keep_removed</code> (default one year) after its prune or restore.</li>
 </ul>
 
 <h2 id="topology">Topology</h2>
-<p>Clients read the repository from an HTTP server. GHCR holds the snapshots and is the authority. The set repository and its OCI packages are public. Each admin builds as an own user, on an own host or on a shared host (<a href="model.html#humans">humans and hosts</a>). The admin hosts share only the git remote and GHCR. repoctl runs on the admin hosts only.</p>
+<p>Clients read the repository from an HTTP server. GHCR holds the snapshots. The set repository and its OCI packages are public. Each admin builds as an own user, on an own host or on a shared host (<a href="model.html#humans">humans and hosts</a>). repoctl runs on the admin hosts only.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 400" role="img" aria-labelledby="topo-t">
 <title id="topo-t">The publish path from the admin hosts through GHCR and the mirror job to the clients</title>
@@ -87,46 +86,75 @@
 <tr><td>Client URL</td><td><code>&lt;repo.url&gt;/&lt;target.path&gt;/{slurm,slurm-source,slurm-debuginfo}/</code>, for example <code>https://repo.example.org/slurm-26.05/el9/slurm/</code>.</td><td>set (<code>repo.url</code>, <code>targets[].path</code>)</td></tr>
 <tr><td>Served tree</td><td>The directory on the HTTP server behind <code>repo.url</code>, for example <code>/srv/repos/slurm-repo/slurm-26.05/el9</code>. Only the mirror job writes it.</td><td>mirror job config</td></tr>
 <tr><td>Local copy</td><td><code>$XDG_DATA_HOME/repoctl/&lt;set&gt;/repo/&lt;target&gt;/</code>: the files of one snapshot. It is the build input (<code>mock --addrepo</code>) and the base of the next publish. Clients never read it.</td><td>repoctl</td></tr>
-<tr><td>New tree</td><td><code>publishes/p-…/tree/</code> in the data directory of the set, next to the local copy. Steps 2 to 5 write it with hard links. <code>publishes/p-…/state.json</code> records the base, the new manifest digest and the result of each step, per target (<a href="#complete">stop and complete</a>).</td><td>repoctl</td></tr>
+<tr><td>New tree</td><td><code>publishes/p-…/tree/</code> and its <code>state.json</code> (<a href="#complete">stop and complete</a>), in the data directory of the set, next to the local copy. Steps 2 to 5 write the tree with hard links.</td><td>repoctl</td></tr>
 </tbody>
 </table>
-<p>No admin writes the served tree. Thus no publish can go to a path that no client reads, and two Unix users need no shared directory. The keys <code>store.oci</code>, <code>repo.url</code> and <code>targets[].path</code> are in <a href="config.html#set-config">the set config</a>. The XDG directories are in <a href="config.html#xdg">config.html#xdg</a>.</p>
+<p>No admin writes the served tree. Thus no publish can go to a path that no client reads, and two Unix users need no shared directory. The config keys are in <a href="config.html#set-config">the set config</a>, and the XDG directories are in <a href="config.html#xdg">config.html#xdg</a>.</p>
 
 <h2 id="mirror">Mirror job</h2>
-<p>The mirror job is a shell script with systemd units. It ships in the repoctl repository as <code>contrib/mirror/</code> and as the noarch RPM <code>repoctl-mirror</code> in the RPM repo of repoctl, for EL 9, EL 10 and Fedora (<a href="tool.html#pages">GitHub Pages</a>). It runs on the HTTP server as an own system user. A systemd timer starts it every 5 minutes. The HTTP server needs systemd, curl, jq, gnupg2 and rpm. repoctl does not run there.</p>
+<p>The mirror job is a shell script with systemd units. It ships in the repoctl repository as <code>contrib/mirror/</code>. The RPM repo of repoctl (<a href="tool.html#pages">GitHub Pages</a>) has it as the noarch RPM <code>repoctl-mirror</code>, for EL 9, EL 10 and Fedora.</p>
+<p>The job runs on the HTTP server as an own system user. A systemd timer starts it every 5 minutes. The HTTP server needs systemd, curl, jq, gnupg2 and rpm. repoctl does not run there.</p>
 <pre><code class="language-plaintext"># /etc/repoctl-mirror.conf: one mirror line per set and target
 # set        target  package                                      served path                             keyring
 slurm-26.05  el9     ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9   /srv/repos/slurm-repo/slurm-26.05/el9   /etc/repoctl-mirror/keys/slurm-26.05-el9.asc
 slurm-26.05  el10    ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el10  /srv/repos/slurm-repo/slurm-26.05/el10  /etc/repoctl-mirror/keys/slurm-26.05-el10.asc
 KEEP_TREES=2</code></pre>
-<p>Each run of the job takes the lock <code>/run/lock/repoctl-mirror.lock</code> with <code>flock</code>. A second run waits for the first, so a manual run and a timer run never write one tree at the same time. Then the job does these steps for each line:</p>
+<p>The job reads the RepoManifest apiVersions of its release. A snapshot with another apiVersion fails step 4, so the job keeps the old tree. Thus the HTTP server gets the new release of the job before the first publish in a new apiVersion (<a href="contract.html#stored">stored files</a>).</p>
+<h3 id="mirror-run">One run of the job</h3>
+<p>Each run takes the lock <code>/run/lock/repoctl-mirror.lock</code> with <code>flock</code>. A second run waits for the first, so a manual run and a timer run never write one tree at the same time. Then the job does these steps for each line:</p>
 <ol class="steps">
   <li>Get an anonymous pull token and the manifest of <code>latest</code> with curl (OCI distribution API). If the digest equals the served digest, stop.</li>
-  <li>Check the manifest. The annotations <code>io.repoctl.set</code> and <code>io.repoctl.target</code> equal the set and the target of the line. Each annotation <code>org.opencontainers.image.title</code> is a relative path: each segment has only the characters <code>A-Z a-z 0-9 . _ + -</code>, and no segment is <code>.</code> or <code>..</code>. No two layers have the same title. Else the job refuses the manifest.</li>
+  <li>Check the manifest, else refuse it. The annotations <code>io.repoctl.set</code> and <code>io.repoctl.target</code> equal the set and the target of the line. Each annotation <code>org.opencontainers.image.title</code> is a relative path: each segment has only the characters <code>A-Z a-z 0-9 . _ + -</code>, and no segment is <code>.</code> or <code>..</code>. No two layers have the same title.</li>
   <li>Download the missing blobs into <code>.objects/sha256/</code>. Check the sha256 of each blob.</li>
   <li>Make a new tree <code>.trees/&lt;set&gt;-&lt;target&gt;/&lt;digest&gt;/</code> from hard links. Each file gets its path from its title annotation.</li>
-  <li>Verify the tree with the keyring of the line. Run <code>gpgv</code> on each <code>repomd.xml.asc</code> (exactly one signature), and check the checksums in <code>repomd.xml</code>. Run <code>rpmkeys --checksig</code> on each RPM with a temporary rpmdb. Check that the root key file has the sha256 of the key file in the root release RPM (<code>rpm -qp --dump</code>). Check with jq and sha256sum that each supply chain record has the sha256 in the RepoManifest, and that each record subject has the sha256 of its file (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</li>
-  <li>Check that the snapshot does not go back. The <code>&lt;revision&gt;</code> of each <code>repomd.xml</code> in the new tree is not lower than in the served tree. createrepo_c writes the time of the repodata step as the revision, and <code>repomd.xml</code> is signed. Thus an old signed snapshot that a token holder tags as latest again stays unserved. A restore and a prune write new repodata, so they pass.</li>
+  <li>Verify the tree with the keyring of the line:
+    <ul>
+      <li>Run <code>gpgv</code> on each <code>repomd.xml.asc</code> (exactly one signature).</li>
+      <li>Check the checksums in <code>repomd.xml</code>.</li>
+      <li>Run <code>rpmkeys --checksig</code> on each RPM, with a temporary rpmdb.</li>
+      <li>Check that the root key file has the sha256 of the key file in the root release RPM (<code>rpm -qp --dump</code>).</li>
+      <li>With jq and sha256sum, check that each supply chain record has its sha256 in the RepoManifest.</li>
+      <li>Check that each record subject has the sha256 of its file (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</li>
+    </ul></li>
+  <li>Check that the snapshot does not go back. The <code>&lt;revision&gt;</code> of each <code>repomd.xml</code> in the new tree must not be lower than in the served tree. createrepo_c writes the time of the repodata step as the revision, and <code>repomd.xml</code> is signed. Thus an old signed snapshot that a token holder tags as latest again stays unserved. A restore or a prune writes new repodata, so it passes.</li>
   <li>Write <code>repoctl-snapshot.json</code> into the tree: set, target, digest, publish id and the time of the pull.</li>
   <li>Swap: replace the symlink of the served path in one rename. Keep <code>KEEP_TREES</code> old trees. Delete the objects that no tree uses.</li>
 </ol>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>If a step fails, the job keeps the old tree, writes the error to the journal and exits with a failure. The next run tries again. The job never serves a tree that its keyring does not verify.</p>
+<p>If a step fails, the job keeps the old tree, writes the error to the journal and exits with 1. The next run tries again. The job never serves a tree that its keyring does not verify.</p>
 </aside>
-<p>The job keeps the served path of each line in <code>.trees/&lt;set&gt;-&lt;target&gt;/served-path</code>. When a line is no longer in the config, the next run deletes the symlink of that served path, the trees of the line and the objects that no tree uses. It writes each deletion to the journal. The URL then gives 404. Thus the removal of a line stops the serving of a target (<a href="lifecycle.html#targets">retire a target</a>). When the line comes back, the next run makes the tree again from GHCR.</p>
-<p>The job reads the RepoManifest apiVersions of its release. A snapshot with another apiVersion fails step 4, so the job keeps the old tree. Thus the HTTP server gets the new release of the job before the first publish in a new apiVersion (<a href="contract.html#stored">stored files</a>).</p>
+
+<h3 id="mirror-keyring">Keyring of a mirror line</h3>
 <aside class="callout rule">
-<p class="callout-title">Rule: keyring of a mirror line</p>
-<p>Each mirror line has its own keyring: the key file of the release package that the clients of that set and target have. Config management puts this file at the keyring path in the same rollout as the clients of the target, for example from the release RPM with <code>rpm2cpio</code>. The HTTP server does not install the release packages of the sets.</p>
+<p class="callout-title">Rule</p>
+<p>Each mirror line has its own keyring: the key file of the release package that the clients of that set and target have. Config management puts this file at the keyring path in the same rollout as these clients, for example from the release RPM with <code>rpm2cpio</code>. The HTTP server does not install the release packages of the sets.</p>
 </aside>
-<p>Thus each mirror line has the same trust as its clients. A snapshot that a key signs before the clients of that set and target have the key stays unserved. This is a second guard behind <a href="signing.html#gates">gate 2</a>. A key change in one set or target does not change what the other lines trust. The deployment record of a target covers its clients and the keyring of its mirror line (<a href="signing.html#deployment-record">signing.html#deployment-record</a>). After a key compromise, config management replaces the keyring of each mirror line first. Then the job serves no new snapshot with a file of the revoked key (<a href="signing.html#compromise">signing.html#compromise</a>).</p>
+<p>Thus each mirror line has the same trust as its clients:</p>
+<ul>
+  <li>A snapshot that a key signs before the clients of that set and target have the key stays unserved. This is a second guard behind <a href="signing.html#gates">gate 2</a>.</li>
+  <li>A key change in one set or target does not change what the other lines trust.</li>
+  <li>The deployment record of a target covers its clients and the keyring of its mirror line (<a href="signing.html#deployment-record">signing.html#deployment-record</a>).</li>
+  <li>After a key compromise, config management first replaces the keyring of each mirror line. Then the job serves no new snapshot with a file of the revoked key (<a href="signing.html#compromise">signing.html#compromise</a>).</li>
+</ul>
+
+<h3 id="mirror-lines">Mirror lines and the served file</h3>
+<p>The job keeps the served path of each line in <code>.trees/&lt;set&gt;-&lt;target&gt;/served-path</code>. A change of the config takes effect at the next run (<a href="lifecycle.html#targets">add or retire a target</a>):</p>
+<table class="compact">
+<thead><tr><th>Change of the config</th><th>Next run of the job</th></tr></thead>
+<tbody>
+<tr><td>A new set or target: one new mirror line and its keyring</td><td>Makes the tree from GHCR.</td></tr>
+<tr><td>A line is no longer in the config</td><td>Deletes the symlink of its served path, the trees of the line and the objects that no tree uses. It writes each deletion to the journal. The URL then gives 404: the target is no longer served.</td></tr>
+<tr><td>The line comes back</td><td>Makes the tree again from GHCR.</td></tr>
+</tbody>
+</table>
 <p>The file <code>repoctl-snapshot.json</code> tells repoctl what the HTTP server serves:</p>
 <pre><code class="language-json">{"set": "slurm-26.05", "target": "el9", "digest": "sha256:9d07…",
  "publish": "p-20261103-1412-5e1", "pulled": "2026-11-03T14:15:02Z"}</code></pre>
-<p><code>repoctl status</code> reads <code>&lt;repo.url&gt;/&lt;target.path&gt;/repoctl-snapshot.json</code> and shows <code>served: same</code>, <code>served: behind</code> or <code>served: unknown</code>. A new set or target needs one new mirror line and its keyring in the config of the job (<a href="lifecycle.html#targets">add a target</a>).</p>
+<p><code>repoctl status</code> reads <code>&lt;repo.url&gt;/&lt;target.path&gt;/repoctl-snapshot.json</code> and shows <code>served: same</code>, <code>served: behind</code> or <code>served: unknown</code>.</p>
+
 <h3 id="mirror-health">Job health and alerts</h3>
-<p>Each run writes <code>repoctl-mirror.json</code> into the served tree of each mirror line, also when the digest is the same or a step fails. The job writes it to a temporary file and renames it. It is the heartbeat of the line:</p>
+<p>Each run writes <code>repoctl-mirror.json</code>, the heartbeat of the line, into the served tree of each mirror line. It writes it also when the digest is the same or a step fails, to a temporary file and then with a rename:</p>
 <pre><code class="language-json">{"set": "slurm-26.05", "target": "el9", "checked": "2026-11-03T14:15:02Z",
  "result": "swapped", "served": "sha256:9d07…", "latest": "sha256:9d07…",
  "behindSince": null, "error": null}</code></pre>
@@ -134,7 +162,7 @@ KEEP_TREES=2</code></pre>
   <li><code>result</code> is <code>same</code>, <code>swapped</code> or <code>failed</code>. <code>error</code> is the message of the failed step.</li>
   <li><code>behindSince</code> is the time of the first run that saw a latest other than the served digest. It is <code>null</code> when the two are the same.</li>
 </ul>
-<p>The job ships these systemd units. The job exits with 1 when a mirror line fails.</p>
+<p>The job ships these systemd units:</p>
 <pre><code class="language-ini"># /etc/systemd/system/repoctl-mirror.service
 [Unit]
 Description=repoctl mirror job
@@ -159,75 +187,49 @@ WantedBy=timers.target</code></pre>
   <li><code>repoctl-mirror-failed.service</code> runs <code>NOTIFY failed</code>. Standard input gets the last 50 journal lines of the job.</li>
   <li>A failed <code>NOTIFY</code> goes to the journal. It does not change the result of the run.</li>
 </ul>
-<p>Without <code>NOTIFY</code>, the journal and <code>repoctl status</code> still show each failure (<a href="#freshness">freshness check</a>). Who owns the mirror job is an <a href="delivery.html#open">open question</a>.</p>
+<p>Without <code>NOTIFY</code>, the journal and <code>repoctl status</code> still show each failure (<a href="#served-stale">stale served tree</a>). Who owns the mirror job is an <a href="delivery.html#open">open question</a>.</p>
 
 <h2 id="records">Records: where the truth lives</h2>
-<p>One record says what is published: the tag <code>latest</code> in GHCR. The other records are copies, and each copy names the snapshot that it comes from. <a href="model.html#records">model.html#records</a> lists all records of a set.</p>
-<figure class="diagram">
-<svg viewBox="0 0 900 252" role="img" aria-labelledby="rec-t">
-<title id="rec-t">One authority, the tag latest in GHCR, and three copies</title>
-<rect class="box-accent" x="330" y="16" width="240" height="84" rx="8"/>
-<text class="t t-title t-on" x="346" y="42">GHCR tag latest</text>
-<text class="t-small t-on" x="346" y="64">manifest digest and annotations</text>
-<text class="t-small t-on" x="346" y="84">the authority</text>
-<text class="t-small" x="600" y="36">plan, build, status, publish:</text>
-<text class="t-small" x="600" y="54">one HEAD request on latest,</text>
-<text class="t-small" x="600" y="72">then compare with the copy</text>
-<rect class="box" x="16" y="160" width="250" height="76" rx="8"/>
-<text class="t t-title" x="32" y="186">Local copy (each admin)</text>
-<text class="t-small" x="32" y="206">the files of one snapshot</text>
-<text class="t-small t-muted" x="32" y="224">written by repo pull and publish</text>
-<rect class="box" x="325" y="160" width="250" height="76" rx="8"/>
-<text class="t t-title" x="341" y="186">snapshot.json (each admin)</text>
-<text class="t-small" x="341" y="206">cache of the annotations</text>
-<text class="t-small t-muted" x="341" y="224">digest, publish id, signer</text>
-<rect class="box" x="634" y="160" width="250" height="76" rx="8"/>
-<text class="t t-title" x="650" y="186">Served tree (HTTP server)</text>
-<text class="t-small" x="650" y="206">the files of one snapshot</text>
-<text class="t-small t-muted" x="650" y="224">written by the mirror job only</text>
-<line class="edge" x1="390" y1="100" x2="150" y2="158" marker-end="url(#arrow)"/>
-<line class="edge" x1="450" y1="100" x2="450" y2="158" marker-end="url(#arrow)"/>
-<line class="edge" x1="510" y1="100" x2="750" y2="158" marker-end="url(#arrow)"/>
-</svg>
-<figcaption>One authority and its copies. Each copy holds the digest of the snapshot that it comes from, so one HEAD request tells if the copy is behind.</figcaption>
-</figure>
+<p>Each record other than <code>latest</code> is a copy that names the snapshot that it comes from. <a href="model.html#records">model.html#records</a> lists all records of a set, with who writes and reads each one.</p>
+<p>Status, the Overview card "Last publish", the sign step and the default key set of <code>repo verify</code> read the annotations of latest. Thus <code>repoctl repo pull</code> gives all of this back after the loss of a host. The shared audit record is the publish history in the RepoManifest of latest (<a href="#format">snapshot format</a>).</p>
+<h3 id="pull">Pull</h3>
+<p><a href="cli.html#cmd-repo-pull"><code>repoctl repo pull [REF]</code></a> makes the local copy equal to a snapshot: latest (the default), a publish id or a digest.</p>
+<p>Pull downloads the missing blobs and checks their sha256. It verifies each RPM and each <code>repomd.xml.asc</code> with the keys of <code>sign.keys</code> (all states), then writes the local copy in one rename. Last, it writes <code>snapshot.json</code>, the cache of the annotations (digest, publish id, signer).</p>
+<p><code>snapshot.json</code> is one Snapshot object of the output schema without <code>local</code>, <code>served</code> and <code>gc</code> (<a href="contract.html#kinds">contract.html#kinds</a>).</p>
 <table class="compact">
-<thead><tr><th>Record</th><th>Where</th><th>Written by</th><th>Read by</th><th>Role</th></tr></thead>
+<thead><tr><th>Case</th><th>Result</th></tr></thead>
 <tbody>
-<tr><td>Tag <code>latest</code> and its manifest</td><td>GHCR</td><td>publish, repo push, restore, prune, resign</td><td>all</td><td>authority</td></tr>
-<tr><td>RepoManifest</td><td>a file in the snapshot, listed in the signed <code>repomd.xml</code></td><td>publish</td><td>plan, build, publish</td><td>part of the snapshot</td></tr>
-<tr><td>Local copy and <code>snapshot.json</code></td><td><code>$XDG_DATA_HOME/repoctl/&lt;set&gt;/repo/&lt;target&gt;/</code></td><td>repo pull, publish (after the tag)</td><td>plan, build, repo ls, repo diff</td><td>cache</td></tr>
-<tr><td>Served tree</td><td>HTTP server</td><td>mirror job</td><td>clients, status</td><td>copy for dnf</td></tr>
-<tr><td>Runs, staging, journals, logs</td><td><code>$XDG_DATA_HOME</code> (staging), <code>$XDG_STATE_HOME</code> (runs, journals, logs)</td><td>build, publish</td><td>the same user</td><td>personal, not shared</td></tr>
-<tr><td><code>keys/deployed.yaml</code></td><td>set repository (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
+<tr><td>REF names no snapshot of the target.</td><td><code>snapshot.not-found</code>, exit 1</td></tr>
+<tr><td>A file does not verify.</td><td>Pull stops and writes nothing, exit 10.</td></tr>
+<tr><td>A file of a revoked key</td><td>The warning <code>sign.removed-signer</code>, not a stop, so that the host can re-sign the file (<a href="signing.html#compromise">signing.html#compromise</a>).</td></tr>
+<tr><td>The signer of a file is not in <code>sign.keys</code>, and the set checkout does not hold the set commit of the snapshot (<code>.set-commit</code>).</td><td>The checkout is older than the publish. The hint of <code>sign.unknown-signer</code> is <code>git pull</code> of the builder branch, then <code>repoctl repo pull</code> again.</td></tr>
+<tr><td>The local copy holds a publish of this user that is not on the chain of latest.</td><td>The warning <code>snapshot.orphaned</code>, before pull replaces the local copy (<a href="#admins">two admins</a>).</td></tr>
 </tbody>
 </table>
-<p>Status, the Overview card "Last publish", the sign step and the default key set of <code>repo verify</code> read the annotations of latest. After the loss of a host, <code>repoctl repo pull</code> gives all of this back. The runs and journals of that host are lost. They are personal, and nothing depends on them. The shared audit record is the publish history in the RepoManifest of latest (<a href="#format">snapshot format</a>).</p>
-<h3 id="pull">Pull</h3>
-<p><code>repoctl repo pull [REF]</code> makes the local copy equal to a snapshot: latest (the default), a publish id or a digest. A REF that names no snapshot of the target gives <code>snapshot.not-found</code> (exit 1). It downloads the missing blobs and checks their sha256. It verifies each RPM and each <code>repomd.xml.asc</code> with the keys of <code>sign.keys</code> (all states) before it writes the local copy in one rename. A file of a revoked key gives the warning <code>sign.removed-signer</code> (<a href="signing.html#compromise">signing.html#compromise</a>). Then it writes <code>snapshot.json</code>: one Snapshot object of the output schema (<a href="contract.html#kinds">contract.html#kinds</a>), from the annotations of the snapshot, without <code>local</code>, <code>served</code> and <code>gc</code>. A file that does not verify stops the pull, and repoctl writes nothing (exit 10). When the signer of a file is not in <code>sign.keys</code>, and the set commit of the snapshot (<code>.set-commit</code>) is not in the history of the set checkout, the checkout is older than the publish. Then the hint of <code>sign.unknown-signer</code> is <code>git pull</code> of the builder branch, then <code>repoctl repo pull</code> again. When the local copy holds a publish of this user that is not on the chain of latest, pull warns with <code>snapshot.orphaned</code> before it replaces the local copy (<a href="#admins">two admins</a>). Command: <a href="cli.html#cmd-repo-pull">repo pull</a>.</p>
 
 <h2 id="freshness">Freshness check</h2>
 <p>plan, build, status and publish read the digest of latest with one HEAD request per target. They compare it with the digest in the local <code>snapshot.json</code>.</p>
 <table class="compact">
-<thead><tr><th>Result</th><th>plan, build</th><th>status</th><th>publish</th></tr></thead>
+<thead><tr><th>Result</th><th>plan, build</th><th>publish</th><th>status</th></tr></thead>
 <tbody>
-<tr><td>same</td><td>continue</td><td>local: same</td><td>continue</td></tr>
-<tr><td>the registry has no snapshot of this target, and the local copy and <code>keys/deployed.yaml</code> have none for it</td><td>continue (first publish)</td><td>not published</td><td>continue as a first publish only when <code>repo.url</code> serves no repo for the target; else stop: <code>set.renamed</code> or <code>publish.served-exists</code>, exit 12 (<a href="#first-publish">first publish</a>)</td></tr>
-<tr><td>the registry has no snapshot of this target, but the local copy has one, or <code>keys/deployed.yaml</code> has a record for it</td><td>warn: <code>snapshot.missing</code>, use the local copy</td><td>latest: missing</td><td>stop: <code>snapshot.missing</code>, exit 13; re-seed the OCI package (<a href="#disaster">registry loss</a>)</td></tr>
-<tr><td>latest is newer than the local copy, or there is no local copy</td><td>stop: <code>state.behind</code>, exit 13</td><td>local: behind</td><td>stop: <code>state.behind</code>, exit 13</td></tr>
-<tr><td>a pushable tree of this user is not tagged: latest is still its base</td><td>warn: <code>state.unpushed</code></td><td>local: unpushed</td><td>stop: <code>state.unpushed</code>, exit 13</td></tr>
-<tr><td>latest is the new snapshot of a pushable tree of this user: step 7 is done, step 8 is not</td><td>stop: <code>state.behind</code>, exit 13, hint <code>repoctl repo push p-…</code></td><td>local: behind, hint "publish p-… is in latest, the cache step did not run"</td><td>stop: <code>state.behind</code>, exit 13, hint <code>repoctl repo push p-…</code></td></tr>
-<tr><td>the local copy holds a publish of this user that is not on the parent chain of latest (<a href="#admins">two admins</a>)</td><td>stop: <code>state.behind</code>, exit 13, and warn: <code>snapshot.orphaned</code></td><td>local: behind, and warn: <code>snapshot.orphaned</code></td><td>stop: <code>state.behind</code>, exit 13, and warn: <code>snapshot.orphaned</code></td></tr>
-<tr><td>the registry is not reachable</td><td>warn: <code>registry.unreachable</code>, use the local copy</td><td>registry: unknown</td><td>stop: <code>registry.unreachable</code>, exit 13</td></tr>
+<tr><td>same</td><td colspan="2">continue</td><td>local: same</td></tr>
+<tr><td>the registry has no snapshot of this target, and the local copy and <code>keys/deployed.yaml</code> have none for it</td><td>continue (first publish)</td><td>continue as a first publish only when <code>repo.url</code> serves no repo for the target (<a href="#first-publish">first publish</a>)</td><td>not published</td></tr>
+<tr><td>the registry has no snapshot of this target, but the local copy has one, or <code>keys/deployed.yaml</code> has a record for it</td><td>warn: <code>snapshot.missing</code>, use the local copy</td><td>stop: <code>snapshot.missing</code>, exit 13; re-seed the OCI package (<a href="#disaster">registry loss</a>)</td><td>latest: missing</td></tr>
+<tr><td>latest is newer than the local copy, or there is no local copy</td><td colspan="2">stop: <code>state.behind</code>, exit 13</td><td>local: behind</td></tr>
+<tr><td>a <a href="#complete">pushable tree</a> of this user is not tagged: latest is still its base</td><td>warn: <code>state.unpushed</code></td><td>stop: <code>state.unpushed</code>, exit 13</td><td>local: unpushed</td></tr>
+<tr><td>latest is the new snapshot of a pushable tree of this user: step 7 is done, step 8 is not</td><td colspan="2">stop: <code>state.behind</code>, exit 13, hint <code>repoctl repo push p-…</code></td><td>local: behind, hint "publish p-… is in latest, the cache step did not run"</td></tr>
+<tr><td>the local copy holds a publish of this user that is not on the parent chain of latest (<a href="#admins">two admins</a>)</td><td colspan="2">stop: <code>state.behind</code>, exit 13, and warn: <code>snapshot.orphaned</code></td><td>local: behind, and warn: <code>snapshot.orphaned</code></td></tr>
+<tr><td>the registry is not reachable</td><td>warn: <code>registry.unreachable</code>, use the local copy</td><td>stop: <code>registry.unreachable</code>, exit 13</td><td>registry: unknown</td></tr>
 </tbody>
 </table>
+<p>The hint of <code>state.behind</code> is <code>run: repoctl repo pull</code>. The hint of <code>state.unpushed</code> is <code>run: repoctl repo push p-…</code>, or discard the tree with <code>repoctl clean --publish p-…</code>. Offline work is possible for plan and build, but not for publish.</p>
+<h3 id="served-stale">Stale served tree</h3>
 <p>status also reads <code>repoctl-mirror.json</code> of the served tree (<a href="#mirror-health">job health</a>). It gives the warning <code>served.stale</code> in two cases:</p>
 <ul>
   <li>the served tree is behind latest, and <code>behindSince</code> is more than 15 minutes ago (three runs of the job);</li>
   <li><code>checked</code> is more than 15 minutes ago: the job does not run.</li>
 </ul>
 <p>The warning names the time and the last error of the job. Its hint is <code>read the journal of the mirror job on the HTTP server: journalctl -u repoctl-mirror.service</code>. <code>repoctl doctor</code> (group registry) and the Needs you list of the web UI show the same warning (<a href="ui-build.html#needs-you">ui-build.html#needs-you</a>).</p>
-<p>The hint of <code>state.behind</code> is <code>run: repoctl repo pull</code>. The hint of <code>state.unpushed</code> is <code>run: repoctl repo push p-…</code>, or discard the tree with <code>repoctl clean --publish p-…</code>. A pushable tree is defined in <a href="#complete">stop and complete</a>. Offline work is possible for plan and build, but not for publish. The full list of problem codes is in <a href="contract.html#problems">contract.html#problems</a>.</p>
 <p>The snapshot lines of <code>repoctl status</code> just after the story publish of el9 (2026-11-03 14:13):</p>
 <pre class="term">$ repoctl status
 set      slurm-26.05  (builder/slurm-26.05 at 9a0c4e2, pushed)
@@ -236,13 +238,13 @@ TARGET  LATEST                 BY               LOCAL   SERVED
 el9     p-20261103-1412-5e1    d.klein@hpc-a1   same    behind (p-20260912-1403-c21)
 el10    p-20260912-1403-c21    d.klein@hpc-a1   same    same
 hint: the mirror job on the HTTP server runs every 5 min</pre>
-<p>el9 shows <code>served: behind</code> until the next run of the mirror job. el10 did not change. The full status frame is <a href="terminal.html#status">terminal.html#status</a>. If the job cannot verify the new snapshot, status shows this line 15 minutes later, for example at 14:30:</p>
+<p>el9 shows <code>served: behind</code> until the next run of the mirror job, and el10 did not change (full frame: <a href="terminal.html#status">terminal.html#status</a>). If the job cannot verify the new snapshot, status shows this line 15 minutes later, for example at 14:30:</p>
 <pre class="term">el9     p-20261103-1412-5e1    d.klein@hpc-a1   same    behind since 14:15
 ! served.stale: el9 is behind since 14:15. Last error of the mirror job: gpgv: BAD signature
     hint: read the journal of the mirror job on the HTTP server: journalctl -u repoctl-mirror.service</pre>
 
 <h2 id="order">Publish order</h2>
-<p>Publish has one fixed order with eight steps. The journal records each step as a <code>publish.step</code> event with the step name (<a href="contract.html#events">contract.html#events</a>). The explainer plays the story publish of el9.</p>
+<p>Publish has one fixed order with eight steps. The journal records each step as a <code>publish.step</code> event with the step name (<a href="contract.html#events">contract.html#events</a>).</p>
 <figure class="diagram wide explainer">
 <svg viewBox="0 0 960 400" role="img" aria-labelledby="order-t">
 <title id="order-t">The eight publish steps and the state of the three records after each step</title>
@@ -313,12 +315,12 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <tbody>
 <tr><td>1</td><td>check</td><td>All checks of <a href="#checks">the next section</a>, with the signer probe (<a href="signing.html#probe">signing.html#probe</a>).</td><td>exit 5, 9, 10, 12 or 13. Nothing written.</td></tr>
 <tr><td>2</td><td>sign</td><td>Copy the base to a new tree <code>publishes/p-…/tree/</code> with hard links. Add the new RPMs. Run <code>rpmsign --resign</code> on the new RPMs only.</td><td>exit 9 or 1 (<code>sign.failed</code>). Delete the new tree.</td></tr>
-<tr><td>3</td><td>repodata</td><td>Write the supply chain records of the new builds and the repository SBOM, with the sha256 of the signed files (<a href="supply-chain.html#flow">supply-chain.html#flow</a>). Run <code>createrepo_c --update</code>. Add the RepoManifest with the sha256 of each record (<code>modifyrepo_c --mdtype=repoctl</code>). Sign <code>repomd.xml</code> with one signature.</td><td>exit 1. Delete the new tree.</td></tr>
-<tr><td>4</td><td>verify</td><td>Check the checksums, one signature packet per <code>repomd.xml.asc</code>, and <code>rpmkeys --checksig</code> on the host with only the set keys. Check the sha256 of each record and of each record subject. Check that the new tree holds each layer of the base manifest with the same title and sha256. Only the files that a prune or a restore removes, the files that a re-sign changes and the repodata files can differ.</td><td>exit 10 (<code>verify.failed</code>, <code>records.mismatch</code>). Keep the tree for inspection. The tree is not pushable.</td></tr>
-<tr><td>5</td><td>verify-el</td><td>Per target, the same checks inside the EL mock chroot with the client trust set (<a href="signing.html#verify-el">signing.html#verify-el</a>).</td><td>exit 10, <code>verify.el-failed</code>. Keep the tree for inspection. The tree is not pushable.</td></tr>
+<tr><td>3</td><td>repodata</td><td>Write the supply chain records of the new builds and the repository SBOM, with the sha256 of the signed files (<a href="supply-chain.html#flow">supply-chain.html#flow</a>). Run <code>createrepo_c --update</code>. Add the RepoManifest with the sha256 of each record (<code>modifyrepo_c --mdtype=repoctl</code>). Sign <code>repomd.xml</code> once.</td><td>exit 1. Delete the new tree.</td></tr>
+<tr><td>4</td><td>verify</td><td>On the host, with only the set keys: check the checksums, one signature packet per <code>repomd.xml.asc</code> and <code>rpmkeys --checksig</code>. Check the sha256 of each record and record subject. Check the files of the base (<a href="#retention">keep all versions</a>).</td><td>exit 10 (<code>verify.failed</code>, <code>records.mismatch</code>). Keep the tree for inspection. It is not pushable.</td></tr>
+<tr><td>5</td><td>verify-el</td><td>Per target, the same checks inside the EL mock chroot with the client trust set (<a href="signing.html#verify-el">signing.html#verify-el</a>).</td><td>exit 10, <code>verify.el-failed</code>. Keep the tree for inspection. It is not pushable.</td></tr>
 <tr><td>6</td><td>push</td><td>Upload the blobs that GHCR does not have. Upload the manifest with the tag <code>p-…</code>.</td><td>exit 13, <code>snapshot.push-failed</code> or <code>registry.denied</code>. Keep the tree. It is pushable.</td></tr>
-<tr><td>7</td><td>tag</td><td>Read latest. If it equals the new digest, the tag is already there: continue with step 8. If it equals the base, move it to the new digest. Read it back. When the tag write gives no answer, read latest again: the new digest means that the write worked.</td><td>exit 13, <code>snapshot.diverged</code> (latest moved) or <code>snapshot.push-failed</code> (the tag write failed).</td></tr>
-<tr><td>8</td><td>cache</td><td>Make the new tree the local copy. Write <code>snapshot.json</code>. Run the target codes of the advisory check on the new tree and update <code>check.json</code> (<a href="advisories.html#check">advisories.html#check</a>). Close the journal.</td><td>warning only, exit 0. Hint: <code>repoctl repo push p-…</code>, which runs only step 8.</td></tr>
+<tr><td>7</td><td>tag</td><td>Read latest. If it is the base, move it to the new digest and read it back. If it already is the new digest, go to step 8.</td><td>No answer to the tag write: read latest again. The new digest means that the write worked: go to step 8. Else exit 13, <code>snapshot.diverged</code> (latest moved) or <code>snapshot.push-failed</code> (the tag write failed). The tree is pushable.</td></tr>
+<tr><td>8</td><td>cache</td><td>Make the new tree the local copy. Write <code>snapshot.json</code>. Run the target codes of the advisory check on the new tree and update <code>check.json</code> (<a href="advisories.html#check">advisories.html#check</a>). Close the journal.</td><td>warning only, exit 0: the publish is a success, and the tree is pushable. Hint: <code>repoctl repo push p-…</code>, which runs only step 8.</td></tr>
 </tbody>
 </table>
 <aside class="callout rule">
@@ -326,36 +328,44 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <p>Steps 1 to 5 change only files of the human who publishes. Step 7 is the only step that changes what other humans see. A publish is a success when step 7 is done.</p>
 </aside>
 <h3 id="several-targets">Several targets</h3>
-<p>One publish id covers all selected targets. repoctl runs steps 1 to 5 for each target, in the order of <code>targets[]</code> in <code>repoctl.yaml</code>, before it pushes a blob. A failure in steps 1 to 5 of one target stops the publish of all targets, and repoctl pushes nothing. Then repoctl runs steps 6 to 8 for one target after the other, in the same order. A failure in step 6 or 7 of one target does not stop the other targets.</p>
-<p>A publish that tags some targets and not all is a partial publish. It exits with 13, and the run state is failed. <code>Run.publish[TARGET].state</code> gives the result of each target: ok, failed, canceled or skipped. The tree of each failed target stays pushable. <code>repoctl repo push p-… --target ID</code> completes one target.</p>
+<p>One publish id covers all selected targets. repoctl runs the steps in the order of <code>targets[]</code> in <code>repoctl.yaml</code>:</p>
+<table class="compact">
+<thead><tr><th>Steps</th><th>Run</th><th>A failure of one target</th></tr></thead>
+<tbody>
+<tr><td>1 to 5</td><td>for each target, before repoctl pushes a blob</td><td>stops the publish of all targets. repoctl pushes nothing.</td></tr>
+<tr><td>6 to 8</td><td>for one target after the other</td><td>does not stop the other targets.</td></tr>
+</tbody>
+</table>
+<p>A publish that tags some targets and not all is a partial publish. It exits with 13, and the run state is failed. <code>Run.publish[TARGET].state</code> gives the result of each target: ok, failed, canceled or skipped. The tree of each failed target stays pushable, and <code>repoctl repo push p-… --target ID</code> completes one target.</p>
 <aside class="callout why">
 <p class="callout-title">Why</p>
 <p>The human confirms one summary for all targets, so all targets pass the same checks before the first push. Steps 6 to 8 change only the OCI package of one target. Thus a failed push of el10 does not make the tag of el9 wrong.</p>
 </aside>
 <h3 id="complete">Stop and complete</h3>
-<p>publish writes <code>publishes/p-…/state.json</code> next to the tree after each step. The file holds the publish run as a Run object (<a href="contract.html#kinds">contract.html#kinds</a>): per target, the base, the digest of the new manifest and the result of each step. A tree is pushable for a target when its state file records verify and verify-el ok for that target, and step 8 of that target is not done. Only a pushable tree whose base is still latest counts for <code>state.unpushed</code>.</p>
+<p>After each step, publish writes <code>publishes/p-…/state.json</code> next to the tree. It holds the publish run as a Run object (<a href="contract.html#kinds">contract.html#kinds</a>). Per target, it records the base, the digest of the new manifest and the result of each step.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: pushable tree</p>
+<p>A tree is pushable for a target when its state file records verify and verify-el ok, and step 8 of the target is not done. Only a pushable tree whose base is still latest counts for <code>state.unpushed</code>.</p>
+</aside>
 <table class="compact">
-<thead><tr><th>Event</th><th>The tree</th><th>Exit</th></tr></thead>
+<thead><tr><th>Interruption</th><th>The tree</th><th>Exit</th></tr></thead>
 <tbody>
-<tr><td>A failure in step 2 or 3</td><td>deleted</td><td>1 or 9</td></tr>
-<tr><td>A failure in step 4 or 5</td><td>kept for inspection, not pushable</td><td>10</td></tr>
 <tr><td>Ctrl-C before step 6</td><td>deleted. Nothing shared changes.</td><td>130</td></tr>
 <tr><td>The first Ctrl-C in step 6 or 7</td><td>repoctl prints "push and tag run to the end" and does steps 6 to 8 of the current target. Then it stops. The trees of the other targets stay pushable.</td><td>130</td></tr>
 <tr><td>A second Ctrl-C in step 6 or 7</td><td>repoctl stops at once. The tree stays pushable.</td><td>130</td></tr>
-<tr><td>A failure in step 6 or 7, a crash or a lost answer of the registry</td><td>pushable</td><td>13</td></tr>
-<tr><td>A failure in step 8</td><td>pushable; the publish is a success</td><td>0</td></tr>
+<tr><td>A crash or a lost answer of the registry in step 6 or 7</td><td>pushable</td><td>13</td></tr>
 </tbody>
 </table>
-<p><code>repoctl repo push p-…</code> completes the publish, for each target of the publish or for the target of <code>--target ID</code>:</p>
+<p><a href="cli.html#cmd-repo-push"><code>repoctl repo push p-…</code></a> completes the publish, for each target of the publish or for the target of <code>--target ID</code>. Without a publish id, it takes the newest pushable publish.</p>
 <ol class="steps">
   <li>The state file must record verify and verify-el ok for the target. Otherwise push refuses with <code>publish.not-verified</code> (exit 10).</li>
   <li>The files of the tree must give the new manifest digest of the state file. Otherwise push refuses with <code>verify.failed</code> (exit 10).</li>
-  <li>push reads latest. If latest equals the new digest, step 7 is done: push runs only step 8 and records the success in the journal. If latest equals the base, push runs steps 6 to 8 with the compare of step 7. Otherwise push refuses with <code>snapshot.diverged</code> (exit 13).</li>
+  <li>push reads latest. If latest equals the new digest, step 7 is done. Then push runs only step 8 and records the success in the journal. If latest equals the base, push runs steps 6 to 8 with the compare of step 7. Otherwise push refuses with <code>snapshot.diverged</code> (exit 13).</li>
 </ol>
-<p>Without a publish id, push takes the newest pushable publish. <code>repoctl clean --publish p-…</code> deletes the tree and its state file. <code>repoctl status</code> names each kept tree that is not pushable, or whose base is not latest, with the hint <code>repoctl clean --publish p-…</code>. Commands: <a href="cli.html#cmd-repo-push">repo push</a>, <a href="cli.html#cmd-clean">clean</a>.</p>
+<p><a href="cli.html#cmd-clean"><code>repoctl clean --publish p-…</code></a> deletes the tree and its state file. <code>repoctl status</code> names each kept tree that is not pushable, or whose base is not latest, with the hint <code>repoctl clean --publish p-…</code>.</p>
 
 <h2 id="checks">Checks before the first signature</h2>
-<p>Step 1 runs all checks before repoctl signs a file. A check that fails stops the publish with its problem code.</p>
+<p>Step 1 runs all checks before repoctl signs a file. A check that fails stops the publish with its problem code. The checks of kind publish:</p>
 <table class="compact">
 <thead><tr><th>Check</th><th>Problem code</th><th>Exit</th></tr></thead>
 <tbody>
@@ -363,10 +373,10 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <tr><td>The set commit and each pinned package commit are on their remote branch (<code>git fetch</code>, then <code>merge-base --is-ancestor</code>).</td><td><code>lock.unpushed</code></td><td>5</td></tr>
 <tr><td><code>repoctl.lock</code> has no line for a package that <code>repoctl.yaml</code> does not have (<a href="lifecycle.html#lock-states">lock states</a>).</td><td><code>lock.orphaned</code></td><td>5</td></tr>
 <tr><td>Each package of a selected target has a lock line. An unpinned package has the plan action skip, so this check stops a publish without it.</td><td><code>lock.missing-package</code></td><td>5</td></tr>
-<tr><td>Each commit since the set commit of the base that changes a set input has a valid signature of an allowed key, and each new deployment record names the signer of its commit (<a href="security.html#set-inputs">security.html#set-inputs</a>).</td><td><code>sign.trust-unverified</code></td><td>12</td></tr>
+<tr><td>Each commit since the base that changes a set input has a valid signature of an allowed key, and each new deployment record names its signer (<a href="security.html#set-inputs">security.html#set-inputs</a>).</td><td><code>sign.trust-unverified</code></td><td>12</td></tr>
 <tr><td>After the fetch, the tip of the remote branch has the same <code>repoctl.yaml</code> and <code>keys/</code> as the set commit (<a href="security.html#remote-tip">security.html#remote-tip</a>).</td><td><code>sign.trust-behind</code></td><td>13</td></tr>
 <tr><td>The local copy equals latest (<a href="#freshness">freshness check</a>).</td><td><code>state.behind</code>, <code>state.unpushed</code></td><td>13</td></tr>
-<tr><td>A first publish of a target: <code>repo.url</code> serves no repo for the target, and <code>keys/deployed.yaml</code> has no record for it (<a href="#first-publish">first publish</a>).</td><td><code>set.renamed</code>, <code>publish.served-exists</code></td><td>12</td></tr>
+<tr><td>A first publish: <code>repo.url</code> serves no repo for the target, and <code>keys/deployed.yaml</code> has no record for it (<a href="#first-publish">first publish</a>).</td><td><code>set.renamed</code>, <code>publish.served-exists</code></td><td>12</td></tr>
 <tr><td>Each node of each selected target is current or staged for the current lock (<a href="#takes">what a publish takes</a>).</td><td><code>publish.not-ready</code></td><td>12</td></tr>
 <tr><td>No node gives a published or removed NVR again with new content.</td><td><code>nvr.reused</code>, <code>nvr.removed</code></td><td>12</td></tr>
 <tr><td>Each new NVR is newer than the newest NVR of its source package name in the base and in <code>removed[]</code>. repoctl compares epoch, version and release with the rpm version compare (rpmvercmp).</td><td><code>nvr.older</code></td><td>12</td></tr>
@@ -377,32 +387,49 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 </table>
 <p>The hints of each code are in <a href="contract.html#problems">contract.html#problems</a>. The exit codes are in <a href="cli.html#exit">cli.html#exit</a>.</p>
 <h3 id="per-kind">Checks and steps per publish kind</h3>
-<p>The table above gives the checks of kind publish. Restore, prune, resign and import are publish runs with the same eight steps, but with other checks and other actions in steps 2 and 3. Each kind signs <code>repomd.xml</code>, so each kind runs gates 1 to 3, the signer probe, verify and verify-el.</p>
+<p>Restore, prune, resign and import are publish runs with the same eight steps, but with other checks and other actions in steps 2 and 3. Each kind signs <code>repomd.xml</code> with the key of the human, so each kind runs gates 1 to 3, the signer probe, verify and verify-el. Each kind also runs <code>lock.dirty</code>.</p>
 <table class="compact">
-<thead><tr><th>Check or step</th><th>publish</th><th>restore</th><th>prune</th><th>resign</th><th>import</th></tr></thead>
+<thead><tr><th>Check</th><th>publish</th><th>restore</th><th>prune</th><th>resign</th><th>import</th></tr></thead>
 <tbody>
-<tr><td>Staged nodes</td><td>takes them</td><td>takes none</td><td>takes none</td><td>takes none</td><td>takes none</td></tr>
-<tr><td><code>lock.dirty</code></td><td>applies</td><td>applies</td><td>applies</td><td>applies</td><td>applies</td></tr>
-<tr><td><code>lock.unpushed</code></td><td>the set commit and each pinned package commit</td><td>the set commit only</td><td>the set commit only</td><td>the set commit only</td><td>the set commit only</td></tr>
-<tr><td>Freshness (<code>state.*</code>)</td><td>applies</td><td>applies</td><td>applies</td><td>applies</td><td>replaced: the registry has no snapshot of the target, else <code>import.not-empty</code></td></tr>
-<tr><td><code>publish.not-ready</code></td><td>applies</td><td>skipped: no node is taken</td><td>skipped</td><td>skipped</td><td>skipped</td></tr>
-<tr><td><code>nvr.reused</code>, <code>nvr.removed</code>, <code>nvr.older</code></td><td>applies</td><td>skipped: no new build</td><td>skipped</td><td>skipped</td><td>skipped</td></tr>
+<tr><td>Staged nodes</td><td>takes them</td><td colspan="4">takes none</td></tr>
+<tr><td><code>lock.unpushed</code></td><td>the set commit and each pinned package commit</td><td colspan="4">the set commit only</td></tr>
+<tr><td>Freshness (<code>state.*</code>)</td><td colspan="4">applies</td><td>replaced: the registry has no snapshot of the target, else <code>import.not-empty</code></td></tr>
+<tr><td><code>publish.not-ready</code></td><td>applies</td><td colspan="4">skipped: no node is taken</td></tr>
+<tr><td><code>nvr.reused</code>, <code>nvr.removed</code>, <code>nvr.older</code></td><td>applies</td><td colspan="4">skipped: no new build</td></tr>
 <tr><td>Advisory gate</td><td>applies</td><td>skipped: the summary lists each new broken requirement as info</td><td>replaced: no new broken requirement (<code>prune.unsafe</code>)</td><td>skipped: the NVRs and the payloads do not change</td><td>skipped: no base</td></tr>
-<tr><td>Gates 1 to 3, signer probe</td><td>applies</td><td>applies</td><td>applies</td><td>applies</td><td>applies; gate 2 reads the record of the old key</td></tr>
+<tr><td>Gate 2</td><td colspan="4">applies</td><td>applies; it reads the record of the old key</td></tr>
 <tr><td>Signers of the base</td><td>applies</td><td>replaced: RPMs of REF from a removed key get a new signature; an unknown signer refuses</td><td>applies to the kept RPMs</td><td>replaced: the RPMs of the key ID get a new signature, also when ID is removed</td><td>replaced: each RPM verifies with <code>sign.keys</code></td></tr>
 <tr><td>Trust block</td><td>when the release package has a new key file</td><td>when the newest release NVR of the result tree has another key file than the base</td><td>never: the newest release NVR stays</td><td>never</td><td>never: no base</td></tr>
-<tr><td>Step 2, sign</td><td>copy the base, add the RPMs of the staged nodes, sign the new RPMs</td><td>download the missing blobs of REF, copy REF and the kept release NVRs, re-sign the RPMs of removed keys</td><td>copy the base without the selected NVRs; sign no RPM</td><td>copy the base, re-sign the RPMs of the key ID</td><td>copy DIR and keep its RPM signatures</td></tr>
-<tr><td>Step 3, RepoManifest</td><td>add one <code>builds[]</code> entry and the records of each new build</td><td>the <code>builds[]</code> entries and records of REF and of the kept release NVRs; each NVR of the base that leaves goes into <code>removed[]</code> (reason restore); an NVR that comes back leaves <code>removed[]</code></td><td>a build whose RPMs all leave moves from <code>builds[]</code> to <code>removed[]</code> (reason prune); a prune of one repository (<code>--repo</code>) removes only those files from <code>builds[].rpms</code> and adds their sha256 to <code>removed[]</code></td><td><code>builds[].signer</code> gets the new fingerprint for each build whose binary RPMs it re-signs; new records for each build that it touches</td><td>the <code>builds[]</code> entries of FILE (reason <code>adopted</code>) and the SBOM of each adopted build</td></tr>
+</tbody>
+</table>
+<table class="compact">
+<thead><tr><th>Kind</th><th>Step 2, sign</th><th>Step 3, RepoManifest</th></tr></thead>
+<tbody>
+<tr><td>publish</td><td>Copy the base, add the RPMs of the staged nodes, sign the new RPMs.</td><td>Add one <code>builds[]</code> entry and the records of each new build.</td></tr>
+<tr><td>restore</td><td>Download the missing blobs of REF. Copy REF and the kept release NVRs. Re-sign the RPMs of removed keys.</td><td>The <code>builds[]</code> entries and records of REF and of the kept release NVRs. Each NVR of the base that leaves goes into <code>removed[]</code> (reason restore). An NVR that comes back leaves <code>removed[]</code>.</td></tr>
+<tr><td>prune</td><td>Copy the base without the selected NVRs. Sign no RPM.</td><td>A build whose RPMs all leave moves from <code>builds[]</code> to <code>removed[]</code> (reason prune). A prune of one repository (<code>--repo</code>) removes only those files from <code>builds[].rpms</code> and adds their sha256 to <code>removed[]</code>.</td></tr>
+<tr><td>resign</td><td>Copy the base. Re-sign the RPMs of the key ID.</td><td><code>builds[].signer</code> gets the new fingerprint for each build whose binary RPMs it re-signs. New records for each build that it touches.</td></tr>
+<tr><td>import</td><td>Copy DIR and keep its RPM signatures.</td><td>The <code>builds[]</code> entries of FILE (reason <code>adopted</code>) and the SBOM of each adopted build.</td></tr>
 </tbody>
 </table>
 <aside class="callout why">
 <p class="callout-title">Why</p>
-<p>Restore and prune take no node, so a failed or unbuilt node never blocks an emergency restore. Restore returns to a known snapshot, so an open advisory does not block it. Each kind writes a new <code>repomd.xml.asc</code> with the key of the human, so the signer gates always apply.</p>
+<p>Restore and prune take no node, so a failed or unbuilt node never blocks an emergency restore. Restore returns to a known snapshot, so an open advisory does not block it.</p>
 </aside>
 <h3 id="first-publish">First publish and import</h3>
-<p>A first publish of a target has no base: the registry has no snapshot of the target, the local copy has none, and <code>keys/deployed.yaml</code> has no record for the target (no tag latest). The freshness check passes. Gate 2 does not apply, because no client uses the target yet. When the local copy or a record exists, the target was published before and its OCI package is lost: publish stops with <code>snapshot.missing</code> (<a href="#disaster">registry loss</a>). publish proves this first: <code>&lt;repo.url&gt;/&lt;target.path&gt;/&lt;repo.name&gt;/repodata/repomd.xml</code> gives 404, and <code>keys/deployed.yaml</code> has no record for the target. Otherwise it stops with <code>publish.served-exists</code> (exit 12). When the <code>repoctl-snapshot.json</code> of the served tree names another set or target, it stops with <code>set.renamed</code> (exit 12) (<a href="signing.html#gates">rule: first publish</a>). In the story, the first snapshot of el10 is <code>p-20260912-1403-c21</code>.</p>
-<p>An import of an existing repository is different, because clients of the old repository exist. <code>repoctl repo push --from DIR --manifest FILE --target ID</code> makes the first snapshot of a target from a signed tree.</p>
-<p>The import works only when the registry has no snapshot of that target (else <code>snapshot.exists</code>, exit 13). Otherwise it stops with <code>import.not-empty</code> (exit 13). It verifies each RPM with <code>sign.keys</code> and keeps the RPM signatures. It adds the RepoManifest from FILE with <code>modifyrepo_c</code>, adds the root files (<a href="#format">snapshot format</a>) and signs the new <code>repomd.xml</code> with one signature. Then it runs verify and verify-el, and pushes. The advisory gate runs as a report and does not block (<a href="advisories.html#gate-kinds">gate per publish kind</a>). The publish id is <code>p-import-YYYYMMDD</code>.</p>
+<p>A first publish of a target has no base. The registry has no snapshot of the target (no tag latest), the local copy has none, and <code>keys/deployed.yaml</code> has no record for it. The freshness check passes. Gate 2 does not apply, because no client uses the target yet. In the story, the first snapshot of el10 is <code>p-20260912-1403-c21</code>.</p>
+<p>Before a first publish, publish proves that no client can use the target (<a href="signing.html#gates">rule: first publish</a>):</p>
+<table class="compact">
+<thead><tr><th>Finding</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>The local copy has a snapshot of the target, or <code>keys/deployed.yaml</code> has a record for it.</td><td>The target was published before, and its OCI package is lost: <code>snapshot.missing</code> (<a href="#disaster">registry loss</a>).</td></tr>
+<tr><td><code>repoctl-snapshot.json</code> of the served tree names another set or target.</td><td><code>set.renamed</code>, exit 12</td></tr>
+<tr><td><code>&lt;repo.url&gt;/&lt;target.path&gt;/&lt;repo.name&gt;/repodata/repomd.xml</code> does not give 404.</td><td><code>publish.served-exists</code>, exit 12</td></tr>
+<tr><td>None of these</td><td>first publish</td></tr>
+</tbody>
+</table>
+<p>An import of an existing repository is different, because clients of the old repository exist. <code>repoctl repo push --from DIR --manifest FILE --target ID</code> makes the first snapshot of a target from a signed tree. It works only when the registry has no snapshot of that target. Else it stops with exit 13: <code>snapshot.exists</code>, or <code>import.not-empty</code>.</p>
+<p>The import verifies each RPM with <code>sign.keys</code> and keeps the RPM signatures. It adds the RepoManifest from FILE with <code>modifyrepo_c</code>, adds the root files (<a href="#format">snapshot format</a>) and signs the new <code>repomd.xml</code> with one signature. Then it runs verify and verify-el, and pushes <code>p-import-YYYYMMDD</code>. The advisory gate runs as a report and does not block (<a href="advisories.html#gate-kinds">gate per publish kind</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
 <p>Gate 2 applies to an import. Before the import, the human records the deployment of the old key, for example <code>repoctl sign deployed hpc-repo --release slurm-release-26.05-1 --target el9 --path DIR</code>. Only a target that no client uses yet skips gate 2.</p>
@@ -410,13 +437,20 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <p>In the story, d.klein confirmed the deployment of hpc-repo on 2026-08-28 and imported the bash-era el9 repository as <code>p-import-20260828</code>. The steps are in the runbook <a href="../runbooks/import.html">Import the existing repositories</a>.</p>
 
 <h2 id="takes">What a publish takes</h2>
-<p>Publish works on the plan, not on one run. For each selected target, publish takes each node with the plan action staged. Of a staged node, it takes only the files of its <code>artifact.added</code> events, never a whole staging directory, and it checks the sha256 of each file. A staged node has a build for the current lock in an unpublished run of this user (<a href="build.html#staging">staging and node reuse</a>). The summary names the source run of each node. When two runs have a build of one node, publish takes the build of the newest run (<code>fromRun</code>). <code>--run RUN</code> limits the publish to the nodes of one run.</p>
-<p>A target is publishable when each node of the target is current (in the base) or staged. Without <code>--target</code>, publish takes the publishable targets, and the summary names the others. A target that <code>--target</code> names and that is not publishable stops the publish with <code>publish.not-ready</code> (exit 12). When no target is publishable, publish stops with the same code. <code>--hold NODE</code> makes a target publishable for one urgent publish (<a href="#urgent">urgent fix</a>).</p>
-<aside class="callout rule"><p class="callout-title">Rule: publish the ready target first</p><p>Publish a publishable target before you pin a fix of a package that it shares with a failed target. The commit is per package, so the pin ends the staged node of the package on each target. If the publishable target is not yet published, it then needs a new build too. If it is published, the fix gives it a new NVR with the same content. Example: <a href="build.html#story">the story run</a>.</p></aside>
-<p>Publish never builds. It never signs a node whose plan action is not current or staged. The advisory gate looks at the whole publish, so a dependent that another staged run rebuilt counts (<a href="advisories.html#gate">advisories.html#gate</a>).</p>
-<p>In the story, the review of el9 at 2026-11-03 14:05 takes the four staged el9 nodes of <code>r-20261102-1750-a3f</code>: ucx, slurm, openmpi and slurm-singularity-exec. These give 38 new RPMs. The 170 RPMs of the base stay, so the new snapshot has 208 RPMs. el10 is not publishable: slurm@el10 failed, and slurm-singularity-exec@el10 is blocked. The web UI shows this on <a href="ui-publish.html#blocked">the blocked page</a>.</p>
+<p>Publish works on the plan, not on one run. For each selected target, publish takes each node with the plan action staged. A staged node has a build for the current lock in an unpublished run of this user (<a href="build.html#staging">staging and node reuse</a>).</p>
+<ul>
+  <li>Of a staged node, publish takes only the files of its <code>artifact.added</code> events, never a whole staging directory. It checks the sha256 of each file.</li>
+  <li>When two runs have a build of one node, publish takes the build of the newest run (<code>fromRun</code>). The summary names the source run of each node.</li>
+  <li><code>--run RUN</code> limits the publish to the nodes of one run.</li>
+  <li>Publish never builds. It never signs a node whose plan action is not current or staged.</li>
+  <li>The advisory gate looks at the whole publish, so a dependent that another staged run rebuilt counts (<a href="advisories.html#gate">advisories.html#gate</a>).</li>
+</ul>
+<p>A target is publishable when each node of the target is current (in the base) or staged. Without <code>--target</code>, publish takes the publishable targets, and the summary names the others.</p>
+<p><code>publish.not-ready</code> (exit 12) stops the publish when a target that <code>--target</code> names is not publishable, or when no target is publishable. <code>--hold NODE</code> makes a target publishable for one urgent publish (<a href="#urgent">urgent fix</a>).</p>
+<aside class="callout rule"><p class="callout-title">Rule: publish the ready target first</p><p>Publish a publishable target before you pin a fix of a package that it shares with a failed target. The commit is per package, so the pin ends the staged node on each target. The publishable target then needs a new build, or a new NVR with the same content when it is already published (<a href="build.html#story">the story run</a>).</p></aside>
+<p>In the story, the review of el9 at 2026-11-03 14:05 takes the four staged el9 nodes of <code>r-20261102-1750-a3f</code>: ucx, slurm, openmpi and slurm-singularity-exec. These give 38 new RPMs. The 170 RPMs of the base stay, so the new snapshot has 208 RPMs. el10 is not publishable: slurm@el10 failed, and slurm-singularity-exec@el10 is blocked (<a href="ui-publish.html#blocked">the blocked page</a> of the web UI).</p>
 <h3 id="urgent">Urgent fix</h3>
-<p>A failed, blocked or unbuilt node of an other package makes its target not publishable. For an urgent fix, the human holds that node back for one publish. A <dfn>held node</dfn> keeps its build in the base. When the base has no build of the node, the node stays out of the snapshot. The publish takes the other staged nodes as usual.</p>
+<p>A failed, blocked or unbuilt node of another package makes its target not publishable. For an urgent fix, the human holds that node back for one publish. A <dfn>held node</dfn> keeps its build in the base, or stays out of the snapshot when the base has no build of it. The publish takes the other staged nodes as usual.</p>
 <ul>
   <li><code>--hold NODE</code> needs <code>--reason TEXT</code> with 8 characters or more. A held node that is current or staged is a usage error (exit 2), so nobody holds in advance.</li>
   <li>The advisory gate runs on the result tree with the base build of each held node. When a taken node needs the new build of a held node, the gate finds the broken requirement and blocks the publish.</li>
@@ -445,17 +479,18 @@ Publish a fix fast, while another node of the target is not ready.
 The held nodes build again with the next plan. Fix them, then publish.</pre>
 
 <h2 id="admins">Two admins</h2>
-<p>Changes are rare, and the team coordinates in its own channel. Thus repoctl has no lease in the registry. The set lock is a local lock. It protects the processes of one user on one host (<a href="build.html#lock">build.html#lock</a>).</p>
+<p>Changes are rare, and the team coordinates in its own channel. Thus repoctl has no lease in the registry. The set lock is a local lock: it protects the processes of one user on one host (<a href="build.html#lock">build.html#lock</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>Publish compares latest with its base two times: in step 1, and in step 7 just before it moves the tag. If latest moved, publish stops with <code>snapshot.diverged</code> (exit 13). The new snapshot stays as a tag that nobody serves.</p>
+<p>Publish compares latest with its base two times: in step 1, and in step 7 just before it moves the tag. If latest moved, publish stops with <code>snapshot.diverged</code> (exit 13). The new snapshot stays as a tag that nobody serves, and <code>repoctl repo snapshots --all</code> lists it.</p>
 </aside>
 <aside class="callout why">
 <p class="callout-title">Why</p>
 <p>GHCR has no compare-and-swap for tags. The race window is the time between the read and the write of the tag in step 7, less than one second. For a small team that coordinates in a channel, this window is acceptable. A lease would need a second shared record and a way to break it.</p>
 </aside>
-<p>After <code>snapshot.diverged</code>, run <code>repoctl repo pull</code>, then plan and publish again. <code>repoctl repo snapshots --all</code> lists the diverged tag.</p>
-<p>In the race window, two publishes can both pass step 7. The second tag write wins, and the first snapshot leaves the chain of latest. Its NVRs reach the served tree only if the mirror job reads latest in that window. repoctl finds this case: when the local copy holds a publish of this user, and latest is newer, repoctl walks the parent chain of latest back to the first snapshot that is older than the local copy. If the publish of the local copy is not on that chain, <code>repo pull</code> and <code>status</code> give the warning <code>snapshot.orphaned</code>, and plan, build and publish give it with <code>state.behind</code>. The hint is <code>repoctl repo pull</code>, then plan and publish again.</p>
+<p>In the race window, two publishes can both pass step 7. The second tag write wins, and the first snapshot leaves the chain of latest. Its NVRs reach the served tree only if the mirror job reads latest in that window.</p>
+<p>repoctl finds this case when the local copy holds a publish of this user and latest is newer. It walks the parent chain of latest back to the first snapshot that is older than the local copy. If the local publish is not on that chain, pull, status, plan, build and publish warn with <code>snapshot.orphaned</code> (<a href="#freshness">freshness check</a>).</p>
+<p>After <code>snapshot.diverged</code> or <code>snapshot.orphaned</code>, run <code>repoctl repo pull</code>, then plan and publish again.</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
 <p>A run counts as published only when its publish is on the chain of latest. Thus the staged nodes of an orphaned publish are staged again, the next plan shows them as staged, and <code>repoctl clean</code> keeps their staging. The next publish signs them again: the NVRs and the payloads stay the same, only the signatures change.</p>
@@ -464,14 +499,15 @@ The held nodes build again with the next plan. Fix them, then publish.</pre>
 <h2 id="summary">Summary and confirmation</h2>
 <p>Publish shows a summary before it asks. The summary always shows these items:</p>
 <ul>
-  <li>the publish id, the target and the source run (the header line), the base (latest, its digest and the state of the local copy) and the store,</li>
-  <li>the signer with its deployment record,</li>
-  <li>one row per changed source package: published NVR, new NVR and RPM count, then the totals and the count of unchanged packages,</li>
-  <li>the sign counts per key: new, keep and re-sign,</li>
-  <li>the checks: the inputs (the set commit and the package commits are pushed), the trust state, gates 1 to 3, the signer probe and the advisory gate,</li>
-  <li>when the publish holds a node, the held nodes with the NVR that each keeps and the reason (<a href="#urgent">urgent fix</a>).</li>
+  <li>the header line: publish id, target, source run;</li>
+  <li>the base (latest, its digest, the state of the local copy) and the store;</li>
+  <li>the signer and its deployment record;</li>
+  <li>per changed source package: published NVR, new NVR, RPM count; the totals; the count of unchanged packages;</li>
+  <li>the sign counts per key: new, keep, re-sign;</li>
+  <li>the checks: pushed set commit and package commits, trust state, gates 1 to 3, signer probe, advisory gate;</li>
+  <li>when the publish holds a node: the held nodes, each with the NVR that it keeps and the reason (<a href="#urgent">urgent fix</a>).</li>
 </ul>
-<p>When the key file changes, the trust block (<a href="signing.html#trust-block">signing.html#trust-block</a>) replaces "trust no change". A retired package that still has RPMs in the repository shows as "retired: N packages still published" (<a href="lifecycle.html#retire">lifecycle.html#retire</a>). The story publish of el9:</p>
+<p>When the key file changes, the trust block (<a href="signing.html#trust-block">signing.html#trust-block</a>) replaces "trust no change". A retired package that still has RPMs in the repository shows as "retired: N packages still published" (<a href="lifecycle.html#retire">lifecycle.html#retire</a>). The summary has no "removed" count, because publish never removes a file. The story publish of el9:</p>
 <pre class="term">$ repoctl publish --target el9
 publish  p-20261103-1412-5e1  el9 of slurm-26.05  from run r-20261102-1750-a3f
 base     latest p-20260912-1403-c21 (sha256:4be1…), local copy same
@@ -492,9 +528,9 @@ Type the set name to sign 38 RPMs and publish el9 of slurm-26.05: slurm-26.05
 published  el9  p-20261103-1412-5e1 (sha256:9d07…)  latest was p-20260912-1403-c21
 served     behind until the mirror job runs (every 5 min)
 Next: repoctl status</pre>
-<p>After success, the eight steps fold to one line. <code>-v</code> shows each step with its time: check 0.6 s, sign 41 s (38 ok), repodata 2.4 s, verify 1.9 s, verify-el 6.2 s, push 38 s (54 new blobs, 412 MiB; 170 known), tag 0.3 s, cache 0.2 s.</p>
-<p>The confirmation asks for the set name. Only the exact name continues. Any other text, an empty line or EOF means no. A trust change also asks for the key id of each added key. <code>--dry-run</code> shows the summary and the checks, and stops. The rules for terminals, <code>--yes</code> and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> are in <a href="cli.html#safety">cli.html#safety</a>. The command is <a href="cli.html#cmd-publish">publish</a>, the terminal frame is <a href="terminal.html#publish">terminal.html#publish</a>, and the web UI flow is <a href="ui-publish.html#publish">ui-publish.html#publish</a>.</p>
-<p>The sign line keeps the 50 RPMs of the retiring key hpc-repo. A normal publish never re-signs them. Only <code>repoctl repo resign</code> gives them a new signature (<a href="signing.html#resign">re-sign rules</a>); status and doctor show the hint. The summary has no "removed" count, because publish never removes a file.</p>
+<p>After success, the eight steps fold to one line. <code>-v</code> shows each step with its time, as the explainer in <a href="#order">publish order</a> does.</p>
+<p>The sign line keeps the 50 RPMs of the retiring key hpc-repo. A normal publish never re-signs them. Only <code>repoctl repo resign</code> gives them a new signature (<a href="signing.html#resign">re-sign rules</a>); status and doctor show the hint.</p>
+<p>Then publish asks for the set name. A trust change also asks for the key id of each added key. The rules of the confirmation, <code>--dry-run</code>, <code>--yes</code> and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> are in <a href="cli.html#safety">cli.html#safety</a>. The command is <a href="cli.html#cmd-publish">publish</a>, the terminal frame is <a href="terminal.html#publish">terminal.html#publish</a>, and the web UI flow is <a href="ui-publish.html#publish">ui-publish.html#publish</a>.</p>
 
 <h2 id="format">Snapshot format and names</h2>
 <p>A snapshot is one OCI artifact: one manifest per set and target, with one blob per file. It holds all three repositories of a target: slurm, slurm-source and slurm-debuginfo.</p>
@@ -505,10 +541,13 @@ Next: repoctl status</pre>
 <tr><td>Tags</td><td><code>latest</code>, and one tag per publish id, for example <code>p-20261103-1412-5e1</code>. The package name holds the set and the target, so the tags do not repeat them.</td></tr>
 <tr><td>artifactType</td><td><code>application/vnd.repoctl.repo.v1</code></td></tr>
 <tr><td>Layers</td><td>One blob per file. The annotation <code>org.opencontainers.image.title</code> gives the path in the tree, for example <code>slurm/Packages/u/ucx-1.22.1-1.el9.x86_64.rpm</code>.</td></tr>
-<tr><td>Root files</td><td>Two layers with a title without a directory: the key file (<code>sign.release.keyfile</code>, for example <code>RPM-GPG-KEY-slurm</code>) and <code>&lt;release package&gt;.rpm</code>, for example <code>slurm-release.rpm</code>. Both come from the release RPM with the highest NVR in the binary repository. The RPM layer has the blob of that RPM, so the registry stores it once. Step 3 of a publish writes them, step 4 checks them. They are for the client bootstrap (<a href="signing.html#bootstrap">signing.html#bootstrap</a>).</td></tr>
-<tr><td>Annotations</td><td><code>org.opencontainers.image.source</code> (the GitHub repository of the set), <code>io.repoctl.set</code>, <code>.target</code>, <code>.publish</code>, <code>.kind</code> (publish, restore, prune, resign, import, reseed), <code>.parent</code> (digest of the base), <code>.set-commit</code>, <code>.signer</code> (full fingerprint), <code>.user</code>, <code>.host</code>, <code>.created</code>, <code>.repoctl-version</code>, <code>.advisories.accepted</code> (a JSON list with one <code>{id, factsDigest, reason, user, host}</code> per acceptance of this publish), <code>.held</code> (the held nodes of this publish, with the reason). An unattended publish also records <code>unattended: true</code> with the trace parent.</td></tr>
+<tr><td>Root files</td><td>Two layers with a title without a directory: the key file (<code>sign.release.keyfile</code>, for example <code>RPM-GPG-KEY-slurm</code>) and <code>&lt;release package&gt;.rpm</code>, for example <code>slurm-release.rpm</code>.</td></tr>
+<tr><td>Annotations: identity</td><td><code>org.opencontainers.image.source</code> (the GitHub repository of the set), <code>io.repoctl.set</code>, <code>.target</code>, <code>.publish</code>, <code>.kind</code> (publish, restore, prune, resign, import, reseed), <code>.parent</code> (digest of the base), <code>.set-commit</code></td></tr>
+<tr><td>Annotations: audit</td><td><code>.signer</code> (full fingerprint), <code>.user</code>, <code>.host</code>, <code>.created</code>, <code>.repoctl-version</code>, <code>.advisories.accepted</code> (a JSON list with one <code>{id, factsDigest, reason, user, host}</code> per acceptance of this publish), <code>.held</code> (the held nodes of this publish, with the reason)</td></tr>
 </tbody>
 </table>
+<p>An unattended publish also records <code>unattended: true</code> with the trace parent.</p>
+<p>Both root files come from the release RPM with the highest NVR in the binary repository. The RPM layer has the blob of that RPM, so the registry stores it once. Step 3 of a publish writes the root files, and step 4 checks them. They are for the client bootstrap (<a href="signing.html#bootstrap">signing.html#bootstrap</a>).</p>
 <figure class="diagram">
 <svg viewBox="0 0 900 260" role="img" aria-labelledby="oci-t">
 <title id="oci-t">One manifest per snapshot points to one blob per file; snapshots share blobs</title>
@@ -550,7 +589,7 @@ Next: repoctl status</pre>
 </svg>
 <figcaption>The layout of a snapshot. A file that two snapshots hold is one blob. The story publish uploads only 54 new blobs; 170 blobs are known.</figcaption>
 </figure>
-<p>The annotation <code>.parent</code> links each snapshot to its base. This makes a chain. <code>repoctl repo snapshots</code> lists the chain of latest, newest first. <code>--all</code> also lists the tags outside the chain, for example a diverged publish (<a href="cli.html#cmd-repo-snapshots">repo snapshots</a>). The chain of el9 in the story:</p>
+<p>The annotation <code>.parent</code> links each snapshot to its base, so the snapshots make a chain. <code>repoctl repo snapshots</code> lists the chain of latest, newest first. <code>--all</code> also lists the tags outside the chain, for example a diverged publish (<a href="cli.html#cmd-repo-snapshots">repo snapshots</a>). The chain of el9 in the story:</p>
 <table class="compact">
 <thead><tr><th>Publish id</th><th>Kind</th><th>By</th><th>Signer</th><th>RPMs</th><th>New</th></tr></thead>
 <tbody>
@@ -560,13 +599,13 @@ Next: repoctl status</pre>
 <tr><td><code>p-import-20260828</code></td><td>import of the bash-era repository</td><td>d.klein@hpc-a1</td><td>hpc-repo</td><td>48</td><td>48</td></tr>
 </tbody>
 </table>
-<p>The annotations go away when gc deletes a snapshot. Thus the RepoManifest of each snapshot also holds the publish history <code>history[]</code>: one entry per publish of the chain, with the publish id, the kind, the human, the host, the signer, the set commit, each acceptance with its reason, each held node with its reason and each trust change. Each snapshot copies the list from its base and adds its own entry. The list is in the signed repodata, and latest always holds it. Thus latest is the full audit record of the target, also for the snapshots that gc deleted (<a href="model.html#manifest">model.html#manifest</a>). <code>repoctl repo snapshots --history</code> lists it.</p>
-<h3 id="removed">RepoManifest and removed[]</h3>
-<p>The RepoManifest (<a href="model.html#manifest">model.html#manifest</a>) is in the repodata of the binary repository (<code>slurm/</code>) only. Its entries list the source RPM and the debuginfo RPMs, so slurm-source and slurm-debuginfo need no manifest of their own.</p>
-<p>The RepoManifest has the list <code>removed[]</code>. Each entry has the NVR, the sha256 of each RPM, the publish id and the reason (prune or restore). Each new snapshot copies the list from its base. Thus plan and publish know each NVR that clients can still have, also when the repository no longer holds it. Publish refuses a build that gives such an NVR again with other content (<code>nvr.removed</code>, exit 12).</p>
+<p>The annotations go away when gc deletes a snapshot. Thus the signed RepoManifest of each snapshot also holds two lists (<a href="model.html#manifest">model.html#manifest</a>). Each snapshot copies them from its base and adds its own entries:</p>
+<ul>
+  <li><code>history[]</code>, the publish history: latest is the full audit record of the target, also for the snapshots that gc deleted. <code>repoctl repo snapshots --history</code> lists it.</li>
+  <li><code>removed[]</code>: each NVR that a prune or a restore removed, with the sha256 of each RPM, the publish id and the reason. Thus plan and publish know each NVR that clients can still have, also when the repository no longer holds it. Publish refuses such an NVR with other content (<code>nvr.removed</code>, exit 12).</li>
+</ul>
 
 <h2 id="storage">Storage options</h2>
-<p>repoctl keeps the snapshots as OCI artifacts in a registry. The table compares the options. A git repository of builds keeps each binary in its history: the clones grow, and one old file cannot be deleted.</p>
 <table class="compact">
 <thead><tr><th>Option</th><th>Content hash, dedup</th><th>Prune one NVR</th><th>Restore a snapshot</th><th>Team sharing</th><th>Cost</th></tr></thead>
 <tbody>
@@ -579,15 +618,20 @@ Next: repoctl status</pre>
 </table>
 <aside class="callout why">
 <p class="callout-title">Why OCI artifacts with one blob per file</p>
-<p>Each file has a content hash, and the registry stores each blob once. A prune is a new manifest without the file. The registry frees the blob when no manifest uses it, that is after gc deletes the old snapshots (<a href="#gc">gc and retention</a>). A restore pulls one manifest. Image layers would bind files to publishes and make a prune hard. oras-go does the work inside the Go binary, and GHCR gives a shared state to the team.</p>
+<p>The registry stores each blob once. Image layers would bind files to publishes and make a prune hard. A git repository keeps each binary in its history: the clones grow, and one old file cannot be deleted. oras-go does the work inside the Go binary, and GHCR gives a shared state to the team.</p>
 </aside>
-<p>GHCR has no garbage collection that a user starts. <code>repoctl repo gc</code> deletes package versions through the GitHub REST API (<a href="#gc">gc and retention</a>). Public packages are free. Private packages count against the storage quota of GitHub Packages. The debuginfo repositories are the largest part.</p>
+<p>Public packages are free. Private packages count against the storage quota of GitHub Packages. The debuginfo repositories are the largest part.</p>
 
 <h2 id="retention">Keep all versions and prune</h2>
-<p>Publish adds to the repository. It never deletes. All old versions stay, as with <code>createrepo_c --update</code> in the bash scripts. Clients can still install each old version. Step 4 enforces this rule: a file of the base that is not in the new tree gives <code>verify.failed</code>, also when the local copy lost the file (<a href="#order">publish order</a>).</p>
-<p><code>repoctl repo prune</code> removes NVRs only on request. The dry run is the default, and <code>--apply</code> acts. With <code>--apply</code>, prune is a publish run of kind prune: steps 1 to 8 make a new snapshot without the selected NVRs (<a href="#per-kind">checks per kind</a>). The NVRs go into <code>removed[]</code>. Old snapshots still hold the files until gc deletes these snapshots. Thus the registry frees the blobs of a pruned NVR at the earliest <code>retention.snapshots.keep_removed</code> after the prune (default 1y), when gc runs. A prune of debuginfo frees storage only then. The selectors combine:</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: keep all versions</p>
+<p>Publish adds to the repository. It never deletes. All old versions stay, as with <code>createrepo_c --update</code> in the bash scripts, so clients can still install each old version.</p>
+</aside>
+<p>Step 4 (verify) enforces this rule. The new tree must hold each layer of the base manifest with the same title and sha256. Only the files that a prune or a restore removes, the files that a re-sign changes and the repodata files can differ. A missing file gives <code>verify.failed</code>, also when the local copy lost the file.</p>
+<p><a href="cli.html#cmd-repo-prune"><code>repoctl repo prune</code></a> removes NVRs only on request. The dry run is the default, and <code>--apply</code> acts. With <code>--apply</code>, prune is a publish run of kind prune: steps 1 to 8 make a new snapshot without the selected NVRs (<a href="#per-kind">checks per kind</a>). The NVRs go into <code>removed[]</code>.</p>
+<p>Old snapshots still hold the files until gc deletes these snapshots. Thus the registry frees the blobs of a pruned NVR at the earliest <code>retention.snapshots.keep_removed</code> after the prune (default 1y), when gc runs. A prune of debuginfo frees storage only then.</p>
 <table class="compact">
-<thead><tr><th>Selector</th><th>Effect</th></tr></thead>
+<thead><tr><th>Selector (they combine)</th><th>Effect</th></tr></thead>
 <tbody>
 <tr><td><code>--target ID</code></td><td>Only these targets. The default is all targets of the set.</td></tr>
 <tr><td><code>--repo binary|source|debuginfo</code></td><td>Only this repository, for example <code>--repo debuginfo --keep-last 1</code>.</td></tr>
@@ -598,24 +642,39 @@ Next: repoctl status</pre>
 <tr><td><code>--nvr NVR</code></td><td>One build with all its subpackages, for example <code>slurm-26.05.2-1.el9</code>.</td></tr>
 </tbody>
 </table>
+<h3 id="prune-safety">Safety rules of prune</h3>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>Prune never deletes the newest NVR of a kept package. Prune never deletes a release NVR that a deployment record in <code>keys/deployed.yaml</code> names for the target, because gate 2 and verify-el need its key file (<a href="signing.html#gates">signing.html#gates</a>). A prune adds no broken requirement. The advisory gate runs repoclosure on the base and on the result tree (<a href="advisories.html#gate-kinds">gate per publish kind</a>). A broken requirement that only the result tree has refuses the prune with <code>prune.breaks-closure</code>. A broken requirement that the base already has, for example the open upstream break <code>closure.broken/pmix@el9</code>, does not block a prune. A selector that matches many NVRs (<code>--keep-last</code>, <code>--older-than</code>, <code>--package</code>) keeps a protected NVR, and the dry run names the rule. <code>--nvr</code> or <code>--package NAME --all</code> that selects a protected NVR stops the prune with <code>prune.unsafe</code>. <code>--package NAME --all</code> needs a package that is retired on the target; otherwise exit 1 with <code>prune.not-retired</code>. A safety rule that refuses gives exit 12. Nothing to prune gives exit 4.</p>
+<p>Prune never deletes the newest NVR of a kept package. Prune never deletes a release NVR that a deployment record names for the target: gate 2 and verify-el need its key file (<a href="signing.html#gates">signing.html#gates</a>). A prune adds no broken requirement.</p>
 </aside>
-<p>Command: <a href="cli.html#cmd-repo-prune">repo prune</a>.</p>
+<p>The advisory gate runs repoclosure on the base and on the result tree (<a href="advisories.html#gate-kinds">gate per publish kind</a>). A safety rule that refuses gives exit 12.</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>A selector that matches many NVRs (<code>--keep-last</code>, <code>--older-than</code>, <code>--package</code>) matches a protected NVR.</td><td>Prune keeps the NVR, and the dry run names the rule.</td></tr>
+<tr><td><code>--nvr</code> or <code>--package NAME --all</code> selects a protected NVR.</td><td><code>prune.unsafe</code>, exit 12</td></tr>
+<tr><td>Only the result tree has a broken requirement.</td><td><code>prune.breaks-closure</code>, exit 12</td></tr>
+<tr><td>The base already has the broken requirement, for example the open upstream break <code>closure.broken/pmix@el9</code>.</td><td>It does not block the prune.</td></tr>
+<tr><td><code>--package NAME --all</code> names a package that is not retired on the target.</td><td><code>prune.not-retired</code>, exit 1</td></tr>
+<tr><td>Nothing to prune</td><td>exit 4</td></tr>
+</tbody>
+</table>
 
 <h2 id="restore">Restore and fix forward</h2>
 <p>To take back a bad build, fix forward: make a new commit or a rebuild (<a href="build.html#rebuild">build.html#rebuild</a>), so that the release goes up, and publish. Clients then update to the fix. This is the normal way back.</p>
-<p>A revert of a version bump gives a lower NVR, for example ucx 1.22.0 after 1.22.1. dnf never installs a lower NVR on a client that has the higher one, so publish refuses it with <code>nvr.older</code> (exit 12). To take back a version, raise <code>Epoch</code> in the spec, or give the old code a version that is higher than the bad one. Clients that installed the bad NVR then update to the fix. New clients get the fix.</p>
-<p><code>repoctl repo restore REF</code> is for a broken repository, for example bad repodata. It makes a new snapshot with the files of the older snapshot REF and moves latest to it. latest moves forward to a new digest. It never moves back to the old digest. Restore is a publish run of kind restore: steps 1 to 8 with the checks of its kind (<a href="#per-kind">checks per kind</a>), the advisory gate (<a href="advisories.html#gate-kinds">gate per publish kind</a>), gates 1 to 3, verify and verify-el.</p>
+<p>A revert of a version bump gives a lower NVR, for example ucx 1.22.0 after 1.22.1. dnf never installs a lower NVR on a client that has the higher one, so publish refuses it with <code>nvr.older</code> (exit 12).</p>
+<p>To take back a version, raise <code>Epoch</code> in the spec, or give the old code a version that is higher than the bad one. Then the clients that installed the bad NVR update to the fix, and new clients get the fix.</p>
+<p><a href="cli.html#cmd-repo-restore"><code>repoctl repo restore REF</code></a> is for a broken repository, for example bad repodata. It makes a new snapshot with the files of the older snapshot REF and moves latest to it. latest moves forward to a new digest, never back to the old digest. A REF that names no snapshot of the target gives <code>snapshot.not-found</code> (exit 1).</p>
+<p>Restore is a publish run of kind restore: the eight steps with the checks of its kind (<a href="#per-kind">checks per kind</a>). The advisory gate also runs (<a href="advisories.html#gate-kinds">gate per publish kind</a>). The rules of restore:</p>
 <ul>
   <li>The summary lists each NVR that leaves the repository. It says that clients keep these NVRs, because dnf does not downgrade.</li>
-  <li>These NVRs go into <code>removed[]</code>. After a restore, publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</li>
+  <li>These NVRs go into <code>removed[]</code>. Then publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</li>
   <li>RPMs in REF that a key in state removed or revoked signed get a new signature from the human who restores (<a href="signing.html#resign">re-sign rules</a>).</li>
   <li>The new snapshot keeps each release NVR that a deployment record names for the target, also when REF does not hold it. Thus gate 2 and verify-el still find the key file of each signer. The summary lists these NVRs as "kept: deployment record". For example, a restore of el9 to <code>p-import-20260828</code> keeps slurm-release-26.05-2, the release of the record of d.klein; REF holds only slurm-release-26.05-1.</li>
   <li>REF can have a RepoManifest of an older apiVersion. Restore reads it and writes the new RepoManifest in the apiVersion of <code>repoctl.yaml</code> (<a href="contract.html#stored">stored files</a>).</li>
 </ul>
-<p>After a restore, the lock still pins the commits of the builds that left. plan shows these nodes with the action build, and each build gives a removed NVR again: publish refuses it with <code>nvr.removed</code>. Before the next publish, do one of these steps for each package that the summary names:</p>
+<h3 id="after-restore">After a restore</h3>
+<p>The lock still pins the commits of the builds that left. plan shows these nodes with the action build, and each build gives a removed NVR again: publish refuses it with <code>nvr.removed</code>. Before the next publish, do one of these steps for each package that the summary names:</p>
 <ul>
   <li>Run <code>repoctl rebuild DIR --reason TEXT</code>. The release goes up, so the new NVR is newer than the removed one.</li>
   <li>Or move the worktree to the commit of the build in REF and run <code>repoctl pin DIR --older</code>, because that commit is behind the branch. plan then shows the node as current.</li>
@@ -641,29 +700,28 @@ Type the set name to restore el9 of slurm-26.05: slurm-26.05
 published  el9  p-20261103-1630-b72 (sha256:61ae…)  latest was p-20261103-1412-5e1
 hint: give the 4 packages a new release. run: repoctl rebuild ucx slurm openmpi slurm-singularity-exec --reason "after restore of el9"
 Next: repoctl status</pre>
-<p>Publish has no rollback flag. Restore and fix forward cover both cases. Command: <a href="cli.html#cmd-repo-restore">repo restore</a>. Runbook: <a href="../runbooks/bad-publish.html">A bad publish reached the clients</a>.</p>
+<p>Publish has no rollback flag: restore and fix forward cover both cases. The steps for a human are in the runbook <a href="../runbooks/bad-publish.html">A bad publish reached the clients</a>.</p>
 
 <h2 id="gc">gc and retention</h2>
-<p><code>repoctl repo gc</code> deletes old snapshots (package versions) in GHCR with the GitHub REST API. GitHub then frees the blobs that no version uses. The dry run is the default, and <code>--apply</code> acts.</p>
+<p>GHCR has no garbage collection that a user starts. <a href="cli.html#cmd-repo-gc"><code>repoctl repo gc</code></a> deletes old snapshots (package versions) in GHCR with the GitHub REST API, and GitHub then frees the blobs that no version uses. The dry run is the default, and <code>--apply</code> acts. Nothing to delete gives exit 4.</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>gc never deletes these snapshots:</p>
+<p>gc never deletes these snapshots. The defaults come from <code>retention.snapshots</code> in <code>repoctl.yaml</code> (<a href="config.html#set-config">config.html#set-config</a>). A flag changes a default for one call.</p>
 <ul>
-  <li>latest,</li>
-  <li>the newest N snapshots of the chain (default 10),</li>
-  <li>the snapshots younger than D (default 90 days),</li>
-  <li>for each entry of <code>removed[]</code>, the newest snapshot that still holds it, until <code>keep_removed</code> (default 1y) after the publish that removed it.</li>
+  <li>latest;</li>
+  <li>the newest N snapshots of the chain (<code>keep: 10</code>, <code>--keep N</code>);</li>
+  <li>the snapshots younger than D (<code>keep_days: 90d</code>, <code>--keep-days D</code>);</li>
+  <li>for each entry of <code>removed[]</code>, the newest snapshot that still holds it, until <code>keep_removed</code> after the publish that removed it (<code>keep_removed: 1y</code>, <code>--keep-removed D</code>).</li>
 </ul>
-<p>gc deletes the annotations of a snapshot with it. The publish history in latest keeps who published, who signed and which advisories were accepted, with the reason (<a href="#format">snapshot format</a>).</p>
 <p>Thus each RPM that a client can have stays in at least one snapshot for <code>keep_removed</code>. After that time, gc can delete the last snapshot that holds it. <code>removed[]</code> still holds the NVR and the sha256 of each RPM, so <code>nvr.removed</code> still works.</p>
 </aside>
-<p>The defaults come from <code>retention.snapshots</code> in <code>repoctl.yaml</code> (<code>keep: 10</code>, <code>keep_days: 90d</code>, <code>keep_removed: 1y</code>, see <a href="config.html#set-config">config.html#set-config</a>). The flags <code>--keep N</code>, <code>--keep-days D</code> and <code>--keep-removed D</code> change them for one call. gc needs the token scope <code>delete:packages</code> and admin access to the package. gc never runs unattended, because it deletes history (<a href="cli.html#safety">cli.html#safety</a>). gc deletes the acceptance annotation with its snapshot; the publish history in the RepoManifest of latest keeps each acceptance (<a href="#format">format</a>). Nothing to delete gives exit 4. Command: <a href="cli.html#cmd-repo-gc">repo gc</a>.</p>
+<p>gc deletes the annotations of a snapshot with it, but the publish history in latest keeps each acceptance (<a href="#format">snapshot format</a>). gc needs the token scope <code>delete:packages</code> and admin access to the package (<a href="#registry">registry access</a>). gc never runs unattended, because it deletes history (<a href="cli.html#safety">cli.html#safety</a>).</p>
 <p><code>gc --apply</code> is a run of kind gc with its own journal. It deletes the package versions of one target after the other, oldest first, so the chain from latest has no gap. It writes one <code>gc.deleted</code> event per deleted version: target, publish id and digest (<a href="contract.html#events">contract.html#events</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: a failed delete</p>
 <p>When the GitHub API refuses or fails one delete, gc stops at once. The versions that it deleted before stay deleted, and the journal lists them. gc exits with 13: <code>registry.denied</code> for a missing scope or role, else <code>gc.failed</code>. A second <code>repoctl repo gc --apply</code> continues, because gc computes the list again from the registry.</p>
 </aside>
-<p>For this reason, gc never frees the storage of a pruned NVR: the newest snapshot that holds it stays. A prune removes an NVR from latest, so that no new install gets it. It does not make the registry smaller.</p>
+<p>gc never frees the storage of a pruned NVR: the newest snapshot that holds it stays. A prune removes an NVR from latest, so that no new install gets it. It does not make the registry smaller.</p>
 
 <h2 id="registry">Registry access</h2>
 <table class="compact">
@@ -671,14 +729,27 @@ Next: repoctl status</pre>
 <tbody>
 <tr><td>Namespace</td><td><code>ghcr.io/&lt;org&gt;/&lt;repo&gt;/&lt;set&gt;-&lt;target&gt;</code>. The examples use <code>ghcr.io/gsi-hpc/slurm-repo</code>. A new repository of sets, for example for Lustre, uses its own <code>&lt;repo&gt;</code>: <code>ghcr.io/gsi-hpc/lustre-repo</code>. Where the slurm sets live is an <a href="delivery.html#open">open question</a>.</td></tr>
 <tr><td>Pull</td><td>Public. No token. The mirror job and <code>repo pull</code> use an anonymous token.</td></tr>
-<tr><td>Push</td><td>A classic personal access token for the registry only: the scope <code>write:packages</code> (it includes <code>read:packages</code>) and an expiry of one year or less. Make it on <code>https://github.com/settings/tokens</code>, then log in: <code>oras login ghcr.io -u USER --password-stdin</code>. Do not use the token of <code>gh auth</code>: it has the scope <code>repo</code>. repoctl reads the container credential store (<code>~/.config/containers/auth.json</code> or <code>~/.docker/config.json</code>), never <code>repoctl.yaml</code>.</td></tr>
-<tr><td>gc</td><td>Also <code>delete:packages</code> on the same token, and the role admin on the package. The team role write is not enough. An organization owner gives the role admin to the admins who run gc; in the story, d.klein has it on both packages. V30 confirms the limits of GitHub for the delete of a public version (<a href="delivery.html#verification">delivery.html#verification</a>).</td></tr>
+<tr><td>Push token</td><td>A classic personal access token for the registry only: the scope <code>write:packages</code> (it includes <code>read:packages</code>) and an expiry of one year or less. Do not use the token of <code>gh auth</code>: it has the scope <code>repo</code>.</td></tr>
+<tr><td>Login</td><td>Make the token on <code>https://github.com/settings/tokens</code>, then log in: <code>oras login ghcr.io -u USER --password-stdin</code>. repoctl reads the container credential store (<code>~/.config/containers/auth.json</code> or <code>~/.docker/config.json</code>), never <code>repoctl.yaml</code>.</td></tr>
+<tr><td>gc</td><td>The scope <code>delete:packages</code> on the same token, and the role admin on the package. The team role write is not enough.</td></tr>
+<tr><td>Role admin</td><td>An organization owner gives it to the admins who run gc. In the story, d.klein has it on both packages.</td></tr>
 <tr><td>Team access</td><td>A GitHub team, for example <code>slurm-repo-admins</code>, has write access to the set repository. Each package has "Inherit access from source repository" on. Thus the team has write access to all packages.</td></tr>
 <tr><td>Branch rules</td><td>The set repository has the rulesets <code>main</code>, <code>sets</code> and <code>packages</code> (<a href="security.html#rulesets">security.html#rulesets</a>). <code>repoctl doctor</code> checks them (<code>git.protection</code>).</td></tr>
 <tr><td>New set or target</td><td>The first push makes the package. Then an organization owner sets it to public and turns on the inherited access. <code>repoctl doctor</code> shows this step until it is done (<code>registry.public</code>).</td></tr>
 </tbody>
 </table>
-<p><code>repoctl doctor</code> has five registry checks. <code>registry.login</code> finds the credentials. <code>registry.scope</code> reads the token scopes. It warns when the token has a scope other than <code>write:packages</code>, <code>read:packages</code> and <code>delete:packages</code>, for example <code>repo</code>, and when the token has no expiry. <code>registry.write</code> checks write access to each package of the set. <code>registry.public</code> checks that each package is public. <code>served.stale</code> reads the heartbeat of each mirror line (<a href="#freshness">freshness check</a>). On hpc-a1 in the story:</p>
+<p>V30 confirms the limits of GitHub for the delete of a public version (<a href="delivery.html#verification">delivery.html#verification</a>). Onboarding and offboarding include the team membership (<a href="signing.html#onboarding">signing.html#onboarding</a>). The problem <code>registry.denied</code> (exit 13) names the missing scope and the settings page of the package.</p>
+<table class="compact">
+<thead><tr><th>Doctor check (group registry)</th><th>What it checks</th></tr></thead>
+<tbody>
+<tr><td><code>registry.login</code></td><td>It finds the credentials.</td></tr>
+<tr><td><code>registry.scope</code></td><td>It reads the token scopes. It warns when the token has a scope other than <code>write:packages</code>, <code>read:packages</code> and <code>delete:packages</code>, for example <code>repo</code>, and when the token has no expiry.</td></tr>
+<tr><td><code>registry.write</code></td><td>Write access to each package of the set.</td></tr>
+<tr><td><code>registry.public</code></td><td>Each package is public. A private package gives a warning with the link to its settings page, for example <code>https://github.com/orgs/GSI-HPC/packages/container/slurm-repo%2Fslurm-26.05-el10/settings</code>.</td></tr>
+<tr><td><code>served.stale</code></td><td>It reads the heartbeat of each mirror line (<a href="#served-stale">stale served tree</a>).</td></tr>
+</tbody>
+</table>
+<p>The five registry checks on hpc-a1 in the story (doctor frame: <a href="terminal.html#doctor">terminal.html#doctor</a>):</p>
 <pre class="term">$ repoctl doctor --only registry
 ✓ registry.login: ghcr.io as dklein (container auth file)
 ! registry.scope: the token has no scope delete:packages, so repo gc cannot run
@@ -687,46 +758,27 @@ Next: repoctl status</pre>
 ✓ registry.public: slurm-26.05-el9, slurm-26.05-el10 are public
 ✓ served.stale: the mirror job checked el9 and el10 2 min ago, both same
 5 checks: 4 ok, 1 warning</pre>
-<p>A private package gives a warning with the link to its settings page, for example <code>https://github.com/orgs/GSI-HPC/packages/container/slurm-repo%2Fslurm-26.05-el10/settings</code>. The problem <code>registry.denied</code> (exit 13) names the missing scope and the settings page of the package. Onboarding and offboarding include the team membership (<a href="signing.html#onboarding">signing.html#onboarding</a>). The doctor frame is <a href="terminal.html#doctor">terminal.html#doctor</a>.</p>
 
 <h3 id="disaster">Registry outage and loss</h3>
 <p>GHCR holds the only chain of snapshots. The local copies of the admins and the served tree hold latest, and the mirror job also keeps <code>KEEP_TREES</code> old trees. repoctl has no second store.</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: no break-glass</p>
-<p>While GHCR does not answer, publish stops with <code>registry.unreachable</code> (exit 13). The mirror job keeps the served tree, and the clients keep working with it. Build and stage the fix in the meantime, and publish it when GHCR answers. Do not copy files to the HTTP server by hand: only the mirror job writes the served tree.</p>
+<p>While GHCR does not answer, publish stops with <code>registry.unreachable</code> (exit 13). The mirror job keeps the served tree, and the clients keep working with it. Build and stage the fix in the meantime, and publish it when GHCR answers. Do not copy files to the HTTP server by hand.</p>
 </aside>
 <aside class="callout why">
 <p class="callout-title">Why the team accepts the loss of the chain</p>
-<p>Publish adds to the repository and never deletes (<a href="#retention">keep all versions</a>). Thus latest holds each RPM that is not pruned, with its signature and its supply chain records. Its RepoManifest lists each removed NVR in <code>removed[]</code>. A second store would add a job and a credential only for the older snapshots, the diverged tags and the pruned files. The team <span class="no-gl">accepts</span> their loss.</p>
+<p>Publish never deletes (<a href="#retention">keep all versions</a>), so latest holds each RPM that is not pruned, with its signature and its supply chain records. Its RepoManifest lists each removed NVR in <code>removed[]</code>. A second store would add a job and a credential only for the older snapshots, the diverged tags and the pruned files. The team <span class="no-gl">accepts</span> their loss.</p>
 </aside>
-<p>When an OCI package is deleted, or the organization is lost, re-seed each target from a copy of its last latest. A re-seed keeps each file as it is, so the clients see no change, and the protections of <code>removed[]</code> and <code>nvr.reused</code> stay.</p>
-<ol class="steps">
-  <li>Confirm the loss: <code>repoctl repo snapshots --target ID</code> lists nothing, and publish stops with <code>snapshot.missing</code>. Tell the team to stop all publishes.</li>
-  <li>When the namespace is gone, change <code>store.oci</code> in a set commit and the package lines of the mirror config (<a href="#mirror">mirror job</a>).</li>
-  <li>Find the newest copy of latest. Compare the publish id in <code>snapshot.json</code> of the local copy of each admin and in <code>repoctl-snapshot.json</code> of the served tree. The served tree can be behind.</li>
-  <li>On the host with that copy, run <code>repoctl repo push --reseed --target ID</code>, with <code>--from DIR</code> for a copy of the served tree. Type the set name.</li>
-  <li>An organization owner sets the new OCI package to public and turns on the inherited access (<code>registry.public</code>).</li>
-  <li>The mirror job pulls the new latest. The other admins run <code>repoctl repo pull</code>.</li>
-</ol>
-<p>The re-seed keeps the RPM signatures, <code>repomd.xml</code> and its signature, the RepoManifest and the supply chain records. It signs nothing, so it needs no signer probe and no gates. It verifies the tree as <code>repo pull</code> does and runs verify-el with the client trust set. It pushes the snapshot <code>p-reseed-YYYYMMDD</code> of kind reseed without a parent, and it moves latest to it. Command: <a href="cli.html#cmd-repo-push">repo push</a>. Runbook: <a href="../runbooks/registry-loss.html">Registry outage or loss</a>.</p>
+<p>When an OCI package is deleted, or the organization is lost, re-seed each target from the newest copy of its last latest. Compare the publish id in <code>snapshot.json</code> of each local copy and in <code>repoctl-snapshot.json</code> of the served tree: the served tree can be behind.</p>
+<p>When the namespace is gone, change <code>store.oci</code> in a set commit and the package lines of the mirror config (<a href="#mirror">mirror job</a>).</p>
+<p><a href="cli.html#cmd-repo-push"><code>repoctl repo push --reseed --target ID</code></a> re-seeds one target from the local copy, or with <code>--from DIR</code> from a copy of the served tree. It needs a target without a snapshot in the registry (else <code>snapshot.exists</code>). A re-seed keeps each file as it is, so the clients see no change, and the protections of <code>removed[]</code> and <code>nvr.reused</code> stay.</p>
+<ul>
+  <li>It keeps the RPM signatures, <code>repomd.xml</code> and its signature, the RepoManifest and the supply chain records.</li>
+  <li>It signs nothing, so it needs no signer probe and no gates.</li>
+  <li>It verifies the tree as <code>repo pull</code> does, and runs verify-el with the client trust set.</li>
+  <li>It pushes the snapshot <code>p-reseed-YYYYMMDD</code> of kind reseed without a parent, and moves latest to it.</li>
+</ul>
+<p>Then an organization owner sets the new OCI package to public and turns on the inherited access (<code>registry.public</code>). The steps for a human are in the runbook <a href="../runbooks/registry-loss.html">Registry outage or loss</a>.</p>
 
-<h2 id="commands">Commands</h2>
-<p>The command blocks are in the CLI reference. Each shared-state command has a dry run, a summary, a confirmation, a journal and no MCP tool (<a href="cli.html#safety">cli.html#safety</a>).</p>
-<table class="compact">
-<thead><tr><th>Command</th><th>Class</th><th>What it does</th></tr></thead>
-<tbody>
-<tr><td><a href="cli.html#cmd-publish"><code>publish</code></a></td><td><span class="tag shared">shared state</span></td><td>The publish order on all staged nodes of the selected targets.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-push"><code>repo push</code></a></td><td><span class="tag shared">shared state</span></td><td>Completes a publish from step 6, makes the first snapshot of an import, or re-seeds a lost OCI package.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-restore"><code>repo restore</code></a></td><td><span class="tag shared">shared state</span></td><td>A new snapshot with the files of an older one.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-prune"><code>repo prune --apply</code></a></td><td><span class="tag shared">shared state</span></td><td>A new snapshot without the selected NVRs.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-gc"><code>repo gc --apply</code></a></td><td><span class="tag shared">shared state</span></td><td>Deletes old snapshots in GHCR.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-resign"><code>repo resign</code></a></td><td><span class="tag shared">shared state</span></td><td>A new snapshot with new signatures (<a href="signing.html#resign">signing.html#resign</a>).</td></tr>
-<tr><td><a href="cli.html#cmd-repo-pull"><code>repo pull</code></a></td><td><span class="tag local">local write</span></td><td>Makes the local copy equal to a snapshot.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-snapshots"><code>repo snapshots</code></a></td><td><span class="tag read">read</span></td><td>Lists the chain of each target.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-verify"><code>repo verify</code></a></td><td><span class="tag read">read</span></td><td>Checks the local copy, a snapshot (<code>--snapshot</code>), the served tree (<code>--served</code>) or a staging repository with the client trust set. <code>--el</code> adds the EL chroot check.</td></tr>
-<tr><td><a href="cli.html#cmd-repo-ls"><code>repo ls</code></a>, <a href="cli.html#cmd-repo-diff"><code>repo diff</code></a></td><td><span class="tag read">read</span></td><td>List and compare the packages of the local copy, a run or two snapshots.</td></tr>
-</tbody>
-</table>
-<p>The result kinds are <code>Run</code> (with <code>publishKind</code> publish, restore, prune, resign, import or reseed), <code>Snapshot</code> and <code>SnapshotList</code> (<a href="contract.html#kinds">contract.html#kinds</a>). The MCP server has the read tool <code>repoctl_snapshots</code> and no tool for a shared-state command (<a href="agents.html#mcp-tools">agents.html#mcp-tools</a>).</p>
 </body>
 </html>
