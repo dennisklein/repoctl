@@ -813,6 +813,7 @@ class Site:
         # the glossary: data, the domain icons as symbols, the ids of the symbols
         data = self.src / "assets" / "glossary-data.js"
         self.glossary = gloss.Glossary(data) if data.is_file() else None
+        self.projects = gloss.Projects() if gloss.PROJECTS.is_file() else None
         symbols = ""
         self.symbol_ids = set()
         if self.glossary:
@@ -1066,7 +1067,8 @@ class Site:
         gl_used = []
         if self.glossary and not ctx["custom"] and page != gloss.PAGE:
             to = rel(page, gloss.PAGE)
-            content, gl_used = gloss.link(content, self.glossary, gloss.DOCS, lambda tid: f"{to}#{tid}")
+            content, gl_used = gloss.link(content, self.glossary, gloss.DOCS, lambda tid: f"{to}#{tid}",
+                                          self.projects)
             for tid in gl_used:
                 rw.links.append(("a", "href", f"{to}#{tid}", body_line))
 
