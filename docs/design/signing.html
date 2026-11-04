@@ -314,6 +314,10 @@
 </aside>
 <h3 id="deployment-record">Deployment record</h3>
 <p><code>repoctl sign deployed ID --release NVR --target ID</code> records that config management installed the release NVR on all clients of the target. The record is per target. repoctl checks that the release is in latest of each selected target and that its key file holds the key. For an import, <code>--path DIR</code> names the tree instead of latest. Then it asks the human to type the key id, writes <code>keys/deployed.yaml</code> and makes a set commit. The human pushes it.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: who confirms</p>
+<p>repoctl signs the set commit of the record with the key of <code>sign.key</code>, and <code>confirmedBy</code> is the id of that key. The key must be active. It must not be the key of the record while another key is active: <code>sign.self-confirm</code>, exit 12. Publish checks the signature of each record (<a href="security.html#set-inputs">security.html#set-inputs</a>).</p>
+</aside>
 <p>The command needs a terminal or the UI dialog "Confirm deployment" (<a href="ui-publish.html#signing">ui-publish.html#signing</a>). It has no unattended mode and no MCP tool. Command: <a href="cli.html#cmd-sign-deployed">sign deployed</a>.</p>
 <pre><code class="language-yaml"># keys/deployed.yaml: the entry of the story, 2026-11-05 09:12 (el9 only)
 apiVersion: repoctl/v1alpha1
@@ -329,10 +333,10 @@ deployments:
 <p>A key is deployed for a command when gate 2 passes for each target in scope that has a latest. The scope is the selected targets of a publish, or the targets of the command. Thus <code>repoctl sign ls</code> shows hpc-repo as not deployed: el10 has a latest, and hpc-repo has no el10 record. hpc-repo signs nothing new, because it is retiring.</p>
 
 <h2 id="trust-block">Trust block</h2>
-<p>When the release package of a publish has a new key file, the summary shows the trust block. No second admin reviews the change. The block is for the human who publishes, and it needs a typed answer even with <code>--yes</code>. The story publish of slurm-release-26.05-3 by d.klein:</p>
+<p>When the release package of a publish has a new key file, the summary shows the trust block. The block is for the human who publishes, and it needs a typed answer even with <code>--yes</code>. That human is the second key holder of the change: a key that the release adds cannot sign this publish (gate 2). For each change, the block gives the set commit and the key that signed it (<a href="security.html#set-inputs">security.html#set-inputs</a>). The story publish of slurm-release-26.05-3 by d.klein:</p>
 <pre class="term">trust    slurm-release-26.05-3 changes the key file of all clients
          + a.admin  C2F9 7713 05AB E4D6 18C3  9F2B 70DE A5C1 E93F 52A7
-                    added in set commit 7e21d0a by A. Admin &lt;a.admin@gsi.de&gt;
+                    added in set commit 7e21d0a by A. Admin &lt;a.admin@gsi.de&gt;, signed by a.admin
          - none
          a.admin cannot sign until "repoctl sign deployed a.admin" (gate 2)
 Type the key id of each added key to continue: a.admin
@@ -453,6 +457,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <tr><td><a href="cli.html#cmd-sign-keyfile"><code>sign keyfile --checksum</code></a></td><td><span class="tag read">read</span></td><td>Prints the sha256 of the key file for the bootstrap.</td></tr>
 </tbody>
 </table>
+<p>Each command that makes a set commit signs it with the key of <code>sign.key</code>, and it refuses without the secret key (<code>sign.no-key</code>, exit 9). Publish checks these signatures (<a href="security.html#set-inputs">security.html#set-inputs</a>).</p>
 <p>The result kinds are <code>SignerList</code> and <code>OnboardReport</code> (<a href="contract.html#kinds">contract.html#kinds</a>). The MCP read tools are <code>repoctl_sign_ls</code> and <code>repoctl_sign_onboard</code>. MCP has no tool for the other sign commands (<a href="agents.html#mcp-tools">agents.html#mcp-tools</a>). The Signing page of the web UI shows the same keys and onboarding steps (<a href="ui-publish.html#signing">ui-publish.html#signing</a>).</p>
 
 <h3 id="onboarding">Onboarding</h3>
@@ -606,6 +611,11 @@ Replace a key:  add and deploy the new key, then "repoctl sign retire
                 OLD", "repoctl repo resign --signer OLD", "repoctl
                 sign remove OLD", and publish the new release package.
 Clients:        "repoctl sign offboard ID" prints the commands.
+Set commits:    sign each commit that changes repoctl.yaml,
+                repoctl.lock, keys/, a macros file or an in-tree
+                package (git config commit.gpgsign true). publish
+                refuses a change without a signature of an active
+                key, or of the key that the change adds.
 
 A new expiry date does not reach the clients. Treat an expiring key
 as a key change.

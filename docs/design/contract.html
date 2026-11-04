@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 96 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 99 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -302,6 +302,7 @@
 <tr><td><code>git.busy</code></td><td>7</td><td>Another command holds the clone lock of an external package (<a href="lifecycle.html#clones">clones</a>). The message names the clone and the holder.</td><td>Try again, or set <code>--lock-wait</code>.</td></tr>
 <tr><td><code>git.fetch-failed</code></td><td>1</td><td><code>git fetch</code> failed.</td><td>Examine the remote and the credentials.</td></tr>
 <tr><td><code>git.mirror-unpushed</code></td><td>warning</td><td><code>clean --git</code> keeps a bare clone with commits that are not on the remote.</td><td>Push the commits.</td></tr>
+<tr><td><code>git.signing</code></td><td>warning in doctor</td><td>git in the set directory does not sign commits with the key of <code>sign.key</code>.</td><td><code>git config commit.gpgsign true</code> and <code>git config user.signingkey FPR</code> (<a href="security.html#set-inputs">Signed set inputs</a>).</td></tr>
 <tr><td><code>git.unreachable</code></td><td>1</td><td><code>git ls-remote</code> of an external package failed.</td><td>Make the project on the git server.</td></tr>
 <tr><td><code>graph.ambiguous-provider</code></td><td>warning</td><td>Two set packages provide one capability.</td><td>Make the Provides unique.</td></tr>
 <tr><td><code>graph.cycle</code></td><td>1</td><td>The BuildRequires make a cycle. The message names it.</td><td>Break the cycle in one spec.</td></tr>
@@ -358,7 +359,9 @@
 <tr><td><code>sign.not-deployed</code></td><td>12</td><td>Gate 2: <code>keys/deployed.yaml</code> has no record of the key for a selected target.</td><td><code>repoctl sign onboard ID</code> (<code>sign-deployed</code>)</td></tr>
 <tr><td><code>sign.removed-signer</code></td><td>12</td><td>A kept RPM has the signature of a removed key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
 <tr><td><code>sign.retiring</code></td><td>warning in doctor</td><td>RPMs in latest have the signature of a retiring key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
+<tr><td><code>sign.self-confirm</code></td><td>12</td><td><code>sign deployed</code>: the key of <code>sign.key</code> is the key of the record, and another key is active.</td><td>An admin with another active key confirms the deployment.</td></tr>
 <tr><td><code>sign.trust-change</code></td><td>6</td><td>The publish changes the trust set. The human must type the key id.</td><td>Use a terminal or the UI (<code>trust-change</code>).</td></tr>
+<tr><td><code>sign.trust-unverified</code></td><td>12</td><td>A commit since the set commit of the base changes a set input and has no valid signature of an allowed key, or a new deployment record names another key than the signer of its commit. The message names the commit.</td><td>Review the commit, then sign a review commit (<a href="security.html#review">Review commit</a>).</td></tr>
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files. In <code>repo pull</code>, when the set checkout does not hold the set commit of the snapshot: <code>git pull origin builder/SET</code>, then pull again.</td></tr>
 <tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
 <tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>

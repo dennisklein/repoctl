@@ -311,6 +311,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <tr><td>The set commit and each pinned package commit are on their remote branch (<code>git fetch</code>, then <code>merge-base --is-ancestor</code>).</td><td><code>lock.unpushed</code></td><td>5</td></tr>
 <tr><td><code>repoctl.lock</code> has no line for a package that <code>repoctl.yaml</code> does not have (<a href="lifecycle.html#lock-states">lock states</a>).</td><td><code>lock.orphaned</code></td><td>5</td></tr>
 <tr><td>Each package of a selected target has a lock line. An unpinned package has the plan action skip, so this check stops a publish without it.</td><td><code>lock.missing-package</code></td><td>5</td></tr>
+<tr><td>Each commit since the set commit of the base that changes a set input has a valid signature of an allowed key, and each new deployment record names the signer of its commit (<a href="security.html#set-inputs">security.html#set-inputs</a>).</td><td><code>sign.trust-unverified</code></td><td>12</td></tr>
 <tr><td>The local copy equals latest (<a href="#freshness">freshness check</a>).</td><td><code>state.behind</code>, <code>state.unpushed</code></td><td>13</td></tr>
 <tr><td>Each node of each selected target is current or staged for the current lock (<a href="#takes">what a publish takes</a>).</td><td><code>publish.not-ready</code></td><td>12</td></tr>
 <tr><td>No node gives a published or removed NVR again with new content.</td><td><code>nvr.reused</code>, <code>nvr.removed</code></td><td>12</td></tr>

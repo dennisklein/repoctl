@@ -20,8 +20,8 @@
 <thead><tr><th>#</th><th>Asset</th><th>Where</th><th>What an attacker gets</th><th>Guard</th></tr></thead>
 <tbody>
 <tr><td>A1</td><td>Signing keys</td><td>The private key of each admin, on a YubiKey or in a gpg keyring of the admin host.</td><td>A signature that all clients trust.</td><td>The card does not give out the key. PIN and touch. Gate 1 (<a href="signing.html#gates">signing.html#gates</a>). Offboarding (<a href="signing.html#offboarding">signing.html#offboarding</a>).</td></tr>
-<tr><td>A2</td><td>Trust records</td><td><code>sign.keys</code> in <code>repoctl.yaml</code>, <code>keys/ID.asc</code> and <code>keys/deployed.yaml</code> on <code>builder/&lt;set&gt;</code>.</td><td>A new trusted key, or a key that signs before the clients have it.</td><td>The trust block, gate 2 and the mirror job (<a href="signing.html#trust-block">signing.html#trust-block</a>).</td></tr>
-<tr><td>A3</td><td>Set inputs</td><td><code>repoctl.yaml</code>, <code>repoctl.lock</code>, the macros files, the in-tree packages and <code>keys/</code> on <code>builder/&lt;set&gt;</code>.</td><td>A change of what the next publish builds, for example a pin to a bad package commit.</td><td>The publish summary (<a href="publish.html#summary">publish.html#summary</a>).</td></tr>
+<tr><td>A2</td><td>Trust records</td><td><code>sign.keys</code> in <code>repoctl.yaml</code>, <code>keys/ID.asc</code> and <code>keys/deployed.yaml</code> on <code>builder/&lt;set&gt;</code>.</td><td>A new trusted key, or a key that signs before the clients have it.</td><td>Signed set inputs (<a href="#set-inputs">signed set inputs</a>). The trust block, gate 2 and the mirror job (<a href="signing.html#trust-block">signing.html#trust-block</a>).</td></tr>
+<tr><td>A3</td><td>Set inputs</td><td><code>repoctl.yaml</code>, <code>repoctl.lock</code>, the macros files, the in-tree packages and <code>keys/</code> on <code>builder/&lt;set&gt;</code>.</td><td>A change of what the next publish builds, for example a pin to a bad package commit.</td><td>Signed set inputs. The publish summary (<a href="publish.html#summary">publish.html#summary</a>).</td></tr>
 <tr><td>A4</td><td>Package sources</td><td>The package branches and the source archives of upstream.</td><td>Bad code in a build.</td><td>The lock pins each package commit. A human reviews each version bump. The provenance records the digest of each source and buildroot RPM (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>).</td></tr>
 <tr><td>A5</td><td>Snapshots</td><td>GHCR: the snapshot artifacts and the tag <code>latest</code>.</td><td>A change of what the mirror job pulls.</td><td>Each RPM and each <code>repomd.xml.asc</code> is signed. The mirror job verifies them (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
 <tr><td>A6</td><td>Served tree</td><td>The HTTP server.</td><td>A change of what the clients download.</td><td>dnf checks <code>repomd.xml.asc</code> and rpm checks each RPM (<a href="signing.html#chain">signing.html#chain</a>).</td></tr>
@@ -84,7 +84,7 @@
 <rect class="box-accent" x="252" y="182" width="268" height="80" rx="8"/>
 <text class="t-title t-on" x="268" y="208">repoctl</text>
 <text class="t-small t-on" x="268" y="228">build, sign, publish</text>
-<text class="t-small t-on" x="268" y="246">gates, trust block</text>
+<text class="t-small t-on" x="268" y="246">gates, signed set inputs</text>
 <rect class="box-warn" x="252" y="322" width="268" height="72" rx="8"/>
 <text class="t-title" x="268" y="346">Agent session</text>
 <text class="t-small" x="268" y="366">skills, read MCP tools</text>
@@ -154,7 +154,7 @@
 <table class="compact">
 <thead><tr><th>#</th><th>Crossing</th><th>Check at the crossing</th></tr></thead>
 <tbody>
-<tr><td>B1</td><td>Admin host and GitHub: set commits and package commits, push and fetch.</td><td>Publish checks that the set inputs are committed and pushed (<a href="publish.html#checks">publish.html#checks</a>). The lock pins each package commit.</td></tr>
+<tr><td>B1</td><td>Admin host and GitHub: set commits and package commits, push and fetch.</td><td>Publish refuses a change of a set input without a valid signature of an allowed key (<a href="#set-inputs">signed set inputs</a>). The lock pins each package commit.</td></tr>
 <tr><td>B2</td><td>Upstream to the admin host: source archives and buildroot RPMs.</td><td>mock checks the signatures of the Rocky and EPEL RPMs. The provenance records each digest. A human reviews each version bump.</td></tr>
 <tr><td>B3</td><td>Admin host to GHCR: the push of a snapshot and the tag.</td><td>The GHCR token. GHCR is storage only: nothing in it is trusted without its OpenPGP signature.</td></tr>
 <tr><td>B4</td><td>GHCR to the HTTP server: the pull of the mirror job.</td><td>The mirror job verifies each <code>repomd.xml.asc</code> and each RPM with the key file that config management installed (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
@@ -163,5 +163,29 @@
 <tr><td>B7</td><td>Agent session to the admin host: tool calls.</td><td>The tool list of the skill, the MCP server without shared-state tools and the deny list (<a href="agents.html#deny">agents.html#deny</a>).</td></tr>
 </tbody>
 </table>
+
+<h2 id="set-inputs">Signed set inputs</h2>
+<p>A set input is a file of the builder branch that decides what a publish builds or which keys the clients trust: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, each <code>targets[].macros</code> file, each in-tree package path and <code>keys/</code>. Each human with push access to the set repository can change them. git does not authenticate the author of a commit. Thus publish checks the OpenPGP signature of each change.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: signed set inputs</p>
+<p>Each commit that changes a set input must have a valid signature of an allowed key. Publish checks this in step 1, before the first signature. A commit that fails stops the publish with <code>sign.trust-unverified</code> (exit 12).</p>
+</aside>
+<ul>
+  <li><b>The commits.</b> For each selected target, publish reads the set commit of the base, the annotation <code>io.repoctl.set-commit</code> (<a href="publish.html#format">publish.html#format</a>). It checks each commit that <code>git log BASE..SET -- INPUTS</code> lists. SET is the set commit of the publish. INPUTS are the set inputs of SET. When a target has no base, or the set commit of the base is not an ancestor of SET, the range is all of SET.</li>
+  <li><b>The allowed keys.</b> A key that is active in <code>sign.keys</code> of the first parent of the commit. Two more cases allow one of the keys that the commit adds: a commit that only adds keys (new entries in state active, their <code>keys/ID.asc</code> and the files of <code>release write</code>), and a commit whose first parent has no <code>sign.keys</code>. Thus a new admin signs the commit "Trust key ID FPR" with the new key.</li>
+  <li><b>The check.</b> repoctl runs <code>git verify-commit --raw</code> with a temporary GnuPG home. The home holds the <code>keys/ID.asc</code> files of the first parent, plus the added keys of the commit. The line <code>VALIDSIG</code> gives the full fingerprint, and repoctl compares it with <code>sign.keys</code>.</li>
+  <li><b>The deployment records.</b> In each checked commit, each new entry of <code>keys/deployed.yaml</code> has <code>confirmedBy</code> equal to the key id of the signer of that commit. <code>confirmedBy</code> is not the key of the entry, unless no other key was active in the first parent. Else the result is also <code>sign.trust-unverified</code>.</li>
+</ul>
+<p>repoctl signs each set commit that it makes with the key of <code>sign.key</code> (<code>git commit -S&lt;FPR&gt;</code>). The sign commands <code>sign add</code>, <code>sign retire</code>, <code>sign remove</code> and <code>sign deployed</code> do not commit without the secret key of <code>sign.key</code> (<code>sign.no-key</code>, exit 9). A human who commits a set input with git must sign the commit too. The doctor check <code>git.signing</code> warns when git in the set directory does not sign commits with the key of <code>sign.key</code> (<code>commit.gpgsign</code> and <code>user.signingkey</code>).</p>
+<p>In the story, A. Admin signs the commit 7e21d0a "Trust key a.admin C2F9…52A7" with the new key a.admin. d.klein signs the deployment record of a.admin. d.klein also confirmed his own records in September: hpc-repo was retiring, so no other key was active.</p>
+
+<h3 id="review">Review commit</h3>
+<p>A commit that fails the rule stays in the history of the builder branch. Each publish stops at it until an admin reviews it. The admin reads the change with <code>git show</code>. If the change is wrong, the admin reverts it with a signed commit. In both cases, the admin then makes a review commit: an empty commit with a valid signature of an allowed key and one trailer <code>Trust-Reviewed: SHA</code> for each commit that it covers. Publish does not stop at a failed commit when a review commit in the range covers its full sha. The hint of <code>sign.trust-unverified</code> gives the command. A variant, not the story: a lock commit from a host without a key.</p>
+<pre class="term">$ repoctl publish --target el9 --dry-run
+repoctl: error: set commit 3c5d9e1 changes repoctl.lock and has no valid signature of an allowed key
+hint: review the change. run: git show 3c5d9e1
+hint: then sign a review commit. run: git commit --allow-empty -S4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E -m "Review set inputs of 3c5d9e1" --trailer "Trust-Reviewed: 3c5d9e1f…"
+$ echo $?
+12</pre>
 </body>
 </html>
