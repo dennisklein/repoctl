@@ -498,6 +498,8 @@
   <li>Text from mock goes through <code>progress.Sanitize</code>. At 32 MiB, repoctl stops the <code>node.log</code> lines of the run and writes the warning <code>journal.sampling-stopped</code>. State lines continue.</li>
   <li>A killed process leaves a journal without <code>run.finished</code>. When nobody holds the lock of the run (the set lock, or the check lock for a check run), a reader shows the run as abandoned (<a href="build.html#cancel">Cancel and abandoned runs</a>).</li>
   <li>Retention deletes the journal, the progress log and the node logs of a run. It runs at the start of a build, at the start of a publish, at the start of a check and in <code>repoctl clean --logs</code>. The table gives the one rule. The shared audit record is the publish history, not the journal (<a href="publish.html#format">publish.html#format</a>). <code>activity.jsonl</code> rotates at 8 MiB.</li>
+  <li>Check runs do not count toward <code>state.keep_runs</code>. At the start of each check, repoctl deletes the files of the check runs beyond <code>state.keep_checks</code> (user config, default 30). Thus a daily timer keeps 30 days of checks and never pushes out the build history.</li>
+  <li>The publish history keeps each acceptance (<code>advisory.accepted</code>) after <code>repo gc</code> deletes the snapshot and its annotation, and after retention deletes the journal of the publish run (<a href="publish.html#format">publish.html#format</a>).</li>
 </ul>
 <table class="compact" id="retention">
 <thead><tr><th>Runs</th><th>Retention</th></tr></thead>
@@ -507,7 +509,7 @@
 <tr><td>Publish runs (<code>p-…</code>)</td><td>The newest <code>state.keep_publishes</code> (user config, default 100) are kept, and each publish with a kept tree. They do not count toward <code>state.keep_runs</code>.</td></tr>
 <tr><td>Runs of another host</td><td>Always kept (<a href="#readers">readers</a>).</td></tr>
 <tr><td>Other finished build runs, also abandoned ones</td><td>The newest <code>state.keep_runs</code> (user config, default 50) are kept. Only these runs count toward <code>state.keep_runs</code>.</td></tr>
-<tr><td>Check runs (<code>kind: check</code>)</td><td>The newest 14 are kept. They do not count toward <code>state.keep_runs</code>.</td></tr>
+<tr><td>Check runs (<code>kind: check</code>)</td><td>The newest <code>state.keep_checks</code> (user config, default 30) are kept. They do not count toward <code>state.keep_runs</code>.</td></tr>
 </tbody>
 </table>
 <p>Retention never deletes a staging. <code>repoctl clean --staging</code> does that (<a href="cli.html#cmd-clean">repoctl clean</a>).</p>

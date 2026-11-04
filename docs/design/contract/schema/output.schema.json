@@ -4765,9 +4765,34 @@
         "accepted": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "required": [
+              "id",
+              "factsDigest",
+              "reason",
+              "user",
+              "host"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "factsDigest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 8
+              },
+              "user": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string"
+              }
+            }
           },
-          "description": "Advisory ids that the human accepted for this publish."
+          "description": "The acceptances of this publish, from io.repoctl.advisories.accepted: the same fields as the journal event advisory.accepted."
         },
         "acceptances": {
           "type": "array",
