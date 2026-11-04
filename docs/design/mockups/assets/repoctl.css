@@ -23,6 +23,8 @@
   --s-skip:#7c6f63;     --s-skip-bg:transparent;
   --shadow-1:0 1px 2px rgba(35,29,24,.06),0 1px 1px rgba(35,29,24,.04);
   --shadow-2:0 6px 24px rgba(35,29,24,.12);
+  /* glossary domains (icon colour in the sidebar, hover card of a term) */
+  --d-build:#1d6b6b; --d-publish:#8f4314; --d-trust:#7a4f6d; --d-adv:#8a5d00; --d-agents:#4f5f80; --d-contract:#6e645a;
   color-scheme:light;
 }
 /* log and terminal surfaces are dark in both themes */
@@ -54,6 +56,7 @@
     --s-canceled:#9b9086; --s-canceled-bg:#2a241f;
     --s-skip:#8c8075;
     --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.5);
+    --d-build:#6cc7c0; --d-publish:#f0a36d; --d-trust:#d6a0c6; --d-adv:#e6b84a; --d-agents:#a3b3d6; --d-contract:#a39a90;
     color-scheme:dark;
   }
 }
@@ -73,6 +76,7 @@
   --s-canceled:#9b9086; --s-canceled-bg:#2a241f;
   --s-skip:#8c8075;
   --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.5);
+  --d-build:#6cc7c0; --d-publish:#f0a36d; --d-trust:#d6a0c6; --d-adv:#e6b84a; --d-agents:#a3b3d6; --d-contract:#a39a90;
   color-scheme:dark;
 }
 /* an element with data-theme (not the root) is a theme sample, for example on the component sheet */
@@ -511,6 +515,14 @@ html:has(.scrim),html:has(dialog:modal){overflow:hidden}
 
 /* the advisories card on a page without an agent: the deterministic hint stays */
 .agent-hint{font-size:12.5px;color:var(--c-text-3)}
+
+/* ---------- glossary domains: data-domain="KEY" gives --gl-c ---------- */
+[data-domain="build"]{--gl-c:var(--d-build)}
+[data-domain="publish"]{--gl-c:var(--d-publish)}
+[data-domain="trust"]{--gl-c:var(--d-trust)}
+[data-domain="adv"]{--gl-c:var(--d-adv)}
+[data-domain="agents"]{--gl-c:var(--d-agents)}
+[data-domain="contract"]{--gl-c:var(--d-contract)}
 
 /* ---------- motion and forced colours ---------- */
 @media (prefers-reduced-motion:reduce){
