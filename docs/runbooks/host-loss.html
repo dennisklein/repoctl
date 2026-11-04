@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lost admin host</title>
+<meta name="description" content="Runbook for a human: stop the access of a lost or stolen admin host, find the commits and keys that it held, and set up a new host.">
+</head>
+<body>
+<h1>Lost admin host</h1>
+<p class="lede">This runbook is for an admin host that is lost, stolen or broken. No file on an admin host says what is published, so the registry and git keep the team state. The host can hold commits that are not pushed, a key and a registry token. The rules are in <a href="../design/model.html#records">Core model: records</a>.</p>
+<ul class="keypoints">
+  <li>Stolen, or an attacker controls it: stop its access first. A key on the host is compromised.</li>
+  <li>Broken: a file key that has no other copy is lost.</li>
+  <li>The commits that are not pushed are lost. Make them again on another host.</li>
+  <li>The runs, the staged nodes and the journals of the host are lost. Nothing depends on them.</li>
+</ul>
+<aside class="callout rule" id="rules">
+<p class="callout-title">Rules</p>
+<ul>
+<li>A human does each step. An agent can run <code>repoctl status</code>, <code>repoctl doctor</code>, <code>repoctl repo snapshots</code> and <code>git log</code> on another host, and it can show the commands. It does not sign, push or revoke (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>When you are not sure if another human has the host, treat it as stolen.</li>
+<li>When a check in this runbook fails, stop and tell the team.</li>
+</ul>
+</aside>
+<p>The examples use a variant of the story (not the story): on 2026-11-12, the disk of <code>hpc-a2</code> breaks. A. Admin has the YubiKey with the key <code>a.admin</code>. The host had a commit of <code>repoctl.lock</code> after <code>repoctl pin ucx</code> that was not pushed.</p>
+
+<h2 id="trigger">Trigger</h2>
+<ul>
+<li>The disk or the host of an admin is broken, and the host cannot start.</li>
+<li>An admin host is lost or stolen.</li>
+<li>An attacker may control an admin host.</li>
+<li>A host was installed again without the steps "<span class="no-gl">Retire</span> a host" of <a href="../design/signing.html#help-team">help team</a>.</li>
+</ul>
+
+<h2 id="decide">Decide the path</h2>
+<table class="compact">
+<thead><tr><th>Finding</th><th>Path</th></tr></thead>
+<tbody>
+<tr><td>Another human can have the host, and it held a file key or a card</td><td><a href="#access">Stop the access</a>, then the runbook <a href="key-compromise.html#compromise">Key compromise</a> for each key</td></tr>
+<tr><td>Another human can have the host, and it held no key</td><td><a href="#access">Stop the access</a></td></tr>
+<tr><td>The host is broken, and it held the only copy of a file key</td><td>The runbook <a href="key-compromise.html#lost">Lost key</a> for that key</td></tr>
+<tr><td>The host is broken, and the key is on a card that the human still has</td><td>No key change</td></tr>
+</tbody>
+</table>
+<p>Then do <a href="#commits">Find the lost commits</a>, <a href="#publish">Check the publishes</a> and <a href="#new-host">Set up a new host</a>.</p>
+
+<h2 id="access">Stop the access</h2>
+<ol class="steps">
+<li>Delete the registry token of the host. It is the personal access token with <code>write:packages</code> of the admin (<a href="../design/publish.html#registry">registry access</a>).</li>
+<li>Delete the git credentials of the host: its SSH key or its token in the GitHub account of the admin.</li>
+<li>When the human leaves the team too, an organization owner removes the human from the GitHub team.</li>
+</ol>
+
+<h2 id="commits">Find the lost commits</h2>
+<p>A publish needs a pushed set commit and pushed package commits (<a href="../design/publish.html#checks">checks</a>). Thus latest never depends on a lost commit. A lost commit is only work that the team must make again.</p>
+<ol class="steps">
+<li>On another admin host, run <code>git fetch origin</code> and <code>git log origin/builder/SET</code>. Ask the human of the lost host which commits were not pushed.</li>
+<li>Make each lost commit again, and push it at once:
+<table>
+<thead><tr><th>Lost commit</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td><code>repoctl sign add</code></td><td>Run <code>repoctl sign add ID --fingerprint FPR</code> again. The public key of a new key was in the gpg keyring of the lost host. When nobody has a copy, make a new key (<a href="../design/signing.html#help-key">help key</a>).</td></tr>
+<tr><td><code>repoctl sign deployed</code></td><td>Run it again with the same <code>--release</code> or <code>--keyfile</code> value.</td></tr>
+<tr><td><code>repoctl.lock</code> after <code>repoctl pin</code></td><td>Run <code>repoctl checkout</code>, then <code>repoctl pin DIR</code>, and commit. When the package commit is also lost, make it again first.</td></tr>
+<tr><td><code>.repoctl/advisories.yaml</code> after a dismiss</td><td>Run <code>repoctl advisories dismiss</code> again.</td></tr>
+<tr><td>A commit of an external package in a bare clone</td><td>Make the commit again in the external repository, then pin it.</td></tr>
+</tbody>
+</table></li>
+<li>In the example, A. Admin runs <code>repoctl pin ucx</code> on <code>hpc-a1</code>, commits <code>repoctl.lock</code> and pushes the set commit.</li>
+</ol>
+
+<h2 id="publish">Check the publishes</h2>
+<ol class="steps">
+<li>On another admin host, run <code>repoctl repo snapshots --all</code>. Find each publish of the lost host. The annotations give the user and the host.</li>
+<li>A publish that did not reach the registry is lost with the host. Publish it again from another host: run <code>repoctl plan</code>, <code>repoctl build</code> and <code>repoctl publish</code>.</li>
+<li>A publish of the lost host after the time of the loss is not known. Stop, and use the runbook <a href="key-compromise.html#compromise">Key compromise</a> for its signer.</li>
+</ol>
+
+<h2 id="new-host">Set up a new host</h2>
+<ol class="steps">
+<li>Do the steps "Add a second admin host" of <a href="../design/signing.html#help-team">help team</a>: install repoctl, clone the set repository, then <code>repoctl doctor</code>, <code>repoctl checkout</code>, <code>repoctl repo pull</code>, <code>repoctl mock update</code>, <code>repoctl check --install-timer</code> and <code>repoctl status</code>.</li>
+<li>Set <code>sign.key</code> in the user config, and log in to the registry with a new token.</li>
+<li>Run <code>repoctl doctor</code>. Each check passes, or warns only for a step of this runbook that is still open.</li>
+</ol>
+<p>The check timers of the other admin hosts still run (<a href="../design/advisories.html#timer">check timer</a>). Thus the team gets the advisories also before the new host is ready.</p>
+
+<h2 id="stop">Stop conditions</h2>
+<table>
+<thead><tr><th>Step</th><th>Stop when</th></tr></thead>
+<tbody>
+<tr><td><a href="#access">Stop the access</a></td><td>Nobody can delete the registry token or the git credentials of the host. Tell an organization owner.</td></tr>
+<tr><td><a href="#commits">Find</a> item 2</td><td>A lost commit cannot be made again, for example a commit of an external package that has no copy. Tell the team.</td></tr>
+<tr><td><a href="#publish">Check</a> item 3</td><td>A publish of the lost host is not known.</td></tr>
+</tbody>
+</table>
+
+<h2 id="done">Done when</h2>
+<ul>
+<li>The registry token and the git credentials of the lost host are deleted.</li>
+<li>Each key of the lost host is revoked, retired or safe on its card.</li>
+<li>Each lost commit is pushed again. <code>repoctl doctor --only set</code> on the new host shows no <code>git.unpushed</code>.</li>
+<li><code>repoctl status</code> on the new host shows <code>local: same</code> for each target.</li>
+<li><code>repoctl doctor</code> on the new host shows no <code>check.never</code> and no <code>check.timer-off</code>.</li>
+</ul>
+</body>
+</html>

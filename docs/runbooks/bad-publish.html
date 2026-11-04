@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A bad publish reached the clients</title>
+<meta name="description" content="Runbook for a human: find the bad snapshot, fix forward with a newer NVR, or restore an older snapshot when the repository itself is broken.">
+</head>
+<body>
+<h1>A bad publish reached the clients</h1>
+<p class="lede">This runbook is for a publish that the mirror job served, and that breaks the clients or must not stay. The normal way back is to fix forward: a new build with a higher release. <code>repoctl repo restore</code> is for a broken repository. The rules are in <a href="../design/publish.html#restore">Publish: restore and fix forward</a>.</p>
+<ul class="keypoints">
+  <li>A bad build: fix forward. Clients update to the fix.</li>
+  <li>A broken repository (bad repodata, a wrong file): restore. latest moves forward to a new snapshot with the older files.</li>
+  <li>dnf does not downgrade. A client that installed the bad NVR keeps it until a newer NVR or config management replaces it.</li>
+  <li>Publish has no rollback flag.</li>
+</ul>
+<aside class="callout rule" id="rules">
+<p class="callout-title">Rules</p>
+<ul>
+<li>A human publishes and restores. An agent can run <code>repoctl repo diff</code>, <code>repoctl repo verify</code> and the skill triage-build, and it can fix a spec on a package branch. It does not publish (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>Do not delete a snapshot with <code>repoctl repo gc</code> to undo a publish.</li>
+<li>When a check in this runbook fails, stop and tell the team.</li>
+</ul>
+</aside>
+<p>The examples use a variant of the story (not the story): the publish <code>p-20261103-1412-5e1</code> of el9 has ucx-1.22.1-1.el9, and slurm jobs with UCX fail on the clients.</p>
+
+<h2 id="trigger">Trigger</h2>
+<ul>
+<li>Clients fail after a <code>dnf upgrade</code> from the repository of the set, and the failure comes from a package of the last publish.</li>
+<li><code>dnf makecache</code> fails on all clients of a target, for example with a repodata or signature error.</li>
+<li>A file in the served tree must not be there, for example an RPM of the wrong target.</li>
+</ul>
+
+<h2 id="assess">Find the bad snapshot</h2>
+<ol class="steps">
+<li>Run <code>repoctl status</code>. Note latest and the served snapshot of each target.</li>
+<li>Run <code>repoctl repo snapshots --target el9</code>. Find the last good snapshot, for example <code>p-20260912-1403-c21</code>.</li>
+<li>Run <code>repoctl repo diff --from p-20260912-1403-c21 --to p-20261103-1412-5e1 --target el9</code>. It lists the source packages that the bad publish changed.</li>
+<li>Run <code>repoctl repo verify --served --el --target el9</code>. Exit 10 means a broken repository.</li>
+<li>Decide the path:
+<table>
+<thead><tr><th>Finding</th><th>Path</th></tr></thead>
+<tbody>
+<tr><td><code>repo verify</code> passes. One or more builds are bad.</td><td><a href="#fix-forward">Fix forward</a></td></tr>
+<tr><td><code>repo verify</code> fails, or a file must leave the repository now.</td><td><a href="#restore">Restore</a>, then fix forward</td></tr>
+</tbody>
+</table></li>
+</ol>
+
+<h2 id="fix-forward">Fix forward</h2>
+<ol class="steps">
+<li>Fix the package on its branch: revert the bad commit, or fix the spec. Commit and push the package branch. The NVR of the fix must be higher than the bad NVR, because dnf does not downgrade. rpmautospec raises the release for each commit.</li>
+<li>Run <code>repoctl pin DIR</code>, commit <code>repoctl.lock</code> and push the set commit.</li>
+<li>Run <code>repoctl plan</code>, then <code>repoctl build</code>. Test the staged node.</li>
+<li>Run <code>repoctl publish --target el9</code> and confirm.</li>
+<li>When the clients must not wait for the next <code>dnf upgrade</code>, config management updates the package on the clients.</li>
+</ol>
+
+<h2 id="restore">Restore</h2>
+<ol class="steps">
+<li>Run <code>repoctl repo restore p-20260912-1403-c21 --dry-run</code>. Read the summary: it lists each NVR that leaves the repository.</li>
+<li>Run <code>repoctl repo restore p-20260912-1403-c21</code> and type the set name. latest moves to a new snapshot with the files of the older snapshot. The NVRs that leave go into <code>removed[]</code>.</li>
+<li>Run <code>repoctl status</code> until it shows <code>served: same</code>.</li>
+<li>A client that installed a removed NVR keeps it. When it must go, config management runs <code>dnf downgrade NAME</code> on the clients, or the fix forward gives a newer NVR.</li>
+<li>Fix forward (<a href="#fix-forward">above</a>). Publish refuses a build that gives a removed NVR again with other content (<code>nvr.removed</code>). Use <code>repoctl rebuild DIR --reason TEXT</code> for a new release.</li>
+</ol>
+
+<h2 id="stop">Stop conditions</h2>
+<table>
+<thead><tr><th>Step</th><th>Stop when</th></tr></thead>
+<tbody>
+<tr><td><a href="#assess">Find</a> item 2</td><td>No snapshot in the chain is good.</td></tr>
+<tr><td><a href="#assess">Find</a> item 4</td><td>The local copy passes, but the served tree fails. The mirror job or the HTTP server is the cause: use the runbook <a href="mirror-job.html">Failed mirror job</a>.</td></tr>
+<tr><td><a href="#restore">Restore</a> item 2</td><td>Restore stops with a gate (exit 12) or a verify error (exit 10).</td></tr>
+<tr><td>any</td><td>The bad publish holds a secret. Restore takes it out of latest, but older snapshots in the registry still hold it. Tell the team; this runbook does not delete registry history.</td></tr>
+</tbody>
+</table>
+
+<h2 id="done">Done when</h2>
+<ul>
+<li>latest of each target has the fix, or the restored files and then the fix.</li>
+<li><code>repoctl status</code> shows <code>served: same</code>, and <code>repoctl repo verify --served --el</code> exits with 0.</li>
+<li>The clients that had the bad NVR have the fix or the older NVR.</li>
+</ul>
+</body>
+</html>

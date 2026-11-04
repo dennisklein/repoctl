@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Registry outage or loss</title>
+<meta name="description" content="Runbook for a human: wait for the end of a GHCR outage without a break-glass path, or re-seed a lost OCI package from a copy of its last latest.">
+</head>
+<body>
+<h1>Registry outage or loss</h1>
+<p class="lede">This runbook is for a registry that does not answer, and for an OCI package or a GitHub organization that is lost. An outage has no break-glass path: the team waits. A lost OCI package gets its last latest back with <code>repoctl repo push --reseed</code>. The rules are in <a href="../design/publish.html#disaster">Publish: registry outage and loss</a>.</p>
+<ul class="keypoints">
+  <li>Outage: the mirror job keeps the served tree, and the clients keep working. Publish waits.</li>
+  <li>Loss: re-seed each target from the newest copy of latest. The files and signatures stay as they were, so the clients see no change.</li>
+  <li>The chain before latest is lost. The team agrees to this loss.</li>
+</ul>
+<aside class="callout rule" id="rules">
+<p class="callout-title">Rules</p>
+<ul>
+<li>A human does each step. An agent can run <code>repoctl status</code> and <code>repoctl repo snapshots</code>, and compare the copies. It does not push (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>Do not copy files to the HTTP server by hand. Only the mirror job writes the served tree.</li>
+<li>When a check in this runbook fails, stop and tell the team.</li>
+</ul>
+</aside>
+
+<h2 id="trigger">Trigger</h2>
+<ul>
+<li>Publish, repo pull or status gives <code>registry.unreachable</code> (exit 13), and the journal of the mirror job has pull errors.</li>
+<li>Publish stops with <code>snapshot.missing</code> (exit 13), or <code>repoctl repo snapshots --target ID</code> lists nothing for a target that was published.</li>
+<li>The GitHub organization or the OCI package is deleted, or GitHub suspends it.</li>
+</ul>
+
+<h2 id="outage">Outage</h2>
+<ol class="steps">
+<li>Confirm the outage: the GitHub status page shows an incident of <span class="no-gl">GitHub Packages</span>, or <code>repoctl doctor --only registry</code> fails on two hosts.</li>
+<li>Tell the team in the team channel. Nobody publishes.</li>
+<li>Build and stage the urgent fix with <code>repoctl build</code>. Plan and build use the local copy.</li>
+<li>When GHCR answers, run <code>repoctl repo pull</code>, then <code>repoctl publish</code>.</li>
+</ol>
+<p><code>repoctl status</code> shows <code>registry: unknown</code> during the outage. The clients keep the served tree.</p>
+
+<h2 id="loss">Loss of an OCI package or the organization</h2>
+<ol class="steps">
+<li>Confirm the loss: <code>repoctl repo snapshots --target ID</code> lists nothing, and publish stops with <code>snapshot.missing</code>. Tell the team to stop all publishes.</li>
+<li>When the namespace is gone, an organization owner makes the organization again, or the team chooses a new namespace. For a new namespace, change <code>store.oci</code> in a set commit, push it, and change the OCI package lines in <code>/etc/repoctl-mirror.conf</code>.</li>
+<li>Find the newest copy of latest of each target. Each admin runs <code>jq .publish ~/.local/share/repoctl/SET/repo/TARGET/snapshot.json</code>. On the HTTP server, read <code>repoctl-snapshot.json</code> in the served tree. Take the copy with the newest publish id. The served tree can be behind.</li>
+<li>Continue with <a href="#reseed">Re-seed</a>.</li>
+</ol>
+
+<h2 id="reseed">Re-seed</h2>
+<ol class="steps">
+<li>On the host with the newest copy, run <code>repoctl repo push --reseed --target ID --dry-run</code>. With a copy of the served tree, add <code>--from DIR</code>. Read the summary: the publish id of the copy, the RPM count and the signers.</li>
+<li>Run <code>repoctl repo push --reseed --target ID</code> and type the set name. repoctl verifies the copy, runs verify-el and pushes <code>p-reseed-YYYYMMDD</code>. It signs nothing.</li>
+<li>An organization owner sets the new OCI package to public and turns on the inherited access. <code>repoctl doctor --only registry</code> shows <code>registry.public</code> until then.</li>
+<li>Do the steps for each other target of the set.</li>
+<li>Run <code>repoctl status</code> until it shows <code>served: same</code>. The other admins run <code>repoctl repo pull</code>.</li>
+</ol>
+
+<h2 id="stop">Stop conditions</h2>
+<table>
+<thead><tr><th>Step</th><th>Stop when</th></tr></thead>
+<tbody>
+<tr><td><a href="#loss">Loss</a> item 3</td><td>The copies disagree, and nobody knows which publish was the last latest. Ask each admin for the last publish in the team channel.</td></tr>
+<tr><td><a href="#reseed">Re-seed</a> item 2</td><td>The re-seed stops with <code>verify.failed</code> or <code>verify.el-failed</code> (exit 10). The copy is not a good tree: use the next newest copy.</td></tr>
+<tr><td><a href="#reseed">Re-seed</a> item 2</td><td>The re-seed stops with <code>snapshot.exists</code>. Somebody pushed already: run <code>repoctl repo pull</code> and compare.</td></tr>
+<tr><td><a href="#reseed">Re-seed</a> item 5</td><td>The mirror job does not serve the new latest. Use the runbook <a href="mirror-job.html">Failed mirror job</a>.</td></tr>
+</tbody>
+</table>
+
+<h2 id="done">Done when</h2>
+<ul>
+<li><code>repoctl repo snapshots</code> shows a latest for each target.</li>
+<li><code>repoctl status</code> shows <code>local: same</code> and <code>served: same</code> on each admin host.</li>
+<li><code>repoctl doctor --only registry</code> passes.</li>
+<li>The next publish passes the freshness check and gate 2.</li>
+</ul>
+</body>
+</html>

@@ -587,7 +587,7 @@ Type the set name to restore el9 of slurm-26.05: slurm-26.05
 published  el9  p-20261103-1630-b72 (sha256:61ae…)  latest was p-20261103-1412-5e1
 hint: give the 4 packages a new release. run: repoctl rebuild ucx slurm openmpi slurm-singularity-exec --reason "after restore of el9"
 Next: repoctl status</pre>
-<p>Publish has no rollback flag. Restore and fix forward cover both cases. Command: <a href="cli.html#cmd-repo-restore">repo restore</a>.</p>
+<p>Publish has no rollback flag. Restore and fix forward cover both cases. Command: <a href="cli.html#cmd-repo-restore">repo restore</a>. Runbook: <a href="../runbooks/bad-publish.html">A bad publish reached the clients</a>.</p>
 
 <h2 id="gc">gc and retention</h2>
 <p><code>repoctl repo gc</code> deletes old snapshots (package versions) in GHCR with the GitHub REST API. GitHub then frees the blobs that no version uses. The dry run is the default, and <code>--apply</code> acts.</p>
@@ -652,7 +652,7 @@ Next: repoctl status</pre>
   <li>An organization owner sets the new OCI package to public and turns on the inherited access (<code>registry.public</code>).</li>
   <li>The mirror job pulls the new latest. The other admins run <code>repoctl repo pull</code>.</li>
 </ol>
-<p>The re-seed keeps the RPM signatures, <code>repomd.xml</code> and its signature, the RepoManifest and the supply chain records. It signs nothing, so it needs no signer probe and no gates. It verifies the tree as <code>repo pull</code> does and runs verify-el with the client trust set. It pushes the snapshot <code>p-reseed-YYYYMMDD</code> of kind reseed without a parent, and it moves latest to it. Command: <a href="cli.html#cmd-repo-push">repo push</a>.</p>
+<p>The re-seed keeps the RPM signatures, <code>repomd.xml</code> and its signature, the RepoManifest and the supply chain records. It signs nothing, so it needs no signer probe and no gates. It verifies the tree as <code>repo pull</code> does and runs verify-el with the client trust set. It pushes the snapshot <code>p-reseed-YYYYMMDD</code> of kind reseed without a parent, and it moves latest to it. Command: <a href="cli.html#cmd-repo-push">repo push</a>. Runbook: <a href="../runbooks/registry-loss.html">Registry outage or loss</a>.</p>
 
 <h2 id="commands">Commands</h2>
 <p>The command blocks are in the CLI reference. Each shared-state command has a dry run, a summary, a confirmation, a journal and no MCP tool (<a href="cli.html#safety">cli.html#safety</a>).</p>

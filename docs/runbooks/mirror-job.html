@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Failed mirror job</title>
+<meta name="description" content="Runbook for a human: find why the mirror job on the HTTP server does not serve latest, fix the cause and confirm that the clients get the new snapshot.">
+</head>
+<body>
+<h1>Failed mirror job</h1>
+<p class="lede">This runbook is for a mirror job that does not serve latest. The job keeps the old tree when a step fails, so the clients keep working, but they do not get the new snapshot. The rules of the job are in <a href="../design/publish.html#mirror">Publish: mirror job</a>.</p>
+<ul class="keypoints">
+  <li>The job never serves a tree that its keyring does not verify.</li>
+  <li>The journal of the job on the HTTP server names the failed step.</li>
+  <li>Each failure has a cause on the HTTP server, in the registry or in the snapshot.</li>
+</ul>
+<aside class="callout rule" id="rules">
+<p class="callout-title">Rules</p>
+<ul>
+<li>A human with access to the HTTP server does the steps there. repoctl does not run on the HTTP server.</li>
+<li>Do not change <code>KEYRING</code> by hand to make a snapshot pass. Config management installs it from the release package.</li>
+<li>Do not write into the served tree. Only the job writes it.</li>
+</ul>
+</aside>
+<p>The examples use the story: the publish <code>p-20261103-1412-5e1</code> of el9 at 14:13, and the served path <code>/srv/repos/slurm-repo/slurm-26.05/el9</code>.</p>
+
+<h2 id="trigger">Trigger</h2>
+<ul>
+<li><code>repoctl status</code> shows <code>served: behind</code> more than 15 minutes (three runs of the timer) after a publish.</li>
+<li><code>repoctl status</code> shows <code>served: unknown</code>: the file <code>repoctl-snapshot.json</code> is not at the URL.</li>
+<li>The service unit of the job is in state failed on the HTTP server.</li>
+</ul>
+
+<h2 id="find">Find the failed step</h2>
+<ol class="steps">
+<li>On the HTTP server, run <code>systemctl status repoctl-mirror.service</code> and <code>journalctl -u repoctl-mirror.service --since -1h</code>. The last error names the set, the target and the step.</li>
+<li>From an admin host, run <code>repoctl repo verify --snapshot latest --el --target el9</code>. Exit 0 means that the snapshot is good, and the cause is on the HTTP server.</li>
+<li>Find the cause in <a href="#causes">Causes</a>. Fix it.</li>
+<li>Run the job once: <code>systemctl start repoctl-mirror.service</code>. Read the journal again.</li>
+</ol>
+
+<h2 id="causes">Causes</h2>
+<table class="compact">
+<thead><tr><th>Step of the job</th><th>Error</th><th>Cause and fix</th></tr></thead>
+<tbody>
+<tr><td>1 token and manifest</td><td>curl fails, or HTTP 401, 403, 404</td><td>GHCR does not answer (runbook <a href="registry-loss.html">Registry outage or loss</a>), the OCI package is private (an organization owner sets it to public), or the OCI package line in <code>/etc/repoctl-mirror.conf</code> is wrong.</td></tr>
+<tr><td>2 blobs</td><td>a sha256 does not match</td><td>A download broke. The job tries again at its next start. When it fails twice for the same blob, stop.</td></tr>
+<tr><td>3 tree</td><td>no space, or a link fails</td><td>The disk is full. Free space, or set a lower <code>KEEP_TREES</code>. The hard links need one file system for <code>.objects/</code> and <code>.trees/</code>.</td></tr>
+<tr><td>4 verify</td><td><code>gpgv</code> or <code>rpmkeys</code> fails for a key</td><td>The key file on the HTTP server does not hold the signer. Config management did not install the release package with that key, or it removed a revoked key on purpose (<a href="../design/signing.html#compromise">key compromise</a>). Compare <code>sha256sum /etc/pki/rpm-gpg/RPM-GPG-KEY-slurm</code> with <code>repoctl sign keyfile --checksum</code>. Install the release package of the deployment record. Do not change the keyring by hand.</td></tr>
+<tr><td>4 verify</td><td>a record does not have its sha256</td><td>The snapshot has a bad supply chain record (<code>records.mismatch</code>). Stop.</td></tr>
+<tr><td>5, 6 write and swap</td><td>permission denied</td><td>The system user of the job does not own the served path. Fix the owner of the directory.</td></tr>
+</tbody>
+</table>
+<p>A signer that is not in the key file of the HTTP server is the second guard behind gate 2 (<a href="../design/signing.html#gates">gates</a>). When the clients also miss the key, a signature of that key would break them. Thus the fix is a deployment of the key, never a change of the keyring.</p>
+
+<h2 id="stop">Stop conditions</h2>
+<table>
+<thead><tr><th>Step</th><th>Stop when</th></tr></thead>
+<tbody>
+<tr><td><a href="#find">Find</a> item 2</td><td><code>repo verify</code> of latest fails on an admin host. The snapshot is bad: use the runbook <a href="bad-publish.html">A bad publish reached the clients</a>.</td></tr>
+<tr><td><a href="#causes">Causes</a>, step 2</td><td>The sha256 of a blob does not match in two runs.</td></tr>
+<tr><td><a href="#causes">Causes</a>, step 4</td><td>A record does not match, or the key file of the HTTP server equals the committed key file and the verify still fails.</td></tr>
+</tbody>
+</table>
+
+<h2 id="done">Done when</h2>
+<ul>
+<li><code>repoctl-mirror.service</code> exits with 0 at its last start.</li>
+<li><code>repoctl status</code> shows <code>served: same</code> for each target.</li>
+<li><code>repoctl repo verify --served</code> exits with 0.</li>
+</ul>
+</body>
+</html>

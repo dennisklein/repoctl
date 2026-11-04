@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Key compromise or lost key</title>
+<meta name="description" content="Runbook for a human: end the trust in a compromised signing key at once, or replace a lost key, also when it is the last deployed signer.">
+</head>
+<body>
+<h1>Key compromise or lost key</h1>
+<p class="lede">This runbook is for a signing key that another human can use, or that nobody can use any more. A compromised key loses the trust of the clients first, and the re-sign follows. A lost key is a rotation. The rules are in <a href="../design/signing.html#emergency">Signing and trust: emergency</a>.</p>
+<ul class="keypoints">
+  <li>Compromised: <code>repoctl sign revoke</code>, then config management installs the new key file on all hosts at once. The clients refuse the files of the key until the re-sign.</li>
+  <li>Lost: <code>repoctl sign retire</code>, then the normal rotation. The signatures of a lost key stay valid.</li>
+  <li>The last deployed signer is lost: a new key with a key file record (<code>sign deployed --keyfile</code>).</li>
+  <li>Each step is for a human. repoctl prints the commands for config management.</li>
+</ul>
+<aside class="callout rule" id="rules">
+<p class="callout-title">Rules</p>
+<ul>
+<li>A human does each step. An agent can read <code>repoctl sign ls</code>, <code>repoctl status</code> and the snapshots, and it can show the commands. It does not sign, push, revoke or change config management (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>When you are not sure if a key is lost or compromised, treat it as compromised.</li>
+<li>When a check in this runbook fails, stop and tell the team.</li>
+</ul>
+</aside>
+<p>The examples use a variant of the story (not the story): on 2026-11-10, A. Admin loses the YubiKey with the key <code>a.admin</code> on a trip. d.klein has an active, deployed key for el9 and el10.</p>
+
+<h2 id="trigger">Trigger</h2>
+<p>Use this runbook when one of these is true:</p>
+<ul>
+<li>A card with a signing key is lost or stolen, or a human may know its PIN.</li>
+<li>A file key may have a copy, or an attacker may control a host with a key.</li>
+<li><code>repoctl repo snapshots --all</code> lists a publish that nobody in the team made.</li>
+<li>A card is broken, or its PIN, reset code and Admin PIN are blocked. A file key is deleted.</li>
+</ul>
+
+<h2 id="decide">Decide the path</h2>
+<table class="compact">
+<thead><tr><th>Failure</th><th>Path</th></tr></thead>
+<tbody>
+<tr><td>Another human can sign with the key, or maybe can</td><td><a href="#compromise">Compromise</a></td></tr>
+<tr><td>Nobody can sign with the key any more, and another active key is deployed for each target</td><td><a href="#lost">Lost key</a></td></tr>
+<tr><td>Nobody can sign with the key any more, and it is the only deployed key of a target</td><td><a href="#last-signer">Last deployed signer</a></td></tr>
+<tr><td>The PIN is blocked, and the reset code or the Admin PIN works</td><td>No key change: unblock the PIN (<a href="../design/signing.html#card">card and key failures</a>).</td></tr>
+</tbody>
+</table>
+<p>Run <code>repoctl sign ls</code> to see which keys are active and deployed for each target.</p>
+
+<h2 id="compromise">Compromise</h2>
+<ol class="steps">
+<li>Stop the access. When the human leaves, an organization owner removes the human from the GitHub team (<code>slurm-repo-admins</code> in the examples). Delete the registry tokens of each host that held the key.</li>
+<li>Run <code>repoctl sign revoke a.admin</code> and type the key id. Push the set commit: <code>git push origin builder/slurm-26.05</code>.</li>
+<li>Run <code>repoctl sign offboard a.admin</code>. Give its output to the owner of config management. Config management installs the new key file with the pinned sum, erases the key and deletes the dnf repository keyring: first on the HTTP server, then on each client. Do not wait for a release package.</li>
+<li>Check each snapshot that <code>sign offboard</code> lists. Compare the publish id, the user and the host with the team channel. When a publish is not known, run <code>repoctl repo restore REF</code> with the newest known snapshot of that target before the next step.</li>
+<li>With another active, deployed key, run <code>repoctl repo resign --signer a.admin --target el9</code>, and the same for each other target that <code>sign offboard</code> lists.</li>
+<li>Run <code>repoctl status</code> until it shows <code>served: same</code> for each target. Then dnf on the clients reads the metadata again.</li>
+<li>Build and publish the release package with the new key file at the next publish of each target.</li>
+</ol>
+<p>From step 3 to step 6, dnf on the clients refuses the metadata and the RPMs that the key signed. The mirror job keeps the served tree. The team agrees to this outage, because the trust in the key must end first.</p>
+
+<h2 id="lost">Lost key</h2>
+<ol class="steps">
+<li>Run <code>repoctl sign retire ID</code>. It needs no secret key. Push the set commit.</li>
+<li>The human of the lost key makes a new key (<a href="../design/signing.html#help-key">help key</a>) and onboards it (<a href="../design/signing.html#onboarding">onboarding</a>).</li>
+<li>With another active, deployed key, run <code>repoctl repo resign --signer ID</code> for each target. Then run <code>repoctl sign remove ID</code> and publish the new release package (<a href="../design/signing.html#offboarding">offboarding and rotation</a>).</li>
+</ol>
+
+<h2 id="last-signer">Last deployed signer</h2>
+<p><code>sign retire</code> refuses the last deployed signer (<code>sign.last-signer</code>). A key file record deploys a new key without a release package.</p>
+<ol class="steps">
+<li>The human makes a new key (<a href="../design/signing.html#help-key">help key</a>) and runs <code>repoctl sign add NEW --fingerprint FPR</code>. Push the set commit.</li>
+<li>For a compromised key, run <code>repoctl sign revoke ID</code> now and push. For a lost key, skip this step.</li>
+<li>Run <code>repoctl sign keyfile --checksum</code>. Config management installs the key file with this pinned sum on the HTTP server and on all clients of each target. For a compromised key, it also does the client commands of <code>repoctl sign offboard ID</code>.</li>
+<li>For each target, run <code>repoctl sign deployed NEW --keyfile SHA256 --target ID</code>, type the key id and push the set commit.</li>
+<li>For a lost key, run <code>repoctl sign retire ID</code> now. Then continue with step 3 of <a href="#lost">Lost key</a>, with NEW as the signer. For a compromised key, continue with step 4 of <a href="#compromise">Compromise</a>.</li>
+<li>Onboard a second key for each target (<a href="../design/signing.html#recovery">two deployed signers</a>).</li>
+</ol>
+
+<h2 id="stop">Stop conditions</h2>
+<table>
+<thead><tr><th>Step</th><th>Stop when</th></tr></thead>
+<tbody>
+<tr><td><a href="#compromise">Compromise</a> item 3</td><td>Config management cannot reach all clients or the HTTP server. Do not continue to the re-sign: tell the team which hosts still trust the key.</td></tr>
+<tr><td><a href="#compromise">Compromise</a> item 4</td><td>A listed publish is not known, and no older snapshot is known. Stop all publishes and examine the registry.</td></tr>
+<tr><td><a href="#compromise">Compromise</a> item 5</td><td><code>repo resign</code> fails with <code>verify.failed</code> or <code>verify.el-failed</code> for a file of another key.</td></tr>
+<tr><td><a href="#last-signer">Last deployed signer</a> item 4</td><td><code>sign deployed</code> refuses the sum (exit 12). The installed key file is not the committed key file.</td></tr>
+</tbody>
+</table>
+
+<h2 id="done">Done when</h2>
+<ul>
+<li><code>repoctl sign ls</code> shows the key as revoked, or as retiring or removed for a lost key.</li>
+<li>For a compromised key, <code>repoctl sign offboard ID</code> lists no snapshot that is latest.</li>
+<li><code>repoctl status</code> shows <code>served: same</code> for each target, and <code>repoctl repo verify --served</code> exits with 0.</li>
+<li>Each target has two active keys with a deployment record.</li>
+<li>Doctor <code>sign.release</code> passes: the release package in latest has the new key file.</li>
+</ul>
+</body>
+</html>
