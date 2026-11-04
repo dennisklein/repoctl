@@ -3,25 +3,31 @@
 <head>
 <meta charset="utf-8">
 <title>Build</title>
-<meta name="description" content="How repoctl makes a graph per target, plans each node, builds the nodes in mock into a staging repository, and reports node and run states.">
+<meta name="description" content="How repoctl makes a graph per target, plans each node, builds the nodes in mock into a staging repository, reports node and run states, and locks a set.">
 </head>
 <body>
 <h1>Build</h1>
-<p class="lede">This chapter specifies how repoctl builds a set: the graph of each target, the plan, the run in mock, the staging repository, and the states of nodes and runs. It also specifies the set lock, the soname check, rebuilds, logs and the mock roots. Publish starts where this chapter ends (<a href="publish.html">Publish and snapshots</a>).</p>
+<p class="lede">A build turns the pinned commits of a set into staged RPMs, through a graph per target, a plan and a run in mock. The chapter also gives the node and run states, the set lock, the soname check, rebuilds, logs and the mock roots. Publish starts where the build ends (<a href="publish.html">Publish and snapshots</a>).</p>
 <ul class="keypoints">
-  <li>repoctl makes one graph per target. It builds each SRPM in the chroot of the target and reads its requires.</li>
+  <li>repoctl makes one graph per target from the requires of each SRPM, built in the chroot of the target.</li>
   <li>The plan gives each node one action: build, current, staged or skip. Only a new commit builds.</li>
   <li>A run builds into its own staging repository. The published repository and latest do not change.</li>
-  <li>A failed node blocks its dependents. The other nodes continue. The good nodes stay staged for the next plan.</li>
+  <li>A failed node blocks its dependents. The other nodes continue, and the good nodes stay staged.</li>
   <li>One build per user and host at a time. There is no queue: a second build stops with exit 7.</li>
-  <li>After each node build, the soname check compares the new build with the published build. "Unchanged" is a result, not an advisory.</li>
+  <li>The soname check compares each new build with the published build. "Unchanged" is a result, not an advisory.</li>
   <li>A rebuild is an empty commit <code>Rebuild: TEXT</code>. rpmautospec raises the release, so each build has a new NVR.</li>
 </ul>
 
 <h2 id="graph">Graph per target</h2>
-<p>A node is one package built for one target, written <code>DIR@TARGET</code> (<a href="model.html#nodes">nodes</a>). repoctl makes one graph for each target. An edge from A to B means: B needs a package of A to build. The two nodes of an edge are always on the same target.</p>
-<p>To find the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It builds the SRPM from a detached worktree of the commit, never from <code>packages/DIR</code> (<a href="#run">the run</a>). It reads the requires of the SRPM and matches them against the Provides of the other set packages on the same target. <code>rpmspec</code> in the same chroot gives the Provides. Thus a condition such as <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives the correct edges for each target.</p>
-<p>The SRPM cache (<code>~/.cache/repoctl/srpm/</code>) keeps the result for each key. The key is the sha256 of four inputs: the package commit, the mock config of the target (the output of <code>mock -r CONFIG --debug-config</code>), the content of the macro files of the target, and the versions of mock and of the plugins of the target. All sets share the cache, but two sets with other macros or another mock config never share an entry. The first plan of a target builds all SRPMs and can take minutes. After that, only a new commit or a change of these inputs makes a new SRPM. repoctl writes each entry to a temporary file and then renames it. Thus a reader never sees a part of an entry, and two writers of one key give the same entry. The cache is safe to delete.</p>
+<p>repoctl makes one graph for each target, with the nodes <code>DIR@TARGET</code> (<a href="model.html#nodes">nodes</a>). An edge from A to B means: B needs a package of A to build. Both nodes of an edge are on the same target.</p>
+<p>For the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It uses a detached worktree of the commit, never <code>packages/DIR</code> (<a href="#run">the run</a>).</p>
+<p>repoctl then matches the requires of the SRPM against the Provides of the other set packages on the same target. <code>rpmspec</code> reads the Provides in the same chroot. Thus <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives the correct edges for each target.</p>
+<p>The SRPM cache <code>~/.cache/repoctl/srpm/</code> keeps each result. All sets share it, and it is safe to delete.</p>
+<ul>
+  <li><b>Key.</b> The sha256 of the package commit and of the mock config, the macro file content and the mock and plugin versions of the target. The mock config is the output of <code>mock -r CONFIG --debug-config</code>. Thus two sets with other macros or another mock config never share an entry.</li>
+  <li><b>Time.</b> The first plan of a target builds all SRPMs and can take minutes. After that, only a new commit or a change of the key inputs makes a new SRPM.</li>
+  <li><b>Write.</b> repoctl writes each entry to a temporary file and renames it. Thus a reader never sees a part of an entry, and two writers of one key give the same entry.</li>
+</ul>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 276" role="img" aria-labelledby="fig-graph-t"><title id="fig-graph-t">How repoctl makes the graph of one target</title>
 <rect class="box" x="16" y="40" width="184" height="72" rx="8"/>
@@ -76,22 +82,23 @@
 <tr><td>The spec has <code>%generate_buildrequires</code>.</td><td>Warning: edges can be missing until the build.</td><td><code>graph.dynamic-buildrequires</code></td></tr>
 <tr><td>Two set packages provide one capability.</td><td>Warning.</td><td><code>graph.ambiguous-provider</code></td></tr>
 <tr><td>The edges make a cycle.</td><td>Error, exit 1.</td><td><code>graph.cycle</code></td></tr>
-<tr><td>The SRPM of a package fails at plan time. A source problem has its own code (<a href="#sources">sources</a>).</td><td>Warning. The node keeps its plan action and has no known dependencies. In the build, it fails in step srpm with the class srpm.</td><td><code>graph.srpm-failed</code></td></tr>
+<tr><td>The SRPM of a package fails at plan time. A source problem has its own code (<a href="#sources">sources</a>).</td><td>Warning. The node keeps its plan action and has no known dependencies. The build fails it in step srpm, class srpm.</td><td><code>graph.srpm-failed</code></td></tr>
 </tbody>
 </table>
-<aside class="callout why"><p class="callout-title">Why dep.not-for-target is a warning</p><p>The base or EPEL repos of the target can provide the same capability. Thus repoctl cannot know that the build fails. The warning names the gap before the build, and the plan continues. It is a plan warning, not an advisory (<a href="advisories.html#codes">advisory codes</a>).</p></aside>
-<p>In the story, slurm requires <code>rocm-smi-devel</code>, and rocm-smi is built for el9 only. Thus el9 has 11 nodes and 14 edges, and el10 has 10 nodes and 13 edges.</p>
+<aside class="callout why"><p class="callout-title">Why dep.not-for-target is a warning</p><p>The base or EPEL repos of the target can provide the same capability, so repoctl cannot know that the build fails. The warning names the gap before the build, and the plan continues. It is a plan warning, not an advisory (<a href="advisories.html#codes">advisory codes</a>).</p></aside>
+<p>In the story, slurm requires <code>rocm-smi-devel</code>, and rocm-smi is built for el9 only:</p>
 <pre class="term">$ repoctl graph --target el10
 el10  10 nodes · 13 edges · 4 levels
 …
 ! slurm@el10 needs rocm-smi-devel; in this set only rocm-smi@el9 provides it
 hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add el10 to the targets of rocm-smi</pre>
-<p>The fix is in the spec or in <code>repoctl.yaml</code>. Command: <a href="cli.html#cmd-graph">repoctl graph</a>. Terminal frame: <a href="terminal.html#graph">graph</a>.</p>
+<p>The fix is in the spec or in <code>repoctl.yaml</code>. Reference: <a href="cli.html#cmd-graph">repoctl graph</a>, <a href="terminal.html#graph">terminal frame</a>.</p>
 
 <h2 id="sources">Sources</h2>
-<p>A package branch has the layout of Fedora dist-git. The spec, the patches and the small source files are in git. The large source archives are not in git, and <code>.gitignore</code> names them. The <dfn>sources file</dfn> <code>sources</code> gives the SHA-512 of each archive, one line per file. All package branches of the story have this layout, also the branches that do not come from Fedora, for example rocm-smi and slurm-singularity-exec. An in-tree package has the same layout below its path. This is the sources file of slurm at <code>d42f66a</code>:</p>
+<p>A package branch has the layout of Fedora dist-git. The spec, the patches and the small source files are in git. The large source archives are not: <code>.gitignore</code> names them, and the <dfn>sources file</dfn> <code>sources</code> gives the SHA-512 of each, one line per file.</p>
+<p>Each package branch of the story has this layout, also rocm-smi and slurm-singularity-exec, which do not come from Fedora. An in-tree package has it below its path. The sources file of slurm at <code>d42f66a</code>:</p>
 <pre><code class="language-plaintext">SHA512 (slurm-26.05.4.tar.bz2) = 9ad6e078a6be67d8ad1dbcdd7e07d97af56c30c2e058a49ce3db3073ee77e26a29d6c12843e65605f1223ccbbfe778895ae53e3826dbf7037ac97b9b0147ed7e</code></pre>
-<p>repoctl reads the <code>Source</code> and <code>Patch</code> lines of the spec in the chroot of the target, as <code>spectool</code> does. Each line gives one file. repoctl puts the files into one directory and gives it to <code>mock --buildsrpm --sources</code>.</p>
+<p>repoctl reads the <code>Source</code> and <code>Patch</code> lines of the spec in the chroot of the target, as <code>spectool</code> does: one file per line. It puts the files into one directory for <code>mock --buildsrpm --sources</code>.</p>
 <table class="compact">
 <thead><tr><th>File of a Source or Patch line</th><th>Where repoctl gets it</th><th>Check</th></tr></thead>
 <tbody>
@@ -101,18 +108,28 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 </tbody>
 </table>
 <ul>
-  <li><b>Fetch.</b> The source cache is <code>$XDG_CACHE_HOME/repoctl/sources/sha512/HEX/FILE</code>, for all sets. The Fedora lookaside cache is <code>https://src.fedoraproject.org/repo/pkgs/NAME/FILE/sha512/HEX/FILE</code>, with NAME from <code>upstream.fedora</code>. repoctl writes each download to a temporary file, checks it, and then renames it into the source cache.</li>
+  <li><b>Fetch.</b> The source cache of all sets is <code>$XDG_CACHE_HOME/repoctl/sources/sha512/HEX/FILE</code>. The Fedora lookaside cache is <code>https://src.fedoraproject.org/repo/pkgs/NAME/FILE/sha512/HEX/FILE</code>, with NAME from <code>upstream.fedora</code>. repoctl writes each download to a temporary file, checks it and renames it into the source cache.</li>
   <li><b>Checksum.</b> repoctl accepts only the SHA512 form of a line. A file whose SHA-512 is not the value of its line is never used: <code>source.mismatch</code>. Thus a new archive with an old name stops the build.</li>
-  <li><b>No network.</b> repoctl uses only the source cache. A file that is not in the cache gives <code>source.unreachable</code>. Thus a host builds without network after one plan of the same commits.</li>
-  <li><b>Failure.</b> In plan and graph, a source problem is a warning on the node. The node keeps its plan action. In the build, the node then fails in step srpm with the failure class srpm, and <code>error.code</code> holds the problem code.</li>
+  <li><b>No network.</b> repoctl uses only the source cache. A file that is not in it gives <code>source.unreachable</code>. Thus a host builds without network after one plan of the same commits.</li>
+  <li><b>Failure.</b> In plan and graph, a source problem is a warning, and the node keeps its plan action. The build fails the node in step srpm, class srpm, with the problem code in <code>error.code</code>.</li>
 </ul>
 <aside class="callout rule"><p class="callout-title">Rule</p><p>The sources file is part of the commit. Thus the commit fixes the content of every source, and a source never changes the build identity (<a href="model.html#identity">build identity</a>). To change an archive, change the spec and the sources file in one commit, for example with <code>sha512sum --tag FILE</code> for the new line.</p></aside>
 <p><code>repoctl checkout --create --from fedora</code> forks a Fedora dist-git branch with this layout (<a href="lifecycle.html#checkout-create">checkout --create</a>). <code>repoctl clean --cache</code> deletes the source cache (<a href="cli.html#cmd-clean">repoctl clean</a>).</p>
 
 <h2 id="plan">Plan</h2>
 <p><code>repoctl plan</code> shows what <code>repoctl build</code> with the same arguments does, and why. It builds nothing and writes no run. <code>repoctl build</code> makes the same plan as its first step.</p>
-<p>The baseline of the plan is latest: the RepoManifest in the local copy of latest of each target (<a href="model.html#manifest">RepoManifest</a>). First, repoctl compares the digest of latest in the registry with the local copy (<a href="publish.html#freshness">freshness check</a>). When latest is newer, or when no local copy exists, plan and build stop with <code>state.behind</code> (exit 13), and the hint gives <code>repoctl repo pull</code>. When the registry is not reachable, the plan uses the local copy and prints the warning <code>registry.unreachable</code>.</p>
-<p>The plan takes the package commits from <code>repoctl.lock</code>. A selected worktree that is not in-sync with the lock gives the error <code>lock.dirty</code>, as in build: the plan still shows all rows, and then exits 5. A worktree that is not in-sync and that no selected node uses gives only the warning <code>worktree.dirty</code>, and the plan still uses the lock. With <code>--from worktree</code>, it takes the HEAD commit of each worktree. A run from worktrees is unpinned and never publishable. repoctl never builds uncommitted changes, because rpmautospec reads commits.</p>
+<p>The baseline is latest: the RepoManifest in the local copy of latest of each target (<a href="model.html#manifest">RepoManifest</a>). The package commits come from <code>repoctl.lock</code>. First, repoctl compares the digest of latest in the registry with the local copy (<a href="publish.html#freshness">freshness check</a>).</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>latest is newer than the local copy, or no local copy exists.</td><td>Plan and build stop with <code>state.behind</code> (exit 13). The hint gives <code>repoctl repo pull</code>.</td></tr>
+<tr><td>The registry is not reachable.</td><td>The plan uses the local copy, with the warning <code>registry.unreachable</code>.</td></tr>
+<tr><td>A selected worktree is not in-sync with the lock.</td><td>The error <code>lock.dirty</code>, as in build: the plan still shows all rows, then exits 5.</td></tr>
+<tr><td>A worktree that no selected node uses is not in-sync.</td><td>Only the warning <code>worktree.dirty</code>. The plan still uses the lock.</td></tr>
+<tr><td><code>--from worktree</code></td><td>The plan takes the HEAD commit of each worktree. A run from worktrees is unpinned and never publishable.</td></tr>
+</tbody>
+</table>
+<p>repoctl never builds uncommitted changes, because rpmautospec reads commits.</p>
 
 <h3 id="actions">Plan actions and reasons</h3>
 <figure class="diagram wide">
@@ -164,7 +181,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <thead><tr><th>Plan action</th><th>When</th></tr></thead>
 <tbody>
 <tr><td><code>current</code></td><td>The commit of the node is in the RepoManifest of latest of its target, with the same source package name (<a href="model.html#manifest">match key</a>). Nothing to do.</td></tr>
-<tr><td><code>staged</code></td><td>An earlier build run from the lock, of this user on this host, built the same commit for the same target, the node ended ok, and no publish took it. When two runs qualify, the newest run wins. Each file of the <code>artifact.added</code> events of the node is in that staging with its size. The plan reuses that staging (<a href="#staging">staging</a>).</td></tr>
+<tr><td><code>staged</code></td><td>An earlier run from the lock, of this user on this host, built the same commit for the same target. The node ended ok, and no publish took it. The plan reuses that staging (<a href="#staging">staging</a>).</td></tr>
 <tr><td><code>build</code></td><td>No build of this commit for this target exists. The node has one or more plan reasons.</td></tr>
 <tr><td><code>skip</code></td><td>The selectors or <code>--target</code> do not select the node, and no selected node needs it. A node of an unpinned package also gets skip, with the note "not pinned" (<a href="lifecycle.html#lock-states">lock states</a>).</td></tr>
 </tbody>
@@ -177,21 +194,28 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <tr><td><code>new-package</code></td><td>The package is new in the set. latest has no entry for it.</td></tr>
 <tr><td><code>new-target</code></td><td>The target is new for the package.</td></tr>
 <tr><td><code>forced</code></td><td><code>--force</code> selected the node (<a href="#force">forced builds</a>).</td></tr>
-<tr><td><code>staging-missing</code></td><td>An earlier run staged the node, but a file of that staging is gone or has another size. The node keeps its other reasons, and the plan gives the warning <code>run.staging-missing</code>.</td></tr>
+<tr><td><code>staging-missing</code></td><td>An earlier run staged the node, but a file of its <code>artifact.added</code> events is gone from that staging or has another size. The node keeps its other reasons, and the plan gives the warning <code>run.staging-missing</code>.</td></tr>
 </tbody>
 </table>
-<aside class="callout rule"><p class="callout-title">Rule</p><p>A change in a dependency, in the mock config, in a macro file or in an upstream repo is never a plan reason. It gives an advisory (<a href="advisories.html#codes">advisory codes</a>). The human decides, and <code>repoctl rebuild</code> makes the build.</p></aside>
-<aside class="callout why"><p class="callout-title">Why</p><p>The build identity is the package commit plus the target (<a href="model.html#identity">build identity</a>). A rebuild of all dependents after each library change gives new NVRs with no change in content. repoctl trusts the ABI promise of upstream, and the soname and closure checks tell when this trust is wrong.</p></aside>
+<aside class="callout rule"><p class="callout-title">Rule: a dependency is never a plan reason</p><p>A change in a dependency, the mock config, a macro file or an upstream repo is never a plan reason (<a href="model.html#identity">build identity</a>). It gives an advisory, for example <code>mock.drift</code> for the nodes that the old mock config built, or <code>buildroot.drift</code> (<a href="advisories.html#codes">advisory codes</a>). The human decides, and <code>repoctl rebuild</code> makes the build.</p><p>A rebuild of all dependents after each library change gives new NVRs with no change in content. repoctl trusts the ABI promise of upstream. The soname and closure checks tell when this trust is wrong.</p></aside>
 
 <h3 id="deps">Selection and dependencies</h3>
-<p>Selectors name the nodes (<a href="cli.html#selectors">selectors</a>). The selected nodes are the roots. A selected node with action build needs the RPMs of its dependencies:</p>
+<p>Selectors name the nodes (<a href="cli.html#selectors">selectors</a>). The selected nodes are the roots. A selected node with the action build needs the RPMs of its dependencies:</p>
 <ul>
-  <li>A dependency with action build builds first, in the same run. Thus <code>repoctl build slurm</code> also builds ucx when ucx has a new commit.</li>
+  <li>A dependency with the action build builds first, in the same run. Thus <code>repoctl build slurm</code> also builds ucx when ucx has a new commit.</li>
   <li>A current dependency comes from the local copy of latest.</li>
   <li>A staged dependency comes from the staged view of the plan (<a href="#staging">staging</a>).</li>
 </ul>
-<p>A change in ucx never selects slurm. <code>--with-deps</code> and <code>--rdeps</code> add the transitive dependencies or reverse dependencies to the selection. In a build, they change the result only with <code>--force</code>. A run of a subset is partial. Publish works on the plan, not on one run: it takes all staged nodes of a target, from any run of this user (<a href="publish.html#takes">what a publish takes</a>).</p>
-<p>The text output shows the exceptions and a totals line. Rows of a package with the same action and reason on all targets merge, and the current nodes fold into one line per target. <code>-v</code> shows all rows; <code>--json</code> always has them. <code>--check</code> exits 11 when a node would build, for CI and timers. The plan also says if an open advisory blocks a publish of this plan. This is the plan of the story at 17:49:</p>
+<p>A change in ucx never selects slurm. <code>--with-deps</code> and <code>--rdeps</code> add the transitive dependencies or reverse dependencies to the selection. In a build, they change the result only with <code>--force</code>. A run of a subset is partial. Publish works on the plan, not on one run (<a href="publish.html#takes">what a publish takes</a>).</p>
+<p>The text output shows the exceptions and a totals line:</p>
+<ul>
+  <li>Rows of a package with the same action and reason on all targets merge.</li>
+  <li>The current nodes fold into one line per target.</li>
+  <li>A note says if an open advisory blocks a publish of this plan.</li>
+  <li><code>-v</code> shows all rows; <code>--json</code> always has them.</li>
+  <li><code>--check</code> exits 11 when a node would build, for CI and timers.</li>
+</ul>
+<p>The plan of the story at 17:49:</p>
 <pre class="term">$ repoctl plan
 plan  slurm-26.05  from repoctl.lock  base latest p-20260912-1403-c21 (local copy same)
 PACKAGE                 TARGETS   ACTION  REASON
@@ -204,26 +228,31 @@ el9   7 current: munge rocm-smi slurm-release pmix pmix_v5 pmix_v4 prrte
 el10  6 current: munge slurm-release pmix pmix_v5 pmix_v4 prrte
 21 nodes: 8 build, 13 current  (-v shows all)
 note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the advisory does not block a publish.</pre>
-<p>Command: <a href="cli.html#cmd-plan">repoctl plan</a>. Terminal frame: <a href="terminal.html#plan">plan</a>. Web UI: <a href="ui-build.html#plan">Plan page</a>.</p>
+<p>Reference: <a href="cli.html#cmd-plan">repoctl plan</a>, <a href="terminal.html#plan">terminal frame</a>, <a href="ui-build.html#plan">Plan page</a>.</p>
 
 <h2 id="staging">Staging and node reuse</h2>
 <p>Each run has its own staging repository for each target: <code>$XDG_DATA_HOME/repoctl/SET/staging/RUN/TARGET/</code>, with the sub-repos <code>slurm</code>, <code>slurm-source</code> and <code>slurm-debuginfo</code> (from <code>repo.name</code>). The staging is not signed. It is in the data directory, not in the cache, because it is build state (<a href="config.html#xdg">XDG directories</a>).</p>
-<p>A node that ends ok in a run is a <dfn>staged node</dfn> until a publish takes it. The next plan gives it the action staged and names its run (<code>fromRun</code>). A later build does not build it again. When a staged node is a dependency, mock gets it through the staged view. Thus a failed run keeps its good nodes.</p>
+<p>A node that ends ok in a run is a <dfn>staged node</dfn> until a publish takes it. The next plan gives it the action staged and names its run (<code>fromRun</code>), so no later build builds it again. A staged dependency reaches mock through the staged view. Thus a failed run keeps its good nodes.</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Staged node</th></tr></thead>
+<tbody>
+<tr><td>The node has the terminal state ok in the journal of its run.</td><td>Yes, also in a canceled or an abandoned run. No other state stages a node.</td></tr>
+<tr><td>The run is unpinned (<code>--from worktree</code>).</td><td>Never. Its RPMs stay in its staging for a test. The next plan from the lock builds the node, also when the human pins the same commit later.</td></tr>
+<tr><td>Two runs have an ok build of one node (same commit and target), for example after a forced build of a staged node.</td><td>The newest run wins. It is <code>fromRun</code>, and publish takes its files. The older copies are not staged, and <code>repoctl clean</code> can delete them.</td></tr>
+<tr><td>The run is of another user or host.</td><td>No: staging belongs to one user on one host. Another admin does not see it and builds the node again. With a home directory that two hosts share, the plan stages only runs whose <code>origin.host</code> is this host (<a href="contract.html#readers">readers</a>).</td></tr>
+<tr><td>The package gets a new commit.</td><td>No. The reuse ends, and the plan action is build.</td></tr>
+<tr><td>The publish that took the node left the chain of latest.</td><td>Yes, again. A run is published only when its publish is on the chain of latest (<a href="publish.html#admins">two admins</a>).</td></tr>
+</tbody>
+</table>
 <ul>
-  <li>Only a node with the terminal state ok in the journal of its run is staged. This is also true for a canceled or an abandoned run.</li>
-  <li>A node of an unpinned run (<code>--from worktree</code>) is never staged. Its RPMs stay in the staging of that run for a test. The next plan from the lock builds the node, also when the human pins the same commit later.</li>
-  <li>When two runs have an ok build of one node (same commit and target), the newest run wins. Example: a forced build of a staged node. The newest run is <code>fromRun</code>, and publish takes its files. The older copies are not staged, and <code>repoctl clean</code> can delete them.</li>
-  <li>Staging belongs to one user on one host. Another admin does not see it and builds the node again. A home directory that two hosts share does not change this: the plan stages only the nodes of runs whose <code>origin.host</code> is this host (<a href="contract.html#readers">runs of another host</a>).</li>
-  <li>A new commit of the package ends the reuse. The plan action is then build.</li>
-  <li>The repodata of a staging lists only the RPMs of ok nodes. When a node fails or is canceled after some of its RPMs are in the staging, repoctl removes them and updates the repodata.</li>
-  <li>At <code>plan.ready</code>, repoctl makes one <dfn>staged view</dfn> per target in the work directory of the run. It is a repository with links to the <code>artifact.added</code> files of exactly the staged nodes of the plan, and its own repodata. mock gets the staged view, never the whole staging of an older run. Thus a build sees no RPM of a failed, canceled, older or abandoned node.</li>
-  <li>A run is published only when its publish is on the chain of latest. The staged nodes of a publish that left the chain are staged again (<a href="publish.html#admins">publish.html#admins</a>).</li>
-  <li>Each staged node keeps its record draft next to its RPMs: the buildroot lock of mock, the sha256 and URL of each source archive, and the run facts. Publish writes the supply chain records from it (<a href="supply-chain.html#capture">supply-chain.html#capture</a>).</li>
-  <li><code>repoctl clean</code> keeps a staging that holds staged nodes or a publishable target (<a href="cli.html#cmd-clean">repoctl clean</a>). A human can still delete a staging by hand. Thus the plan checks that each file of a staged node is there with its size. Else the node gets the action build with the reason <code>staging-missing</code>. Publish checks the sha256 of each file that it takes. A file that is gone or changed stops the publish with <code>run.staging-missing</code>, and the next plan builds the node again.</li>
+  <li><b>Repodata.</b> The repodata of a staging lists only the RPMs of ok nodes. When a node fails or is canceled after some of its RPMs are in the staging, repoctl removes them and updates the repodata.</li>
+  <li><b>Staged view.</b> At <code>plan.ready</code>, repoctl makes one <dfn>staged view</dfn> per target in the work directory of the run. It is a repository with its own repodata and links to the <code>artifact.added</code> files of exactly the staged nodes of the plan. mock gets the staged view, never the whole staging of an older run. Thus a build sees no RPM of a failed, canceled, older or abandoned node.</li>
+  <li><b>Record draft.</b> Each staged node keeps its record draft next to its RPMs. Publish writes the supply chain records from it (<a href="supply-chain.html#capture">capture at build time</a>).</li>
+  <li><b>Missing files.</b> <code>repoctl clean</code> keeps a staging that holds staged nodes or a publishable target (<a href="cli.html#cmd-clean">repoctl clean</a>), but a human can delete it by hand. Thus the plan checks that each file of a staged node is there with its size. Else the node gets the action build with the reason <code>staging-missing</code>. Publish checks the sha256 of each file that it takes. A file that is gone or changed stops the publish with <code>run.staging-missing</code>, and the next plan builds the node again.</li>
 </ul>
 
 <h2 id="run">The run</h2>
-<p><code>repoctl build</code> makes a plan, starts a run and builds each node with action build in mock. A run has an id <code>r-YYYYMMDD-HHMM-xxx</code>, an origin (cli, ui, mcp or ci) and a journal. The run holds the set lock from its start to its end (<a href="#lock">set lock</a>).</p>
+<p><code>repoctl build</code> makes a plan, starts a run and builds each node with the action build in mock. A run has an id <code>r-YYYYMMDD-HHMM-xxx</code>, an origin (cli, ui, mcp or ci) and a journal.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 332" role="img" aria-labelledby="fig-run-t"><title id="fig-run-t">Flow of one build run</title>
 <rect class="box" x="16" y="56" width="176" height="100" rx="8"/>
@@ -268,33 +297,61 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <figcaption>One build run. Steps 1 and 3 run once. Step 2 runs for each build node, in parallel up to the job count.</figcaption>
 </figure>
 <ol class="steps">
-  <li>Preflight: repoctl checks mock, the mock group, the mock config of each selected target, the rpmautospec plugin and the free disk. The free disk must be at least 10 GiB in the data directory, 10 GiB in the cache directory, 1 GiB in the state directory and 20 GiB in <code>/var/lib/mock</code> (<a href="delivery.html#requirements">requirements</a>). A failure stops the run before it starts (exit 9, <code>host.not-ready</code>). Build does not sign, so there is no GPG check.</li>
-  <li>Plan: repoctl makes the plan (<a href="#plan">plan</a>) and writes the event <code>plan.ready</code>.</li>
-  <li>Nodes: a node starts when each dependency is ok, current or staged, and a job slot is free. Each node runs the steps <code>srpm</code>, <code>rpm</code> and <code>stage</code>. Step srpm makes a detached git worktree of the commit of the node in the work directory of the run, with the full history that rpmautospec reads. It makes the worktree from the repository of the package: the set repository, or the bare clone of an external package. An in-tree package gets a worktree of the set repository at its commit. Step rpm builds the SRPM of step srpm, and <code>artifact.added</code> records the sha256 of that SRPM. The soname check runs at the end of step rpm (<a href="#soname">soname check</a>). Step stage copies the RPMs into the staging and runs <code>createrepo_c --update</code>, so that the next node sees them.</li>
-  <li>Stage: step stage of one target runs for one node at a time. It holds a lock of the run and the target in the process of the run. <code>createrepo_c</code> writes the new repodata into a temporary directory, and repoctl then renames it into place. Thus a mock that reads the staging through <code>--addrepo</code> sees the old or the new repodata, never a part of it. A node becomes ok after the <code>staging.updated</code> event of its stage step. A dependent starts only after that.</li>
+  <li>Preflight: repoctl checks mock, the mock group and the rpmautospec plugin. It also checks the mock config of each selected target and the free disk (<a href="delivery.html#requirements">requirements</a>). The data and the cache directory each need at least 10 GiB free. The state directory needs 1 GiB, and <code>/var/lib/mock</code> needs 20 GiB. A failure stops the run before it starts (exit 9, <code>host.not-ready</code>). Build does not sign, so there is no GPG check.</li>
+  <li>Plan: repoctl makes the plan and writes the event <code>plan.ready</code>.</li>
+  <li>Nodes: a node starts when each dependency is ok, current or staged, and a job slot is free. It runs the node steps (<a href="#node-steps">below</a>).</li>
   <li>End: repoctl writes the final repodata of each staging, the run result and the event <code>run.finished</code>. After an ok run, the last line is the Next line, for example <code>Next: repoctl publish</code>. A failed run ends with hints and no Next line, for example <code>hint: el9 is publishable now. run: repoctl publish --target el9</code>.</li>
 </ol>
-<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/DIR</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the worktrees in it at the end of the run.</p></aside>
-<p>Each mock call gets <code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots. It also gets <code>--resultdir</code> in the work directory of the run, and the macros and plugins of the target (<a href="config.html#targets">targets</a>). <code>--addrepo</code> adds the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>.</p>
 <aside class="callout why"><p class="callout-title">Why the staging of the run</p><p>A node builds against the new builds of its own run, never against a half-written published repository. Thus the build order comes from the graph, and the result does not depend on old state (<a href="decision.html#problems">problems of the scripts</a>).</p></aside>
-<h3 id="jobs">Jobs and order</h3>
-<p>The job count is the maximum number of nodes in mock at the same time. It comes from <code>-j</code>, then <code>REPOCTL_JOBS</code>, then <code>jobs</code> in the user config, else 2 (<a href="config.html#user-config">user config</a>). Each mock build uses all CPUs, so a high value gives little. When more nodes are ready than slots are free, the node with the most dependents starts first, then the oldest.</p>
-<h3 id="failures">Failures</h3>
-<p>When a node fails, each node that depends on it becomes blocked. The other nodes continue: keep going is the default. With <code>--fail-fast</code>, repoctl starts no new node after the first failure and cancels the running nodes.</p>
-<p>A failure has a class: srpm, builddep, build, stage, mock, host, timeout, canceled or internal (<a href="contract.html#names">shared names</a>). For srpm, builddep, build and stage, the inputs are wrong, and a retry gives the same failure. For host (no disk space, no mock group, a repo metadata error), a retry can help after the human repairs the host. No space on a device (ENOSPC) in any step gives the class host, also in step stage. The skill triage-build selects its playbook by the class.</p>
-<p>A failed write of the journal ends the run. repoctl starts no new node, stops the running nodes with the class internal, and tries to write <code>run.finished</code> with the state failed and exit 1. When that write also fails, the readers show the run as abandoned.</p>
-<p>Each step has a time limit, and mock must write output. The limits are keys of the user config (<a href="config.html#user-config">user config</a>). They do not change the build result.</p>
+
+<h3 id="node-steps">Node steps</h3>
 <table class="compact">
-<thead><tr><th>Key</th><th>Default</th><th>Limit</th><th>Result</th></tr></thead>
+<thead><tr><th>Step</th><th>What it does</th></tr></thead>
 <tbody>
-<tr><td><code>build.timeout.srpm</code></td><td>30m</td><td>step srpm of one node</td><td>node failed, class timeout</td></tr>
-<tr><td><code>build.timeout.rpm</code></td><td>12h</td><td>step rpm of one node</td><td>node failed, class timeout</td></tr>
-<tr><td><code>build.timeout.stage</code></td><td>30m</td><td>step stage of one node</td><td>node failed, class timeout</td></tr>
-<tr><td><code>build.timeout.idle</code></td><td>1h</td><td>time without a new line in the node log</td><td>node failed, class timeout</td></tr>
-<tr><td><code>build.timeout.run</code></td><td>0 (no limit)</td><td>the whole run</td><td><code>run.cancel-requested</code> with reason <code>deadline</code>; run canceled, exit 130</td></tr>
+<tr><td><code>srpm</code></td><td>Makes a detached git worktree of the commit of the node, with the full history that rpmautospec reads. Builds the SRPM (<code>mock --buildsrpm</code>).</td></tr>
+<tr><td><code>rpm</code></td><td>Builds the SRPM of step srpm (<code>mock --rebuild</code>). <code>artifact.added</code> records the sha256 of that SRPM. The soname check runs at the end of the step (<a href="#soname">soname check</a>).</td></tr>
+<tr><td><code>stage</code></td><td>Copies the RPMs into the staging and runs <code>createrepo_c --update</code>, so that the next node sees them. The node becomes ok after the <code>staging.updated</code> event of this step. Only then does a dependent start.</td></tr>
 </tbody>
 </table>
-<p>When a step limit or the idle limit ends, repoctl sends SIGTERM to the process group of the mock child. After 60 s it sends SIGKILL. The node then ends failed with the class timeout. <code>error.step</code> names the step, and the message names the limit. The other nodes continue, as after any failure. When <code>build.timeout.run</code> ends, repoctl cancels the run as <code>repoctl cancel</code> does (<a href="#cancel">cancel</a>). Thus a hung mock never holds the set lock for longer than its limit.</p>
+<p>Step srpm makes the worktree in the work directory of the run. Its source is the repository of the package: the set repository, or the bare clone of an external package. An in-tree package gets a worktree of the set repository at its commit.</p>
+<p>Step stage runs for one node of a target at a time, under an in-process lock of the run and the target. <code>createrepo_c</code> writes the new repodata into a temporary directory, and repoctl renames it into place. Thus a mock that reads the staging through <code>--addrepo</code> sees the old or the new repodata, never a part of it.</p>
+<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/DIR</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the worktrees in it at the end of the run.</p></aside>
+<p>Each mock call gets:</p>
+<ul>
+  <li><code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots (<a href="#mock">mock roots</a>);</li>
+  <li><code>--resultdir</code> in the work directory of the run;</li>
+  <li>the macros and plugins of the target (<a href="config.html#targets">targets</a>);</li>
+  <li><code>--addrepo</code> with the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>.</li>
+</ul>
+
+<h3 id="jobs">Jobs and order</h3>
+<p>The job count is the maximum number of nodes in mock at the same time. It comes from <code>-j</code>, then <code>REPOCTL_JOBS</code>, then <code>jobs</code> in the user config, else 2 (<a href="config.html#user-config">user config</a>). When more nodes are ready than slots are free, the node with the most dependents starts first, then the oldest.</p>
+
+<h3 id="failures">Failures</h3>
+<p>When a node fails, each node that depends on it becomes blocked. The other nodes continue: keep going is the default. With <code>--fail-fast</code>, repoctl starts no new node after the first failure, and the open nodes end canceled. The dependents of the failed node end blocked, and the run ends failed with exit 3.</p>
+<p>A failure has a class: srpm, builddep, build, stage, mock, host, timeout, canceled or internal (<a href="contract.html#names">shared names</a>). The skill triage-build selects its playbook by the class.</p>
+<table class="compact">
+<thead><tr><th>Class</th><th>Cause</th><th>Retry</th></tr></thead>
+<tbody>
+<tr><td>srpm, builddep, build, stage</td><td>The inputs are wrong.</td><td>Gives the same failure.</td></tr>
+<tr><td>host</td><td>No disk space, no mock group, a repo metadata error. No space on a device (ENOSPC) in any step gives host, also in step stage.</td><td>Can help after the human repairs the host.</td></tr>
+</tbody>
+</table>
+<p>A failed write of the journal ends the run. repoctl starts no new node, stops the running nodes with the class internal, and tries to write <code>run.finished</code> with the state failed and exit 1. When that write also fails, the readers show the run as abandoned.</p>
+<p>Each step has a time limit, and mock must write output. The limits are keys of the user config (<a href="config.html#user-config">user config</a>) and do not change the build result.</p>
+<table class="compact">
+<thead><tr><th>Key</th><th>Default</th><th>Limit</th></tr></thead>
+<tbody>
+<tr><td><code>build.timeout.srpm</code></td><td>30m</td><td>step srpm of one node</td></tr>
+<tr><td><code>build.timeout.rpm</code></td><td>12h</td><td>step rpm of one node</td></tr>
+<tr><td><code>build.timeout.stage</code></td><td>30m</td><td>step stage of one node</td></tr>
+<tr><td><code>build.timeout.idle</code></td><td>1h</td><td>time without a new line in the node log</td></tr>
+<tr><td><code>build.timeout.run</code></td><td>0 (no limit)</td><td>the whole run</td></tr>
+</tbody>
+</table>
+<p>At a step limit or the idle limit, repoctl sends SIGTERM to the process group of the mock child, and SIGKILL after 60 s. The node ends failed with the class timeout: <code>error.step</code> names the step, and the message names the limit. The other nodes continue.</p>
+<p>At <code>build.timeout.run</code>, repoctl writes <code>run.cancel-requested</code> with the reason <code>deadline</code> and cancels the run as <code>repoctl cancel</code> does (exit 130, <a href="#cancel">cancel</a>). Thus a hung mock never holds the set lock for longer than its limit.</p>
+
 <h3 id="run-states">Run states</h3>
 <table class="compact">
 <thead><tr><th>Run state</th><th>Meaning</th><th>Exit of build</th></tr></thead>
@@ -307,19 +364,20 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td>abandoned</td><td>The journal has no <code>run.finished</code>, and the process of the run no longer holds the set lock (the check lock for a check run). Causes: a crash or a second Ctrl-C. A reader counts the open nodes as canceled (<a href="contract.html#readers">readers</a>).</td><td>–; <code>runs --follow</code> exits 1</td></tr>
 </tbody>
 </table>
-<aside class="callout rule"><p class="callout-title">Rules for the start and the end of a run</p>
-<ul>
-  <li>Before <code>run.started</code>, build takes the set lock (<code>set.busy</code>, exit 7), compares the selected worktrees with the lock (<code>lock.dirty</code>, <code>lock.missing-package</code>, exit 5) and runs the preflight (exit 9). A stop there writes no run files and gives no run id. Thus the MCP result has no Run in <code>items</code>.</li>
-  <li>After <code>run.started</code>, a plan error, for example <code>state.behind</code> or <code>graph.cycle</code>, ends the run without <code>plan.ready</code>. <code>run.finished</code> then has the state failed, the exit code of the problem and no nodes.</li>
-  <li>canceled wins over failed. A run that a human, a signal or <code>build.timeout.run</code> stops ends canceled with exit 130, also when a node failed before.</li>
-  <li>At a cancel, the running, waiting and queued nodes end canceled. A node that waits for a canceled node also ends canceled, not blocked.</li>
-  <li>With <code>--fail-fast</code>, the first failure stops the run in the same way: the open nodes end canceled, and the dependents of the failed node end blocked. The run ends failed with exit 3.</li>
-</ul>
-</aside>
-<p>There is no queued run state. The exit codes of all commands are in the CLI reference (<a href="cli.html#exit">exit codes</a>). Command: <a href="cli.html#cmd-build">repoctl build</a>. Terminal frames: <a href="terminal.html#build-live">live tree</a>, <a href="terminal.html#build-failed">failure summary</a>.</p>
+<p>There is no queued run state, so there is no queued run to cancel. The start and the end of a run follow these rules:</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Before <code>run.started</code>, build takes the set lock (<code>set.busy</code>, exit 7), compares the selected worktrees with the lock (<code>lock.dirty</code>, <code>lock.missing-package</code>, exit 5) and runs the preflight (exit 9). One of them fails.</td><td>No run files and no run id. Thus the MCP result has no Run in <code>items</code>.</td></tr>
+<tr><td>After <code>run.started</code>, a plan error, for example <code>state.behind</code> or <code>graph.cycle</code>.</td><td>No <code>plan.ready</code>. <code>run.finished</code> has the state failed, the exit code of the problem and no nodes.</td></tr>
+<tr><td>A human, a signal or <code>build.timeout.run</code> stops the run.</td><td>canceled wins over failed: the run ends canceled with exit 130, also when a node failed before.</td></tr>
+<tr><td>A cancel.</td><td>The running, waiting and queued nodes end canceled. A node that waits for a canceled node also ends canceled, not blocked.</td></tr>
+</tbody>
+</table>
+<p>The exit codes of all commands are in the CLI reference (<a href="cli.html#exit">exit codes</a>). Reference: <a href="cli.html#cmd-build">repoctl build</a>, <a href="terminal.html#build-live">live tree</a>, <a href="terminal.html#build-failed">failure summary</a>.</p>
 
 <h2 id="states">Node states</h2>
-<p>Each surface uses the same word for a state: the journal, <code>--json</code>, the terminal, the web UI and MCP. The plan gives each node its first state. After that, only the transitions of the figure are valid. A node has exactly one terminal state per run.</p>
+<p>Each surface uses the same word for a state: the journal, <code>--json</code>, the terminal, the web UI and MCP (<a href="model.html#words">node and run words</a>). The plan gives each node its first state. After that, only the transitions of the figure and the table are valid. A node has exactly one terminal state per run: ok, failed, blocked or canceled.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 288" role="img" aria-labelledby="fig-states-t"><title id="fig-states-t">Node states and their transitions</title>
 <rect class="zone" x="104" y="12" width="520" height="76" rx="8"/>
@@ -371,24 +429,22 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <figcaption>Node states. current, staged and skip come from the plan and do not change in the run. The other states belong to the build nodes of the run.</figcaption>
 </figure>
 <table class="compact">
-<thead><tr><th>Word</th><th>Kind</th><th>Definition</th></tr></thead>
+<thead><tr><th>From</th><th>Event</th><th>To</th></tr></thead>
 <tbody>
-<tr><td>waiting</td><td>node state</td><td>A dependency of the node is not done.</td></tr>
-<tr><td>queued</td><td>node state</td><td>All dependencies are done. The node waits for a free job slot. This is not a build queue.</td></tr>
-<tr><td>running</td><td>node state</td><td>The node is in mock, in step srpm, rpm or stage.</td></tr>
-<tr><td>ok</td><td>terminal</td><td>The three steps ended ok. The node is staged in the next plan.</td></tr>
-<tr><td>failed</td><td>terminal</td><td>A step failed. The node has a failure class and an error excerpt.</td></tr>
-<tr><td>blocked</td><td>terminal</td><td>A dependency failed. The node did not start.</td></tr>
-<tr><td>canceled</td><td>terminal</td><td>A human, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
-<tr><td>current</td><td>plan state</td><td>Plan action current. The node does not change in the run.</td></tr>
-<tr><td>staged</td><td>plan state</td><td>Plan action staged. The node does not change in the run.</td></tr>
-<tr><td>skip</td><td>plan action</td><td>The node is not in the run. The text output hides it.</td></tr>
+<tr><td>plan</td><td>action current, staged or skip</td><td>That plan state for the whole run. skip is not in the run, and the text output hides it.</td></tr>
+<tr><td>plan</td><td>action build</td><td>waiting</td></tr>
+<tr><td>waiting</td><td>all dependencies done</td><td>queued: waits for a free job slot, not a build queue</td></tr>
+<tr><td>waiting</td><td>a dependency failed</td><td>blocked: the node does not start</td></tr>
+<tr><td>queued</td><td>a job slot is free</td><td>running: in mock, step srpm, rpm or stage</td></tr>
+<tr><td>running</td><td>the three steps end ok</td><td>ok: staged in the next plan</td></tr>
+<tr><td>running</td><td>a step fails</td><td>failed, with a failure class and an error excerpt</td></tr>
+<tr><td>waiting, queued, running</td><td>a human, a signal or <code>--fail-fast</code></td><td>canceled</td></tr>
 </tbody>
 </table>
-<aside class="callout note"><p class="callout-title">The live tree of go-clikit</p><p>The kit counts waiting and queued nodes as "queued", and it shows a blocked node as "canceled". Until the kit has its own end-state word, repoctl prints this note under the tree: <code>canceled in this tree = blocked by a failed dependency</code>. The journal, the JSON output, the UI and MCP use the words of the table. MCP progress comes from the folded journal, not from the kit log.</p></aside>
+<aside class="callout note"><p class="callout-title">The live tree of go-clikit</p><p>The kit counts waiting and queued nodes as "queued", and it shows a blocked node as "canceled". Until the kit has its own end-state word, repoctl prints this note under the tree: <code>canceled in this tree = blocked by a failed dependency</code>.</p><p>The journal, the JSON output, the UI and MCP use the words of the table. MCP progress comes from the folded journal, not from the kit log.</p></aside>
 
 <h2 id="story">The story run</h2>
-<p>On 2026-11-02 at 17:40, Dennis (d.klein on hpc-a1) bumps ucx from 1.22.0 to 1.22.1 (commit <code>4b1e9c2</code>, "Bump to 1.22.1") and pins it. He also runs <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code>, because he wants the users of ucx built against the new ucx. Then he starts <code>repoctl build</code>, with jobs 3 from his user config. The explainer shows run <code>r-20261102-1750-a3f</code> step by step.</p>
+<p>On 2026-11-02 at 17:40, Dennis (d.klein on hpc-a1) bumps ucx from 1.22.0 to 1.22.1 (commit <code>4b1e9c2</code>, "Bump to 1.22.1") and pins it. He wants the users of ucx built against the new ucx, so he also runs <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code>. Then he starts <code>repoctl build</code>, with jobs 3 from his user config.</p>
 <figure class="diagram wide explainer">
 <svg viewBox="0 0 960 404" role="img" aria-labelledby="fig-story-t"><title id="fig-story-t">Run r-20261102-1750-a3f, step by step</title>
 <text class="t-title" x="16" y="26" data-f="0">17:49 · plan</text>
@@ -552,7 +608,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <text class="t-small" x="136" y="381" data-f="7">no run: the plan reads latest and the staging</text>
 </svg>
 <script type="application/json" class="steps">["17:49 · The plan: 8 build, 13 current. ucx has the reason commit-changed; slurm, openmpi and slurm-singularity-exec have the reason rebuild. Warning: slurm@el10 needs rocm-smi-devel, and rocm-smi is built for el9 only.", "17:50:08 · Run r-20261102-1750-a3f starts from the lock, with jobs 3, and holds the set lock. Only ucx@el9 and ucx@el10 have all dependencies done, so one job slot stays free. The other build nodes are waiting.", "17:54:13 · ucx@el9 is ok after 4m05s. The soname check gives: sonames unchanged. slurm@el9 and openmpi@el9 take the two free job slots.", "17:58:52 · ucx@el10 is ok after 8m44s. slurm@el10 and openmpi@el10 are ready, but only one slot is free. slurm@el10 has more dependents, so it starts first. openmpi@el10 is queued.", "18:00:40 · slurm@el10 fails in step rpm: builddep, rocm-smi-devel is needed. slurm-singularity-exec@el10 is blocked. openmpi@el10 takes the free slot. At 18:01:06 the run chip shows r-…a3f 2/8 builds · 1 failed · 11m02s.", "18:11 to 18:15 · slurm@el9 is ok after 17m40s. slurm-singularity-exec@el9 starts and is ok after 1m02s. openmpi@el9 is ok after 21m12s.", "18:31:11 · openmpi@el10 is ok. The run ends failed after 41m07s, exit 3: 6 ok, 1 failed, 1 blocked, 13 current. The last hint gives repoctl publish --target el9.", "Next plan · The 6 ok nodes are staged. Each el9 node is current or staged, so el9 is publishable. On el10, slurm and slurm-singularity-exec keep the action build until the spec has a fix."]</script>
-<figcaption>The 8 build nodes of the run on el9 and el10. Copper: running. Dashed: waiting. Green: ok or staged. Red: failed. Amber: blocked or a warning. An arrow means "is needed to build".</figcaption>
+<figcaption>The 8 build nodes of run r-20261102-1750-a3f on el9 and el10. Copper: running. Dashed: waiting. Green: ok or staged. Red: failed. Amber: blocked or a warning. An arrow means "is needed to build".</figcaption>
 </figure>
 <p>The journal of this run is the example of the machine contract (<a href="contract.html#journal">journal</a>). The publish of el9 on the next day takes the staged el9 nodes (<a href="publish.html#takes">what a publish takes</a>).</p>
 <p>The fix of slurm@el10 comes after that publish. The commit is per package, so the fix also gives slurm@el9 a new build:</p>
@@ -566,29 +622,48 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 
 <h2 id="lock">Set lock and no queue</h2>
 <p>Three different things have the name "lock". The help and the messages always say which one.</p>
-<dl>
-  <dt>Lock file</dt><dd><code>repoctl.lock</code> in the set: the pinned commits, committed to git (<a href="config.html#lock">lock file</a>).</dd>
-  <dt>Set lock</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>: one writer per set at a time, for one user on one host. It records the holder: command, pid, host, user, start time and run id. Without <code>XDG_RUNTIME_DIR</code>, for example after <code>su</code>, in cron or in CI, the path is <code>$XDG_STATE_HOME/repoctl/SET.lock</code>.</dd>
-  <dt>Host mock lock</dt><dd><code>/var/lib/mock/.repoctl.lock</code>: shared by each command that runs mock, exclusive for <code>mock update</code> and <code>mock clean</code>, for all users and sets of the host (<a href="#mock">mock roots</a>).</dd>
-</dl>
-<p>A command that writes the set or its build state takes the set lock: checkout, pin, rebuild, build (for the whole run), publish, repo pull and the repo commands that make a snapshot, sign add, retire, remove and deployed, release write, clean, mock update and mock clean. repo verify takes it shared. A read command takes no set lock and never waits. <code>repoctl check</code> takes none, so a check can run while a build runs. It takes its own check lock (<a href="advisories.html#check">check</a>). Each command block gives its lock (<a href="cli.html#commands">commands</a>).</p>
+<table class="compact">
+<thead><tr><th>Lock</th><th>File</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><dfn>Lock file</dfn></td><td><code>repoctl.lock</code> in the set directory, committed to git</td><td>Holds the pinned commits: the branch, the commit and the URL of each package (<a href="config.html#lock">lock file</a>).</td></tr>
+<tr><td><dfn>Set lock</dfn></td><td><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>. Without <code>XDG_RUNTIME_DIR</code>, for example after <code>su</code>, in cron or in CI: <code>$XDG_STATE_HOME/repoctl/SET.lock</code>.</td><td>One writer per set at a time, for one user on one host. It records the holder: command, pid, host, user, start time and run id.</td></tr>
+<tr><td><dfn>Host mock lock</dfn></td><td><code>/var/lib/mock/.repoctl.lock</code></td><td>Protects the mock caches of the host, for all users and sets (<a href="#mock">mock roots</a>).</td></tr>
+</tbody>
+</table>
+<p>A command that writes the set or its build state takes the set lock. Each command block gives its lock (<a href="cli.html#commands">commands</a>).</p>
+<table class="compact">
+<thead><tr><th>Set lock</th><th>Commands</th></tr></thead>
+<tbody>
+<tr><td>takes it</td><td>checkout, pin, rebuild, build (for the whole run), publish, repo pull and the repo commands that make a snapshot, sign add, retire, remove and deployed, release write, clean, mock update and mock clean</td></tr>
+<tr><td>takes it shared</td><td>repo verify</td></tr>
+<tr><td>takes none</td><td>A read command: it never waits. <code>repoctl check</code>, so a check can run while a build runs. It takes its own check lock (<a href="advisories.html#check">check</a>).</td></tr>
+</tbody>
+</table>
 <p>All sets share the bare clone of an external package. Each git step on the clone also takes its clone lock (<a href="lifecycle.html#clones">external package clones</a>).</p>
-<p>When another process holds the set lock, a command waits up to <code>--lock-wait</code> (default 0: no wait). While it waits, it prints the holder. When the time ends, it stops with exit 7 and the problem code <code>set.busy</code>.</p>
+<p>When another process holds the set lock, a command waits up to <code>--lock-wait</code> (default 0: no wait) and prints the holder. When the time ends, it stops with exit 7 and the problem code <code>set.busy</code>.</p>
 <aside class="callout rule"><p class="callout-title">Rule: no build queue</p><p>A second build of the same user on the same host stops at once with exit 7 (<code>set.busy</code>). The message names the running run. This is true in the CLI, in the UI and in MCP.</p></aside>
 <pre class="term">$ repoctl build slurm
 repoctl: error: set slurm-26.05 is busy: repoctl build holds the set lock (run r-20261102-1750-a3f, pid 48213 on hpc-a1)
 hint: watch that run. run: repoctl runs latest --follow
 hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
-<aside class="callout rule"><p class="callout-title">Rule: the set lock after logout</p><p>systemd removes <code>$XDG_RUNTIME_DIR</code> at the last logout of the user, unless lingering is on. A build in tmux, under nohup or as a detached child of the UI or MCP can live longer than the login. Thus the holder checks every 30 s that the lock path still names the file that it locked (same device and inode). On a mismatch, it takes the lock again at the same path, and the run continues. When another process has the lock, the run starts no new node, acts as at <code>repoctl cancel</code>, writes the warning <code>set.lock-lost</code> and ends canceled (exit 130). The doctor check <code>build.linger</code> warns when lingering is off.</p></aside>
-<p>The set lock ends with its process. Thus a stale set lock cannot stay, and no command removes one. Two admins have two set locks on two hosts. They share no lease. Publish compares latest with its base in step 1 and in step 7 (<a href="publish.html#admins">two admins</a>). The team coordinates in its own channel (<a href="model.html#humans">humans and hosts</a>).</p>
+<p>The set lock ends with its process. Thus a stale set lock cannot stay, and no command removes one. Two admins on two hosts have two set locks and share no lease (<a href="publish.html#admins">two admins</a>).</p>
+
+<h3 id="lock-logout">The set lock after logout</h3>
+<p>systemd removes <code>$XDG_RUNTIME_DIR</code> at the last logout of the user, unless lingering is on. A build in tmux, under nohup or as a detached child of the UI or MCP can live longer than the login. Thus the holder checks every 30 s that the lock path still names the file that it locked (same device and inode).</p>
+<ul>
+  <li>On a mismatch, the holder takes the lock again at the same path, and the run continues.</li>
+  <li>When another process has the lock, the run starts no new node and acts as at <code>repoctl cancel</code>. It writes the warning <code>set.lock-lost</code> and ends canceled (exit 130).</li>
+  <li>The doctor check <code>build.linger</code> warns when lingering is off.</li>
+</ul>
 
 <h2 id="soname">Soname check after a node build</h2>
-<p>At the end of step rpm, repoctl compares the sonames that the new RPMs provide with the sonames of the newest published build of the node. The published sonames come from the <code>provides</code> list of the node in the RepoManifest of latest.</p>
+<p>At the end of step rpm, repoctl compares the sonames that the new RPMs provide with those of the newest published build of the node. These come from the <code>provides</code> list of the node in the RepoManifest of latest.</p>
 <ul>
-  <li>A soname is gone, and a kept set package requires it: repoctl writes the required advisory <code>soname.removed/DIR@TARGET</code> (<a href="advisories.html#codes">advisory codes</a>). A kept set package is one whose newest NVR in latest plus the staging of the run is not rebuilt yet. A dependent that builds later in the same run counts until then; at the end of the run, repoctl checks the advisory again (<a href="advisories.html#states">advisory states</a>). The publish gate decides if it blocks (<a href="advisories.html#gate">publish gate</a>).</li>
-  <li>No soname is gone: the result is <code>unchanged</code>. repoctl writes it into the node record as <code>checks.soname: unchanged</code>. This is a result, not an advisory.</li>
+  <li>A soname is gone, and a kept set package requires it: repoctl writes the required advisory <code>soname.removed/DIR@TARGET</code> (<a href="advisories.html#codes">advisory codes</a>). The publish gate decides if it blocks (<a href="advisories.html#gate">publish gate</a>).</li>
+  <li>No soname is gone: repoctl writes <code>checks.soname: unchanged</code> into the node record. This is a result, not an advisory.</li>
 </ul>
-<p>The plan and the UI show the result in the row of the node: "sonames unchanged: rebuild not necessary". While the node is in the run, its soname advisory is pending (<a href="advisories.html#states">advisory states</a>). The optional ABI check (<code>abi.changed</code>, needs libabigail) also runs after the node build.</p>
+<p>A kept set package is a package whose newest NVR in latest plus the staging of the run is not rebuilt yet. A dependent that builds later in the same run counts until then. At the end of the run, repoctl checks the advisory again (<a href="advisories.html#states">advisory states</a>).</p>
+<p>The plan and the UI show the result in the row of the node: "sonames unchanged: rebuild not necessary". While the node is in the run, its soname advisory is pending. The optional ABI check (<code>abi.changed</code>, needs libabigail) also runs after the node build.</p>
 <table class="compact">
 <thead><tr><th>Value</th><th><code>checks.soname</code></th><th><code>checks.abi</code></th></tr></thead>
 <tbody>
@@ -600,21 +675,20 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
 <tr><td>off</td><td>-</td><td>libabigail is not installed on this host.</td></tr>
 </tbody>
 </table>
-<p>pending ends at the end state of the node. Only the end state ok can give an advisory. The Plan page of the UI shows the note "soname check pending" only on rows with the plan reason commit-changed, because a rebuild or a forced build has the same sources. The other rows have the same value in the node drawer and in <code>--json</code>.</p>
-<p>In the story, ucx 1.22.1 keeps <code>libucp.so.0</code>, <code>libuct.so.0</code> and <code>libucs.so.0</code>. The result of ucx@el9 and ucx@el10 is unchanged. Thus the rebuilds of slurm, openmpi and slurm-singularity-exec are not necessary. Dennis wants them, and they do no harm: each has a new NVR.</p>
+<p>Only the end state ok can give an advisory. The Plan page of the UI shows "soname check pending" only on rows with the plan reason commit-changed. A rebuild or a forced build has the same sources. The other rows have the same value in the node drawer and in <code>--json</code>.</p>
+<p>In the story, ucx 1.22.1 keeps <code>libucp.so.0</code>, <code>libuct.so.0</code> and <code>libucs.so.0</code>, so ucx@el9 and ucx@el10 are unchanged. Thus the rebuilds of slurm, openmpi and slurm-singularity-exec are not necessary. Dennis wants them, and they do no harm: each has a new NVR.</p>
 <aside class="callout why"><p class="callout-title">Why a result and not an advisory</p><p>An advisory asks the human for a step. An unchanged soname asks for nothing. The record shows that the check ran. Thus "no advisory" and "not checked" do not look the same.</p></aside>
 
 <h2 id="rebuild">Rebuild</h2>
-<p><code>repoctl rebuild DIR... --reason TEXT</code> prepares a new build of a package with the same version. It does not start a build. For each package, repoctl adds an empty commit <code>Rebuild: TEXT</code> to the package branch, then pins it in <code>repoctl.lock</code>. rpmautospec counts commits, so the release goes up by one, and the changelog shows the reason. The next plan gives the action build with the reason rebuild on all targets of the package.</p>
+<p><code>repoctl rebuild DIR... --reason TEXT</code> prepares a new build of a package with the same version. It does not start a build. For each package, repoctl adds an empty commit <code>Rebuild: TEXT</code> to the package branch and pins it in <code>repoctl.lock</code>.</p>
+<p>rpmautospec counts commits, so the release goes up by one, and the changelog shows the reason. The commit is per package, so the next plan gives the action build with the reason rebuild on all its targets.</p>
 <ul>
   <li>The reason is required, with at least 8 characters. The UI dialog has the same rule.</li>
-  <li>The worktree of each dir must be in-sync: its HEAD is the lock commit, and no tracked file has a change (<a href="lifecycle.html#lock-states">lock states</a>). Else repoctl stops with exit 5 and <code>lock.dirty</code>.</li>
-  <li>repoctl adds the commit on HEAD. This is the local branch of the package (<a href="cli.html#local-branch">local branch</a>), or the detached HEAD of a shared branch that another worktree has. After the pin, the worktree is in-sync at the new commit.</li>
-  <li>All or nothing: repoctl checks every dir before the first commit. When a check fails, it makes no commit and does not write the lock. When a commit fails, repoctl resets each branch of this call to its lock commit. Thus the same command again after a failure gives one new release, not two.</li>
-  <li>repoctl fetches the remote branch first and warns when it has new commits.</li>
-  <li>repoctl never pushes. The Next lines give the push of each package branch and the commit of the lock.</li>
-  <li>A rebuild applies to all targets of the package, because the commit is per package.</li>
-  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A DIR that names an in-tree package stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before repoctl makes a commit. A glob that matches an in-tree package leaves it out with the same code as a warning. To build an in-tree package again, change a file below its path, for example its changelog, and commit the change to the builder branch.</li>
+  <li>The worktree of each DIR must be in-sync: its HEAD is the lock commit, and no tracked file has a change (<a href="lifecycle.html#lock-states">lock states</a>). Else repoctl stops with exit 5 and <code>lock.dirty</code>.</li>
+  <li>repoctl adds the commit on HEAD: the local branch of the package (<a href="cli.html#local-branch">local branch</a>), or the detached HEAD of a shared branch of another worktree. After the pin, the worktree is in-sync at the new commit.</li>
+  <li>All or nothing: repoctl checks every DIR before the first commit. When a check fails, it makes no commit and does not write the lock. When a commit fails, repoctl resets each branch of this call to its lock commit. Thus the same command again after a failure gives one new release, not two.</li>
+  <li>repoctl fetches the remote branch first and warns when it has new commits. It never pushes: the Next lines give the push of each package branch and the commit of the lock.</li>
+  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A DIR that names one stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before any commit. A glob that matches one leaves it out, with the same code as a warning. To build it again, change a file below its path, for example its changelog, and commit to the builder branch.</li>
   <li><code>--dry-run</code> shows the new NVRs and commits nothing.</li>
 </ul>
 <pre class="term">$ repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"
@@ -624,15 +698,13 @@ slurm-singularity-exec  5c9a123 → 093012d  3.2.0-1 → 3.2.0-2
 Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmpi, slurm-singularity-exec)
       git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push
       repoctl build</pre>
-<aside class="callout why"><p class="callout-title">Why a commit</p><p>Each build gets a new NVR, so two builds never share an NVR. Fedora mass rebuilds work the same way: rpmautospec raises the release for each commit, also for an empty one. The reason stays in git and in the changelog.</p></aside>
-<p>The word "rebuild" means only this command, on all surfaces. The MCP tool <code>repoctl_rebuild</code> makes the same local commits, pins them and does not push (<a href="agents.html#mcp-tools">MCP tools</a>). The web UI has the Rebuild dialog (<a href="ui-build.html#rebuild-dialog">Rebuild dialog</a>). Synopsis and exit codes: <a href="cli.html#cmd-rebuild">repoctl rebuild</a>.</p>
+<p>The word "rebuild" means only this command, on all surfaces. The MCP tool <code>repoctl_rebuild</code> (<a href="agents.html#mcp-tools">MCP tools</a>) and the <a href="ui-build.html#rebuild-dialog">Rebuild dialog</a> of the web UI do the same: local commits and the pin, no push. Synopsis and exit codes: <a href="cli.html#cmd-rebuild">repoctl rebuild</a>.</p>
 
 <h2 id="force">Forced builds</h2>
-<p><code>repoctl build --force</code> builds the selected nodes into staging, also when they are current. The plan reason is forced. This is for tests, for example after a change of the mock config. The commit does not change, so rpmautospec gives the same NVR.</p>
-<aside class="callout rule"><p class="callout-title">Rule: a forced build of a current node</p><p>A forced build of a current node is never staged. The plan asks "commit in latest?" before "ok in a run of yours?", so the next plan keeps the node current. Thus publish never takes the forced build, and <code>repoctl clean</code> deletes it as a staging without staged nodes. A forced build of a node that is not current is a normal build: it is staged, and the newest run wins (<a href="#staging">staging</a>).</p></aside>
-<p>The publish checks <code>nvr.reused</code> and <code>nvr.removed</code> apply to each build that a publish takes. Publish refuses a new commit that gives an NVR that latest holds with other content (<code>nvr.reused</code>, exit 12), for example a spec without <code>%autorelease</code>. It also refuses an NVR that the <code>removed[]</code> list of the RepoManifest holds (<code>nvr.removed</code>), because clients can still have it (<a href="publish.html#checks">checks before the first signature</a>). To publish a new build of the same version, use <code>repoctl rebuild</code>.</p>
+<p><code>repoctl build --force</code> builds the selected nodes into staging, also when they are current, with the plan reason forced. This is for tests, for example after a change of the mock config: <code>--force</code> only tries the change, and <code>repoctl rebuild</code> builds against it. The commit does not change, so rpmautospec gives the same NVR.</p>
+<aside class="callout rule"><p class="callout-title">Rule: a forced build of a current node</p><p>A forced build of a current node is never staged. The plan asks "commit in latest?" before "ok in a run of yours?", so the next plan keeps the node current. Thus publish never takes the forced build, and <code>repoctl clean</code> deletes it as a staging without staged nodes.</p><p>A forced build of another node is a normal build: it is staged, and the newest run wins (<a href="#staging">staging</a>).</p></aside>
+<p>Publish refuses a new commit whose NVR latest holds with other content (<code>nvr.reused</code>, exit 12), for example from a spec without <code>%autorelease</code>. It also refuses an NVR in the <code>removed[]</code> list of the RepoManifest (<code>nvr.removed</code>), because clients can still have it (<a href="publish.html#checks">publish checks</a>). A new build of the same version needs <code>repoctl rebuild</code>.</p>
 <aside class="callout why"><p class="callout-title">Why</p><p>Clients and mirrors expect that one NVR always has the same content. A second file with the same NVR and other content gives checksum errors on the clients, or two different packages with one name.</p></aside>
-<p>A change in a mock config, a macro file or an extra repository is not in the build identity. It gives the advisory <code>mock.drift</code> or <code>buildroot.drift</code>. Use <code>repoctl rebuild</code> to build against the change. Use <code>--force</code> only to try it.</p>
 
 <h2 id="logs">Logs and the journal</h2>
 <table class="compact">
@@ -644,8 +716,9 @@ Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmp
 <tr><td><code>…/logs/RUN/NODE/STEP/build.log</code>, <code>root.log</code>, <code>state.log</code></td><td>The mock logs of one step (<code>srpm</code> or <code>rpm</code>) of the node. <code>repoctl logs --file</code> opens the file of the last step; <code>--step</code> selects the other step.</td></tr>
 </tbody>
 </table>
-<p>The process that holds the set lock writes the journal; for a check run, the holder of the check lock writes it. All readers fold the same journal: <code>repoctl runs</code>, <code>repoctl logs</code>, the web UI over SSE, MCP and the skills. Thus a human can watch from a terminal a run that the UI or MCP started: <code>repoctl runs RUN --follow</code>. The machine contract has the format and the event names (<a href="contract.html#journal">journal</a>).</p>
-<p><code>repoctl logs RUN NODE</code> shows the log of one node. Without a node, it shows the first failed node of the run. For a failed node on a terminal, it shows an excerpt from 5 lines above the first error to the end. <code>-v</code> shows the whole log. <code>--file repoctl|root|build|state</code> selects the file. The default <code>repoctl</code> is the node log of repoctl, which holds the mock output; <code>root</code>, <code>build</code> and <code>state</code> select one mock log. The node log page of the web UI opens the file that holds the first error, for example <code>root.log</code> for a builddep failure (<a href="ui-build.html#node-log">node log</a>).</p>
+<p>All readers fold the same journal (<a href="contract.html#journal">journal</a>): <code>repoctl runs</code>, <code>repoctl logs</code>, the web UI over SSE, MCP and the skills. Thus a human can watch from a terminal a run that the UI or MCP started: <code>repoctl runs RUN --follow</code>.</p>
+<p><code>repoctl logs RUN NODE</code> shows the log of one node. Without a node, it shows the first failed node of the run. For a failed node on a terminal, it shows an excerpt from 5 lines above the first error to the end. <code>-v</code> shows the whole log.</p>
+<p><code>--file repoctl|root|build|state</code> selects the file. The default <code>repoctl</code> is the node log of repoctl, which holds the mock output; <code>root</code>, <code>build</code> and <code>state</code> select one mock log. The node log page of the web UI opens the file that holds the first error, for example <code>root.log</code> for a builddep failure (<a href="ui-build.html#node-log">node log</a>).</p>
 <pre class="term">$ repoctl logs slurm@el10
 slurm@el10 failed in rpm after 1m48s  run r-20261102-1750-a3f  commit d42f66a
 log  ~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/slurm@el10.log
@@ -656,20 +729,27 @@ log  ~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/slurm@el10.log
  …
 errors: 383, 385, 388
 hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre>
-<p><code>repoctl clean --logs</code> deletes the journals and logs of finished runs. It keeps what the retention rule keeps: active runs, runs with staged nodes, runs of other hosts, the newest <code>state.keep_runs</code> build runs (default 50), the newest <code>state.keep_publishes</code> publish runs (default 100), each publish with a kept tree and the newest <code>state.keep_checks</code> check runs (default 30) (<a href="contract.html#retention">retention</a>). Commands: <a href="cli.html#cmd-runs">repoctl runs</a>, <a href="cli.html#cmd-logs">repoctl logs</a>. Web UI: <a href="ui-build.html#run-detail">run detail</a>, <a href="ui-build.html#node-log">node log</a>.</p>
+<p><code>repoctl clean --logs</code> deletes the journals and logs of finished runs, except the runs that the retention rule keeps (<a href="contract.html#retention">retention</a>). Reference: <a href="cli.html#cmd-runs">repoctl runs</a>, <a href="cli.html#cmd-logs">repoctl logs</a>, <a href="ui-build.html#run-detail">run detail</a>.</p>
 
 <h2 id="cancel">Cancel and abandoned runs</h2>
-<p><code>repoctl cancel [RUN]</code> stops a running build of this user on this host. The default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock. That process stops its mock children (SIGTERM to the process group of each child, SIGKILL after 60 s), marks its open nodes canceled, keeps the staging and the logs, and exits 130. When the holder is on another host or is another user, cancel stops with exit 1 and <code>cancel.not-holder</code>. There is no queue, so there is no queued run to cancel. The cancel button of the web UI has the same scope and names the origin of the run. The Run of a run that has a cancel request has <code>cancelRequested</code> (<code>by</code>, <code>user</code>, <code>reason</code>, <code>force</code>, <code>at</code>). The CLI, the web UI and MCP show <code>interrupting</code> from it until the run ends.</p>
-<ol class="steps">
-  <li>The first Ctrl-C in the terminal of the build does the same as cancel. The tree shows <code>interrupting</code> until the mock children end, at most 60 s.</li>
-  <li>A second Ctrl-C sends SIGKILL to the mock children and exits at once. <code>repoctl cancel --force</code> does the same for a run without a terminal, for example a run of the UI or of MCP. A second <code>repoctl cancel</code> without <code>--force</code> changes nothing: it prints that the run is interrupting.</li>
-  <li>After a second Ctrl-C or <code>--force</code>, the journal has no <code>run.finished</code>, and the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</li>
-</ol>
-<p>A crash also gives an abandoned run. The set lock ends with the process, so the next build can start. The ok nodes of a canceled or abandoned run stay staged. A publish run cannot be canceled after its push step starts (<a href="publish.html#order">publish order</a>). Command: <a href="cli.html#cmd-cancel">repoctl cancel</a>. Web UI: <a href="ui-build.html#finished">finished runs</a>.</p>
+<p><code>repoctl cancel [RUN]</code> stops a running build of this user on this host. The default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock.</p>
+<p>That process stops its mock children (SIGTERM to the process group of each child, SIGKILL after 60 s) and marks its open nodes canceled. It keeps the staging and the logs, and exits 130.</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>The first Ctrl-C in the terminal of the build.</td><td>The same as cancel. The tree shows <code>interrupting</code> until the mock children end, at most 60 s.</td></tr>
+<tr><td>A second <code>repoctl cancel</code> without <code>--force</code>.</td><td>No change. It prints that the run is interrupting.</td></tr>
+<tr><td>A second Ctrl-C, or <code>repoctl cancel --force</code> for a run without a terminal, for example a run of the UI or of MCP.</td><td>SIGKILL to the mock children, and exit at once. The journal has no <code>run.finished</code>, so the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</td></tr>
+<tr><td>The holder is on another host or is another user.</td><td>Exit 1 and <code>cancel.not-holder</code>.</td></tr>
+<tr><td>A crash.</td><td>An abandoned run. The set lock ends with the process, so the next build can start.</td></tr>
+<tr><td>A publish run after its push step starts.</td><td>No cancel (<a href="publish.html#order">publish order</a>).</td></tr>
+</tbody>
+</table>
+<p>The cancel button of the web UI has the same scope and names the origin of the run (<a href="ui-build.html#finished">finished runs</a>). The Run of a run with a cancel request has <code>cancelRequested</code> (<code>by</code>, <code>user</code>, <code>reason</code>, <code>force</code>, <code>at</code>). From it, the CLI, the web UI and MCP show <code>interrupting</code> until the run ends. Reference: <a href="cli.html#cmd-cancel">repoctl cancel</a>.</p>
 
 <h2 id="mock">Mock roots and verify roots</h2>
 <p>Each target names a mock config: <code>rocky+epel-9-x86_64</code> for el9 and <code>rocky+epel-10-x86_64</code> for el10 (<a href="config.html#targets">targets</a>). repoctl runs on Fedora. The mock chroots are EL9 and EL10.</p>
-<p>repoctl gives each root that it makes a name with <code>--uniqueext</code>. The name starts with <code>repoctl-UID</code>, the numeric id of the user. Thus repoctl knows its own roots, and the roots of two users or two sets never meet.</p>
+<p>repoctl names each root that it makes with <code>--uniqueext</code>. The name starts with <code>repoctl-UID</code>, the numeric id of the user. Thus repoctl knows its own roots, and the roots of two users or two sets never meet.</p>
 <table class="compact">
 <thead><tr><th>Root</th><th><code>--uniqueext</code></th><th>Made by</th><th>Removed</th></tr></thead>
 <tbody>
@@ -683,12 +763,18 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
   <li>Build roots: one per job. The mock plugin <code>buildroot_lock</code> is on in each build root. <code>NodeResult.root</code> records the root of each node.</li>
   <li>Verify roots: one per set and target. A verify root has the mock config of the target, plus rpm, dnf and gnupg2. It checks the signatures with the client tools (<a href="signing.html#verify-el">verify in the EL chroot</a>).</li>
 </ul>
-<p><code>repoctl mock update</code> runs <code>mock --update</code> for each selected target, with the config, macros and plugins of the target. It also makes or updates the verify root of each target. <code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots of this user whose name starts with <code>repoctl-UID</code>. It never touches a root of another user or a root without this prefix. Both commands take the set lock.</p>
-<aside class="callout rule"><p class="callout-title">Rule: the host mock lock</p><p>The mock config, its root cache and its package cache are shared by all users and sets of the host. Thus repoctl has one <dfn>host mock lock</dfn>, the file lock <code>/var/lib/mock/.repoctl.lock</code>, which the group mock can write. Each command that runs mock takes it shared: build (for the whole run), plan, graph, list, show, mock shell and the publish step verify-el. <code>repoctl mock update</code> and <code>repoctl mock clean</code> take it exclusive. Thus they never change a cache while a repoctl mock of any user runs. A busy host mock lock waits up to <code>--lock-wait</code>, then stops with exit 7 and <code>mock.busy</code>.</p></aside>
-<p><code>repoctl mock shell TARGET</code> opens a shell in a shell root, for debugging. The doctor check <code>sign.verify-el</code> says when a verify root is missing.</p>
+<p><code>repoctl mock update</code> runs <code>mock --update</code> for each selected target, with the config, macros and plugins of the target. It also makes or updates the verify root of each target.</p>
+<p><code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots of this user whose name starts with <code>repoctl-UID</code>. It never touches a root of another user or a root without this prefix.</p>
+<aside class="callout rule"><p class="callout-title">Rule: the host mock lock</p><p>The mock config, its root cache and its package cache are shared by all users and sets of the host. Thus repoctl has one host mock lock, the file lock <code>/var/lib/mock/.repoctl.lock</code>, which the group mock can write.</p>
+<ul>
+  <li>Each command that runs mock takes it shared: build (for the whole run), plan, graph, list, show, mock shell and the publish step verify-el.</li>
+  <li><code>repoctl mock update</code> and <code>repoctl mock clean</code> take it exclusive. Thus they never change a cache while a repoctl mock of any user runs.</li>
+  <li>A busy host mock lock waits up to <code>--lock-wait</code>, then stops with exit 7 and <code>mock.busy</code>.</li>
+</ul>
+</aside>
+<p><code>repoctl mock shell TARGET</code> opens a shell in a shell root, for debugging. The doctor check <code>sign.verify-el</code> says when a verify root is missing. Reference: <a href="cli.html#cmd-mock">repoctl mock</a>.</p>
 <pre class="term">$ repoctl mock shell el10 -- rpm -q --whatprovides rocm-smi-devel
 no package provides rocm-smi-devel</pre>
-<p>A change in the mock config or the macros of a target gives the advisory <code>mock.drift</code> for the nodes that the old config built. It does not start a build (<a href="#force">forced builds</a>). Command: <a href="cli.html#cmd-mock">repoctl mock</a>.</p>
 
 <h2 id="help">Help topic build-state</h2>
 <p><code>repoctl help build-state</code> prints this text. The other topics are in the CLI reference (<a href="cli.html#topics">help topics</a>).</p>
