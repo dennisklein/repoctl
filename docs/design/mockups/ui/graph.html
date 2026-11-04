@@ -87,8 +87,8 @@ repoctl -C ~/src/slurm-repo graph --target el9 --format dot <button class="copy"
 <div class="banner info gban" id="run-note" data-live hx-get="/s/slurm-26.05/-/frag/graph-note?target=el9" hx-trigger="refresh" hx-swap="outerHTML"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5v.01"/></svg>
   <div class="grow"><b>4 nodes build in <a href="run-detail.html" title="r-20261102-1750-a3f">run 17:50</a>:</b> ucx has a new commit; slurm, openmpi and slurm-singularity-exec have rebuild commits.</div>
   <details class="gwhy"><summary>Why</summary><div class="gwhy-pop">
-    <p>The build identity of a node is the package commit plus the target. Only a new commit builds.</p>
-    <p>ucx moved from <span class="hashc">907c60d</span> to <span class="hashc">4b1e9c2</span> ("Bump to 1.22.1"). slurm, openmpi and slurm-singularity-exec have the empty commit "Rebuild: ucx 1.22.1". repoctl never rebuilds a dependent by itself.</p>
+    <p>The <a class="gl" href="../../glossary.html#build-identity" data-gl="build-identity" data-domain="build">build identity</a> of a <a class="gl" href="../../glossary.html#node" data-gl="node" data-domain="build">node</a> is the <a class="gl" href="../../glossary.html#package" data-gl="package" data-domain="build">package</a> commit plus the <a class="gl" href="../../glossary.html#target" data-gl="target" data-domain="build">target</a>. Only a new commit <a class="gl" href="../../glossary.html#build" data-gl="build" data-domain="build">builds</a>.</p>
+    <p>ucx moved from <span class="hashc">907c60d</span> to <span class="hashc">4b1e9c2</span> ("Bump to 1.22.1"). slurm, openmpi and slurm-singularity-exec have the empty commit "<a class="gl" href="../../glossary.html#rebuild" data-gl="rebuild" data-domain="build">Rebuild</a>: ucx 1.22.1". repoctl never rebuilds a dependent by itself.</p>
     <p><a href="plan.html">Plan ›</a></p></div></details>
 </div>
 <div class="canvas" id="canvas" data-live hx-get="/s/slurm-26.05/graph?target=el9&amp;view=dag" hx-trigger="refresh" hx-select="#canvas" hx-swap="outerHTML">
@@ -200,12 +200,12 @@ repoctl -C ~/src/slurm-repo graph --target el9 --format dot <button class="copy"
   <div class="gkey"><details class="help up left"><summary aria-label="Legend of the graph">?</summary><div class="help-pop">
       <ul class="glegend">
         <li><i class="ek"></i>Dependency done</li>
-        <li><i class="ek pend"></i>Waits for the dependency in this run</li>
+        <li><i class="ek pend"></i>Waits for the dependency in this <a class="gl" href="../../glossary.html#run" data-gl="run" data-domain="build">run</a></li>
         <li><i class="ek bad"></i>Dependency failed or blocked</li>
         <li><i class="ek dn"></i>Downstream of the selected node</li>
         <li><i class="ek upk"></i>Upstream of the selected node</li>
-        <li><b class="nd-chg">Δ</b>The plan builds this node</li>
-        <li><span class="adv-mark info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.3v3.9M8 4.9h.01"/></svg></span>Advisory or check result. Point at it for the text.</li>
+        <li><b class="nd-chg">Δ</b>The <a class="gl" href="../../glossary.html#plan" data-gl="plan" data-domain="build">plan</a> builds this node</li>
+        <li><span class="adv-mark info"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.3v3.9M8 4.9h.01"/></svg></span><a class="gl" href="../../glossary.html#advisory" data-gl="advisory" data-domain="adv">Advisory</a> or check result. Point at it for the text.</li>
         <li><i class="bar"></i>The left edge of a card has the state colour.</li>
       </ul>
       <p>An arrow points from the dependency to the package that needs it. Click a card for its details, Esc clears the selection.</p></div></details><span class="gkey-l">Legend</span></div>
@@ -255,10 +255,12 @@ repoctl -C ~/src/slurm-repo graph --target el9 --format dot <button class="copy"
     <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
     <tr><td><kbd>?</kbd></td><td>This help</td></tr>
     <tr><td><kbd>Esc</kbd></td><td>Close a dialog, a menu or leave an input</td></tr>
-  </table><p class="muted">No key starts a build, a cancel or a publish.</p></div>
+  </table><p class="muted">No key starts a <a class="gl" href="../../glossary.html#build" data-gl="build" data-domain="build">build</a>, a cancel or a <a class="gl" href="../../glossary.html#publish" data-gl="publish" data-domain="publish">publish</a>.</p></div>
   <footer><form method="dialog"><button class="btn">Close</button></form></footer>
 </dialog>
 <script src="../assets/shell.js"></script>
 <script src="../assets/graph.js"></script>
+<script src="../../../assets/glossary-data.js"></script>
+<script src="../../../assets/glossary.js"></script>
 </body>
 </html>

@@ -516,13 +516,26 @@ html:has(.scrim),html:has(dialog:modal){overflow:hidden}
 /* the advisories card on a page without an agent: the deterministic hint stays */
 .agent-hint{font-size:12.5px;color:var(--c-text-3)}
 
-/* ---------- glossary domains: data-domain="KEY" gives --gl-c ---------- */
+/* ---------- glossary terms ----------
+   tools/site/glossary.py links the first use of a project word per card, section or dialog:
+   <a class="gl" data-gl="ID" data-domain="KEY">. The underline is dotted; glossary.js shows the
+   hover card with the domain icon and colour. */
 [data-domain="build"]{--gl-c:var(--d-build)}
 [data-domain="publish"]{--gl-c:var(--d-publish)}
 [data-domain="trust"]{--gl-c:var(--d-trust)}
 [data-domain="adv"]{--gl-c:var(--d-adv)}
 [data-domain="agents"]{--gl-c:var(--d-agents)}
 [data-domain="contract"]{--gl-c:var(--d-contract)}
+a.gl{color:inherit;text-decoration:underline dotted;text-decoration-color:var(--c-primary);text-decoration-thickness:1.5px;text-underline-offset:.24em}
+a.gl:hover{color:var(--c-primary-strong);text-decoration-style:solid}
+.gl-card{position:absolute;z-index:90;width:max-content;max-width:min(320px,calc(100vw - 16px));padding:10px 12px 11px;border-radius:var(--r-lg);
+  background:var(--c-surface);border:1px solid var(--c-border-strong);border-top:3px solid var(--gl-c,var(--c-border-strong));box-shadow:var(--shadow-2);
+  font:400 13px/1.5 var(--font-sans);color:var(--c-text-2);pointer-events:none}
+.gl-card-domain{display:flex;align-items:center;gap:6px;color:var(--gl-c);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.gl-card-icon{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.gl-card-term{margin-top:3px;color:var(--c-text);font-size:14px;font-weight:600}
+.gl-card-kind{margin-left:8px;color:var(--c-text-3);font-size:12px;font-weight:400}
+.gl-card-def code{font-size:12px}
 
 /* ---------- motion and forced colours ---------- */
 @media (prefers-reduced-motion:reduce){

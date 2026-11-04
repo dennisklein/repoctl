@@ -78,8 +78,8 @@
           <dt>Elapsed</dt><dd><span class="mono" data-since="2026-11-02T17:50:04+01:00">11m02s</span></dd>
           <dt>Jobs</dt><dd>3, all busy</dd>
           <dt>Targets</dt><dd>el9, el10</dd>
-          <dt>Selection</dt><dd>all packages, from <code>repoctl.lock</code>: ucx (commit changed), slurm, openmpi and slurm-singularity-exec (rebuild: ucx 1.22.1)</dd>
-          <dt>Builds</dt><dd>2 of 8 done · 3 running · 1 failed · 1 blocked · 1 waiting. 13 nodes are current.</dd>
+          <dt>Selection</dt><dd>all <a class="gl" href="../../glossary.html#package" data-gl="package" data-domain="build">packages</a>, from <code>repoctl.lock</code>: ucx (commit changed), slurm, openmpi and slurm-singularity-exec (<a class="gl" href="../../glossary.html#rebuild" data-gl="rebuild" data-domain="build">rebuild</a>: ucx 1.22.1)</dd>
+          <dt>Builds</dt><dd>2 of 8 done · 3 running · 1 failed · 1 blocked · 1 waiting. 13 <a class="gl" href="../../glossary.html#node" data-gl="node" data-domain="build">nodes</a> are current.</dd>
           <dt>Logs</dt><dd><code>~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/</code></dd>
         </dl>
       </details>
@@ -114,9 +114,9 @@ repoctl cancel r-20261102-1750-a3f</div>
 <section class="card fail-card" id="fail-slurm-el10" aria-labelledby="fail-slurm-el10-t">
   <div class="fv-body">
     <h2 id="fail-slurm-el10-t"><a class="node" href="node-log-failed.html">slurm@el10</a> failed: rocm-smi-devel is not available for el10</h2>
-    <p class="fv-meta">Step rpm failed at 18:00:40, after 1m48s. It blocks <a class="mono" href="#node-slurm-singularity-exec-el10">slurm-singularity-exec@el10</a>. The plan warned about this at 17:49.</p>
+    <p class="fv-meta">Step rpm failed at 18:00:40, after 1m48s. It blocks <a class="mono" href="#node-slurm-singularity-exec-el10">slurm-singularity-exec@el10</a>. The <a class="gl" href="../../glossary.html#plan" data-gl="plan" data-domain="build">plan</a> warned about this at 17:49.</p>
     <div class="fv-fix">
-      <p>No el10 repo gives <code>rocm-smi-devel</code>. In this set, only <code>rocm-smi</code> gives it, and <code>rocm-smi</code> builds for el9 only (<code>targets: [el9]</code>). The slurm spec has no <code>%if</code> guard for this BuildRequires. Do one of these:</p>
+      <p>No el10 repo gives <code>rocm-smi-devel</code>. In this <a class="gl" href="../../glossary.html#set" data-gl="set" data-domain="build">set</a>, only <code>rocm-smi</code> gives it, and <code>rocm-smi</code> <a class="gl" href="../../glossary.html#build" data-gl="build" data-domain="build">builds</a> for el9 only (<code>targets: [el9]</code>). The slurm spec has no <code>%if</code> guard for this BuildRequires. Do one of these:</p>
       <ol>
         <li>Guard the BuildRequires in <code>slurm.spec</code>, for example with <code>%if 0%{?rhel} &lt; 10</code>.</li>
         <li>Add <code>el10</code> to the targets of <code>rocm-smi</code>.</li>
@@ -273,7 +273,7 @@ repoctl cancel r-20261102-1750-a3f</div>
   <details class="fold" id="run-staging" hx-get="/s/slurm-26.05/runs/r-20261102-1750-a3f/f/staging" hx-trigger="sse:resync" hx-swap="outerHTML">
     <summary><b>Staging</b><span class="sum">28 new files · ucx on el9 and el10 · 2 repodata updates · not signed</span></summary>
     <div class="fold-body">
-      <p class="fold-note">Results go to staging. Publish is a separate step. The staging repo of this run is <code>~/.local/share/repoctl/slurm-26.05/staging/r-20261102-1750-a3f/</code>. It is not signed.</p>
+      <p class="fold-note">Results go to <a class="gl" href="../../glossary.html#staging" data-gl="staging" data-domain="build">staging</a>. <a class="gl" href="../../glossary.html#publish" data-gl="publish" data-domain="publish">Publish</a> is a separate step. The staging repo of this <a class="gl" href="../../glossary.html#run" data-gl="run" data-domain="build">run</a> is <code>~/.local/share/repoctl/slurm-26.05/staging/r-20261102-1750-a3f/</code>. It is not signed.</p>
       <ul class="files" id="staging-files">
         <li class="new"><span>ucx-1.22.1-1.el10.src.rpm</span><span class="muted">el10 · source</span></li>
         <li><span>ucx-debuginfo-1.22.1-1.el10.x86_64.rpm</span><span class="muted">el10 · debuginfo</span></li>
@@ -325,9 +325,11 @@ repoctl cancel r-20261102-1750-a3f</div>
     <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
     <tr><td><kbd>?</kbd></td><td>This help</td></tr>
     <tr><td><kbd>Esc</kbd></td><td>Close a dialog, a menu or leave an input</td></tr>
-  </table><p class="muted">No key starts a build, a cancel or a publish.</p></div>
+  </table><p class="muted">No key starts a <a class="gl" href="../../glossary.html#build" data-gl="build" data-domain="build">build</a>, a cancel or a <a class="gl" href="../../glossary.html#publish" data-gl="publish" data-domain="publish">publish</a>.</p></div>
   <footer><form method="dialog"><button class="btn">Close</button></form></footer>
 </dialog>
 <script src="../assets/shell.js"></script>
+<script src="../../../assets/glossary-data.js"></script>
+<script src="../../../assets/glossary.js"></script>
 </body>
 </html>
