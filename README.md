@@ -82,3 +82,19 @@ previous and next). The chapter list and the fixed anchors are in
 
 Do not use inline styles or colours. The site CSS gives light and dark mode.
 Write in ASD-STE100 (Simplified Technical English).
+
+### Glossary
+
+The project words are in `docs/assets/glossary-data.js`: the word, its forms,
+its domain and its definition. The build makes `design/glossary.html` from it.
+In each section of a chapter, it links the first use of each word to its entry
+(dotted underline, a hover card with the domain icon and colour). Headings,
+code, links, definitions (`<dfn>`) and table heads stay plain. Put text in
+`<span class="no-gl">` to keep it plain.
+
+The web UI mockups have the same links. Make them again after a change to the
+glossary or to a mockup, then make the screenshots again:
+
+```sh
+python3 tools/site/glossary.py mockups
+```

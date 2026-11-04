@@ -24,6 +24,9 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import glossary as gloss  # noqa: E402  (tools/site/glossary.py)
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 MARKER = ".repoctl-site"
@@ -45,7 +48,7 @@ CODE_LABELS = {"yaml": "YAML", "json": "JSON", "bash": "Bash", "shell": "Shell",
 CONTRACT_CLASSES = set("""
 lede keypoints callout note rule why warn tip callout-title term synopsis tag read
 staging local shared req info ok muted compact steps facts cmd diagram wide
-explainer shot box box-accent box-soft box-ok box-warn box-err box-info box-muted
+explainer shot no-gl glossary gl-index gl-icon gl-term gl-kind gl-see box box-accent box-soft box-ok box-warn box-err box-info box-muted
 zone dot dot-accent edge edge-accent edge-muted edge-ok edge-err t t-title t-small
 t-muted t-mono t-accent t-ok t-warn t-err t-num t-on
 """.split())
@@ -62,7 +65,7 @@ SVG_DEFS = (
     '<marker id="arrow-muted" class="marker marker-muted" viewBox="0 0 10 10" refX="8" refY="5" '
     'markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse">'
     '<path d="M0.5,0.8 L10,5 L0.5,9.2 L2.6,5 Z"/></marker>'
-    "</defs></svg>"
+    "</defs>{symbols}</svg>"
 )
 SYN_TOKEN = re.compile(r"\[[^\]\n]*\](?:\.\.\.)?|[^\s\[]+")
 SYN_LONG = 28
@@ -90,6 +93,16 @@ WIDE_CODE_COLS = 74
 WIDE_TERM_COLS = 76
 TEMPLATE_IDS = {"content", "sidebar", "sidebar-nav", "toc", "toc-label", "search", "search-input",
                 "search-results", "arrow", "arrow-accent", "arrow-muted", "top"}
+# Icons of the pages without a number (nav.json "icon"; the default is "gallery").
+PAGE_ICONS = {
+    "gallery": ('<svg viewBox="0 0 16 16" width="14" height="14">'
+                '<rect x="2" y="2.5" width="5" height="5" rx="1.2"/><rect x="9" y="2.5" width="5" height="5" rx="1.2"/>'
+                '<rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>'),
+    "glossary": ('<svg viewBox="0 0 16 16" width="14" height="14">'
+                 '<path d="M3 3.2c0-.94.76-1.7 1.7-1.7H13v10.3H4.9a.9.9 0 0 0 0 1.8H13V15H4.8A1.8 1.8 0 0 1 3 13.2Z"/></svg>'),
+}
+# The page of the glossary: its body has <div data-build="glossary"></div>.
+GLOSSARY_BLOCK = re.compile(r'<div\s+data-build="glossary"\s*>\s*</div>')
 
 
 # --------------------------------------------------------------------------
@@ -795,6 +808,17 @@ class Site:
         self.home = self.site.get("home", "index.html")
         self.wrapped = {}     # path -> result dict
         self.files = set()    # all output paths
+        # the glossary: data, the domain icons as symbols, the ids of the symbols
+        data = self.src / "assets" / "glossary-data.js"
+        self.glossary = gloss.Glossary(data) if data.is_file() else None
+        symbols = ""
+        self.symbol_ids = set()
+        if self.glossary:
+            for key, d in self.glossary.domains.items():
+                symbols += (f'<symbol id="gl-i-{key}" viewBox="0 0 16 16">'
+                            f'<path d="{esc(d["icon"])}"/></symbol>')
+                self.symbol_ids.add(f"gl-i-{key}")
+        self.svg_defs = SVG_DEFS.replace("{symbols}", symbols)
 
     def problem(self, msg, kind="other"):
         """A problem that fails the build with --strict."""
@@ -816,9 +840,7 @@ class Site:
             for p in part["pages"]:
                 num = p.get("number")
                 num_html = (f'<span class="nav-num">{num}</span>' if num is not None else
-                            '<span class="nav-num" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14">'
-                            '<rect x="2" y="2.5" width="5" height="5" rx="1.2"/><rect x="9" y="2.5" width="5" height="5" rx="1.2"/>'
-                            '<rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg></span>')
+                            f'<span class="nav-num" aria-hidden="true">{PAGE_ICONS[p.get("icon", "gallery")]}</span>')
                 title = esc(p["short"])
                 if p["path"] not in self.available:
                     items.append(f'<li><span class="nav-link is-missing" title="Not written yet">{num_html}'
@@ -905,9 +927,9 @@ class Site:
             for p in part["pages"]:
                 num = p.get("number")
                 num_html = (f'<span class="card-num">{num}</span>' if num is not None
-                            else '<span class="card-num card-num-icon" aria-hidden="true"><svg viewBox="0 0 16 16" width="20" height="20">'
-                            '<rect x="2" y="2.5" width="5" height="5" rx="1.2"/><rect x="9" y="2.5" width="5" height="5" rx="1.2"/>'
-                            '<rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg></span>')
+                            else '<span class="card-num card-num-icon" aria-hidden="true">'
+                            + PAGE_ICONS[p.get("icon", "gallery")].replace('width="14" height="14"', 'width="20" height="20"')
+                            + '</span>')
                 body = (f'{num_html}<span class="card-body"><span class="card-title">{esc(p["title"])}</span>'
                         f'<span class="card-desc">{esc(p["description"])}</span></span>')
                 if p["path"] in self.available:
@@ -919,6 +941,29 @@ class Site:
                        f'<ul class="chapter-grid">{"".join(cards)}</ul></div>')
         return "".join(out)
 
+    # -- the glossary page
+    def glossary_block(self, page):
+        """The body of the glossary page: an A-Z index, then one section per domain."""
+        g = self.glossary
+        titles = {p["path"]: p["short"] for p in self.pages}
+        index = " ".join(f'<a href="#{t["id"]}">{esc(t["term"])}</a>' for t in g.terms)
+        out = [f'<p class="gl-index">{index}</p>']
+        for key, d in g.domains.items():
+            terms = [t for t in g.terms if t["domain"] == key]
+            out.append(f'<h2 id="d-{key}"><svg class="gl-icon" data-domain="{key}" viewBox="0 0 16 16" role="img" '
+                       f'aria-label="Domain"><use href="#gl-i-{key}"/></svg>{esc(d["name"])}</h2>')
+            out.append(f'<dl class="glossary" data-domain="{key}">')
+            for t in terms:
+                see = t["see"]
+                target = posixpath.normpath(posixpath.join("design", see.split("#")[0]))
+                label = titles.get(target, see)
+                out.append(f'<dt id="{t["id"]}"><span class="gl-term">{esc(t["term"])}</span>'
+                           f'<span class="gl-kind">{esc(t["kind"])}</span></dt>'
+                           f'<dd>{t["def"]} <span class="gl-see"><a href="{esc(rel(page, posixpath.join("design", see)))}">'
+                           f'{esc(label)}</a></span></dd>')
+            out.append("</dl>")
+        return "\n".join(out)
+
     # -- one wrapped page
     def wrap(self, page, meta):
         src_file = self.src / page
@@ -927,6 +972,8 @@ class Site:
         fr.feed(text)
         fr.close()
         body, body_line = fr.body()
+        if self.glossary and GLOSSARY_BLOCK.search(body):
+            body = GLOSSARY_BLOCK.sub(lambda m: self.glossary_block(page), body, count=1)
         title = fr.title or ""
         desc = fr.description or (meta or {}).get("description", "")
         if not fr.title:
@@ -947,7 +994,7 @@ class Site:
             "eyebrow": eyebrow,
             "custom": is_home or (meta or {}).get("custom", False),
             "blocks": {"chapters": self.chapter_cards(page)},
-            "used_ids": set(TEMPLATE_IDS),
+            "used_ids": set(TEMPLATE_IDS) | self.symbol_ids,
             "toc_marker": not is_home,
         }
         rw = Rewriter(page, ctx)
@@ -966,6 +1013,12 @@ class Site:
         inline_toc = self.toc_html(rw.toc, inline=True) if sum(1 for t in rw.toc if t[0] == 2) >= 3 else ""
         content = content.replace("\x00TOC\x00", inline_toc, 1).replace("\x00TOC\x00", "")
         content = SHORT_CODE.sub(short_code, content)
+        gl_used = []
+        if self.glossary and not ctx["custom"] and page != gloss.PAGE:
+            to = rel(page, gloss.PAGE)
+            content, gl_used = gloss.link(content, self.glossary, gloss.DOCS, lambda tid: f"{to}#{tid}")
+            for tid in gl_used:
+                rw.links.append(("a", "href", f"{to}#{tid}", body_line))
 
         # lint
         if len(rw.h1) != 1:
@@ -985,7 +1038,7 @@ class Site:
         for tag, attr, v, line in rw.resources:
             self.problem(f"{page}:{line}: external resource <{tag} {attr}={v!r}>", "external")
 
-        ids = set(seen) | TEMPLATE_IDS
+        ids = set(seen) | TEMPLATE_IDS | self.symbol_ids
         absent = [a for a in (meta or {}).get("anchors", []) if a not in ids]
         if absent:
             self.problem(f"{page}: " + " ".join("#" + a for a in absent), "anchors")
@@ -995,6 +1048,8 @@ class Site:
             section = "mockups"
         elif page == "design/contract.html":
             section = "contract"
+        elif page == gloss.PAGE:
+            section = "glossary"
         elif is_home:
             section = ""
         classes = ["page"] + (["page-home"] if is_home else ["page-doc"]) + [f"page-{c}" for c in body_cls]
@@ -1013,6 +1068,9 @@ class Site:
         scripts = []
         if rw.has_code:
             scripts.append(f'<script src="{root}assets/vendor/highlight.min.js" defer></script>')
+        if gl_used or page == gloss.PAGE:
+            scripts.append(f'<script src="{root}assets/glossary-data.js" defer></script>')
+            scripts.append(f'<script src="{root}assets/glossary.js" defer></script>')
         scripts.append(f'<script src="{root}assets/site.js" defer></script>')
         commit = self.commit
         commit_html = (f'<a class="footer-commit" href="{esc(self.site["repo"])}/commit/{esc(commit)}">'
@@ -1035,7 +1093,7 @@ class Site:
             "content": content,
             "pager": self.pager(page) if not is_home else "",
             "toc": rail,
-            "svg_defs": SVG_DEFS,
+            "svg_defs": self.svg_defs,
             "scripts": "\n".join(scripts),
             "commit": commit_html,
             "source_link": esc(f'{self.site["repo"]}/blob/{self.site.get("branch", "main")}/{src_rel}'),
