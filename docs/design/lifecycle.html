@@ -269,7 +269,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td><a href="#add">Add a package</a></td><td>package branch, builder branch</td><td><code>new-package</code></td></tr>
 <tr><td><a href="#add-external">Add an external package</a></td><td>external server, builder branch</td><td><code>new-package</code></td></tr>
 <tr><td><a href="#stream">Add a second stream</a></td><td>package branch, builder branch</td><td><code>new-package</code></td></tr>
-<tr><td><a href="#some-targets">Some targets only</a></td><td>builder branch</td><td>no node on the other targets</td></tr>
+<tr><td><a href="#some-targets">Some targets only</a></td><td>builder branch</td><td>no node on the other targets; <code>retired.published</code></td></tr>
 <tr><td><a href="#retire">Retire a package</a></td><td>builder branch</td><td>no node; <code>retired.published</code></td></tr>
 <tr><td><a href="#rename">Rename a dir or a branch</a></td><td>builder branch</td><td><code>current</code></td></tr>
 <tr><td><a href="#rename">Rename the RPM</a></td><td>package branch, builder branch</td><td><code>commit-changed</code></td></tr>
@@ -332,7 +332,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <h3 id="some-targets">Build a package for some targets only</h3>
 <ol class="steps">
 <li>Add <code>targets: [el9]</code> to the entry. Commit and push. Repository: the builder branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: the nodes on the other targets show "removed from the set". A dependent on another target gets <code>dep.not-for-target</code> (warn, <a href="build.html#graph">graph per target</a>).</li>
+<li>Run <code>repoctl plan</code>. Expect: no node on the other targets. The advisory <code>retired.published</code> (info) names the RPMs that stay published there. A dependent on another target gets <code>dep.not-for-target</code> (warn, <a href="build.html#graph">graph per target</a>).</li>
 <li>The published RPMs of the package on the other targets stay. The package is retired on those targets. To remove them, follow <a href="#retire">Retire a package</a> from step 5.</li>
 </ol>
 <p>Example: rocm-smi is built for el9 only. slurm@el10 requires <code>rocm-smi-devel</code>, so the plan warns before the build.</p>
