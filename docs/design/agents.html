@@ -459,6 +459,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
   <li>The time limit is <code>agent.timeout</code> (user config, default 10m). At the limit, the server stops the agent as Stop does, and the state is failed with the cause "time limit 10m".</li>
   <li>The agent is a child of the server in its own process group. It is not detached, because it only reads. A stop of the server stops each running agent as Stop does. At its start, the server changes each stored result with state running to failed, with the cause "the server stopped". Thus no old result holds the slot of a set.</li>
   <li>The server keeps each result in <code>$XDG_STATE_HOME/repoctl/&lt;set&gt;/agent/&lt;id&gt;.json</code>. The agent id has the form <code>a-YYYYMMDD-HHMM-xxx</code>, for example <code>a-20261102-1800-7c1</code>. <code>?agent=&lt;id&gt;</code> on any set page opens the panel again.</li>
+  <li>The server keeps the newest <code>state.keep_agent</code> results of a set (user config, default 50). When it stores a result, it deletes the older results and each result whose input run is gone. <code>repoctl clean --logs</code> applies the same rule. <code>?agent=&lt;id&gt;</code> of a deleted result gives the 404 page.</li>
 </ul>
 <p>The server runs the agent in the set directory with this command line. <code>agent.command</code> and <code>agent.args</code> come from the <a href="#agent-config">user config</a>. repoctl adds the rest:</p>
 <pre class="term">$ claude -p "/triage-build r-20261102-1750-a3f/slurm@el10" \
