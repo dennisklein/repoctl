@@ -532,7 +532,10 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
 <p><code>repoctl rebuild DIR... --reason TEXT</code> prepares a new build of a package with the same version. It does not start a build. For each package, repoctl adds an empty commit <code>Rebuild: TEXT</code> to the package branch, then pins it in <code>repoctl.lock</code>. rpmautospec counts commits, so the release goes up by one, and the changelog shows the reason. The next plan gives the action build with the reason rebuild on all targets of the package.</p>
 <ul>
   <li>The reason is required, with at least 8 characters. The UI dialog has the same rule.</li>
-  <li>The worktree must be in-sync, and the lock commit must be the tip of the local branch (<a href="lifecycle.html#lock-states">lock states</a>). Else repoctl stops with exit 5.</li>
+  <li>The worktree of each dir must be in-sync: its HEAD is the lock commit, and no tracked file has a change (<a href="lifecycle.html#lock-states">lock states</a>). Else repoctl stops with exit 5 and <code>lock.dirty</code>.</li>
+  <li>repoctl adds the commit on HEAD. This is the local branch of the package (<a href="cli.html#local-branch">local branch</a>), or the detached HEAD of a shared branch that another worktree has. After the pin, the worktree is in-sync at the new commit.</li>
+  <li>All or nothing: repoctl checks every dir before the first commit. When a check fails, it makes no commit and does not write the lock. When a commit fails, repoctl resets each branch of this call to its lock commit. Thus the same command again after a failure gives one new release, not two.</li>
+  <li>An in-tree package has no branch, and an empty set commit does not change its path. rebuild refuses its dir with exit 2. A change under its path is a set commit.</li>
   <li>repoctl fetches the remote branch first and warns when it has new commits.</li>
   <li>repoctl never pushes. The Next lines give the push of each package branch and the commit of the lock.</li>
   <li>A rebuild applies to all targets of the package, because the commit is per package.</li>
@@ -546,7 +549,7 @@ Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmp
       git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push
       repoctl build</pre>
 <aside class="callout why"><p class="callout-title">Why a commit</p><p>Each build gets a new NVR, so two builds never share an NVR. Fedora mass rebuilds work the same way: rpmautospec raises the release for each commit, also for an empty one. The reason stays in git and in the changelog.</p></aside>
-<p>The word "rebuild" means only this command, on all surfaces. The MCP tool <code>repoctl_rebuild</code> makes the same local commits and does not push (<a href="agents.html#mcp-tools">MCP tools</a>). The web UI has the Rebuild dialog (<a href="ui-build.html#rebuild-dialog">Rebuild dialog</a>). Synopsis and exit codes: <a href="cli.html#cmd-rebuild">repoctl rebuild</a>.</p>
+<p>The word "rebuild" means only this command, on all surfaces. The MCP tool <code>repoctl_rebuild</code> makes the same local commits, pins them and does not push (<a href="agents.html#mcp-tools">MCP tools</a>). The web UI has the Rebuild dialog (<a href="ui-build.html#rebuild-dialog">Rebuild dialog</a>). Synopsis and exit codes: <a href="cli.html#cmd-rebuild">repoctl rebuild</a>.</p>
 
 <h2 id="force">Forced builds</h2>
 <p><code>repoctl build --force</code> builds the selected nodes into staging, also when they are current. The plan reason is forced. This is for tests, for example after a change of the mock config. The commit does not change, so rpmautospec gives the same NVR.</p>

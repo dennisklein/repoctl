@@ -900,7 +900,7 @@
     {
       "name": "repoctl_rebuild",
       "title": "Rebuild with a new release",
-      "description": "Make an empty commit in the package branch so that rpmautospec raises the release, and let the next plan show the reason rebuild. Use it when an advisory says that a dependent needs a rebuild, or when the build must run again for the same version. It does not push, does not pin and does not build: the result names the push command and then repoctl pin. It refuses a dirty worktree (lock.dirty). Returns kind Lock.",
+      "description": "Make an empty commit in the package branch so that rpmautospec raises the release, and let the next plan show the reason rebuild. Use it when an advisory says that a dependent needs a rebuild, or when the build must run again for the same version. It pins the new commit in repoctl.lock, as repoctl rebuild does. It does not push and does not build: the result names the push command and the commit of repoctl.lock. It refuses a worktree that is not in-sync (lock.dirty) and a dir of an in-tree package. It checks every dir before the first commit: when one dir fails, it makes no commit. Returns kind Lock.",
       "inputSchema": {
         "type": "object",
         "properties": {

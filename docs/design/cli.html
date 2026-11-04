@@ -523,8 +523,8 @@ Next: git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</pre>
 <section class="cmd" id="cmd-rebuild">
   <h4><code>repoctl rebuild</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl rebuild DIR... --reason TEXT [--dry-run]</pre>
-  <p>Add an empty commit <code>Rebuild: TEXT</code> to the branch of each package and pin it (<a href="build.html#rebuild">build.html#rebuild</a>). rpmautospec counts commits, so the release goes up by one. The reason needs 8 characters or more. The worktree must be in-sync, and the lock commit must be the tip of the local branch. The rebuild applies to all targets of the package. <code>--dry-run</code> shows the new NVRs.</p>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>one commit per package branch; <code>repoctl.lock</code></dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0; 1; 2 no reason, or a reason that is too short; 5 the worktree is not in-sync; 7</dd></dl>
+  <p>Add an empty commit <code>Rebuild: TEXT</code> to the local branch of each package and pin it (<a href="build.html#rebuild">build.html#rebuild</a>, <a href="#local-branch">local branch</a>). rpmautospec counts commits, so the release goes up by one. The reason needs 8 characters or more. Each worktree must be in-sync: its HEAD is the lock commit, and it has no change. rebuild checks every dir before the first commit. When one dir fails, it makes no commit and does not write the lock. The rebuild applies to all targets of the package. <code>--dry-run</code> shows the new NVRs.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>one commit per package branch; <code>repoctl.lock</code></dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0; 1; 2 no reason, a reason that is too short, or the dir of an in-tree package; 5 a worktree is not in-sync (<code>lock.dirty</code>), no commit is made; 7</dd></dl>
   <pre class="term">$ repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"
 slurm                   65bc535 → d42f66a  26.05.4-1 → 26.05.4-2
 openmpi                 e2670a4 → 65a37e5  5.0.11-1 → 5.0.11-2
