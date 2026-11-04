@@ -369,7 +369,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 <tr><td>2</td><td><code>ExitUsage</code></td><td>repoctl rejected the command line before it acted. Causes: unknown flag or command, bad value, a selector without nodes, <code>--progress tree</code> without a terminal, <code>--accept-advisory</code> for an id that does not block, <code>--hold</code> for a node that is current or staged. No envelope.</td><td></td></tr>
 <tr><td>3</td><td><code>ExitBuildFailed</code></td><td>A node failed, or a failed node blocks it. The staging and the logs stay.</td><td><code>node.failed</code>, <code>node.blocked</code></td></tr>
 <tr><td>4</td><td><code>ExitNothingToPublish</code></td><td>Nothing to do: no node is staged, or prune, gc or resign finds nothing.</td><td><code>publish.nothing-to-publish</code></td></tr>
-<tr><td>5</td><td><code>ExitLockDirty</code></td><td>A worktree is not in-sync with <code>repoctl.lock</code>, or a set input is not committed or not pushed. A lock that does not agree with <code>repoctl.yaml</code> and a stale key file also give 5.</td><td><code>lock.dirty</code>, <code>lock.behind</code> (pin DIR), <code>lock.diverged</code>, <code>lock.unpushed</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code>, <code>sign.keyfile-stale</code></td></tr>
+<tr><td>5</td><td><code>ExitLockDirty</code></td><td>A worktree is not in-sync with <code>repoctl.lock</code>, or a set input is not committed or not pushed. A lock that does not agree with <code>repoctl.yaml</code>, a stale key file and a stale <code>.repo</code> file also give 5.</td><td><code>lock.dirty</code>, <code>lock.behind</code> (pin DIR), <code>lock.diverged</code>, <code>lock.unpushed</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code>, <code>sign.keyfile-stale</code>, <code>sign.repofile-stale</code></td></tr>
 <tr><td>6</td><td><code>ExitNeedsConfirmation</code></td><td>The command needs a human: no terminal, a wrong answer, or a trust change without the typed key id. Without a terminal, <code>--yes</code> also needs <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code>.</td><td><code>publish.needs-confirmation</code>, <code>publish.unattended-refused</code>, <code>sign.trust-change</code></td></tr>
 <tr><td>7</td><td><code>ExitBusy</code></td><td>Another process holds the set lock, the clone lock of an external package or the host mock lock, and <code>--lock-wait</code> ended. There is no build queue.</td><td><code>set.busy</code>, <code>git.busy</code>, <code>mock.busy</code></td></tr>
 <tr><td>8</td><td><code>ExitDoctorWarning</code></td><td>Only with <code>doctor --strict</code>: a check gave a warning, none failed.</td><td></td></tr>
@@ -879,7 +879,7 @@ a.admin   …E93F 52A7   active    no record                                   2
   <h4><code>repoctl sign add</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl sign add ID --fingerprint FPR [--from-gpg | --file FILE]</pre>
   <p>Export the public key from the local gpg or card (default), or read FILE, to <code>keys/ID.asc</code>. Compare it with the full fingerprint FPR and check gate 3, the key format (<a href="signing.html#gates">signing.html#gates</a>). Add the entry with state active, run release write and make one set commit <code>Trust key ID FPR</code>, signed with the key of <code>sign.key</code> (<a href="security.html#set-inputs">security.html#set-inputs</a>). A new key cannot sign the publish that adds it. add refuses an id or a fingerprint that <code>sign.keys</code> has in any state (<code>sign.key-exists</code>).</p>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>keys/ID.asc</code>, the key file and the <code>.repo</code> file; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.key-exists</code>; 5 the set has uncommitted changes; 7; 9 <code>sign.key-format</code>, <code>sign.no-key</code></dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>keys/ID.asc</code>, the key file and the <code>.repo</code> files; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.key-exists</code>; 5 the set has uncommitted changes; 7; 9 <code>sign.key-format</code>, <code>sign.no-key</code></dd></dl>
   <pre class="term">$ repoctl sign add a.admin --fingerprint C2F9771305ABE4D618C39F2B70DEA5C1E93F52A7    # hpc-a2, 14:40
 wrote keys/a.admin.asc                          A. Admin &lt;a.admin@gsi.de&gt; · expires 2028-03-01
 wrote packages/slurm-release/RPM-GPG-KEY-slurm  3 keys: a.admin, d.klein, hpc-repo
@@ -892,7 +892,7 @@ Next: git push origin builder/slurm-26.05</pre>
   <pre class="synopsis">repoctl sign retire ID</pre>
   <p>Set the key state of an active key to retiring. A retiring key cannot sign; its RPMs stay, and clients still trust it. retire runs release write and makes one set commit, signed with the key of <code>sign.key</code>. The <code>Next:</code> line gives <code>repoctl repo resign --signer ID</code>.</p>
   <p>retire refuses the last deployed signer: for each target with a latest, another active key must have a deployment record. Else it stops with <code>sign.last-signer</code>. Deploy a second key first (<a href="signing.html#onboarding">signing.html#onboarding</a>).</p>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> file; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.wrong-state</code>; 5; 7; 9 <code>sign.no-key</code>; 12 <code>sign.last-signer</code></dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> files; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.wrong-state</code>; 5; 7; 9 <code>sign.no-key</code>; 12 <code>sign.last-signer</code></dd></dl>
 </section>
 
 <section class="cmd" id="cmd-sign-activate">
@@ -906,14 +906,14 @@ Next: git push origin builder/slurm-26.05</pre>
   <h4><code>repoctl sign remove</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl sign remove ID</pre>
   <p>Set the key state of a retiring key to removed and write a key file without the key. remove refuses while latest of a target holds an RPM that the key signed (<code>sign.key-in-use</code>). remove makes one set commit, signed with the key of <code>sign.key</code>. Then build and publish the new release package; config management removes the key on the clients.</p>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> file; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.wrong-state</code>; 5; 7; 9 <code>sign.no-key</code>; 12 <code>sign.key-in-use</code></dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> files; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.wrong-state</code>; 5; 7; 9 <code>sign.no-key</code>; 12 <code>sign.key-in-use</code></dd></dl>
 </section>
 
 <section class="cmd" id="cmd-sign-revoke">
   <h4><code>repoctl sign revoke</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl sign revoke ID</pre>
   <p>End the trust in a compromised key at once (<a href="signing.html#compromise">signing.html#compromise</a>). revoke asks for the typed key id, sets the state revoked, writes a key file without the key and makes one set commit <code>Revoke key ID FPR</code>. It works from each state except revoked, also for the last deployed signer and while latest holds RPMs of the key. When no other key is deployed for a target, it warns, and the <code>Next:</code> line gives the recovery steps (<a href="signing.html#recovery">signing.html#recovery</a>). Else the <code>Next:</code> line gives <code>repoctl sign offboard ID</code>. A revoked key never comes back.</p>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> file; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.wrong-state</code>; 5; 6 no terminal, or a wrong key id; 7</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> files; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1 <code>sign.wrong-state</code>; 5; 6 no terminal, or a wrong key id; 7</dd></dl>
 </section>
 
 <section class="cmd" id="cmd-sign-deployed">
@@ -942,8 +942,8 @@ Next: git push origin builder/slurm-26.05</pre>
 <section class="cmd" id="cmd-release-write">
   <h4><code>repoctl release write</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl release write</pre>
-  <p>Write the key file from <code>sign.keys</code> (active and retiring keys, sorted by id) and the baseurl lines of the <code>.repo</code> file from <code>repo.url</code> (<a href="signing.html#release">signing.html#release</a>). It does not commit. sign add, retire and remove call it. Run it by hand after a change of <code>repo.url</code> and in a new set (step 3 of <code>help new-set</code>).</p>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>the key file and the <code>.repo</code> file of the release package</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1; 7</dd></dl>
+  <p>Write the key file from <code>sign.keys</code> (active and retiring keys, sorted by id) and the whole <code>.repo</code> file of each target, <code>&lt;repo.name&gt;-&lt;target&gt;.repo</code> (<a href="signing.html#repo-file">signing.html#repo-file</a>). It does not commit. sign add, retire and remove call it. Run it by hand after a change of <code>repo.url</code> and in a new set (step 3 of <code>help new-set</code>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>the key file and the <code>.repo</code> files of the release package</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1; 7</dd></dl>
 </section>
 
 <h3 id="group-check">Check commands</h3>

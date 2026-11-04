@@ -179,7 +179,7 @@ packages:
     upstream: {github: GSI-HPC/slurm-singularity-exec}
   - dir: slurm-release
     path: packages/slurm-release   # in-tree: no branch, %autorelease in its spec
-    role: release                  # "repoctl release write" writes its key file and .repo file
+    role: release                  # "repoctl release write" writes its key file and .repo files
 
 skills: [.claude/skills]           # optional set-local skills; they can only add</code></pre>
 <table class="compact">
@@ -480,7 +480,7 @@ sets:
 <tr><td>Upstream check</td><td>GitHub tags and releases, the Fedora version.</td><td><code>upstream</code> kinds GitLab, PyPI, URL pattern.</td></tr>
 <tr><td>Signing</td><td>Personal keys with local gpg (YubiKey or key file), many trusted keys, <code>sign.backend: gpg</code>.</td><td>Other backends: central signing over an agent socket, no signing for CI, sops.</td></tr>
 <tr><td>Publish</td><td>Snapshots in an OCI registry (<code>store.oci</code>). The HTTP server at <code>repo.url</code> is a mirror.</td><td>Other registries, other mirror kinds.</td></tr>
-<tr><td>Release package</td><td>An in-tree spec. <code>repoctl release write</code> writes the key file and the <code>.repo</code> baseurl.</td><td>A release package that repoctl writes in full.</td></tr>
+<tr><td>Release package</td><td>An in-tree spec. <code>repoctl release write</code> writes the key file and each <code>.repo</code> file in full.</td><td>A release spec that repoctl writes too.</td></tr>
 <tr><td>Host</td><td>Fedora only. The mock chroots are EL9 and EL10.</td><td>repoctl on EL.</td></tr>
 <tr><td>Architecture</td><td><code>x86_64</code> only. One architecture per target (<a href="#targets">many targets</a>).</td><td>A second architecture as a new target with its own id, mock config, OCI package and client path, for example <code>el9-aarch64</code> with <code>rocky+epel-9-aarch64</code>. Its <code>noarch</code> packages build again on that target.</td></tr>
 </tbody>

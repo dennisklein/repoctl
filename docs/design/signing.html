@@ -236,7 +236,7 @@
 <thead><tr><th>Link</th><th>Fact</th><th>Rule</th></tr></thead>
 <tbody>
 <tr><td>Set → key file</td><td>One file can hold many keys (F14).</td><td><code>repoctl release write</code> writes the key file from the keys in state active and retiring, sorted by id. Publish refuses a key file that differs (<code>sign.keyfile-stale</code>, exit 5), and doctor reports it (<code>sign.keyfile</code>).</td></tr>
-<tr><td>Key file → client</td><td>The key file is not <code>%config</code>; an update replaces it (F18). dnf imports each key from <code>gpgkey=</code> when it meets an unknown key (F1, F13).</td><td>The <code>.repo</code> file keeps one <code>gpgkey=</code> line. Its <code>baseurl</code> lines come from <code>repo.url</code> (<a href="#release">release package</a>).</td></tr>
+<tr><td>Key file → client</td><td>The key file is not <code>%config</code>; an update replaces it (F18). dnf imports each key from <code>gpgkey=</code> when it meets an unknown key (F1, F13).</td><td>The <code>.repo</code> file keeps one <code>gpgkey=</code> line. <code>repoctl release write</code> writes all its lines (<a href="#repo-file">the .repo file</a>).</td></tr>
 <tr><td>Client → new key</td><td>A client reads a new key only from an installed release package (option B).</td><td><a href="#gates">Gate 2</a>.</td></tr>
 <tr><td>Client → removed key</td><td>A release package cannot remove a key (F16). rpm does not update an imported key (F12).</td><td>Re-sign first, then a new key file, then config management removes the key (<a href="#offboarding">offboarding</a>).</td></tr>
 <tr><td>Bootstrap</td><td>A new client has no key.</td><td><code>repoctl sign keyfile --checksum</code> prints the sha256 of the key file. Config management installs the key file with this pinned sum, then installs the release package with <code>gpgcheck</code> on.</td></tr>
@@ -282,7 +282,7 @@
 <line class="edge" x1="528" y1="56" x2="542" y2="56" marker-end="url(#arrow)"/>
 <line class="edge" x1="704" y1="56" x2="718" y2="56" marker-end="url(#arrow)"/>
 <rect class="box-warn" x="16" y="128" width="424" height="104" rx="8"/>
-<text class="t t-title" x="32" y="152">Trust change: the release has a new key file</text>
+<text class="t t-title" x="32" y="152">Trust change: a new key file or .repo file</text>
 <text class="t-small" x="32" y="174">the summary shows the trust block</text>
 <text class="t-small" x="32" y="194">the human types the key id of each added key</text>
 <text class="t-small t-muted" x="32" y="214">sign.trust-change · 6 without the answer</text>
@@ -345,7 +345,7 @@ deployments:
 <p>A key is deployed for a command when gate 2 passes for each target in scope that has a latest. The scope is the selected targets of a publish, or the targets of the command. Thus <code>repoctl sign ls</code> shows hpc-repo as not deployed: el10 has a latest, and hpc-repo has no el10 record. hpc-repo signs nothing new, because it is retiring.</p>
 
 <h2 id="trust-block">Trust block</h2>
-<p>When the release package of a publish has a new key file, the summary shows the trust block. The block is for the human who publishes, and it needs a typed answer even with <code>--yes</code>. That human is the second key holder of the change: a key that the release adds cannot sign this publish (gate 2). For each change, the block gives the set commit and the key that signed it (<a href="security.html#set-inputs">security.html#set-inputs</a>). The story publish of slurm-release-26.05-3 by d.klein:</p>
+<p>When the release package of a publish has a new key file or a new <code>.repo</code> file, the summary shows the trust block. For a <code>.repo</code> file, the block shows each changed line. The block is for the human who publishes, and it needs a typed answer even with <code>--yes</code>. That human is the second key holder of the change: a key that the release adds cannot sign this publish (gate 2). For each change, the block gives the set commit and the key that signed it (<a href="security.html#set-inputs">security.html#set-inputs</a>). The story publish of slurm-release-26.05-3 by d.klein:</p>
 <pre class="term">trust    slurm-release-26.05-3 changes the key file of all clients
          + a.admin  C2F9 7713 05AB E4D6 18C3  9F2B 70DE A5C1 E93F 52A7
                     added in set commit 7e21d0a by A. Admin &lt;a.admin@gsi.de&gt;, signed by a.admin
@@ -353,7 +353,7 @@ deployments:
          a.admin cannot sign until "repoctl sign deployed a.admin" (gate 2)
 Type the key id of each added key to continue: a.admin
 Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pre>
-<p>Without the answer, publish stops with <code>sign.trust-change</code> (exit 6). The web UI asks for the same key id in step 2 Confirm (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>).</p>
+<p>A change of the <code>.repo</code> file without an added key needs no key id. Then the typed set name is the answer, and <code>--yes</code> does not skip it. Without the answer, publish stops with <code>sign.trust-change</code> (exit 6). The web UI asks for the same key id in step 2 Confirm (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>).</p>
 
 <h2 id="verify-el">Verify in the EL chroot</h2>
 <p>repoctl runs on Fedora, with rpm 6 and rpm-sequoia. The clients use EL9 rpm 4.16 and EL10 rpm 4.19. Thus step 4 (verify on the host) can pass while a client fails. Step 5 (verify-el) checks each target with the client tools:</p>
@@ -361,7 +361,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
   <li><code>repoctl mock update</code> also makes one verify root per target (<a href="build.html#mock">build.html#mock</a>). A verify root is the mock config of the target, plus rpm, dnf and gnupg2.</li>
   <li>Step 5 mounts the new tree and the key file read-only into that root (mock <code>bind_mount</code> plugin).</li>
   <li>Inside the root, repoctl imports the key file into a temporary rpmdb and runs <code>rpmkeys --checksig</code> on each RPM.</li>
-  <li>Inside the root, repoctl runs <code>dnf makecache</code> on a temporary installroot. The new tree is a <code>file://</code> repository with <code>gpgcheck=1</code>, <code>repo_gpgcheck=1</code> and <code>gpgkey=</code> the key file. This runs the librepo signature check of the client.</li>
+  <li>Inside the root, repoctl runs <code>dnf makecache</code> on a temporary installroot. It uses the <code>.repo</code> file of the release in the client trust set, with each <code>baseurl</code> changed to the <code>file://</code> URL of the new tree. Thus the check has the <code>gpgcheck</code>, <code>repo_gpgcheck</code> and <code>gpgkey</code> lines of the clients. This runs the librepo signature check of the client.</li>
 </ol>
 <aside class="callout rule">
 <p class="callout-title">Rule: client trust set</p>
@@ -393,13 +393,64 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <ul>
   <li>The build identity of an in-tree package is the last set commit that changed its path, plus the target. repoctl builds it from a checkout of that commit. A key change is a commit on that path, so the plan says build with the reason commit-changed (<a href="build.html#plan">build.html#plan</a>).</li>
   <li>The spec uses <code>%autorelease</code> and <code>%autochangelog</code>. The changelog then shows the commit message of each key change, for example "Trust key a.admin C2F9…52A7". Admins see each trust change in <code>rpm -q --changelog</code>.</li>
-  <li><code>repoctl release write</code> <span class="tag local">local write</span> writes the key file <code>RPM-GPG-KEY-slurm</code> from <code>sign.keys</code>: the keys in state active and retiring, sorted by id. It also writes the <code>baseurl</code> lines of the <code>.repo</code> file from <code>repo.url</code>. It does not commit. <code>sign add</code>, <code>sign retire</code> and <code>sign remove</code> call it and commit both files with the key change. In a new set, the human runs it in step 3 of <a href="lifecycle.html#help-new-set">help new-set</a>. Command: <a href="cli.html#cmd-release-write">release write</a>.</li>
+  <li><code>repoctl release write</code> <span class="tag local">local write</span> writes the key file <code>RPM-GPG-KEY-slurm</code> from <code>sign.keys</code>: the keys in state active and retiring, sorted by id. It also writes the whole <code>.repo</code> file of each target (<a href="#repo-file">the .repo file</a>). It does not commit. <code>sign add</code>, <code>sign retire</code> and <code>sign remove</code> call it and commit the files with the key change. In a new set, the human runs it in step 3 of <a href="lifecycle.html#help-new-set">help new-set</a>. Command: <a href="cli.html#cmd-release-write">release write</a>.</li>
   <li>The <code>.repo</code> file keeps one <code>gpgkey=</code> URL. It does not change when the team changes (F18).</li>
   <li>The release package cannot remove keys from the clients (F16). <code>repoctl sign offboard ID</code> prints the commands for config management.</li>
   <li>For the bootstrap of a new client, <code>repoctl sign keyfile --checksum</code> prints the sha256 of the key file (<a href="cli.html#cmd-sign-keyfile">sign keyfile</a>).</li>
 </ul>
-<p>Doctor checks <code>sign.keyfile</code> (the key file equals <code>sign.keys</code>) and <code>release.url</code> (the <code>baseurl</code> lines equal <code>repo.url</code>). The release-version check <code>release.version</code> compares the <code>Version</code> of the release package with the version in the set name: 26.05 for slurm-26.05. A difference is a warning. A set name without a version, for example <code>repoctl</code>, has no release-version check (<a href="config.html#generic">the "generic" test</a>). A stale key file stops publish with <code>sign.keyfile-stale</code> (exit 5); the hint is <code>repoctl release write</code>, then commit.</p>
+<p>Doctor checks <code>sign.keyfile</code> (the key file equals <code>sign.keys</code>), <code>release.url</code> (the <code>baseurl</code> lines equal <code>repo.url</code> and <code>targets[].path</code>) and <code>release.repo</code> (each <code>.repo</code> file equals the file that release write writes). The release-version check <code>release.version</code> compares the <code>Version</code> of the release package with the version in the set name: 26.05 for slurm-26.05. A difference is a warning. A set name without a version, for example <code>repoctl</code>, has no release-version check (<a href="config.html#generic">the "generic" test</a>). A stale key file stops publish with <code>sign.keyfile-stale</code> (exit 5). A <code>.repo</code> file that differs stops publish with <code>sign.repofile-stale</code> (exit 5). For both, the hint is <code>repoctl release write</code>, then commit.</p>
 <p>In the story, the key file of slurm-release-26.05-1 holds hpc-repo, and slurm-release-26.05-2 adds d.klein. The set commit 7e21d0a adds a.admin, so the next build gives slurm-release-26.05-3.</p>
+<h3 id="repo-file">The .repo file</h3>
+<p><code>repoctl release write</code> owns each line of the <code>.repo</code> file. It writes one file per target into the directory of the release package: <code>&lt;repo.name&gt;-&lt;target&gt;.repo</code>, for example <code>packages/slurm-release/slurm-el9.repo</code>. The file of el9 in the story:</p>
+<pre><code class="language-ini"># slurm-26.05 el9. Written by "repoctl release write". Do not edit.
+[slurm]
+name=slurm-26.05 el9
+baseurl=https://repo.example.org/slurm-26.05/el9/slurm/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-slurm
+metadata_expire=1h
+
+[slurm-source]
+name=slurm-26.05 el9 source
+baseurl=https://repo.example.org/slurm-26.05/el9/slurm-source/
+enabled=0
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-slurm
+metadata_expire=1h
+
+[slurm-debuginfo]
+name=slurm-26.05 el9 debuginfo
+baseurl=https://repo.example.org/slurm-26.05/el9/slurm-debuginfo/
+enabled=0
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-slurm
+metadata_expire=1h</code></pre>
+<table class="compact">
+<thead><tr><th>Line</th><th>Value</th><th>From</th></tr></thead>
+<tbody>
+<tr><td>section (repo id)</td><td><code>&lt;repo.name&gt;</code>, <code>&lt;repo.name&gt;-source</code>, <code>&lt;repo.name&gt;-debuginfo</code>. The source section only with <code>repo.source: true</code>, the debuginfo section only with <code>repo.debuginfo: true</code>.</td><td><code>repo.*</code></td></tr>
+<tr><td><code>name</code></td><td>the set name and the target id, then <code>source</code> or <code>debuginfo</code></td><td><code>name</code>, <code>targets[].id</code></td></tr>
+<tr><td><code>baseurl</code></td><td><code>&lt;repo.url&gt;/&lt;targets[].path&gt;/&lt;repo&gt;/</code></td><td><code>repo.url</code>, <code>targets[].path</code></td></tr>
+<tr><td><code>enabled</code></td><td>1 for the binary repository, 0 for source and debuginfo</td><td>fixed</td></tr>
+<tr><td><code>gpgcheck</code>, <code>repo_gpgcheck</code></td><td>1</td><td>fixed (<a href="#chain">client trust chain</a>)</td></tr>
+<tr><td><code>gpgkey</code></td><td>one URL: <code>file:///etc/pki/rpm-gpg/&lt;sign.release.keyfile&gt;</code></td><td><code>sign.release.keyfile</code></td></tr>
+<tr><td><code>metadata_expire</code></td><td><code>1h</code></td><td>fixed</td></tr>
+</tbody>
+</table>
+<p>The file has no other line. A change by hand gives <code>sign.repofile-stale</code> in publish and a failed <code>release.repo</code> in doctor.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: the spec of the release package</p>
+<ul>
+  <li>repoctl defines the macro <code>%repoctl_target</code> (the target id) in each rpmspec and mock call of the package with <code>role: release</code>. The spec uses it to select its file: <code>Source1: slurm-%{repoctl_target}.repo</code>.</li>
+  <li>The spec installs that file as <code>/etc/yum.repos.d/&lt;repo.name&gt;.repo</code> and the key file as <code>/etc/pki/rpm-gpg/&lt;sign.release.keyfile&gt;</code>.</li>
+  <li>The spec marks the <code>.repo</code> file <code>%config</code>, not <code>%config(noreplace)</code>. An update then replaces a file that a human changed, and rpm keeps the old file as <code>.rpmsave</code>. Thus a new <code>repo.url</code> or <code>gpgkey=</code> line reaches each client (F18 gives the problem of <code>noreplace</code>).</li>
+</ul>
+</aside>
+<p>Do not change the <code>.repo</code> file on a client. For one dnf call, use <code>dnf --enablerepo=slurm-source</code> or <code>--disablerepo=slurm</code>. A change to the trust lines is a change of the set: edit <code>repoctl.yaml</code>, run <code>repoctl release write</code> and commit.</p>
 
 <h2 id="expiry">Key expiry</h2>
 <p>rpm does not update an imported key (F12). EL10 does not trust an expired key (F6). Thus a new expiry date does not reach the clients.</p>
@@ -730,7 +781,8 @@ Next: check each publish, then repoctl repo resign --signer a.admin --target el9
 <tr><td><code>sign.deployed</code></td><td>The key of this human has a deployment record for each target, and the release of the record is in latest.</td></tr>
 <tr><td><code>sign.keyfile</code></td><td>The key file of the in-tree release package equals <code>sign.keys</code> (states active and retiring).</td></tr>
 <tr><td><code>sign.release</code></td><td>The release package in latest has the same key file. It warns between a key change and the publish of the new release.</td></tr>
-<tr><td><code>release.url</code></td><td>The <code>baseurl</code> lines of the <code>.repo</code> file equal <code>repo.url</code>.</td></tr>
+<tr><td><code>release.url</code></td><td>The <code>baseurl</code> lines of each <code>.repo</code> file equal <code>repo.url</code> and <code>targets[].path</code>.</td></tr>
+<tr><td><code>release.repo</code></td><td>Each <code>.repo</code> file of the release package equals the file that <code>repoctl release write</code> writes, line by line (<a href="#repo-file">the .repo file</a>).</td></tr>
 <tr><td><code>release.version</code></td><td>The <code>Version</code> of the release package equals the version in the set name. Off for a set name without a version.</td></tr>
 <tr><td><code>sign.retiring</code></td><td>A key in state retiring still signs RPMs in latest. It warns with the hint to resign.</td></tr>
 <tr><td><code>sign.repomd</code></td><td>Each <code>repomd.xml.asc</code> in latest has exactly one signature packet.</td></tr>
