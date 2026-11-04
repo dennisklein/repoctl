@@ -39,7 +39,7 @@
 <tr><td>Admin</td><td>An active and deployed key, push access to the set repository, a GHCR token.</td><td>Build, sign and publish. Change the trust records.</td></tr>
 <tr><td>New admin</td><td>An active key without a deployment record.</td><td>Build into staging. A publish stops at gate 2 (<a href="signing.html#onboarding">signing.html#onboarding</a>).</td></tr>
 <tr><td>Leaver</td><td>A retiring or removed key. Push access and a token until the offboarding ends.</td><td>Gate 1 refuses the key. The access ends with step 6 of the offboarding (<a href="signing.html#offboarding">signing.html#offboarding</a>).</td></tr>
-<tr><td>Agent in a terminal</td><td>The permissions of the human, limited by the tool list of the skill (<a href="agents.html#tool-lists">agents.html#tool-lists</a>).</td><td>Read, build into staging, edit and commit in a package worktree. It never pushes, publishes or signs.</td></tr>
+<tr><td>Agent in a terminal</td><td>The permissions of the human, limited by the tool list of the skill, the deny list and the guard hook (<a href="agents.html#tool-lists">agents.html#tool-lists</a>, <a href="agents.html#guard">agents.html#guard</a>).</td><td>Read, build into staging, edit and commit in a package worktree. It never pushes, publishes or signs.</td></tr>
 <tr><td>UI agent</td><td>The read-only MCP server (<a href="agents.html#ui-agent">agents.html#ui-agent</a>).</td><td>Read.</td></tr>
 <tr><td>Organization owner</td><td>Owner rights in the GitHub organization.</td><td>Set the rulesets, the package visibility and the team members.</td></tr>
 <tr><td>Config management</td><td>Root on the clients and on the HTTP server.</td><td>Install the release package. Remove a key from the clients.</td></tr>
@@ -88,7 +88,7 @@
 <rect class="box-warn" x="252" y="322" width="268" height="72" rx="8"/>
 <text class="t-title" x="268" y="346">Agent session</text>
 <text class="t-small" x="268" y="366">skills, read MCP tools</text>
-<text class="t-small" x="268" y="384">tool list, deny list</text>
+<text class="t-small" x="268" y="384">tool list, deny list, guard hook</text>
 <line class="edge-accent" x1="386" y1="322" x2="386" y2="266" marker-end="url(#arrow-accent)"/>
 <text class="t-small t-accent" x="396" y="298">B7 tool calls</text>
 <rect class="box-soft" x="252" y="408" width="268" height="36" rx="8"/>
@@ -160,7 +160,7 @@
 <tr><td>B4</td><td>GHCR to the HTTP server: the pull of the mirror job.</td><td>The mirror job verifies each <code>repomd.xml.asc</code> and each RPM with the key file that config management installed (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
 <tr><td>B5</td><td>HTTP server to the clients: dnf over HTTPS.</td><td><code>repo_gpgcheck=1</code> and <code>gpgcheck=1</code> with the client keyrings (<a href="signing.html#chain">signing.html#chain</a>).</td></tr>
 <tr><td>B6</td><td>Config management to the clients and the HTTP server: the release package and the key removal.</td><td>Outside repoctl. A human confirms the result with a deployment record (<a href="signing.html#deployment-record">signing.html#deployment-record</a>).</td></tr>
-<tr><td>B7</td><td>Agent session to the admin host: tool calls.</td><td>The tool list of the skill, the MCP server without shared-state tools and the deny list (<a href="agents.html#deny">agents.html#deny</a>).</td></tr>
+<tr><td>B7</td><td>Agent session to the admin host: tool calls.</td><td>The tool list of the skill, the MCP server without shared-state tools, the deny list and the guard hook (<a href="agents.html#deny">agents.html#deny</a>).</td></tr>
 </tbody>
 </table>
 

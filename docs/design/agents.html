@@ -11,7 +11,7 @@
 <ul class="keypoints">
   <li>Five generic skills ship with repoctl: <code>repoctl</code>, <code>package-updates</code>, <code>bump-package</code>, <code>triage-build</code> and <code>rebuild-check</code>. Package facts live in <code>repoctl.yaml</code>, not in a skill.</li>
   <li>A set can add skills for local policy. A set-local skill can never replace a generic skill.</li>
-  <li>Each task has its own tool list. <code>allowed-tools</code> only grants, so <code>repoctl skills install --project</code> also writes a deny list.</li>
+  <li>Each task has its own tool list. <code>allowed-tools</code> only grants, so each install path for Claude Code also adds a deny list and the guard hook.</li>
   <li><code>repoctl mcp start</code> serves 28 tools for one set. <code>--tools read</code> limits the server to the 23 read tools. No tool changes shared state.</li>
   <li>A step that only a human can take comes back as a problem with a <dfn>humanAction</dfn>. The agent stops and shows the command.</li>
   <li>The web UI has four advisory buttons. Each runs a local agent with a fixed skill, a fixed input and the read-only MCP server.</li>
@@ -51,7 +51,7 @@
 <ul>
   <li>The deterministic core does the work. Plan, build, check, advisories, gates and publish give the same result for the same input. An agent never replaces them.</li>
   <li>The agent does judgment work: it explains a failure, decides whether a rebuild is necessary, summarizes release notes and drafts a version bump. It gives a verdict with evidence, and it changes nothing.</li>
-  <li>A human does every step that changes shared state. The shared-state rules are in <a href="cli.html#safety">cli.html#safety</a>. No MCP tool exists for such a step, and the deny list blocks the CLI command.</li>
+  <li>A human does every step that changes shared state. The shared-state rules are in <a href="cli.html#safety">cli.html#safety</a>. No MCP tool exists for such a step, and the deny list and the guard hook block the CLI command.</li>
   <li>Skills call repoctl. They never call mock, rpmsign, createrepo_c or gpg directly.</li>
   <li>Every surface works without an agent. The plain diagnosis of repoctl stays when no agent is set (<a href="ui.html#loud">ui.html#loud</a>).</li>
   <li>Log lines, spec text, commit subjects, advisory facts and release notes are untrusted data. Tool descriptions and skills say that they are data, not instructions.</li>
@@ -96,8 +96,8 @@
 </table>
 <p>The generic skills reach an agent in four ways:</p>
 <ul>
-  <li>The Claude Code plugin on branch <code>main</code> holds the skills and declares the MCP server (<a href="#mcp-start">start and registration</a>).</li>
-  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. <code>--user</code> (the default) writes <code>~/.claude/skills/&lt;name&gt;/</code>. <code>--project</code> writes <code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>, adds the paths to <code>.git/info/exclude</code> and merges the <a href="#deny">deny list</a> into <code>.claude/settings.json</code>. The command replaces copies that repoctl installed and refuses a file that a human changed.</li>
+  <li>The Claude Code plugin on branch <code>main</code> holds the skills, declares the MCP server (<a href="#mcp-start">start and registration</a>) and registers the <a href="#guard">guard hook</a>.</li>
+  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. <code>--user</code> (the default) writes <code>~/.claude/skills/&lt;name&gt;/</code> and merges the <a href="#deny">deny list</a> and the guard hook into <code>~/.claude/settings.json</code>. <code>--project</code> writes <code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>, adds the paths to <code>.git/info/exclude</code> and merges the deny list and the guard hook into <code>&lt;set&gt;/.claude/settings.json</code>. The command replaces copies that repoctl installed and refuses a file that a human changed.</li>
   <li>The RPM puts them in <code>/usr/share/repoctl/skills/</code> (<code>repoctl skills path</code>).</li>
   <li>The MCP resource <code>repoctl://skills/{name}</code> serves them to a client without skill support.</li>
 </ul>
@@ -170,7 +170,7 @@ allowed-tools:
 <tr><td>terminal</td><td><code>repoctl</code></td><td>the 23 read tools, <code>repoctl_build</code></td><td>Bash: the read commands and <code>repoctl build</code></td></tr>
 <tr><td>terminal</td><td><code>package-updates</code></td><td><code>upstream</code>, <code>show</code></td><td>WebFetch, WebSearch, Agent</td></tr>
 <tr><td>UI: Summarize upstream release</td><td><code>package-updates</code></td><td><code>upstream</code>, <code>show</code></td><td>WebFetch</td></tr>
-<tr><td>terminal</td><td><code>bump-package</code> apply</td><td><code>status</code>, <code>show</code>, <code>upstream</code>, <code>pin</code>, <code>rebuild</code>, <code>plan</code>, <code>build</code>, <code>run_wait</code>, <code>repo_diff</code>, <code>advisory</code></td><td>Read, Edit, WebFetch, Skill, <code>git -C packages/</code></td></tr>
+<tr><td>terminal</td><td><code>bump-package</code> apply</td><td><code>status</code>, <code>show</code>, <code>upstream</code>, <code>pin</code>, <code>rebuild</code>, <code>plan</code>, <code>build</code>, <code>run_wait</code>, <code>repo_diff</code>, <code>advisory</code></td><td>Read, Edit of <code>packages/**</code>, WebFetch, Skill, <code>git -C packages/</code> (the <a href="#guard">guard hook</a> allows only add and commit in a package worktree)</td></tr>
 <tr><td>UI: Draft version bump; terminal <code>--draft</code></td><td><code>bump-package</code> draft</td><td><code>status</code>, <code>show</code>, <code>upstream</code>, <code>plan</code>, <code>advisory</code></td><td>Read, WebFetch</td></tr>
 <tr><td>UI: Explain failure; terminal</td><td><code>triage-build</code></td><td><code>runs</code>, <code>run_get</code>, <code>logs</code>, <code>graph</code>, <code>show</code>, <code>doctor</code></td><td>Read, Grep</td></tr>
 <tr><td>UI: Is a rebuild necessary?; terminal</td><td><code>rebuild-check</code></td><td><code>advisory</code>, <code>advisories</code>, <code>plan</code>, <code>graph</code>, <code>show</code>, <code>repo_diff</code></td><td>Read, Grep</td></tr>
@@ -179,7 +179,17 @@ allowed-tools:
 <p>The table drops the prefix <code>repoctl_</code> of the MCP tool names. A UI task never gets <code>repoctl_build</code>, <code>repoctl_rebuild</code>, Edit or Bash.</p>
 
 <h2 id="deny">Deny list</h2>
-<p><code>allowed-tools</code> only grants. It cannot forbid. For this reason <code>repoctl skills install --project</code> also merges deny rules into <code>.claude/settings.json</code> of the set. The list covers every command of the safety class shared state, the trust commands and the tools that repoctl calls for the human:</p>
+<p><code>allowed-tools</code> only grants. It cannot forbid. For this reason each install path for Claude Code adds two guards: a static deny list in the Claude Code settings and the <a href="#guard">guard hook</a>. They cover every command of the safety class shared state, the trust commands, the tools that repoctl calls for the human, the git commands that only a human runs, and the set inputs (<a href="security.html#set-inputs">security.html#set-inputs</a>).</p>
+<table class="compact">
+<thead><tr><th>Install path</th><th>Skills</th><th>Guard hook and static deny list</th></tr></thead>
+<tbody>
+<tr><td>Claude Code plugin (branch <code>main</code>)</td><td>in the plugin</td><td><code>hooks/hooks.json</code> of the plugin registers the guard hook. The guard also applies the static deny list, so the plugin needs no settings file.</td></tr>
+<tr><td><code>skills install --user</code> (the default)</td><td><code>~/.claude/skills/&lt;name&gt;/</code></td><td>merged into <code>~/.claude/settings.json</code></td></tr>
+<tr><td><code>skills install --project</code></td><td><code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code></td><td>merged into <code>&lt;set&gt;/.claude/settings.json</code></td></tr>
+<tr><td>RPM files, MCP resource</td><td><code>/usr/share/repoctl/skills/</code>, <code>repoctl://skills/{name}</code></td><td>None. An agent that reads the skills in this way has no guard hook. The MCP server has no shared-state tool (<a href="#not-exposed">not exposed</a>).</td></tr>
+</tbody>
+</table>
+<p>The settings that <code>skills install</code> merges. The list has no rule for one set, so it stays correct when a package or a set is added:</p>
 <pre><code class="language-json">{
   "permissions": {
     "deny": [
@@ -190,12 +200,37 @@ allowed-tools:
       "Bash(repoctl advisories dismiss:*)", "Bash(repoctl advisories undismiss:*)",
       "Bash(rpmsign:*)", "Bash(rpm --addsign:*)", "Bash(rpm --resign:*)", "Bash(gpg:*)",
       "Bash(mock:*)", "Bash(createrepo_c:*)", "Bash(git push:*)",
-      "Bash(git -C packages/munge push:*)", "Bash(git -C packages/ucx push:*)"
+      "Bash(git -C .:*)", "Bash(git -C packages/..:*)",
+      "Edit(repoctl.yaml)", "Write(repoctl.yaml)", "Edit(repoctl.lock)", "Write(repoctl.lock)",
+      "Edit(keys/**)", "Write(keys/**)", "Edit(.repoctl/**)", "Write(.repoctl/**)",
+      "Edit(.claude/**)", "Write(.claude/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {"matcher": "Bash|Edit|Write|NotebookEdit",
+       "hooks": [{"type": "command", "command": "repoctl skills guard"}]}
     ]
   }
 }</code></pre>
-<p>The rule <code>Bash(git push:*)</code> does not match <code>git -C packages/ucx push</code>, and mode apply of bump-package allows the prefix <code>git -C packages/</code>. For this reason the deny list also has one rule <code>Bash(git -C packages/DIR push:*)</code> for each package worktree. <code>skills install --project</code> writes these rules from the dirs of <code>repoctl.yaml</code>; the listing shows two of the ten rules of the story set. A deny rule wins over an allow rule. Test V21 checks both rules (<a href="delivery.html#verification">delivery.html#verification</a>).</p>
+<p>A prefix rule cannot see a path. The rule <code>Bash(git push:*)</code> does not match <code>git -C packages/ucx push</code>, and mode apply of bump-package allows the prefix <code>git -C packages/</code>. That prefix also matches <code>git -C packages/ucx/.. commit</code>, which commits on the builder branch. The guard hook closes these gaps. A deny rule wins over an allow rule. Test V21 checks the rules and the hook (<a href="delivery.html#verification">delivery.html#verification</a>).</p>
 <p><code>Bash(repoctl sign:*)</code> also blocks <code>repoctl sign ls</code>. An agent reads the signing keys through the MCP tools <code>repoctl_sign_ls</code> and <code>repoctl_sign_onboard</code>.</p>
+<h3 id="guard">Guard hook</h3>
+<p><code>repoctl skills guard</code> is a PreToolUse hook of Claude Code. Claude Code runs it before each call of Bash, Edit, Write and NotebookEdit and gives it the call as JSON on stdin. The guard finds the set from the working directory of the call (<a href="config.html#discovery">config.html#discovery</a>). Outside a set directory, it gives no decision. In a set directory, it reads <code>repoctl.yaml</code> at each call, so a new or renamed package needs no new rule. The guard denies the call when a row of the table matches. Else it gives no decision, and the normal permission rules apply.</p>
+<table class="compact">
+<thead><tr><th>Call</th><th>The guard denies when</th></tr></thead>
+<tbody>
+<tr><td>Bash, each simple command</td><td>It matches a rule of the static deny list. The guard splits the line at <code>;</code>, <code>&amp;&amp;</code>, <code>||</code>, <code>|</code> and line ends.</td></tr>
+<tr><td>Bash</td><td>The line has a form that the guard cannot check: a command substitution, <code>eval</code>, <code>sh -c</code>, <code>bash -c</code> or <code>xargs</code>.</td></tr>
+<tr><td>git</td><td>The command has <code>-c</code>, <code>--git-dir</code>, <code>--work-tree</code> or <code>--namespace</code>, or sets <code>GIT_DIR</code>, <code>GIT_WORK_TREE</code> or <code>GIT_INDEX_FILE</code>.</td></tr>
+<tr><td>git</td><td>The subcommand is <code>push</code>, in any work tree.</td></tr>
+<tr><td>git in the set directory</td><td>The subcommand is not <code>status</code>, <code>diff</code>, <code>log</code> or <code>show</code>. The guard finds the work tree from each <code>-C DIR</code> and the working directory, with symlinks and <code>..</code> resolved.</td></tr>
+<tr><td>git in a package worktree</td><td>The work tree is <code>packages/DIR</code> of a package of the set, and the subcommand is not <code>status</code>, <code>diff</code>, <code>log</code>, <code>show</code>, <code>add</code> or <code>commit</code>.</td></tr>
+<tr><td>Edit, Write, NotebookEdit; in Bash a redirection and the paths of <code>tee</code>, <code>cp</code>, <code>mv</code>, <code>rm</code>, <code>ln</code> and <code>sed -i</code></td><td>The resolved path is a set input, or it is in <code>.repoctl/</code>, <code>.claude/</code>, <code>.git/</code>, <code>.mcp.json</code>, <code>CLAUDE.md</code>, <code>~/.claude/</code> or the repoctl user config directory.</td></tr>
+</tbody>
+</table>
+<p>A deny goes back to the agent with the reason, and the agent shows the command to the human. Claude Code applies the deny of a hook in each permission mode. The guard writes the decision in the hook format of Claude Code, not in the <code>--json</code> envelope.</p>
+<p><code>repoctl doctor</code> warns with <code>skills.guard</code> when a skill of repoctl is installed or the plugin is on and no guard hook covers the set directory. It also warns when the static deny list of a settings file differs from the list of this binary. The fix is <code>repoctl skills install</code> with the same scope.</p>
 
 <h2 id="mcp">MCP server</h2>
 <p>The MCP server gives an agent the repoctl commands as tools with typed input and the <code>--json</code> envelope as output. The tool definitions are in <a href="contract/schema/mcp-tools.json"><code>contract/schema/mcp-tools.json</code></a>. <code>repoctl mcp tools</code> prints the same file. Command block: <a href="cli.html#cmd-mcp">cli.html#cmd-mcp</a>.</p>
@@ -292,7 +327,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>sign add|retire|remove</code>, <code>release write</code></td><td>Trust commands. They change which keys the clients trust.</td></tr>
 <tr><td><code>advisories dismiss|undismiss</code></td><td>A dismissal is a committed team file (<a href="advisories.html#dismissals">advisories.html#dismissals</a>). An acceptance is part of a publish.</td></tr>
 <tr><td><code>repo pull</code>, <code>clean</code>, <code>mock *</code></td><td>They replace the local copy, delete caches or change a mock chroot.</td></tr>
-<tr><td><code>init</code>, <code>migrate</code>, <code>ui</code>, <code>mcp</code>, <code>skills install</code>, <code>completion</code></td><td>Setup of a set or a host. Not a task for an agent.</td></tr>
+<tr><td><code>init</code>, <code>migrate</code>, <code>ui</code>, <code>mcp</code>, <code>skills install|guard</code>, <code>completion</code></td><td>Setup of a set or a host. Not a task for an agent.</td></tr>
 <tr><td>cancel of a foreign run</td><td>The run does not have origin <code>mcp</code> of this user: the CLI, the web UI or another user started it.</td></tr>
 </tbody>
 </table>
