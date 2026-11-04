@@ -2272,6 +2272,36 @@
           "type": "boolean",
           "description": "Built with --from worktree. Such a run is never publishable."
         },
+        "cancelRequested": {
+          "type": "object",
+          "description": "From the last run.cancel-requested event. Present while the run is interrupting and after a cancel.",
+          "required": [
+            "by",
+            "at"
+          ],
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/RunOrigin"
+            },
+            "user": {
+              "type": "string"
+            },
+            "reason": {
+              "enum": [
+                "signal",
+                "ui",
+                "mcp",
+                "deadline"
+              ]
+            },
+            "force": {
+              "type": "boolean"
+            },
+            "at": {
+              "$ref": "#/$defs/Time"
+            }
+          }
+        },
         "signer": {
           "$ref": "#/$defs/Signer",
           "description": "Publish runs only."

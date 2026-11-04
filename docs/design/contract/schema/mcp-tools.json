@@ -143,6 +143,30 @@
             "type": "boolean",
             "default": false,
             "description": "Plan the selected nodes as build even if current or staged (reason forced)."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "lock",
+              "worktree"
+            ],
+            "default": "lock",
+            "description": "lock: pinned commits. worktree: worktree HEAD commits, as repoctl_build with from worktree."
+          },
+          "withDeps": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also select the transitive dependencies of dirs."
+          },
+          "rdeps": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also select the packages that depend on dirs."
+          },
+          "check": {
+            "type": "boolean",
+            "default": false,
+            "description": "repoctl plan --check: _meta repoctl/exitCode is 11 when a node has the action build."
           }
         },
         "additionalProperties": false
@@ -782,6 +806,11 @@
             "type": "boolean",
             "default": false,
             "description": "Stop after the first failure. Default: keep going with independent nodes."
+          },
+          "withDeps": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also select the transitive dependencies of dirs. It changes the result only with force."
           },
           "rdeps": {
             "type": "boolean",
