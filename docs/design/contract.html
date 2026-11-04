@@ -132,7 +132,7 @@
 <tr><td><code>repoctl.yaml</code></td><td><code>apiVersion</code></td><td><a href="config.html#set-config">repoctl.yaml</a></td></tr>
 <tr><td><code>repoctl.lock</code></td><td><code>apiVersion</code></td><td><a href="config.html#lock">repoctl.lock</a></td></tr>
 <tr><td>RepoManifest of each target repo</td><td><code>apiVersion</code>, <code>kind</code></td><td><a href="model.html#manifest">RepoManifest</a></td></tr>
-<tr><td><code>keys/deployed.yaml</code></td><td><code>apiVersion</code>, <code>kind: KeyDeployments</code></td><td><a href="signing.html#gates">Gates</a></td></tr>
+<tr><td><code>keys/deployed.yaml</code></td><td><code>apiVersion</code>, <code>kind: KeyDeployments</code></td><td><a href="signing.html#deployment-record">Deployment record</a></td></tr>
 <tr><td><code>.repoctl/advisories.yaml</code></td><td><code>apiVersion</code></td><td><a href="advisories.html#dismissals">Dismissal file</a></td></tr>
 <tr><td>Run journal</td><td><code>v</code> (1)</td><td><a href="#journal">Event journal</a></td></tr>
 <tr><td>Progress log</td><td>go-clikit event log v1</td><td>go-clikit</td></tr>
@@ -247,6 +247,7 @@
 <tr><td><a href="contract/schema/mcp-tools.json">mcp-tools.json</a></td><td>The MCP tools with input schemas, output kinds, classes and annotations; the tool modes; the resources</td><td><code>tools/list</code> of <code>repoctl mcp start</code>; <a href="agents.html#mcp-tools">Tools</a></td></tr>
 </tbody>
 </table>
+<p><code>output.schema.json</code> also holds the file schema of <code>keys/deployed.yaml</code>: <code>$defs/KeyDeployments</code>, with one <code>KeyDeploymentEntry</code> per key and target. <code>repoctl schema deployments</code> prints it.</p>
 <p>The <code>$id</code> values are <code>https://gsi-hpc.github.io/repoctl/schema/v1alpha1/output.json</code> and <code>…/events.json</code>. The Envelope selects the schema of the items by kind. Excerpt:</p>
 <pre><code class="language-json">"Envelope": {
   "type": "object",

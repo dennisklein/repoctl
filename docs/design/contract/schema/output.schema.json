@@ -4398,6 +4398,71 @@
         }
       }
     },
+    "KeyDeployments": {
+      "type": "object",
+      "description": "File schema of keys/deployed.yaml (repoctl schema deployments). repoctl writes one entry per key and target, sorted by key, then target. When two entries have one key and target, the entry with the newest at wins.",
+      "required": [
+        "apiVersion",
+        "kind",
+        "deployments"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "apiVersion": {
+          "const": "repoctl/v1alpha1"
+        },
+        "kind": {
+          "const": "KeyDeployments"
+        },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KeyDeploymentEntry"
+          }
+        }
+      }
+    },
+    "KeyDeploymentEntry": {
+      "type": "object",
+      "description": "One entry of keys/deployed.yaml: a human confirmed that all clients of the target, and the keyring of its mirror line, have the release NVR with the key.",
+      "required": [
+        "key",
+        "target",
+        "fingerprint",
+        "release",
+        "confirmedBy",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Key id in sign.keys."
+        },
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$",
+          "description": "Full fingerprint. It must equal the fingerprint of the key in sign.keys."
+        },
+        "release": {
+          "type": "string",
+          "description": "NVR of the release package with the dist tag, e.g. slurm-release-26.05-3.el9."
+        },
+        "confirmedBy": {
+          "type": "string",
+          "description": "Key id of the human who ran repoctl sign deployed."
+        },
+        "at": {
+          "$ref": "#/$defs/Time"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
     "OnboardReport": {
       "type": "object",
       "required": [

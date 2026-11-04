@@ -326,7 +326,7 @@
 <p>Config management gives no feedback to repoctl. A published release package does not prove that the clients have it. If a key signs before the clients have it, dnf on the clients cannot read the metadata. Thus a human checks the clients and confirms the deployment.</p>
 </aside>
 <h3 id="deployment-record">Deployment record</h3>
-<p><code>repoctl sign deployed ID --release NVR --target ID</code> records that config management installed the release NVR on all clients of the target. Config management also put the key file of that release at the keyring of the mirror line of the target (<a href="publish.html#mirror">publish.html#mirror</a>). The record is per target. repoctl checks that the release is in latest of each selected target and that its key file holds the key. For an import, <code>--path DIR</code> names the tree instead of latest. Then it asks the human to type the key id, writes <code>keys/deployed.yaml</code> and makes a set commit. The human pushes it. The command also prints the pin of the client bootstrap for the target (<a href="#bootstrap">bootstrap</a>).</p>
+<p><code>repoctl sign deployed ID --release NVR --target ID...</code> records that config management installed the release NVR on all clients of the target. Config management also put the key file of that release at the keyring of the mirror line of the target (<a href="publish.html#mirror">publish.html#mirror</a>). The record is per target, and <code>--target</code> is required: without it, the command stops with a usage error (exit 2). repoctl checks that the release is in latest of each selected target and that its key file holds the key. For an import, <code>--path DIR</code> names the tree instead of latest. Then it asks the human to type the key id, writes <code>keys/deployed.yaml</code> and makes a set commit. The human pushes it. The command also prints the pin of the client bootstrap for the target (<a href="#bootstrap">bootstrap</a>). <code>--dry-run</code> runs the checks and shows the entries, and writes nothing.</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: who confirms</p>
 <p>repoctl signs the set commit of the record with the key of <code>sign.key</code>, and <code>confirmedBy</code> is the id of that key. The key must be active. It must not be the key of the record while another key is active: <code>sign.self-confirm</code>, exit 12. Publish checks the signature of each record (<a href="security.html#set-inputs">security.html#set-inputs</a>).</p>
@@ -344,17 +344,47 @@
 <p class="callout-title">Rule: key file record</p>
 <p>Use a key file record when a key must sign before a release package with the key can be published: in an emergency (<a href="#emergency">emergency</a>), or when a failed node makes the target not publishable (<a href="publish.html#takes">publish.html#takes</a>). Publish the release package with the same key file at the next publish of the target. Doctor <code>sign.release</code> warns until then.</p>
 </aside>
-<pre><code class="language-yaml"># keys/deployed.yaml: the entry of the story, 2026-11-05 09:12 (el9 only)
-apiVersion: repoctl/v1alpha1
+<p>The file <code>keys/deployed.yaml</code> holds one entry per key and target. The story file after the record of a.admin, 2026-11-05 09:12:</p>
+<pre><code class="language-yaml">apiVersion: repoctl/v1alpha1
 kind: KeyDeployments
-deployments:
+deployments:                       # one entry per key and target, sorted by key, then target
   - key: a.admin
+    target: el9
     fingerprint: C2F9771305ABE4D618C39F2B70DEA5C1E93F52A7
-    release: {el9: slurm-release-26.05-3.el9}
+    release: slurm-release-26.05-3.el9
     confirmedBy: d.klein
     at: 2026-11-05T09:12:00Z
-    note: "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters"</code></pre>
-<p>The file also holds the entries of the other keys. d.klein has slurm-release-26.05-2 for el9 (confirmed by d.klein on 2026-09-10) and for el10 (2026-09-15). hpc-repo has slurm-release-26.05-1 for el9 only, confirmed by d.klein on 2026-08-28 with the import; el10 had no clients then. a.admin gets the el10 record only after slurm-release-26.05-3 is in latest of el10, and that publish waits for the fix of slurm@el10.</p>
+    note: "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters"
+  - key: d.klein
+    target: el10
+    fingerprint: 4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E
+    release: slurm-release-26.05-2.el10
+    confirmedBy: d.klein
+    at: 2026-09-15T09:03:52Z
+  - key: d.klein
+    target: el9
+    fingerprint: 4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E
+    release: slurm-release-26.05-2.el9
+    confirmedBy: d.klein
+    at: 2026-09-10T08:41:17Z
+  - key: hpc-repo
+    target: el9
+    fingerprint: 9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2
+    release: slurm-release-26.05-1.el9
+    confirmedBy: d.klein
+    at: 2026-08-28T14:52:40Z
+    note: "import p-import-20260828; el10 had no clients then"</code></pre>
+<p>hpc-repo has no el10 entry: el10 had no clients at the import. a.admin gets the el10 entry only after slurm-release-26.05-3 is in latest of el10, and that publish waits for the fix of slurm@el10.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: the file keys/deployed.yaml</p>
+<ul>
+  <li>Each entry has <code>key</code>, <code>target</code>, the full <code>fingerprint</code>, <code>release</code> (the NVR with the dist tag), <code>confirmedBy</code>, <code>at</code> and an optional <code>note</code>. The fingerprint must equal the fingerprint of the key in <code>sign.keys</code>; else gate 2 does not count the entry.</li>
+  <li>repoctl writes one entry per key and target, sorted by key, then by target. A new record of a key and target replaces the old entry. The git history keeps the old one.</li>
+  <li>When the file has two entries for one key and target, for example after a git merge, the entry with the newest <code>at</code> wins. The next command that writes the file keeps only that entry.</li>
+  <li><code>repoctl schema deployments</code> prints the JSON Schema of the file (<a href="contract.html#schemas">contract.html#schemas</a>).</li>
+</ul>
+</aside>
+<p>After a git conflict in <code>keys/deployed.yaml</code>, keep the entries of both sides and commit. After a conflict in <code>sign.keys</code> of <code>repoctl.yaml</code>, keep the keys of both sides, run <code>repoctl release write</code> for the key file and the <code>.repo</code> files, and commit. <code>repoctl help signing</code> gives the same steps.</p>
 <p>A key is deployed for a command when gate 2 passes for each target in scope that has a latest. The scope is the selected targets of a publish, or the targets of the command. Thus <code>repoctl sign ls</code> shows hpc-repo as not deployed: el10 has a latest, and hpc-repo has no el10 record. hpc-repo signs nothing new, because it is retiring.</p>
 
 <h2 id="trust-block">Trust block</h2>
@@ -547,7 +577,7 @@ metadata_expire=1h</code></pre>
 <tbody>
 <tr><td><a href="cli.html#cmd-sign-add"><code>sign add ID --fingerprint FPR</code></a></td><td><span class="tag local">local write</span></td><td>Exports the public key from the local gpg or card (or reads <code>--file</code>) to <code>keys/ID.asc</code>. Checks the fingerprint and gate 3. Adds the entry with state active, runs release write and makes one set commit "Trust key ID FPR". It never pushes.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-onboard"><code>sign onboard ID</code></a></td><td><span class="tag read">read</span></td><td>Checks the five onboarding steps and prints the next command.</td></tr>
-<tr><td><a href="cli.html#cmd-sign-deployed"><code>sign deployed ID --release NVR</code></a></td><td><span class="tag shared">shared state</span></td><td>Writes the <a href="#deployment-record">deployment record</a> after a typed key id. <code>--keyfile SHA256</code> writes a key file record.</td></tr>
+<tr><td><a href="cli.html#cmd-sign-deployed"><code>sign deployed ID --release NVR --target ID</code></a></td><td><span class="tag shared">shared state</span></td><td>Writes the <a href="#deployment-record">deployment record</a> after a typed key id. <code>--keyfile SHA256</code> writes a key file record.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-retire"><code>sign retire ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets state retiring, runs release write, makes one set commit. The key cannot sign any more. Refuses the last deployed signer (<code>sign.last-signer</code>, exit 12).</td></tr>
 <tr><td><a href="cli.html#cmd-sign-activate"><code>sign activate ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets a retiring key back to active after a typed key id, makes one set commit. The key signs again with its deployment record.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-remove"><code>sign remove ID</code></a></td><td><span class="tag local">local write</span></td><td>Refuses while latest of a target holds an RPM of the key (<code>sign.key-in-use</code>, exit 12, hint <code>repoctl repo resign --signer ID</code>). Then sets state removed, writes a key file without it, makes one set commit.</td></tr>
@@ -825,7 +855,8 @@ Add a key:      repoctl sign add ID --fingerprint FPR
                 (writes the key file of the release package, commits)
 See the steps:  repoctl sign onboard ID
 Undo a retire:  repoctl sign activate ID
-Confirm:        repoctl sign deployed ID --release NVR
+Confirm:        repoctl sign deployed ID --release NVR --target T
+                (one entry per key and target in keys/deployed.yaml)
                 or --keyfile SHA256, when config management
                 installed the key file without a release package
 Replace a key:  add and deploy the new key, then "repoctl sign retire
@@ -842,6 +873,11 @@ Compromise:     "repoctl sign revoke ID" ends the trust at once
 
 A new expiry date does not reach the clients. Treat an expiring key
 as a key change, and re-sign its RPMs before it expires.
+
+Git conflict in keys/deployed.yaml: keep the entries of both sides,
+then commit. The newest "at" wins for one key and target.
+Git conflict in sign.keys: keep the keys of both sides, then run
+"repoctl release write" and commit.
 
 publish signs only with an active, deployed key. It re-signs no old
 RPM; only "repoctl repo resign" does. "repoctl doctor" checks sign.*.</code></pre>
