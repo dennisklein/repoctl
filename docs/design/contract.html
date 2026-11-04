@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 83 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 84 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -304,6 +304,7 @@
 <tr><td><code>graph.ambiguous-provider</code></td><td>warning</td><td>Two set packages provide one capability.</td><td>Make the Provides unique.</td></tr>
 <tr><td><code>graph.cycle</code></td><td>1</td><td>The BuildRequires make a cycle. The message names it.</td><td>Break the cycle in one spec.</td></tr>
 <tr><td><code>graph.dynamic-buildrequires</code></td><td>warning</td><td>The spec uses <code>%generate_buildrequires</code>. Edges can be missing.</td><td>Add the BuildRequires to the spec.</td></tr>
+<tr><td><code>graph.srpm-failed</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>The SRPM of a node failed at plan time. The node has no known dependencies.</td><td>Fix the spec. <code>repoctl graph -v</code> shows the mock output.</td></tr>
 <tr><td><code>host.not-ready</code></td><td>9</td><td>A required host check failed.</td><td><code>repoctl doctor</code> (<code>install-tool</code>)</td></tr>
 <tr><td><code>journal.sampling-stopped</code></td><td>warning</td><td>The journal is 32 MiB. No more <code>node.log</code> lines come.</td><td>The node log has the full text.</td></tr>
 <tr><td><code>lock.behind</code></td><td>5 in <code>pin DIR</code>; warning in <code>pin</code></td><td>The worktree HEAD is an ancestor of the lock commit. pin does not write the older commit back.</td><td><code>repoctl checkout DIR</code>; <code>repoctl pin DIR --older</code> pins the older commit on purpose.</td></tr>
@@ -393,6 +394,7 @@
   <li><code>plan.ready</code> gives every node its first state. Build nodes start waiting. repoctl writes no <code>node.state</code> line for a first state.</li>
   <li>When the dependencies of a node are done, the node goes to running if a job slot is free. If no slot is free, it goes to queued.</li>
   <li>A terminal state is the last <code>node.state</code> line of the node. <code>run.finished</code> is the last line of the run.</li>
+  <li>A run that stops in its plan has no <code>plan.ready</code> line and no nodes (<a href="build.html#run-states">run states</a>).</li>
 </ul>
 </aside>
 

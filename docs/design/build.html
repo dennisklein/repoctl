@@ -76,6 +76,7 @@
 <tr><td>The spec has <code>%generate_buildrequires</code>.</td><td>Warning: edges can be missing until the build.</td><td><code>graph.dynamic-buildrequires</code></td></tr>
 <tr><td>Two set packages provide one capability.</td><td>Warning.</td><td><code>graph.ambiguous-provider</code></td></tr>
 <tr><td>The edges make a cycle.</td><td>Error, exit 1.</td><td><code>graph.cycle</code></td></tr>
+<tr><td>The SRPM of a package fails at plan time. A source problem has its own code (<a href="#sources">sources</a>).</td><td>Warning. The node keeps its plan action and has no known dependencies. In the build, it fails in step srpm with the class srpm.</td><td><code>graph.srpm-failed</code></td></tr>
 </tbody>
 </table>
 <aside class="callout why"><p class="callout-title">Why dep.not-for-target is a warning</p><p>The base or EPEL repos of the target can provide the same capability. Thus repoctl cannot know that the build fails. The warning names the gap before the build, and the plan continues. It is a plan warning, not an advisory (<a href="advisories.html#codes">advisory codes</a>).</p></aside>
@@ -294,11 +295,20 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td>planning</td><td>The run started. The plan is not ready.</td><td>–</td></tr>
 <tr><td>running</td><td>The plan is ready. Nodes build.</td><td>–</td></tr>
 <tr><td>ok</td><td>Each node of the run is ok, current or staged.</td><td>0</td></tr>
-<tr><td>failed</td><td>At least one node failed or is blocked.</td><td>3</td></tr>
+<tr><td>failed</td><td>At least one node failed or is blocked, or the plan stopped with an error.</td><td>3; after a plan error, the exit code of its problem</td></tr>
 <tr><td>canceled</td><td><code>repoctl cancel</code> or Ctrl-C stopped the run (<a href="#cancel">cancel</a>).</td><td>130</td></tr>
 <tr><td>abandoned</td><td>The journal has no <code>run.finished</code>, and the process of the run no longer holds the set lock. Causes: a crash or a second Ctrl-C.</td><td>–</td></tr>
 </tbody>
 </table>
+<aside class="callout rule"><p class="callout-title">Rules for the start and the end of a run</p>
+<ul>
+  <li>Before <code>run.started</code>, build takes the set lock (<code>set.busy</code>, exit 7), compares the selected worktrees with the lock (<code>lock.dirty</code>, <code>lock.missing-package</code>, exit 5) and runs the preflight (exit 9). A stop there writes no run files and gives no run id. Thus the MCP result has no Run in <code>items</code>.</li>
+  <li>After <code>run.started</code>, a plan error, for example <code>state.behind</code> or <code>graph.cycle</code>, ends the run without <code>plan.ready</code>. <code>run.finished</code> then has the state failed, the exit code of the problem and no nodes.</li>
+  <li>canceled wins over failed. A run that a human, a signal or <code>build.timeout.run</code> stops ends canceled with exit 130, also when a node failed before.</li>
+  <li>At a cancel, the running, waiting and queued nodes end canceled. A node that waits for a canceled node also ends canceled, not blocked.</li>
+  <li>With <code>--fail-fast</code>, the first failure stops the run in the same way: the open nodes end canceled, and the dependents of the failed node end blocked. The run ends failed with exit 3.</li>
+</ul>
+</aside>
 <p>There is no queued run state. The exit codes of all commands are in the CLI reference (<a href="cli.html#exit">exit codes</a>). Command: <a href="cli.html#cmd-build">repoctl build</a>. Terminal frames: <a href="terminal.html#build-live">live tree</a>, <a href="terminal.html#build-failed">failure summary</a>.</p>
 
 <h2 id="states">Node states</h2>
