@@ -330,7 +330,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 119 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 120 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -379,6 +379,7 @@
 <tr><td><code>manifest.invalid</code></td><td>1</td><td>The RepoManifest of a snapshot does not agree with the schema <code>manifest</code>. An <code>apiVersion</code> that this binary does not read is <code>contract.newer-file</code>.</td><td>The message names the field.</td></tr>
 <tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The human runs the command.</td></tr>
 <tr><td><code>mock.busy</code></td><td>7</td><td><code>repoctl mock update</code> or <code>mock clean</code> holds the host mock lock, or a repoctl mock runs while one of them waits for it. The problem names the holder.</td><td>Wait, or use <code>--lock-wait</code> (<a href="build.html#mock">Mock roots</a>).</td></tr>
+<tr><td><code>mock.config-differs</code></td><td>warning in doctor</td><td>The mock config of a target on this host differs from the config of the newest build in latest. <code>mock.drift</code> and the default closure repos depend on it.</td><td>Install the mock config of the build host, or rebuild against the new config (<a href="advisories.html#data">data</a>).</td></tr>
 <tr><td><code>mock.config-missing</code></td><td>9</td><td>The mock config of a target is not on this host.</td><td>Install it, or correct <code>targets[].mock</code>.</td></tr>
 <tr><td><code>mock.unavailable</code></td><td>9</td><td>mock is not installed, or the user is not in the group <code>mock</code>.</td><td>Install mock (<code>install-tool</code>).</td></tr>
 <tr><td><code>node.blocked</code></td><td>3</td><td>A dependency failed. The node did not run.</td><td>Repair the failed dependency.</td></tr>

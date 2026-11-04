@@ -123,7 +123,7 @@
 <tr><td><code>abi.changed</code></td><td><span class="tag warn">warn</span></td><td>after a node build (optional, needs libabigail)</td><td><code>abidiff</code> of the shared libraries, old and new, with the same soname.</td><td>Review. Rebuild the dependents when the change matters.</td></tr>
 <tr><td><code>sign.expiring</code></td><td><span class="tag warn">warn</span>, <span class="tag req">required</span></td><td>check</td><td>Published RPMs carry a signer whose key expires inside the warn window (<code>sign.checks.key_expiry_warn</code>, default 180 days): level warn. Inside <code>sign.checks.key_min_validity</code> (default 30 days): level required. The advisory has no closure, so it never blocks a publish.</td><td>Treat it as a key change, and re-sign the RPMs before the expiry (<a href="signing.html#expiry">key expiry</a>).</td></tr>
 <tr><td><code>buildroot.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>A BuildRequires provider in the closure repos has a newer version than the recorded buildroot.</td><td>Nothing, or a rebuild.</td></tr>
-<tr><td><code>mock.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The hash of the mock config or the macros of this host differs from the manifest.</td><td>Nothing, or a rebuild.</td></tr>
+<tr><td><code>mock.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The hash of the mock config or the macros of this host differs from the manifest. Per host (<a href="#data">data</a>).</td><td>Nothing, or a rebuild.</td></tr>
 <tr><td><code>upstream.release</code></td><td><span class="tag info">info</span></td><td>upstream, check</td><td>A new upstream version of the package.</td><td>Bump the version (skill bump-package).</td></tr>
 <tr><td><code>retired.published</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The published repo of a target holds RPMs of a source package that no dir in repoctl.yaml builds. Facts: NVRs, RPM count, size.</td><td>Nothing (the default), or <code>repoctl repo prune --package NAME --all</code>.</td></tr>
 </tbody>
@@ -207,7 +207,8 @@
 <tr><td>Acceptances</td><td>the journal of the publish; the snapshot annotation <code>io.repoctl.advisories.accepted</code> (<a href="publish.html#format">snapshot format</a>)</td><td>team, through the registry</td><td><code>repoctl publish</code></td></tr>
 </tbody>
 </table>
-<p>Two admins compute the same advisories from the same inputs: latest in the registry and the upstream repos. Thus the check result can stay per user, and only the dismissals must be shared.</p>
+<p>Two admins compute the same advisories from the same inputs: latest in the registry, the closure repos and the release feeds. Thus the check result can stay per user, and only the dismissals must be shared.</p>
+<p>One code depends on the host: <code>mock.drift</code> compares the mock config and the macros of this host with the manifest. Its facts hold only the recorded hash; the hash of this host is in <code>hostFacts.current</code>, outside the digest. Thus a dismissal of <code>mock.drift</code> matches on each host with a different config. On a host whose config equals the manifest, the advisory does not exist, and the dismissal is not stale there. Without <code>targets[].closure_repos</code>, the closure repos also come from the mock config of the host. The doctor check <code>mock.config-differs</code> (warning) tells when the mock config of a target on this host differs from the config of the newest build in latest.</p>
 
 <h2 id="dismissals">Dismissal file</h2>
 <pre><code class="language-yaml"># .repoctl/advisories.yaml
@@ -223,7 +224,7 @@ dismissed:
   <li>repoctl writes the file atomically and keeps the entries sorted by id. Thus two dismissals of different ids seldom give a git conflict.</li>
   <li>repoctl does not commit the file. dismiss prints the commit and push command. <code>repoctl status</code> shows "advisories.yaml: not committed" when the file has changes.</li>
   <li>Publish does not require that this file is committed, because the file does not change the output of a build.</li>
-  <li>An entry whose id is gone, or whose digest does not match, is stale. <code>repoctl advisories ls --dismissed</code> marks it. <code>repoctl advisories undismiss --stale</code> removes all stale entries.</li>
+  <li>An entry whose id is gone, or whose digest does not match, is stale. A <code>mock.drift</code> entry whose id this host does not find is not stale, because another host can still find it. <code>repoctl advisories ls --dismissed</code> marks it. <code>repoctl advisories undismiss --stale</code> removes all stale entries.</li>
   <li>A new set does not copy this file from the old set (<a href="lifecycle.html#new-set">new set</a>).</li>
 </ul>
 <p><code>repoctl advisories dismiss ID... --note TEXT</code> adds a dismissal for each open id. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, problem code <code>advisory.not-dismissable</code>, and the hint gives <code>repoctl publish --accept-advisory</code>. An id that is not open gives exit 1, <code>advisory.unknown</code>. dismiss and undismiss take no set lock and write only this file.</p>
