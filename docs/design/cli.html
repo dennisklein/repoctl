@@ -97,7 +97,7 @@
 <tr><td>Agent and UI</td><td><a href="#cmd-ui"><code>ui</code></a></td><td><span class="tag read">read</span></td><td>Local web UI</td></tr>
 <tr><td></td><td><a href="#cmd-mcp"><code>mcp start|tools</code></a></td><td><span class="tag read">read</span></td><td>MCP server on stdio; tool definitions</td></tr>
 <tr><td></td><td><a href="#cmd-skills"><code>skills ls|show|path</code></a></td><td><span class="tag read">read</span></td><td>Agent skills</td></tr>
-<tr><td></td><td><a href="#cmd-skills"><code>skills install</code></a></td><td><span class="tag local">local write</span></td><td>Install the generic skills</td></tr>
+<tr><td></td><td><a href="#cmd-skills"><code>skills install|uninstall</code></a></td><td><span class="tag local">local write</span></td><td>Install or remove the generic skills</td></tr>
 <tr><td></td><td><a href="#cmd-skills"><code>skills guard</code></a></td><td><span class="tag read">read</span></td><td>Guard hook for Claude Code</td></tr>
 <tr><td>Admin</td><td><a href="#cmd-doctor"><code>doctor</code></a></td><td><span class="tag read">read</span></td><td>Host checks for build, sign, registry</td></tr>
 <tr><td></td><td><a href="#cmd-clean"><code>clean</code></a></td><td><span class="tag staging">staging</span></td><td>Delete staging, old logs, caches</td></tr>
@@ -159,7 +159,7 @@ Upstream commands:
 Agent and UI commands:
   ui            Open the web UI in your browser
   mcp           Run the MCP server for LLM agents
-  skills        List and install the agent skills
+  skills        List, install and remove the agent skills
 
 Admin commands:
   doctor        Check this host for build, sign and registry prerequisites
@@ -1057,9 +1057,10 @@ repoctl mcp tools [--tools read|all|NAME,...]</pre>
 <section class="cmd" id="cmd-skills">
   <h4><code>repoctl skills</code> <span class="tag read">read</span> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl skills ls | show NAME | path | guard
-repoctl skills install [--user | --project] [NAME...]</pre>
-  <p>ls, show, path and guard are read; install is local write. The generic skills ship in the binary: repoctl, package-updates, bump-package, triage-build and rebuild-check (<a href="agents.html#skill-list">agents.html#skill-list</a>). A set-local skill can add a skill but never shadow a generic one. install writes to <code>~/.claude/skills/</code> (<code>--user</code>, default) or to <code>SET/.claude/skills/</code> (<code>--project</code>, with <code>.git/info/exclude</code>). It merges the deny list and the guard hook into the <code>settings.json</code> of the same scope (<a href="agents.html#deny">agents.html#deny</a>). It refuses a file that a human changed. guard is the PreToolUse hook of Claude Code: it reads one tool call as JSON on stdin and writes the hook decision on stdout (<a href="agents.html#guard">agents.html#guard</a>).</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>install only: skill directories, <code>.git/info/exclude</code>, <code>~/.claude/settings.json</code> or <code>SET/.claude/settings.json</code></dd><dt>Output</dt><dd>kind <code>Skill</code>; guard: the hook JSON of Claude Code, no envelope</dd><dt>Exit</dt><dd>0; 1; 2</dd></dl>
+repoctl skills install [--user | --project] [NAME...]
+repoctl skills uninstall [--user | --project] [NAME...]</pre>
+  <p>ls, show, path and guard are read; install and uninstall are local write. The generic skills ship in the binary: repoctl, package-updates, bump-package, triage-build and rebuild-check (<a href="agents.html#skill-list">agents.html#skill-list</a>). A set-local skill can add a skill but never shadow a generic one. install writes to <code>~/.claude/skills/</code> (<code>--user</code>, default) or to <code>SET/.claude/skills/</code> (<code>--project</code>, with <code>.git/info/exclude</code>). It merges the deny list and the guard hook into the <code>settings.json</code> of the same scope (<a href="agents.html#deny">agents.html#deny</a>). It refuses a file that a human changed. install writes the manifest <code>.repoctl-skills.json</code> with the version and the sha256 of each file (<a href="agents.html#frontmatter">agents.html#frontmatter</a>). uninstall removes the copies of the manifest, and the deny rules and the guard hook that install added; for <code>--project</code> also the exclude lines. ls shows the state of each copy against the binary: same, older, newer or changed. guard is the PreToolUse hook of Claude Code: it reads one tool call as JSON on stdin and writes the hook decision on stdout (<a href="agents.html#guard">agents.html#guard</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>install and uninstall only: skill directories, <code>.repoctl-skills.json</code>, <code>.git/info/exclude</code>, <code>~/.claude/settings.json</code> or <code>SET/.claude/settings.json</code></dd><dt>Output</dt><dd>kind <code>Skill</code>; guard: the hook JSON of Claude Code, no envelope</dd><dt>Exit</dt><dd>0; 1; 2</dd></dl>
 </section>
 
 <h3 id="group-admin">Admin commands</h3>

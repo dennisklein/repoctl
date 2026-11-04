@@ -157,7 +157,7 @@
   <li>CI scripts pin the repoctl version and check <code>jq -e '.apiVersion == "repoctl/v1alpha1"'</code>.</li>
 </ul>
 </aside>
-<p>The skills and the web UI are in the binary of the CLI. <code>repoctl doctor</code> warns (<code>skills.version-mismatch</code>) when an installed copy of a skill is older than the binary.</p>
+<p>The skills and the web UI are in the binary of the CLI. <code>repoctl doctor</code> warns (<code>skills.version-mismatch</code>) when an installed copy of a skill has another version than the binary, older or newer.</p>
 <h3 id="stored">Stored files and mixed versions</h3>
 <p>The stored files are the four committed set files (<code>repoctl.yaml</code>, <code>repoctl.lock</code>, <code>keys/deployed.yaml</code>, <code>.repoctl/advisories.yaml</code>) and the RepoManifest of each snapshot. Two admins can run two releases of repoctl on one set, and the registry keeps the snapshots of old releases. A publish copies the entries of the base manifest. Thus an old binary could drop a field that a newer binary wrote. These rules prevent it.</p>
 <aside class="callout rule"><p class="callout-title">Rules for stored files</p>
@@ -443,7 +443,7 @@
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files. In <code>repo pull</code>, when the set checkout does not hold the set commit of the snapshot: <code>git pull origin builder/SET</code>, then pull again.</td></tr>
 <tr><td><code>sign.wrong-state</code></td><td>1</td><td>A sign command does not allow the current state of the key, for example <code>sign remove</code> of an active key.</td><td>The message gives the allowed command (<a href="signing.html#lifecycle">Key lifecycle</a>).</td></tr>
 <tr><td><code>skills.guard</code></td><td>warning in doctor</td><td>A skill of repoctl is installed, or the plugin is on, and no guard hook covers the set directory. Or the deny list of a settings file differs from the list of the binary.</td><td><code>repoctl skills install</code> with the same scope (<a href="agents.html#guard">Guard hook</a>).</td></tr>
-<tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
+<tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed copy of a skill has another version than the binary: older or newer. The message names the copy.</td><td><code>repoctl skills install</code> for a user or project copy; update the plugin or the RPM for the others.</td></tr>
 <tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
 <tr><td><code>snapshot.exists</code></td><td>13</td><td><code>repo push --from</code> or <code>--reseed</code>: the registry has a snapshot of the target.</td><td>Use publish. These forms work only on an empty package.</td></tr>
 <tr><td><code>snapshot.missing</code></td><td>13; warning in plan, build, status</td><td>The registry has no snapshot of the target, but the local copy or <code>keys/deployed.yaml</code> says that it was published. The OCI package is lost.</td><td>Re-seed it: <code>repoctl repo push --reseed --target ID</code> (<code>repo-push</code>, <a href="publish.html#disaster">Registry outage and loss</a>).</td></tr>

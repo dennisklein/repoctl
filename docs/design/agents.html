@@ -96,12 +96,13 @@
 </table>
 <p>The generic skills reach an agent in four ways:</p>
 <ul>
-  <li>The Claude Code plugin on branch <code>main</code> holds the skills, declares the MCP server (<a href="#mcp-start">start and registration</a>) and registers the <a href="#guard">guard hook</a>.</li>
-  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. <code>--user</code> (the default) writes <code>~/.claude/skills/&lt;name&gt;/</code> and merges the <a href="#deny">deny list</a> and the guard hook into <code>~/.claude/settings.json</code>. <code>--project</code> writes <code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>, adds the paths to <code>.git/info/exclude</code> and merges the deny list and the guard hook into <code>&lt;set&gt;/.claude/settings.json</code>. The command replaces copies that repoctl installed and refuses a file that a human changed.</li>
+  <li>The Claude Code plugin holds the skills, declares the MCP server (<a href="#mcp-start">start and registration</a>) and registers the <a href="#guard">guard hook</a>. The release build makes it at the release tag, not from the head of branch <code>main</code>. Thus its skills have the version of the binary of the same release.</li>
+  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. <code>--user</code> (the default) writes <code>~/.claude/skills/&lt;name&gt;/</code> and merges the <a href="#deny">deny list</a> and the guard hook into <code>~/.claude/settings.json</code>. <code>--project</code> writes <code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>, adds the paths to <code>.git/info/exclude</code> and merges the deny list and the guard hook into <code>&lt;set&gt;/.claude/settings.json</code>. The command replaces copies that repoctl installed and refuses a file that a human changed. The manifest <code>.repoctl-skills.json</code> tells which copies repoctl installed (<a href="#frontmatter">skill frontmatter</a>). install never writes a name that a set-local skill uses in the same directory.</li>
+  <li><code>repoctl skills uninstall</code> removes the copies of the manifest, and the deny rules and the guard hook that install added to <code>settings.json</code>. With <code>--project</code>, it also removes the exclude lines. It refuses a file that a human changed, and it leaves set-local skills alone.</li>
   <li>The RPM puts them in <code>/usr/share/repoctl/skills/</code> (<code>repoctl skills path</code>).</li>
   <li>The MCP resource <code>repoctl://skills/{name}</code> serves them to a client without skill support.</li>
 </ul>
-<p>The <code>skills:</code> key of <code>repoctl.yaml</code> names the set-local skill directories, for example <code>.claude/skills</code> (<a href="config.html#set-config">config.html#set-config</a>). A set-local skill can add a skill, but it can never replace a generic skill with the same name. <code>repoctl skills ls</code> shows the source, version and install place of each skill and marks a name conflict (<a href="cli.html#cmd-skills">cli.html#cmd-skills</a>). <code>repoctl doctor</code> warns about a conflict and about an installed skill with another version than the binary.</p>
+<p>The <code>skills:</code> key of <code>repoctl.yaml</code> names the set-local skill directories, for example <code>.claude/skills</code> (<a href="config.html#set-config">config.html#set-config</a>). A set-local skill can add a skill, but it can never replace a generic skill with the same name. <code>repoctl skills ls</code> shows the source, version and install place of each skill and marks a name conflict (<a href="cli.html#cmd-skills">cli.html#cmd-skills</a>). <code>repoctl doctor</code> warns about a conflict and about each installed copy with another version than the binary, older or newer (<code>skills.version-mismatch</code>). It reads the version from <code>metadata.repoctl-version</code> of each copy.</p>
 <p>The <code>CLAUDE.md</code> of a builder branch holds notes about the set. It points to the <code>repoctl</code> skill and to the help topics <code>new-set</code> and <code>packages</code>. It holds no generic workflow.</p>
 <h2 id="skill-list">Skills</h2>
 <p>These rules apply to each generic skill:</p>
@@ -140,7 +141,7 @@
 <p>For slurm@el10 in run <code>r-20261102-1750-a3f</code> the skill reports: "slurm.spec requires rocm-smi-devel without a condition. rocm-smi has targets: [el9]. Fix A: put the BuildRequires and the <code>--with-rsmi</code> configure flag under <code>%if 0%{?rhel} &lt; 10</code>. Fix B: build rocm-smi for el10 too."</p>
 
 <h2 id="frontmatter">Skill frontmatter</h2>
-<p>Each skill is one <code>SKILL.md</code> with a YAML frontmatter: <code>name</code>, <code>description</code> and <code>allowed-tools</code>. The list names the Bash prefixes for the CLI and the MCP tools. Example of <code>triage-build</code>:</p>
+<p>Each skill is one <code>SKILL.md</code> with a YAML frontmatter: <code>name</code>, <code>description</code>, <code>allowed-tools</code> and <code>metadata</code>. The list names the Bash prefixes for the CLI and the MCP tools. <code>metadata</code> gives <code>repoctl-version</code> and <code>api-version</code>; the release build writes both. Example of <code>triage-build</code>:</p>
 <pre><code class="language-yaml">---
 name: triage-build
 description: Find the cause of a failed node in a repoctl run and propose a fix. Use after a build
@@ -159,7 +160,11 @@ allowed-tools:
   - "mcp__repoctl__repoctl_graph"
   - "mcp__repoctl__repoctl_show"
   - "mcp__repoctl__repoctl_doctor"
+metadata:
+  repoctl-version: 0.4.0
+  api-version: repoctl/v1alpha1
 ---</code></pre>
+<p>Thus each copy tells its version: the plugin, the RPM, an installed copy and a copy that a human made by hand. <code>repoctl skills install</code> also writes the manifest <code>.repoctl-skills.json</code> into the install root (<code>~/.claude/skills/</code> or <code>&lt;set&gt;/.claude/skills/</code>). It holds, per skill, the name, the version and the sha256 of each file that install wrote. For <code>--project</code> it also holds the exclude lines and the deny rules that install added. A file whose sha256 differs from the manifest is a change by a human. <code>skills ls</code> shows the state of each copy: same, older, newer or changed.</p>
 <p>The frontmatter of <code>bump-package</code> grants the tools of mode apply. Mode draft has no frontmatter of its own. When the input has <code>--draft</code>, the skill text tells the agent to use only the tools of the draft list. In the web UI, repoctl enforces the draft list with <code>--allowedTools</code> and the read-only MCP server. The frontmatter of the <code>repoctl</code> skill grants the read commands of the CLI, <code>repoctl build</code>, the 23 read tools and <code>repoctl_build</code>. The full lists are in the next section.</p>
 
 <h2 id="tool-lists">Tool list per task</h2>
@@ -330,8 +335,8 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>sign add|retire|activate|remove|revoke</code>, <code>release write</code></td><td>Trust commands. They change which keys the clients trust.</td></tr>
 <tr><td><code>advisories dismiss|undismiss</code></td><td>A dismissal is a committed team file (<a href="advisories.html#dismissals">advisories.html#dismissals</a>). An acceptance is part of a publish.</td></tr>
 <tr><td><code>repo pull</code>, <code>clean</code>, <code>mock *</code></td><td>They replace the local copy, delete caches or change a mock chroot.</td></tr>
-<tr><td><code>init</code>, <code>migrate</code>, <code>ui</code>, <code>mcp</code>, <code>skills install|guard</code>, <code>completion</code></td><td>Setup of a set or a host. Not a task for an agent.</td></tr>
-<tr><td>cancel of a foreign run</td><td>The run does not have origin <code>mcp</code> of this user: the CLI, the web UI or another user started it.</td></tr>
+<tr><td><code>init</code>, <code>migrate</code>, <code>ui</code>, <code>mcp</code>, <code>skills install|uninstall|guard</code>, <code>completion</code></td><td>Setup of a set or a host. Not a task for an agent.</td></tr>
+<tr><td>cancel of a foreign run</td><td>The run does not have the session id of this MCP server: the CLI, the web UI, another MCP session or another user started it.</td></tr>
 </tbody>
 </table>
 <h3 id="mcp-safety">Safety policy and read-only mode</h3>
