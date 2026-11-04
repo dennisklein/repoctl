@@ -7,7 +7,7 @@
 </head>
 <body>
 <h1>Lost admin host</h1>
-<p class="lede">This runbook is for an admin host that is lost, stolen or broken. No file on an admin host says what is published, so the registry and git keep the team state. The host can hold commits that are not pushed, a key and a registry token. The rules are in <a href="../design/model.html#records">Core model: records</a>.</p>
+<p class="lede">Use this runbook when an admin host is lost, stolen or broken. The host can hold commits that are not pushed, a key and a registry token. The registry and git keep the team state: see <a href="../design/model.html#records">Core model: records</a> and <a href="../design/model.html#humans">humans and hosts</a>.</p>
 <ul class="keypoints">
   <li>Stolen, or an attacker controls it: stop its access first. A key on the host is compromised.</li>
   <li>Broken: a file key that has no other copy is lost.</li>
@@ -19,10 +19,10 @@
 <ul>
 <li>A human does each step. An agent can run <code>repoctl status</code>, <code>repoctl doctor</code>, <code>repoctl repo snapshots</code> and <code>git log</code> on another host, and it can show the commands. It does not sign, push or revoke (<a href="../design/agents.html#deny">deny list</a>).</li>
 <li>When you are not sure if another human has the host, treat it as stolen.</li>
-<li>When a check in this runbook fails, stop and tell the team.</li>
+<li>When a check fails, stop and tell the team.</li>
 </ul>
 </aside>
-<p>The examples use a variant of the story (not the story): on 2026-11-12, the disk of <code>hpc-a2</code> breaks. A. Admin has the YubiKey with the key <code>a.admin</code>. The host had a commit of <code>repoctl.lock</code> after <code>repoctl pin ucx</code> that was not pushed.</p>
+<p>Example, a variant of the story: on 2026-11-12, the disk of <code>hpc-a2</code> breaks. A. Admin has the YubiKey with the key <code>a.admin</code>. The host had a commit of <code>repoctl.lock</code> after <code>repoctl pin ucx</code> that was not pushed.</p>
 
 <h2 id="trigger">Trigger</h2>
 <ul>
@@ -52,7 +52,7 @@
 </ol>
 
 <h2 id="commits">Find the lost commits</h2>
-<p>A publish needs a pushed set commit and pushed package commits (<a href="../design/publish.html#checks">checks</a>). Thus latest never depends on a lost commit. A lost commit is only work that the team must make again.</p>
+<p>A publish needs a pushed set commit and pushed package commits (<a href="../design/publish.html#checks">checks</a>). Thus latest never depends on a lost commit: it is only work to make again.</p>
 <ol class="steps">
 <li>On another admin host, run <code>git fetch origin</code> and <code>git log origin/builder/SET</code>. Ask the human of the lost host which commits were not pushed.</li>
 <li>Make each lost commit again, and push it at once:
@@ -78,7 +78,13 @@
 
 <h2 id="new-host">Set up a new host</h2>
 <ol class="steps">
-<li>Do the steps "Add a second admin host" of <a href="../design/signing.html#help-team">help team</a>: install repoctl, clone the set repository, then <code>repoctl doctor</code>, <code>repoctl checkout</code>, <code>repoctl repo pull</code>, <code>repoctl mock update</code>, <code>repoctl check --install-timer</code> and <code>repoctl status</code>.</li>
+<li>Do the steps "Add a second admin host" of <a href="../design/signing.html#help-team">help team</a>. Install repoctl and clone the set repository. Then run:
+<pre><code class="language-bash">repoctl doctor
+repoctl checkout
+repoctl repo pull
+repoctl mock update
+repoctl check --install-timer
+repoctl status</code></pre></li>
 <li>Set <code>sign.key</code> in the user config, and log in to the registry with a new token.</li>
 <li>Run <code>repoctl doctor</code>. Each check passes, or warns only for a step of this runbook that is still open.</li>
 </ol>
