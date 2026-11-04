@@ -480,9 +480,30 @@ warning: slurm@el10 needs rocm-smi-devel; only rocm-smi@el9 provides it (dep.not
   <h4><code>repoctl checkout</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl checkout [DIR...] [--fetch] [--force] [-j N]
 repoctl checkout [DIR...] --create (--from-set SET | --from REF | --from fedora[:BRANCH] | --orphan)</pre>
-  <p>Create the worktrees <code>packages/DIR</code>, or move them to the lock commits, with a detached HEAD. repoctl fetches a missing commit from <code>defaults.git.remote</code>. An external package gets its worktree from a bare clone in <code>~/.local/share/repoctl/git/</code> (<a href="lifecycle.html#clones">lifecycle.html#clones</a>). repoctl adds each worktree path to <code>.git/info/exclude</code>. A worktree that is ahead of the lock or dirty stays and gets a row with the hint <code>repoctl pin DIR</code>. <code>--force</code> moves it, and its changes are lost.</p>
-  <p><code>--create</code> makes the branch of a new package from exactly one start point (<a href="lifecycle.html#checkout-create">lifecycle.html#checkout-create</a>). A branch that exists on the remote stops it with <code>branch.exists-remote</code>. The output names the start point of each branch and ends with one push command for all new branches.</p>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>worktrees, <code>.git/worktrees/</code>, <code>.git/info/exclude</code>, external clones; never pushes</dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0; 1 a fetch failed, <code>branch.exists-remote</code>, <code>branch.start-missing</code>, <code>git.unreachable</code>; 2 <code>--create</code> without one start point; 7</dd></dl>
+  <p>Create the worktrees <code>packages/DIR</code>, or move them to the lock commits. repoctl fetches a missing commit from <code>defaults.git.remote</code>. An external package gets its worktree from a bare clone in <code>~/.local/share/repoctl/git/</code> (<a href="lifecycle.html#clones">lifecycle.html#clones</a>). repoctl adds each worktree path to <code>.git/info/exclude</code>.</p>
+  <p id="local-branch">Each worktree is attached to its <dfn>local branch</dfn>: the branch <code>BRANCH</code> of the package entry, in the repository of the worktree (the set repository or the bare clone), with the upstream <code>origin/BRANCH</code>. A commit in <code>packages/DIR</code> goes to the local branch. <code>git -C packages/DIR push origin BRANCH</code> pushes it. checkout compares the local branch with the lock commit:</p>
+  <table class="compact">
+  <thead><tr><th>Local branch</th><th>checkout</th><th>Row</th></tr></thead>
+  <tbody>
+  <tr><td>does not exist</td><td>Creates it at the lock commit and attaches the worktree.</td><td>created</td></tr>
+  <tr><td>is the lock commit</td><td>Attaches the worktree. Nothing moves.</td><td>none (<code>in-sync</code>)</td></tr>
+  <tr><td>is an ancestor of the lock commit</td><td>Fast-forwards the branch to the lock commit.</td><td>moved</td></tr>
+  <tr><td>is a descendant of the lock commit</td><td>Keeps the branch and its commits.</td><td><code>ahead</code>, warning <code>worktree.dirty</code>, hint <code>repoctl pin DIR</code></td></tr>
+  <tr><td>has diverged from the lock commit</td><td>Keeps the branch and its commits.</td><td><code>diverged</code>, warning <code>worktree.dirty</code>, hint: rebase on the lock commit</td></tr>
+  <tr><td>is checked out in another worktree</td><td>Makes the worktree with a detached HEAD at the lock commit. Example: a shared branch that a second set directory of the same repository also uses.</td><td>note "detached: BRANCH is checked out in PATH"</td></tr>
+  </tbody>
+  </table>
+  <ul>
+    <li>checkout moves a local branch only forward. It never moves a branch back, and it never discards a commit or a change.</li>
+    <li>A worktree with uncommitted changes stays as it is: <code>dirty</code>, warning <code>worktree.dirty</code>, hint: commit, then <code>repoctl pin DIR</code>.</li>
+    <li>A worktree that the human moved to another branch or to a detached HEAD stays as it is. Its lock state comes from its HEAD. <code>git -C packages/DIR switch BRANCH</code> attaches it again.</li>
+    <li>For a commit on a detached HEAD, each hint gives <code>git -C packages/DIR push origin HEAD:BRANCH</code>.</li>
+    <li>A kept worktree is a warning, not an error. It gives exit 0 on every surface: CLI, web UI and MCP.</li>
+    <li><code>--force</code> resets the local branch to the lock commit and discards the changes. Commits that only this branch holds are lost.</li>
+    <li>With more than one dir, checkout continues after a dir that fails. Each failed dir gets a row with its problem code, and checkout exits 1. The other worktrees stay.</li>
+  </ul>
+  <p><code>--create</code> makes the branch of a new package from exactly one start point (<a href="lifecycle.html#checkout-create">lifecycle.html#checkout-create</a>). The new local branch starts at the start point, and the worktree is attached to it. A branch that exists on the remote stops it with <code>branch.exists-remote</code>. The output names the start point of each branch and ends with one push command for all new branches.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>worktrees, local branches, <code>.git/worktrees/</code>, <code>.git/info/exclude</code>, external clones; never pushes</dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0, also with kept worktrees; 1 a dir failed: a fetch failed, <code>branch.exists-remote</code>, <code>branch.start-missing</code>, <code>git.unreachable</code>; 2 <code>--create</code> without one start point; 7</dd></dl>
   <pre class="term">$ repoctl checkout                       # A. Admin on hpc-a2, after a pull of the set commit 9a0c4e2
 11 packages: 4 moved (ucx slurm openmpi slurm-singularity-exec), 6 in-sync, 1 in tree  (-v shows all)</pre>
 </section>

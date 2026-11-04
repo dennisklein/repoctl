@@ -90,7 +90,7 @@
 <li><code>LockEntry.commit</code> is required, except for state <code>unpinned</code>.</li>
 <li>plan shows an unpinned node with the note "not pinned" and the action <code>skip</code>. With <code>--from worktree</code>, the action is <code>build</code>.</li>
 <li><code>build --from lock</code> with a selected unpinned node stops with exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>.</li>
-<li><code>checkout</code> without <code>--create</code> makes the worktree of an unpinned package at the tip of the remote branch (detached HEAD) and prints "not pinned: run repoctl pin DIR". This is how a human checks out the new package of a colleague.</li>
+<li><code>checkout</code> without <code>--create</code> makes the worktree of an unpinned package on its local branch at the tip of the remote branch (<a href="cli.html#local-branch">local branch</a>) and prints "not pinned: run repoctl pin DIR". This is how a human checks out the new package of a colleague.</li>
 <li><code>pin</code> without arguments removes orphaned entries and lists them (<a href="cli.html#cmd-pin">command block</a>). <code>pin DIR</code> for a dir that is not in <code>repoctl.yaml</code> is a usage error.</li>
 <li>publish refuses a set with an orphaned entry: exit 5, <code>lock.orphaned</code>. The lock and <code>repoctl.yaml</code> must agree, so that the set commit fixes the output (<a href="publish.html#checks">checks before the first signature</a>).</li>
 </ul>
@@ -166,6 +166,7 @@
 <li>Before it creates a branch, repoctl runs <code>git ls-remote</code> on the remote of the package. When the branch exists there, repoctl does not create it: exit 1, <code>branch.exists-remote</code>, hint <code>repoctl checkout DIR</code>.</li>
 <li>For an external package, the server repository must exist. When <code>ls-remote</code> fails: exit 1, <code>git.unreachable</code>, hint "create the project on the git server first".</li>
 <li>The output gives the start point of each branch: "forked from pmix/slurm-26.05 at 6644bdf" or "orphan".</li>
+<li>repoctl makes the new branch as a local branch at the start point and attaches the worktree to it (<a href="cli.html#local-branch">local branch</a>). A commit in <code>packages/DIR</code> goes to that branch.</li>
 <li>repoctl does not push. The output ends with one push command for all new branches, then <code>repoctl pin</code>.</li>
 </ul>
 <pre class="term">$ repoctl checkout --create --from-set builder/slurm-26.05
@@ -335,6 +336,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ul>
 <li>The clone is <code>$XDG_DATA_HOME/repoctl/git/HASH.git</code> (HASH: the first 10 hex digits of the URL hash). <code>checkout</code> fetches it and makes the worktree from it. The lock stores the URL, the branch and the commit. The clone can hold commits that are not pushed, so it is data and not cache (<a href="config.html#xdg">XDG directories</a>). Thus the whole cache is safe to delete.</li>
 <li>repoctl makes it with <code>git clone --bare URL</code> and the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>. It does not set <code>remote.origin.mirror</code>. Thus <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</li>
+<li>The local branches of the clone are its <code>refs/heads/*</code>. <code>git clone --bare</code> copies each remote branch there one time, and the refspec does not update them. checkout uses them as in the set repository: it creates <code>BRANCH</code> at the lock commit, or fast-forwards a stale copy to it (<a href="cli.html#local-branch">local branch</a>).</li>
 <li><a href="cli.html#cmd-clean"><code>repoctl clean</code></a> does not touch <code>$XDG_DATA_HOME/repoctl/git</code>. <code>repoctl clean --git</code> deletes a clone only when it has no worktree and no commit that is not on the remote. Otherwise it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</li>
 <li><code>repoctl doctor</code> warns about an external clone with commits that are not pushed. It also checks that each external URL is reachable.</li>
 <li>The pin warning "not on origin" and the rebuild banner print the push command for the package.</li>

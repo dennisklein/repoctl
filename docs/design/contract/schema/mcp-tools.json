@@ -828,7 +828,7 @@
     {
       "name": "repoctl_checkout",
       "title": "Check out locked commits",
-      "description": "Create or update package worktrees at the commits in repoctl.lock, and fetch the clones of external packages. It never discards changes: a dirty worktree or a worktree with commits that are not in the lock fails with code lock.dirty and a humanAction. With create, it makes a new package branch from the source that you name (fromSet, from or orphan). It never pushes; the result names the push command. Returns kind Lock.",
+      "description": "Create or update package worktrees at the commits in repoctl.lock, and fetch the clones of external packages. Each worktree is attached to its local branch (the branch of the package entry); checkout moves a local branch only forward. It never discards changes: a dirty worktree or a worktree with commits that are not in the lock stays as it is, with a row and the warning worktree.dirty (exit 0, as in the CLI). With more than one dir it continues after a failed dir and exits 1. With create, it makes a new package branch from the source that you name (fromSet, from or orphan). It never pushes; the result names the push command. Returns kind Lock.",
       "inputSchema": {
         "type": "object",
         "properties": {

@@ -460,6 +460,7 @@ sets:
   <li><code>git.url</code> on a package points to any git server. The lock stores the URL, the branch and the commit.</li>
   <li>repoctl keeps one bare clone per URL with the full history in <code>$XDG_DATA_HOME/repoctl/git/HASH.git</code>, because rpmautospec needs the history. <code>repoctl checkout</code> fetches the clone and makes the worktree.</li>
   <li>repoctl makes the clone with <code>git clone --bare URL</code> and the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>. It does not set <code>remote.origin.mirror</code>. Thus <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</li>
+  <li>The worktree is attached to the local branch <code>BRANCH</code> of the clone. checkout creates it at the lock commit and moves it only forward (<a href="cli.html#local-branch">cli.html#local-branch</a>).</li>
   <li><code>repoctl clean</code> does not touch the clones. <code>repoctl clean --git</code> deletes a clone only when it has no worktree and no commit that is not on the remote. Else it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</li>
   <li>Credentials come from the git and ssh setup of the user. The config never holds them. <code>repoctl doctor</code> checks that each URL is reachable, and it warns about clones with commits that are not pushed.</li>
 </ul>
