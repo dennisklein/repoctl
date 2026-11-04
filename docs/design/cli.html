@@ -1049,7 +1049,7 @@ note: opened in the browser. The server is for dklein on this host only. Ctrl-C 
   <h4><code>repoctl mcp</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl mcp start [--tools read|all|NAME,...]
 repoctl mcp tools [--tools read|all|NAME,...]</pre>
-  <p>mcp start runs the MCP server on stdio (<a href="agents.html#mcp">agents.html#mcp</a>). Each tool runs one repoctl command with <code>--json</code> and returns stdout, stderr and the exit code; progress notifications come from the journal. Tool names are <code>repoctl_COMMAND[_SUB]</code>. <code>--tools read</code> lists only the read tools, and other calls fail with <code>mcp.tool-not-allowed</code>; the UI agent uses it. mcp tools prints the tool definitions. No shared-state command has a tool (<a href="agents.html#not-exposed">agents.html#not-exposed</a>).</p>
+  <p>mcp start runs the MCP server on stdio (<a href="agents.html#mcp">agents.html#mcp</a>). Each tool does what one repoctl command does with <code>--json</code> and returns its envelope and its exit code. A read tool runs in the server process with the code of its command. <code>repoctl_build</code> starts a detached child (<a href="agents.html#mcp-exec">agents.html#mcp-exec</a>). Both follow the environment rule of <a href="config.html#env">config.html#env</a>. Progress notifications come from the journal. Tool names are <code>repoctl_COMMAND[_SUB]</code>. <code>--tools read</code> lists only the read tools, and other calls fail with <code>mcp.tool-not-allowed</code>; the UI agent uses it. mcp tools prints the tool definitions. No shared-state command has a tool (<a href="agents.html#not-exposed">agents.html#not-exposed</a>).</p>
   <dl class="facts"><dt>Lock</dt><dd>none; each call takes the lock of its command</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>the MCP protocol; mcp tools: the form of <a href="contract/schema/mcp-tools.json">mcp-tools.json</a></dd><dt>Exit</dt><dd>0 on EOF or a signal; 2</dd></dl>
   <pre class="term">$ claude mcp add repoctl -- repoctl mcp start</pre>
 </section>
@@ -1117,7 +1117,7 @@ no package provides rocm-smi-devel</pre>
 <section class="cmd" id="cmd-config">
   <h4><code>repoctl config</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl config show | paths</pre>
-  <p>show prints each setting with its effective value and the layer that gave it (<a href="config.html#layers">config.html#layers</a>). paths prints the files and directories of this set and user, with sizes (<a href="config.html#xdg">config.html#xdg</a>). Neither changes a file.</p>
+  <p>show prints each setting with its effective value and the layer that gave it (<a href="config.html#layers">config.html#layers</a>). paths prints the files and directories of this set and user, with sizes (<a href="config.html#xdg">config.html#xdg</a>). Neither changes a file. show warns with <code>config.unknown-set</code> about a key <code>sets.NAME</code> for a set that this host does not know (<a href="config.html#user-config">config.html#user-config</a>).</p>
   <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Config</code> or <code>Path</code></dd><dt>Exit</dt><dd>0; 1 the config is invalid</dd></dl>
   <pre class="term">$ repoctl config show
 KEY           VALUE        SOURCE

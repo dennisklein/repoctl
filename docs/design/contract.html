@@ -330,7 +330,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 127 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 128 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -355,6 +355,7 @@
 <tr><td><code>check.timer-unit</code></td><td>warning</td><td>The installed timer units differ from the units of this binary.</td><td><code>repoctl check --install-timer</code></td></tr>
 <tr><td><code>config.invalid</code></td><td>1</td><td>A configuration file does not agree with its schema or with a rule.</td><td>Correct the file; <code>repoctl schema config</code>.</td></tr>
 <tr><td><code>config.unknown-key</code></td><td>1</td><td>A key is unknown, or the user config sets a key that changes the build.</td><td>Remove the key, or upgrade repoctl when a newer release knows it; <code>repoctl config show</code>.</td></tr>
+<tr><td><code>config.unknown-set</code></td><td>warning</td><td><code>config show</code>: the user config has <code>sets.NAME</code> for a set that this host does not know.</td><td>Correct NAME, or remove the key.</td></tr>
 <tr><td><code>config.unsupported</code></td><td>1</td><td>This release does not support the key or its value, for example a target that is not <code>x86_64</code>.</td><td>Remove the key, or change the value.</td></tr>
 <tr><td><code>contract.newer-file</code></td><td>1; warning in a command that only reads the file</td><td>A stored file needs a newer repoctl: its apiVersion, a field, a closed enum value or <code>minRepoctl</code> is newer than this binary. The message names the file and the versions.</td><td>Upgrade repoctl on this host (<a href="cli.html#upgrade">upgrade</a>).</td></tr>
 <tr><td><code>contract.old-file</code></td><td>1</td><td>The command must write a stored file in an apiVersion that this binary only reads.</td><td><code>repoctl migrate --api</code>, then commit.</td></tr>

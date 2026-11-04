@@ -300,7 +300,7 @@ sets:
 <tr><td><code>state.keep_runs</code></td><td>50</td><td>The number of finished build runs whose journals and logs stay. Runs with staged nodes, publish runs and check runs have their own rule (<a href="contract.html#retention">contract.html#retention</a>).</td></tr>
 <tr><td><code>state.keep_publishes</code></td><td>100</td><td>The number of publish runs whose journals stay. The journal of a publish with a kept tree always stays.</td></tr>
 <tr><td><code>state.keep_checks</code></td><td>30</td><td>The number of check runs whose journals stay. Check runs do not count toward <code>state.keep_runs</code> (<a href="contract.html#writing">contract.html#writing</a>).</td></tr>
-<tr><td><code>sets.NAME.*</code></td><td>-</td><td>The same keys for one set. They win over the top-level keys.</td></tr>
+<tr><td><code>sets.NAME.*</code></td><td>-</td><td>The same keys for one set. They win over the top-level keys. <code>repoctl config show</code> warns (<code>config.unknown-set</code>) about a NAME that is not the current set, has no state directory <code>$XDG_STATE_HOME/repoctl/NAME/</code> and is not in the set list of the web UI.</td></tr>
 </tbody>
 </table>
 <p>The set config lists the keys that the clients trust. The user config only selects the key of this human (<a href="signing.html#probe">signing.html#probe</a>). A user config has no publish path, because no admin writes the served tree.</p>
@@ -341,6 +341,13 @@ sets:
 <p class="callout-title">Rule</p>
 <p><code>repoctl ui</code> and <code>repoctl mcp start</code> run each command without the variables that stand in for a flag, and with <code>REPOCTL_PROGRESS=none</code>. They also remove <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code>. Thus a run does what its shown command says. repoctl never writes a token or a passphrase into a config file, a log or a <code>--json</code> result.</p>
 </aside>
+<p>The rule in detail:</p>
+<ul>
+  <li>Removed from the environment of each child: <code>REPOCTL_DIR</code>, <code>REPOCTL_CONFIG</code>, <code>REPOCTL_TARGET</code>, <code>REPOCTL_JSON</code>, <code>REPOCTL_PROGRESS_LOG</code>, <code>REPOCTL_QUIET</code>, <code>REPOCTL_VERBOSE</code>, <code>REPOCTL_JOBS</code>, <code>REPOCTL_LOCK_WAIT</code>, <code>REPOCTL_UI_LISTEN</code> and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code>. <code>REPOCTL_PROGRESS</code> is set to <code>none</code>.</li>
+  <li>Given as flags in their place: <code>-C</code> with the set directory, <code>--config</code> with the effective user config path of the server (also <code>--config ""</code>), <code>--jobs</code> for a build (the value of the build dialog or of the tool call, else the effective <code>jobs</code> of the server) and <code>--lock-wait 0</code>, so that a busy set answers at once with <code>set.busy</code>. The CLI toggle of the UI shows <code>--config PATH</code> only when the path is not the default.</li>
+  <li>Kept: <code>REPOCTL_SIGN_KEY</code> and its alias <code>REPOCTL_GPG_NAME</code>. They stand in for the user config key <code>sign.key</code>, which has no flag. Thus the server and the child find the same signer from the same layers. The review shows that signer, and the plan digest holds its fingerprint (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>).</li>
+  <li>The pages of the UI and the read tools of the MCP server run in the server process. They use the same values as the children: the effective config path and the kept variables. They read no other <code>REPOCTL_*</code> variable.</li>
+</ul>
 
 <h2 id="xdg">XDG directories</h2>
 <p>The set directory holds only committed files and the package worktrees. All generated files go to the XDG directories of the user.</p>
