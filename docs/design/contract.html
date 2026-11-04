@@ -467,7 +467,7 @@
 <table class="compact">
 <thead><tr><th>File in <code>$XDG_STATE_HOME/repoctl/&lt;set&gt;/</code></th><th>Format</th><th>Writer</th><th>Readers</th></tr></thead>
 <tbody>
-<tr><td><code>runs/&lt;run&gt;.jsonl</code></td><td>journal v1</td><td>the process that holds the set lock</td><td>CLI, web UI, MCP server, through <code>journal.Fold</code></td></tr>
+<tr><td><code>runs/&lt;run&gt;.jsonl</code></td><td>journal v1</td><td>the process that holds the set lock; for a check run, the process that holds the check lock (<a href="advisories.html#check">check</a>)</td><td>CLI, web UI, MCP server, through <code>journal.Fold</code></td></tr>
 <tr><td><code>runs/&lt;run&gt;.progress.jsonl</code></td><td>go-clikit event log v1</td><td><code>progress.Log</code> on the Bus of the run</td><td>bug reports, CI artifacts</td></tr>
 <tr><td><code>logs/&lt;run&gt;/&lt;node&gt;.log</code></td><td>text with step markers</td><td>the node runner: the step markers and a tee of the mock output</td><td><code>repoctl logs</code>, the UI log view, <code>repoctl_logs</code></td></tr>
 <tr><td><code>logs/&lt;run&gt;/&lt;node&gt;/&lt;step&gt;/</code> <code>root.log</code>, <code>build.log</code>, <code>state.log</code></td><td>mock logs</td><td>mock</td><td><code>repoctl logs --file</code>, the UI log view</td></tr>
@@ -495,7 +495,7 @@
 <ul>
   <li>The journal writer has the rules of <code>progress.Log</code>: whole lines, <code>O_APPEND</code>, file mode 0600, a trusted state directory. It flushes every 250 ms, and at once after a terminal <code>node.state</code> and after <code>run.finished</code>.</li>
   <li>Text from mock goes through <code>progress.Sanitize</code>. At 32 MiB, repoctl stops the <code>node.log</code> lines of the run and writes the warning <code>journal.sampling-stopped</code>. State lines continue.</li>
-  <li>A killed process leaves a journal without <code>run.finished</code>. A reader then shows the run as abandoned (<a href="build.html#cancel">Cancel and abandoned runs</a>).</li>
+  <li>A killed process leaves a journal without <code>run.finished</code>. When nobody holds the lock of the run (the set lock, or the check lock for a check run), a reader shows the run as abandoned (<a href="build.html#cancel">Cancel and abandoned runs</a>).</li>
   <li>Retention deletes the journal, the progress log and the node logs of a run. It runs at the start of a build, at the start of a publish, at the start of a check and in <code>repoctl clean --logs</code>. The table gives the one rule. The shared audit record is the publish history, not the journal (<a href="publish.html#format">publish.html#format</a>). <code>activity.jsonl</code> rotates at 8 MiB.</li>
 </ul>
 <table class="compact" id="retention">
