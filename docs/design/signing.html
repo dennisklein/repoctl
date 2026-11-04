@@ -369,7 +369,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 </table>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>repoctl re-signs an RPM only when both conditions are true. Its signature verifies with a key in <code>sign.keys</code>. Its sha256 is in the base snapshot, which has a valid <code>repomd.xml.asc</code>. RPMs of different admins stay side by side. A change of the human who publishes never re-signs old RPMs.</p>
+<p>repoctl re-signs an RPM only when both conditions are true. Its signature verifies with a key in <code>sign.keys</code>, at the time of the signature (<a href="#after-expiry">after the expiry</a>). Its sha256 is in the base snapshot, which has a valid <code>repomd.xml.asc</code>. RPMs of different admins stay side by side. A change of the human who publishes never re-signs old RPMs.</p>
 </aside>
 <p><code>repoctl repo resign --signer ID</code> gives a new signature to each RPM of the key ID. It signs with the key of the human who runs the command. It is a publish run of kind resign, with the full publish order and gates 1 to 3 (<a href="publish.html#per-kind">checks per kind</a>). The summary shows the count per target and per repository, debuginfo included, and the size of the new blobs. <code>--repo</code> splits the work. When no RPM carries the key, the command exits with 4. A new signature changes the sha256 of the file. Thus resign also writes new supply chain records for each build that it touches (<a href="supply-chain.html#layout">supply-chain.html#layout</a>).</p>
 <p><code>repo restore</code> also re-signs the RPMs of a removed key in the older snapshot (<a href="publish.html#restore">publish.html#restore</a>). Command: <a href="cli.html#cmd-repo-resign">repo resign</a>.</p>
@@ -394,12 +394,23 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <p class="callout-title">Rule</p>
 <p>Treat an expiring key as a key change. Add a new key, deploy it, retire the old key, re-sign, and remove the old key (<a href="#offboarding">offboarding and rotation</a>). Do not extend the expiry date of a key that clients already have.</p>
 </aside>
-<ul>
-  <li>Doctor <code>sign.expiry</code> warns when a key expires inside <code>key_expiry_warn</code> (180 days). Its fix line is <code>repoctl sign onboard NEW-ID</code>, then <code>repoctl sign retire OLD-ID</code>.</li>
-  <li>Gate 1 refuses a signer that expires inside <code>key_min_validity</code> (30 days): <code>sign.key-expiring</code>, exit 12.</li>
-  <li><code>repoctl check</code> reports published RPMs whose signer expires inside the warn window: advisory <code>sign.expiring</code>, level warn (<a href="advisories.html#codes">advisories.html#codes</a>).</li>
-</ul>
+<p>Three checks read the expiry date of a key. Each one has its own id and limit. The limits are <code>sign.checks.key_expiry_warn</code> (default 180 days) and <code>sign.checks.key_min_validity</code> (default 30 days).</p>
+<table class="compact">
+<thead><tr><th>Id</th><th>Kind</th><th>Limit</th><th>Effect</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td><code>sign.expiry</code></td><td>doctor check</td><td>a key expires inside <code>key_expiry_warn</code></td><td>warning</td><td><code>repoctl sign add NEW-ID --fingerprint FPR</code>, deploy the new key, then <code>repoctl sign retire OLD-ID</code></td></tr>
+<tr><td><code>sign.expiring</code></td><td>advisory of <code>repoctl check</code> (<a href="advisories.html#codes">advisories.html#codes</a>)</td><td>published RPMs carry a key that expires inside <code>key_expiry_warn</code>: level warn; inside <code>key_min_validity</code>: level required</td><td>The advisory has no closure, so it never blocks a publish.</td><td><code>repoctl repo resign --signer OLD-ID</code> with the new key</td></tr>
+<tr><td><code>sign.key-expiring</code></td><td>problem code of gate 1</td><td>the signer key expires inside <code>key_min_validity</code></td><td>publish stops, exit 12</td><td>Add a new key, then retire this key.</td></tr>
+</tbody>
+</table>
 <p>The story keys expire on these dates: a.admin 2028-03-01, d.klein 2029-11-01, hpc-repo 2030-01-20.</p>
+<h3 id="after-expiry">After the expiry</h3>
+<p>An RPM keeps its signature when the key expires. EL10 rpm then refuses the RPM (F6). EL9 rpm, the Fedora rpm of the signer host and the mirror job need the test V7 (<a href="delivery.html#verification">delivery.html#verification</a>). The design does not depend on its result:</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: a signature counts at the time it was made</p>
+<p>repoctl checks an RPM signature in its own process, with the public key in <code>keys/ID.asc</code>, at the creation time of the signature. Thus host verify (step 4), <code>repo pull</code>, <code>repo verify</code> and the <a href="#resign">re-sign rule</a> accept a signature that a key of <code>sign.keys</code> made before the key expired. For each such RPM they give the warning <code>sign.expired-signer</code>. verify-el uses the rpm of the target. A publish of an EL10 target with such an RPM in the base therefore stops with <code>verify.el-failed</code> (exit 10). <code>repoctl repo resign --signer ID</code> replaces the signatures, and it is the only way out.</p>
+</aside>
+<p>Thus re-sign the RPMs of a key before it expires. The advisory <code>sign.expiring</code> becomes required 30 days before the expiry date.</p>
 
 <h2 id="lifecycle">Key lifecycle</h2>
 <p><code>sign.keys[].state</code> has three values: active, retiring and removed. "Deployed" is not a state: it is an active key with a record in <code>keys/deployed.yaml</code>.</p>
@@ -618,7 +629,7 @@ Set commits:    sign each commit that changes repoctl.yaml,
                 key, or of the key that the change adds.
 
 A new expiry date does not reach the clients. Treat an expiring key
-as a key change.
+as a key change, and re-sign its RPMs before it expires.
 
 publish signs only with an active, deployed key. It re-signs no old
 RPM; only "repoctl repo resign" does. "repoctl doctor" checks sign.*.</code></pre>
