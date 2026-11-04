@@ -291,7 +291,7 @@ check       last 8h ago (timer) · ok</pre>
 </svg>
 <figcaption>Each host checks the same shared inputs and keeps its own result. Only the dismissals go through git.</figcaption>
 </figure>
-<p><code>repoctl check --install-timer</code> writes the template pair once and starts one instance for the set. The instance name is the escaped set directory (<code>systemd-escape --path</code>). <code>--remove-timer</code> stops and removes the instance of the set.</p>
+<p><code>repoctl check --install-timer</code> writes the template pair when it is missing or differs from the pair of this binary, and starts one instance for the set. After a rewrite, it runs <code>systemctl --user daemon-reload</code>. The units call <code>/usr/bin/repoctl</code>, so the timer runs the new binary after an upgrade. The instance name is the escaped set directory (<code>systemd-escape --path</code>). <code>--remove-timer</code> stops and removes the instance of the set.</p>
 <pre><code class="language-ini"># ~/.config/systemd/user/repoctl-check@.service
 [Unit]
 Description=repoctl check for the set in %I
@@ -339,6 +339,7 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
 <tr><td>The last check is older than latest of a target: a publish, restore, prune or resign came after it.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"check older than latest of el9: run repoctl check"</td></tr>
 <tr><td>No check ran.</td><td><span class="tag warn">warn</span> <code>check.never</code></td><td>"never checked: run repoctl check --install-timer"</td></tr>
 <tr><td>Lingering is off.</td><td><span class="tag info">info</span> <code>check.no-linger</code></td><td>nothing</td></tr>
+<tr><td>The template pair differs from the pair of this binary.</td><td><span class="tag warn">warn</span> <code>check.timer-unit</code></td><td>nothing</td></tr>
 </tbody>
 </table>
 <p>Thus after a fixing publish, status and the UI do not show the old advisory as open. They show the check line in amber until the next check.</p>

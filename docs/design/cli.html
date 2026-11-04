@@ -178,6 +178,7 @@ Additional help topics:
   repoctl help advisories   Advisories, dismissals and the publish gate
   repoctl help signing      Keys, gates, deployment record and re-sign
   repoctl help team         A new admin or a new host
+  repoctl help upgrade      Upgrade repoctl on a host and in a team
   repoctl help new-set      Start a new set from the previous set
   repoctl help packages     Bump, add, remove, rename, move and retire a package
   repoctl help xdg          Where repoctl keeps its files
@@ -374,7 +375,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 <tr><td>6</td><td><code>ExitNeedsConfirmation</code></td><td>The command needs a human: no terminal, a wrong answer, or a trust change without the typed key id. Without a terminal, <code>--yes</code> also needs <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code>.</td><td><code>publish.needs-confirmation</code>, <code>publish.unattended-refused</code>, <code>sign.trust-change</code></td></tr>
 <tr><td>7</td><td><code>ExitBusy</code></td><td>Another process holds the set lock, the clone lock of an external package or the host mock lock, and <code>--lock-wait</code> ended. There is no build queue.</td><td><code>set.busy</code>, <code>git.busy</code>, <code>mock.busy</code></td></tr>
 <tr><td>8</td><td><code>ExitDoctorWarning</code></td><td>Only with <code>doctor --strict</code>: a check gave a warning, none failed.</td><td></td></tr>
-<tr><td>9</td><td><code>ExitHostNotReady</code></td><td>A required host check failed, in doctor or in the preflight of build, publish, check or mock.</td><td><code>host.not-ready</code>, <code>mock.unavailable</code>, <code>mock.config-missing</code>, <code>sign.no-key</code>, <code>sign.card-absent</code>, <code>sign.no-pinentry</code>, <code>sign.locked</code>, <code>sign.key-format</code></td></tr>
+<tr><td>9</td><td><code>ExitHostNotReady</code></td><td>A required host check failed, in doctor or in the preflight of build, publish, check or mock. A UI or MCP server that runs an older binary than the one on disk also gives 9.</td><td><code>host.not-ready</code>, <code>host.stale-server</code>, <code>mock.unavailable</code>, <code>mock.config-missing</code>, <code>sign.no-key</code>, <code>sign.card-absent</code>, <code>sign.no-pinentry</code>, <code>sign.locked</code>, <code>sign.key-format</code></td></tr>
 <tr><td>10</td><td><code>ExitVerifyFailed</code></td><td>A signature, a checksum or the repodata is wrong, also in the EL chroot, or an RPM has an unknown signer. repo push finds a tree that did not pass verify and verify-el. repoctl pushes nothing.</td><td><code>verify.failed</code>, <code>verify.el-failed</code>, <code>sign.unknown-signer</code>, <code>publish.not-verified</code></td></tr>
 <tr><td>11</td><td><code>ExitDifferences</code></td><td>Only with <code>--check</code>: plan, check, upstream or repo diff found something.</td><td></td></tr>
 <tr><td>12</td><td><code>ExitNotPublishable</code></td><td>A rule refuses the publish of a target. Causes: a node that is not current or staged, an unpinned run, a reused, removed or older NVR, a blocking required advisory, a failed signing gate, a set input without a valid signature. Restore, resign, prune, sign retire, sign remove, sign deployed and sign removed also use it.</td><td><code>publish.not-ready</code>, <code>run.unpinned</code>, <code>nvr.reused</code>, <code>nvr.removed</code>, <code>nvr.older</code>, <code>prune.unsafe</code>, <code>advisory.open</code>, <code>sign.not-active</code>, <code>sign.key-expiring</code>, <code>sign.not-deployed</code>, <code>sign.removed-signer</code>, <code>sign.key-in-use</code>, <code>sign.trust-unverified</code>, <code>sign.self-confirm</code>, <code>sign.last-signer</code>, <code>sign.not-removed</code></td></tr>
@@ -1021,8 +1022,9 @@ hint: read the release notes. run: repoctl upstream slurm openmpi --releases</pr
   <h4><code>repoctl ui</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl ui [--no-browser] [--listen ADDR] [--stop]</pre>
   <p>Start the local web UI for the local user and open it in the browser (<a href="ui.html#principles">ui.html#principles</a>). repoctl keeps one server per user. When it runs, ui adds the set of the start directory, opens the browser and exits 0. The server runs in the foreground until Ctrl-C and runs each command as a child, as the CLI does. There is no remote access.</p>
-  <p><code>--listen</code> accepts only a loopback address (default <code>127.0.0.1:0</code>, also <code>REPOCTL_UI_LISTEN</code>). <code>--stop</code> stops the server.</p>
-  <dl class="facts"><dt>Lock</dt><dd>none; each child takes the lock of its command</dd><dt>Writes</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/ui.json</code> and the private control socket <code>ui.sock</code></dd><dt>Output</dt><dd>one launch URL <code>http://127.0.0.1:PORT/-/auth?t=TOKEN</code>; the token is for one use within 60 s (<a href="ui.html#auth">ui.html#auth</a>); no <code>--json</code></dd><dt>Exit</dt><dd>0 (also on a signal); 1 cannot listen; 2</dd></dl>
+  <p><code>--listen</code> accepts only a loopback address (default <code>127.0.0.1:0</code>, also <code>REPOCTL_UI_LISTEN</code>). <code>--stop</code> stops the server with SIGTERM to the pid in <code>ui.json</code>, so it also stops a server of another release.</p>
+  <p><code>ui.json</code> holds the address, the pid and the version of the server. ui reads it before it uses <code>ui.sock</code>. When the server has another version than the binary, ui asks on a terminal: "The UI server runs repoctl 0.4.0. Restart it with 0.5.0? [y/N]". On yes, it stops the old server and starts a new one. On no, or without a terminal, it exits 9 with <code>host.stale-server</code>. After a <code>dnf upgrade</code>, a running server starts no child (<a href="ui.html#sets">ui.html#sets</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none; each child takes the lock of its command</dd><dt>Writes</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/ui.json</code> and the private control socket <code>ui.sock</code></dd><dt>Output</dt><dd>one launch URL <code>http://127.0.0.1:PORT/-/auth?t=TOKEN</code>; the token is for one use within 60 s (<a href="ui.html#auth">ui.html#auth</a>); no <code>--json</code></dd><dt>Exit</dt><dd>0 (also on a signal); 1 cannot listen; 2; 9 <code>host.stale-server</code></dd></dl>
   <pre class="term">$ repoctl ui
 http://127.0.0.1:43817/-/auth?t=q7Hc2Lw9xT4mR8vNk3pZ
 note: opened in the browser. The server is for dklein on this host only. Ctrl-C stops it.</pre>
@@ -1051,7 +1053,7 @@ repoctl skills install [--user | --project] [NAME...]</pre>
   <h4><code>repoctl doctor</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl doctor [--strict] [--only host|set|sign|registry|check]</pre>
   <p>Check this host for build, sign and registry. This replaces <code>scripts/setup</code>, except the dnf install. Each check is ok, warning or failed; passed checks are dim, and each warning or failure has its fix under it. Required for build: git, mock, the group mock, the mock configs, rpmautospec, rpmspec, createrepo_c, the XDG directories and a valid <code>repoctl.yaml</code>. Required for publish: also rpmsign, gpg, the secret key, gates 1 and 3. A missing secret key is a warning, so a host that only builds gets exit 0. The build check <code>build.linger</code> warns when lingering is off for the user, because a logout then removes the set lock of a run (<a href="build.html#lock">build.html#lock</a>). The build check <code>host.shared-state</code> warns when the state or the data directory is on a network file system (<a href="contract.html#readers">contract.html#readers</a>).</p>
-  <p>The sign checks include <code>sign.key</code>, <code>sign.keyfile</code>, <code>sign.release</code>, <code>sign.retiring</code> (a retiring key still signs RPMs in latest), <code>sign.deployed</code>, <code>sign.cross-set</code> (another builder branch has other keys) and <code>sign.verify-el</code>; <a href="signing.html#doctor">signing.html#doctor</a> has the full list. The set check <code>git.signing</code> warns when git does not sign commits with the key of <code>sign.key</code> (<a href="security.html#set-inputs">security.html#set-inputs</a>). The set check <code>git.protection</code> warns when a GitHub ruleset is missing (<a href="security.html#rulesets">security.html#rulesets</a>). The check <code>skills.guard</code> warns when an installed skill has no guard hook (<a href="agents.html#guard">agents.html#guard</a>). The registry checks are in <a href="publish.html#registry">publish.html#registry</a>, the check health in <a href="advisories.html#health">advisories.html#health</a>. The host check <code>tool.repo-key</code> checks the key of the tool repository (<a href="decision.html#tool-key">decision.html#tool-key</a>). The set check <code>sbom.license</code> warns about a spec whose License tag is not an SPDX expression (<a href="supply-chain.html#sbom-record">supply-chain.html#sbom-record</a>). The set check <code>git.unpushed</code> warns about each commit of the set repository and of the bare clones of external packages that is not on its remote (<a href="model.html#records">model.html#records</a>). The set check <code>set.repoctl-version</code> fails when the binary is older than <code>minRepoctl</code>. It warns when latest of a target was written by a newer release (annotation <code>io.repoctl.repoctl-version</code>, <a href="publish.html#format">publish.html#format</a>); upgrade before the next publish.</p>
+  <p>The sign checks include <code>sign.key</code>, <code>sign.keyfile</code>, <code>sign.release</code>, <code>sign.retiring</code> (a retiring key still signs RPMs in latest), <code>sign.deployed</code>, <code>sign.cross-set</code> (another builder branch has other keys) and <code>sign.verify-el</code>; <a href="signing.html#doctor">signing.html#doctor</a> has the full list. The set check <code>git.signing</code> warns when git does not sign commits with the key of <code>sign.key</code> (<a href="security.html#set-inputs">security.html#set-inputs</a>). The set check <code>git.protection</code> warns when a GitHub ruleset is missing (<a href="security.html#rulesets">security.html#rulesets</a>). The check <code>skills.guard</code> warns when an installed skill has no guard hook (<a href="agents.html#guard">agents.html#guard</a>). The registry checks are in <a href="publish.html#registry">publish.html#registry</a>, the check health in <a href="advisories.html#health">advisories.html#health</a>. The host check <code>host.stale-server</code> warns when a <code>repoctl ui</code> or <code>repoctl mcp start</code> process of this user runs a binary that a <code>dnf upgrade</code> replaced. The host check <code>tool.repo-key</code> checks the key of the tool repository (<a href="decision.html#tool-key">decision.html#tool-key</a>). The set check <code>sbom.license</code> warns about a spec whose License tag is not an SPDX expression (<a href="supply-chain.html#sbom-record">supply-chain.html#sbom-record</a>). The set check <code>git.unpushed</code> warns about each commit of the set repository and of the bare clones of external packages that is not on its remote (<a href="model.html#records">model.html#records</a>). The set check <code>set.repoctl-version</code> fails when the binary is older than <code>minRepoctl</code>. It warns when latest of a target was written by a newer release (annotation <code>io.repoctl.repoctl-version</code>, <a href="publish.html#format">publish.html#format</a>); upgrade before the next publish.</p>
   <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>stdout: the checks with ✓ ! ✗; kind <code>DoctorReport</code></dd><dt>Exit</dt><dd>0 (warnings too); 8 warnings with <code>--strict</code>; 9 a required check failed</dd></dl>
   <pre class="term">$ repoctl doctor
 ✓ repoctl 0.4.0 (3f9a1c2), go1.26.8, Fedora 44
@@ -1118,7 +1120,7 @@ ui.listen     127.0.0.1:0  default</pre>
 <section class="cmd" id="cmd-version">
   <h4><code>repoctl version</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl version</pre>
-  <p>Print the version and the commit of the build. <code>repoctl --version</code> prints the same line. With <code>--json</code>, the Version item also lists the apiVersions that the binary writes and reads (<a href="contract.html#stored">contract.html#stored</a>).</p>
+  <p>Print the version and the commit of the build. <code>repoctl --version</code> prints the same line. With <code>--json</code>, the Version item also lists the apiVersions that the binary writes and reads (<a href="contract.html#stored">contract.html#stored</a>). The upgrade steps are in <a href="#upgrade">Upgrade repoctl</a>.</p>
   <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Version</code></dd><dt>Exit</dt><dd>0</dd></dl>
   <pre class="term">$ repoctl version
 repoctl 0.4.0 (3f9a1c2)</pre>
@@ -1130,6 +1132,58 @@ repoctl 0.4.0 (3f9a1c2)</pre>
   <p>Write the completion script to stdout. The RPM installs it for bash, zsh and fish (<a href="#completion">shell completion</a>).</p>
   <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>the script; no <code>--json</code></dd><dt>Exit</dt><dd>0; 2</dd></dl>
 </section>
+
+<h3 id="upgrade">Upgrade repoctl</h3>
+<p>The text of <code>repoctl help upgrade</code> gives the steps on one admin host. A run that is active during the upgrade ends with the old binary. A UI or MCP server that runs during the upgrade starts no new child (<code>host.stale-server</code>).</p>
+<pre><code class="language-plaintext">UPGRADE
+
+Upgrade repoctl on an admin host:
+  1. Read the release notes. They name new keys and fields, a new
+     apiVersion and a new minRepoctl.
+  2. repoctl runs --state running    in each set: wait until no run is active
+  3. repoctl ui --stop               stop the web UI server
+  4. sudo dnf upgrade repoctl repoctl-release
+  5. repoctl skills install          also --project in each set that has them
+  6. repoctl check --install-timer   in each set with a timer: it rewrites
+                                     the units when they changed
+  7. Restart each agent session that runs "repoctl mcp start".
+  8. repoctl doctor                  host.stale-server, skills.version-mismatch
+                                     and check.timer-unit must pass
+Upgrade the mirror job on the HTTP server: sudo dnf upgrade
+repoctl-mirror. The timer runs the new job at its next start.
+Two admins can work with two releases for a short time. An older
+binary reads newer files, but it never rewrites a file with a field
+that it does not know (contract.newer-file, exit 1).
+When all admins have the new release:
+  - raise minRepoctl in repoctl.yaml if the release notes ask for it;
+  - for a new apiVersion, upgrade the HTTP server first, then run
+    "repoctl migrate --api".
+Commit and push the change of repoctl.yaml.</code></pre>
+<figure class="diagram">
+<svg viewBox="0 0 900 132" role="img" aria-labelledby="upgrade-t">
+<title id="upgrade-t">The order of a team upgrade</title>
+<rect class="box" x="16" y="24" width="196" height="84" rx="8"/>
+<text class="t-title" x="30" y="48">1 each admin host</text>
+<text class="t-small t-mono" x="30" y="70">dnf upgrade repoctl</text>
+<text class="t-small" x="30" y="90">skills, timer, doctor</text>
+<rect class="box" x="240" y="24" width="196" height="84" rx="8"/>
+<text class="t-title" x="254" y="48">2 HTTP server</text>
+<text class="t-small t-mono" x="254" y="70">dnf upgrade</text>
+<text class="t-small t-mono" x="254" y="90">repoctl-mirror</text>
+<rect class="box-accent" x="464" y="24" width="196" height="84" rx="8"/>
+<text class="t-title t-on" x="478" y="48">3 one set commit</text>
+<text class="t-small t-on" x="478" y="70">minRepoctl, or</text>
+<text class="t-small t-mono t-on" x="478" y="90">migrate --api</text>
+<rect class="box-soft" x="688" y="24" width="196" height="84" rx="8"/>
+<text class="t-title" x="702" y="48">4 next publish</text>
+<text class="t-small" x="702" y="70">RepoManifest in the</text>
+<text class="t-small" x="702" y="90">apiVersion of the set</text>
+<path class="edge" d="M212,66 L238,66" marker-end="url(#arrow)"/>
+<path class="edge" d="M436,66 L462,66" marker-end="url(#arrow)"/>
+<path class="edge" d="M660,66 L686,66" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>A team upgrade. Step 3 shuts out the older binaries, so it comes after all hosts have the new release. A release without a new apiVersion and without a new minRepoctl needs only steps 1 and 2.</figcaption>
+</figure>
 
 <h2 id="safety">Shared-state safety rules</h2>
 <p>Each command has one safety class (<a href="model.html#safety">model.html#safety</a>), and the class decides the rules.</p>
@@ -1183,6 +1237,7 @@ repoctl 0.4.0 (3f9a1c2)</pre>
 <tr><td><code>key</code></td><td>Make a signing key on a YubiKey or in a file</td><td><a href="signing.html#help-key">signing.html#help-key</a></td></tr>
 <tr><td><code>emergency</code></td><td>A compromised or a lost key</td><td><a href="signing.html#help-emergency">signing.html#help-emergency</a></td></tr>
 <tr><td><code>team</code></td><td>A new admin or a new host</td><td><a href="signing.html#help-team">signing.html#help-team</a></td></tr>
+<tr><td><code>upgrade</code></td><td>Upgrade repoctl on a host and in a team</td><td><a href="#upgrade">Upgrade repoctl</a></td></tr>
 <tr><td><code>new-set</code></td><td>Start a new set from the previous set</td><td><a href="lifecycle.html#help-new-set">lifecycle.html#help-new-set</a></td></tr>
 <tr><td><code>packages</code></td><td>Bump, add, remove, rename, move and retire a package</td><td><a href="lifecycle.html#help-packages">lifecycle.html#help-packages</a></td></tr>
 <tr><td><code>xdg</code></td><td>Where repoctl keeps its files</td><td><a href="config.html#xdg">config.html#xdg</a></td></tr>
