@@ -257,7 +257,7 @@
     {
       "name": "repoctl_run_wait",
       "title": "Wait for a run",
-      "description": "Wait until a run ends or timeoutSeconds pass, then return the run as repoctl_run_get does. Sends MCP progress notifications (nodes ended of nodes planned) when the call has a progressToken. If the run is not done when the time ends, call the tool again. Do not poll faster: one call can wait up to 600 seconds.",
+      "description": "Wait until a run ends or timeoutSeconds pass, then return the run as repoctl_run_get does. Sends MCP progress notifications (nodes ended of build nodes, from the journal) when the call has a progressToken. If the run is not done when the time ends, call the tool again. Do not poll faster: one call can wait up to 600 seconds.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -292,7 +292,7 @@
     {
       "name": "repoctl_logs",
       "title": "Node log",
-      "description": "Return lines (repoctl logs RUN NODE) of the log of one node in a run (all steps: srpm, rpm, stage, with mock root.log and build.log merged in). By default it returns the error excerpt and the last 120 lines. Use grep to find a pattern such as 'error:' or 'Failed build dependencies'. Returns kind NodeLog; lines are escaped and each line is cut at 2000 bytes.",
+      "description": "Return lines of the log of one node in a run (repoctl logs RUN NODE). By default it returns the error excerpt and the last 120 lines of the node log (all steps: srpm, rpm, stage). file selects one mock log instead. Use grep to find a pattern such as error: or Failed build dependencies. Returns kind NodeLog; lines are escaped and each line is cut at 2000 bytes.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -314,6 +314,16 @@
               "rpm",
               "stage"
             ]
+          },
+          "file": {
+            "type": "string",
+            "enum": [
+              "repoctl",
+              "root",
+              "build",
+              "state"
+            ],
+            "description": "repoctl: the node log (default). root, build, state: the mock log of the failed or last step."
           },
           "tail": {
             "type": "integer",
@@ -547,7 +557,7 @@
     {
       "name": "repoctl_check",
       "title": "Check for advisories",
-      "description": "Run the read-only check of the set: soname and closure checks against latest, provider changes, upstream releases, mock and buildroot drift, expiring keys. It writes only check.json in the state dir. Returns kind AdvisoryList.",
+      "description": "Run the read-only check of the set: closure checks against latest, provider changes, upstream releases, mock and buildroot drift, retired packages that are still published, signer keys that expire inside the warn window. It writes only check.json in the state dir. Returns kind AdvisoryList.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -668,7 +678,7 @@
     {
       "name": "repoctl_build",
       "title": "Build to staging",
-      "description": "Start a build of the set into the staging repo and return when the plan is ready, with the run id. Only nodes with action build run; current and staged nodes are not built again. It never signs and never publishes. It never builds uncommitted files: a dirty worktree fails with code lock.dirty and a humanAction. With from=lock (default), every selected worktree must match repoctl.lock (else lock.dirty). There is no build queue: when another build of this user runs on this host, the call fails with code set.busy and the run id; wait for it with repoctl_run_wait. Follow the new run with repoctl_run_wait. Returns kind Run (state planning or running).",
+      "description": "Start a build of the set into the staging repo and return when the plan is ready, with the run id. Only nodes with action build run; current and staged nodes are not built again. It never signs and never publishes. It never builds uncommitted files: a dirty worktree fails with code lock.dirty and a humanAction. With from=lock (default), every selected worktree must match repoctl.lock (else lock.dirty). There is no build queue: when another build of this user runs on this host, the call fails with code set.busy and names that run; wait for it with repoctl_run_wait. Follow the new run with repoctl_run_wait. Returns kind Run (state planning or running).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -768,7 +778,7 @@
           "create": {
             "type": "boolean",
             "default": false,
-            "description": "Create the package branch of each dir (06 section 9)."
+            "description": "Create the package branch of each dir from the start point that you name."
           },
           "from": {
             "type": "string",

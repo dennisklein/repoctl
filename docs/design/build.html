@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Build</title>
+<meta name="description" content="How repoctl makes a graph per target, plans each node, builds the nodes in mock into a staging repository, and reports node and run states.">
+</head>
+<body>
+<h1>Build</h1>
+<p class="lede">This chapter specifies how repoctl builds a set: the graph of each target, the plan, the run in mock, the staging repository, and the states of nodes and runs. It also specifies the set lock, the soname check, rebuilds, logs and the mock roots. Publish starts where this chapter ends (<a href="publish.html">Publish and snapshots</a>).</p>
+<ul class="keypoints">
+  <li>repoctl makes one graph per target. It builds each SRPM in the chroot of the target and reads its requires.</li>
+  <li>The plan gives each node one action: build, current, staged or skip. Only a new commit builds.</li>
+  <li>A run builds into its own staging repository. The published repository and latest do not change.</li>
+  <li>A failed node blocks its dependents. The other nodes continue. The good nodes stay staged for the next plan.</li>
+  <li>One build per user and host at a time. There is no queue: a second build stops with exit 7.</li>
+  <li>After each node build, the soname check compares the new build with the published build. "Unchanged" is a result, not an advisory.</li>
+  <li>A rebuild is an empty commit <code>Rebuild: TEXT</code>. rpmautospec raises the release, so each build has a new NVR.</li>
+</ul>
+
+<h2 id="graph">Graph per target</h2>
+<p>A node is one package built for one target, written <code>DIR@TARGET</code> (<a href="model.html#nodes">nodes</a>). repoctl makes one graph for each target. An edge from A to B means: B needs a package of A to build. The two nodes of an edge are always on the same target.</p>
+<p>To find the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It reads the requires of the SRPM and matches them against the Provides of the other set packages on the same target. <code>rpmspec</code> in the same chroot gives the Provides. Thus a condition such as <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives the correct edges for each target.</p>
+<p>The SRPM cache (<code>~/.cache/repoctl/srpm/</code>) keeps the result for each package commit and target. The first plan of a target builds all SRPMs and can take minutes. After that, only a new commit makes a new SRPM. The cache is safe to delete.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 276" role="img" aria-labelledby="fig-graph-t"><title id="fig-graph-t">How repoctl makes the graph of one target</title>
+<rect class="box" x="16" y="40" width="184" height="72" rx="8"/>
+<text class="t-title" x="28" y="60">spec + commit</text>
+<text class="t-small" x="28" y="77">packages/DIR, commit</text>
+<text class="t-small" x="28" y="92">from repoctl.lock</text>
+<rect class="box-accent" x="232" y="40" width="200" height="72" rx="8"/>
+<text class="t-title t-on" x="244" y="60">SRPM in the target chroot</text>
+<text class="t-small t-on" x="244" y="77">mock --buildsrpm,</text>
+<text class="t-small t-on" x="244" y="92">one per commit and target</text>
+<rect class="box" x="464" y="40" width="200" height="72" rx="8"/>
+<text class="t-title" x="476" y="60">requires of the SRPM</text>
+<text class="t-small" x="476" y="77">kept in the SRPM cache</text>
+<text class="t-small" x="476" y="92">(~/.cache/repoctl/srpm/)</text>
+<rect class="box" x="696" y="40" width="248" height="72" rx="8"/>
+<text class="t-title" x="708" y="60">match the Provides</text>
+<text class="t-small" x="708" y="77">of the set packages on the</text>
+<text class="t-small" x="708" y="92">same target (rpmspec)</text>
+<path class="edge" d="M200,76 L230,76" marker-end="url(#arrow)"/>
+<path class="edge" d="M432,76 L462,76" marker-end="url(#arrow)"/>
+<path class="edge" d="M664,76 L694,76" marker-end="url(#arrow)"/>
+<rect class="box-ok" x="452" y="168" width="148" height="64" rx="8"/>
+<text class="t-title" x="464" y="188">edge</text>
+<text class="t-small" x="464" y="205">a set package</text>
+<text class="t-small" x="464" y="220">provides it</text>
+<rect class="box-soft" x="612" y="168" width="156" height="64" rx="8"/>
+<text class="t-title" x="624" y="188">no edge</text>
+<text class="t-small" x="624" y="205">base or EPEL</text>
+<text class="t-small" x="624" y="220">provides it</text>
+<rect class="box-warn" x="780" y="168" width="164" height="64" rx="8"/>
+<text class="t-mono" x="792" y="188">dep.not-for-target</text>
+<text class="t-small" x="792" y="205">only a node of</text>
+<text class="t-small" x="792" y="220">another target has it</text>
+<path class="edge" d="M760,112 L540,166" marker-end="url(#arrow)"/>
+<path class="edge" d="M800,112 L690,166" marker-end="url(#arrow)"/>
+<path class="edge" d="M850,112 L860,166" marker-end="url(#arrow)"/>
+<rect class="box-muted" x="232" y="168" width="200" height="64" rx="8"/>
+<text class="t-mono" x="244" y="188">%generate_buildrequires</text>
+<text class="t-small" x="244" y="205">edges known only in the</text>
+<text class="t-small" x="244" y="220">build: warning</text>
+<path class="edge-muted" d="M332,112 L332,166" marker-end="url(#arrow-muted)"/>
+<text class="t-small" x="16" y="262">One graph per target. Story: el9 has 11 nodes and 14 edges, el10 has 10 nodes and 13 edges.</text>
+</svg>
+<figcaption>repoctl reads the requires of the SRPM that mock builds in the chroot of the target. Each requirement gives an edge, no edge, or a warning.</figcaption>
+</figure>
+<table class="compact">
+<thead><tr><th>What repoctl finds</th><th>Result</th><th>Problem code</th></tr></thead>
+<tbody>
+<tr><td>A set package on the same target provides the requirement.</td><td>Edge.</td><td>–</td></tr>
+<tr><td>No set package provides it. The base or EPEL repos can provide it.</td><td>No edge. <code>repoctl graph -v</code> lists it.</td><td>–</td></tr>
+<tr><td>Only a node of another target provides it.</td><td>Warning in graph, plan and the journal.</td><td><code>dep.not-for-target</code></td></tr>
+<tr><td>The spec has <code>%generate_buildrequires</code>.</td><td>Warning: edges can be missing until the build.</td><td><code>graph.dynamic-buildrequires</code></td></tr>
+<tr><td>Two set packages provide one capability.</td><td>Warning.</td><td><code>graph.ambiguous-provider</code></td></tr>
+<tr><td>The edges make a cycle.</td><td>Error, exit 1.</td><td><code>graph.cycle</code></td></tr>
+</tbody>
+</table>
+<aside class="callout why"><p class="callout-title">Why dep.not-for-target is a warning</p><p>The base or EPEL repos of the target can provide the same capability. Thus repoctl cannot know that the build fails. The warning names the gap before the build, and the plan continues. It is a plan warning, not an advisory (<a href="advisories.html#codes">advisory codes</a>).</p></aside>
+<p>In the story, slurm requires <code>rocm-smi-devel</code>, and rocm-smi is built for el9 only. Thus el9 has 11 nodes and 14 edges, and el10 has 10 nodes and 13 edges.</p>
+<pre class="term">$ repoctl graph --target el10
+el10  10 nodes · 13 edges · 4 levels
+…
+! slurm@el10 needs rocm-smi-devel; in this set only rocm-smi@el9 provides it
+hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add el10 to the targets of rocm-smi</pre>
+<p>The fix is in the spec or in <code>repoctl.yaml</code>. Command: <a href="cli.html#cmd-graph">repoctl graph</a>. Terminal frame: <a href="terminal.html#graph">graph</a>.</p>
+
+<h2 id="plan">Plan</h2>
+<p><code>repoctl plan</code> shows what <code>repoctl build</code> with the same arguments does, and why. It builds nothing and writes no run. <code>repoctl build</code> makes the same plan as its first step.</p>
+<p>The baseline of the plan is latest: the RepoManifest in the local copy of latest of each target (<a href="model.html#manifest">RepoManifest</a>). First, repoctl compares the digest of latest in the registry with the local copy (<a href="publish.html#freshness">freshness check</a>). When latest is newer, or when no local copy exists, plan and build stop with <code>state.behind</code> (exit 13), and the hint gives <code>repoctl repo pull</code>. When the registry is not reachable, the plan uses the local copy and prints the warning <code>registry.unreachable</code>.</p>
+<p>The plan takes the package commits from <code>repoctl.lock</code>. A worktree that is not in-sync with the lock gives the warning <code>worktree.dirty</code>, and the plan still uses the lock. With <code>--from worktree</code>, it takes the HEAD commit of each worktree. A run from worktrees is unpinned and never publishable. repoctl never builds uncommitted changes, because rpmautospec reads commits.</p>
+
+<h3 id="actions">Plan actions and reasons</h3>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 276" role="img" aria-labelledby="fig-plan-t"><title id="fig-plan-t">How the plan gives each node one action</title>
+<rect class="box" x="16" y="32" width="204" height="88" rx="8"/>
+<text class="t-title" x="28" y="52">in the selection?</text>
+<text class="t-small" x="28" y="69">selected, or needed</text>
+<text class="t-small" x="28" y="84">by a selected node</text>
+<rect class="box" x="268" y="32" width="204" height="88" rx="8"/>
+<text class="t-title" x="280" y="52">commit in latest?</text>
+<text class="t-small" x="280" y="69">RepoManifest of</text>
+<text class="t-small" x="280" y="84">the target</text>
+<rect class="box" x="520" y="32" width="212" height="88" rx="8"/>
+<text class="t-title" x="532" y="52">ok in a run of yours?</text>
+<text class="t-small" x="532" y="69">same commit and target,</text>
+<text class="t-small" x="532" y="84">no publish took it</text>
+<rect class="box-accent" x="780" y="32" width="164" height="104" rx="8"/>
+<text class="t-title t-on" x="792" y="52">build</text>
+<text class="t-small t-on" x="792" y="69">commit-changed</text>
+<text class="t-small t-on" x="792" y="84">rebuild · new-package</text>
+<text class="t-small t-on" x="792" y="99">new-target · forced</text>
+<path class="edge" d="M220,76 L266,76" marker-end="url(#arrow)"/>
+<text class="t-small" x="243" y="68" text-anchor="middle">yes</text>
+<path class="edge" d="M472,76 L518,76" marker-end="url(#arrow)"/>
+<text class="t-small" x="495" y="68" text-anchor="middle">no</text>
+<path class="edge" d="M732,76 L778,76" marker-end="url(#arrow)"/>
+<text class="t-small" x="755" y="68" text-anchor="middle">no</text>
+<rect class="box-muted" x="16" y="184" width="204" height="48" rx="8"/>
+<text class="t-title" x="28" y="204">skip</text>
+<text class="t-small" x="28" y="221">not in the run</text>
+<rect class="box-soft" x="268" y="184" width="204" height="48" rx="8"/>
+<text class="t-title" x="280" y="204">current</text>
+<text class="t-small" x="280" y="221">nothing to do</text>
+<rect class="box-ok" x="520" y="184" width="212" height="48" rx="8"/>
+<text class="t-title" x="532" y="204">staged</text>
+<text class="t-small" x="532" y="221">reuse its staging</text>
+<path class="edge" d="M118,120 L118,182" marker-end="url(#arrow)"/>
+<text class="t-small" x="126" y="156">no</text>
+<path class="edge" d="M370,120 L370,182" marker-end="url(#arrow)"/>
+<text class="t-small" x="378" y="156">yes</text>
+<path class="edge" d="M626,120 L626,182" marker-end="url(#arrow)"/>
+<text class="t-small" x="634" y="156">yes</text>
+<text class="t-small" x="16" y="262">--force sends each selected node to build (reason forced). A dependency, the mock config, a macro or an upstream repo is never an input.</text>
+</svg>
+<figcaption>Three questions give the plan action of a node. Only the action build has reasons.</figcaption>
+</figure>
+<table>
+<thead><tr><th>Plan action</th><th>When</th></tr></thead>
+<tbody>
+<tr><td><code>current</code></td><td>The commit of the node is in the RepoManifest of latest of its target. Nothing to do.</td></tr>
+<tr><td><code>staged</code></td><td>An earlier run of this user on this host built the same commit for the same target, the node ended ok, and no publish took it. The plan reuses that staging (<a href="#staging">staging</a>).</td></tr>
+<tr><td><code>build</code></td><td>No build of this commit for this target exists. The node has one or more plan reasons.</td></tr>
+<tr><td><code>skip</code></td><td>The selectors or <code>--target</code> do not select the node, and no selected node needs it. A node of an unpinned package also gets skip, with the note "not pinned" (<a href="lifecycle.html#lock-states">lock states</a>).</td></tr>
+</tbody>
+</table>
+<table>
+<thead><tr><th>Plan reason</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>commit-changed</code></td><td>The commit in the lock differs from the commit in latest. The detail gives both commits and the subject.</td></tr>
+<tr><td><code>rebuild</code></td><td>The new commit is an empty <code>Rebuild: TEXT</code> commit (<a href="#rebuild">rebuild</a>). The detail gives the text.</td></tr>
+<tr><td><code>new-package</code></td><td>The package is new in the set. latest has no entry for it.</td></tr>
+<tr><td><code>new-target</code></td><td>The target is new for the package.</td></tr>
+<tr><td><code>forced</code></td><td><code>--force</code> selected the node (<a href="#force">forced builds</a>).</td></tr>
+</tbody>
+</table>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>A change in a dependency, in the mock config, in a macro file or in an upstream repo is never a plan reason. It gives an advisory (<a href="advisories.html#codes">advisory codes</a>). The person decides, and <code>repoctl rebuild</code> makes the build.</p></aside>
+<aside class="callout why"><p class="callout-title">Why</p><p>The build identity is the package commit plus the target (<a href="model.html#identity">build identity</a>). A rebuild of all dependents after each library change gives new NVRs with no change in content. repoctl trusts the ABI promise of upstream, and the soname and closure checks tell when this trust is wrong.</p></aside>
+
+<h3 id="deps">Selection and dependencies</h3>
+<p>Selectors name the nodes (<a href="cli.html#selectors">selectors</a>). The selected nodes are the roots. A selected node with action build needs the RPMs of its dependencies:</p>
+<ul>
+  <li>A dependency with action build builds first, in the same run. Thus <code>repoctl build slurm</code> also builds ucx when ucx has a new commit.</li>
+  <li>A current dependency comes from the local copy of latest.</li>
+  <li>A staged dependency comes from the staging of its run.</li>
+</ul>
+<p>A change in ucx never selects slurm. <code>--with-deps</code> and <code>--rdeps</code> add the transitive dependencies or reverse dependencies to the selection. In a build, they change the result only with <code>--force</code>. A run of a subset is partial. Publish works on the plan, not on one run: it takes all staged nodes of a target, from any run of this user (<a href="publish.html#takes">what a publish takes</a>).</p>
+<p>The text output shows the exceptions and a totals line. Rows of a package with the same action and reason on all targets merge, and the current nodes fold into one line per target. <code>-v</code> shows all rows; <code>--json</code> always has them. <code>--check</code> exits 11 when a node would build, for CI and timers. The plan also says if an open advisory blocks a publish of this plan. This is the plan of the story at 17:49:</p>
+<pre class="term">$ repoctl plan
+plan  slurm-26.05  from repoctl.lock  base latest p-20260912-1403-c21 (local copy same)
+PACKAGE                 TARGETS   ACTION  REASON
+ucx                     el9 el10  build   commit-changed 907c60d → 4b1e9c2
+slurm                   el9 el10  build   rebuild "ucx 1.22.1"
+                                          ! slurm@el10 needs rocm-smi-devel; only rocm-smi@el9 provides it
+openmpi                 el9 el10  build   rebuild "ucx 1.22.1"
+slurm-singularity-exec  el9 el10  build   rebuild "ucx 1.22.1"
+el9   7 current: munge rocm-smi slurm-release pmix pmix_v5 pmix_v4 prrte
+el10  6 current: munge slurm-release pmix pmix_v5 pmix_v4 prrte
+21 nodes: 8 build, 13 current  (-v shows all)
+note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the advisory does not block a publish.</pre>
+<p>Command: <a href="cli.html#cmd-plan">repoctl plan</a>. Terminal frame: <a href="terminal.html#plan">plan</a>. Web UI: <a href="ui-build.html#plan">Plan page</a>.</p>
+
+<h2 id="staging">Staging and node reuse</h2>
+<p>Each run has its own staging repository for each target: <code>$XDG_DATA_HOME/repoctl/SET/staging/RUN/TARGET/</code>, with the sub-repos <code>slurm</code>, <code>slurm-source</code> and <code>slurm-debuginfo</code> (from <code>repo.name</code>). The staging is not signed. It is in the data directory, not in the cache, because it is build state (<a href="config.html#xdg">XDG directories</a>).</p>
+<p>A node that ends ok in a run is a <dfn>staged node</dfn> until a publish takes it. The next plan gives it the action staged and names its run (<code>fromRun</code>). A later build does not build it again. When a staged node is a dependency, mock gets the staging of its run as an extra repository. Thus a failed run keeps its good nodes.</p>
+<ul>
+  <li>Only a node with the terminal state ok in the journal of its run is staged. This is also true for a canceled or an abandoned run.</li>
+  <li>Staging belongs to one user on one host. Another admin does not see it and builds the node again.</li>
+  <li>A new commit of the package ends the reuse. The plan action is then build.</li>
+  <li><code>repoctl clean</code> keeps a staging that holds staged nodes or a publishable target (<a href="cli.html#cmd-clean">repoctl clean</a>). A publish whose staging is gone stops with <code>run.staging-missing</code>.</li>
+</ul>
+
+<h2 id="run">The run</h2>
+<p><code>repoctl build</code> makes a plan, starts a run and builds each node with action build in mock. A run has an id <code>r-YYYYMMDD-HHMM-xxx</code>, an origin (cli, ui, mcp or ci) and a journal. The run holds the set lock from its start to its end (<a href="#lock">set lock</a>).</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 332" role="img" aria-labelledby="fig-run-t"><title id="fig-run-t">Flow of one build run</title>
+<rect class="box" x="16" y="56" width="176" height="100" rx="8"/>
+<text class="t-title" x="28" y="76">1 plan</text>
+<text class="t-small" x="28" y="93">lock, graph per target</text>
+<text class="t-small" x="28" y="108">actions and reasons</text>
+<text class="t-small" x="28" y="123">event plan.ready</text>
+<rect class="zone" x="216" y="20" width="512" height="176" rx="8"/>
+<text class="t-title" x="232" y="44">2 each build node, up to jobs at a time</text>
+<rect class="box" x="232" y="64" width="116" height="60" rx="8"/>
+<text class="t-title" x="244" y="84">srpm</text>
+<text class="t-small" x="244" y="101">mock --buildsrpm</text>
+<rect class="box" x="364" y="64" width="104" height="60" rx="8"/>
+<text class="t-title" x="376" y="84">rpm</text>
+<text class="t-small" x="376" y="101">mock --rebuild</text>
+<rect class="box-soft" x="484" y="64" width="116" height="60" rx="8"/>
+<text class="t-title" x="496" y="84">soname check</text>
+<text class="t-small" x="496" y="101">against latest</text>
+<rect class="box" x="616" y="64" width="96" height="60" rx="8"/>
+<text class="t-title" x="628" y="84">stage</text>
+<text class="t-small" x="628" y="101">createrepo_c</text>
+<path class="edge" d="M348,94 L362,94" marker-end="url(#arrow)"/>
+<path class="edge" d="M468,94 L482,94" marker-end="url(#arrow)"/>
+<path class="edge" d="M600,94 L614,94" marker-end="url(#arrow)"/>
+<text class="t-small" x="232" y="150">mock --uniqueext · --addrepo: local copy of latest,</text>
+<text class="t-small" x="232" y="166">staging of this run and of staged dependencies, targets[].repos</text>
+<text class="t-small" x="232" y="186">a node starts when its dependencies are ok, current or staged</text>
+<rect class="box" x="752" y="56" width="192" height="100" rx="8"/>
+<text class="t-title" x="764" y="76">3 end</text>
+<text class="t-small" x="764" y="93">staging repodata (unsigned)</text>
+<text class="t-small" x="764" y="108">run state, publishable</text>
+<text class="t-small" x="764" y="123">targets, Next or hints</text>
+<path class="edge" d="M192,106 L214,106" marker-end="url(#arrow)"/>
+<path class="edge" d="M728,106 L750,106" marker-end="url(#arrow)"/>
+<rect class="box-err" x="216" y="220" width="512" height="52" rx="8"/>
+<text class="t-title" x="228" y="240">a node fails: its dependents are blocked</text>
+<text class="t-small" x="228" y="257">the other nodes continue · --fail-fast: start no new node, cancel the running ones</text>
+<path class="edge-err" d="M664,124 L664,218" marker-end="url(#arrow)"/>
+<rect class="box-soft" x="16" y="288" width="928" height="32" rx="8"/>
+<text class="t" x="480" y="309" text-anchor="middle">The published repository and latest do not change. Publish is a separate step.</text>
+</svg>
+<figcaption>One build run. Steps 1 and 3 run once. Step 2 runs for each build node, in parallel up to the job count.</figcaption>
+</figure>
+<ol class="steps">
+  <li>Preflight: repoctl checks mock, the mock group, the mock config of each selected target, the rpmautospec plugin and the free disk. A failure stops the run before it starts (exit 9). Build does not sign, so there is no GPG check.</li>
+  <li>Plan: repoctl makes the plan (<a href="#plan">plan</a>) and writes the event <code>plan.ready</code>.</li>
+  <li>Nodes: a node starts when each dependency is ok, current or staged, and a job slot is free. Each node runs the steps <code>srpm</code>, <code>rpm</code> and <code>stage</code>. The soname check runs at the end of step rpm (<a href="#soname">soname check</a>). Step stage copies the RPMs into the staging and runs <code>createrepo_c --update</code>, so that the next node sees them.</li>
+  <li>End: repoctl writes the final repodata of each staging, the run result and the event <code>run.finished</code>. After an ok run, the last line is the Next line, for example <code>Next: repoctl publish</code>. A failed run ends with hints and no Next line, for example <code>hint: el9 is publishable now. run: repoctl publish --target el9</code>.</li>
+</ol>
+<p>Each mock call gets <code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots. It also gets <code>--resultdir</code> in the work directory of the run, and the macros and plugins of the target (<a href="config.html#targets">targets</a>). <code>--addrepo</code> adds the local copy of latest, the staging of this run and of the runs of staged dependencies, and <code>targets[].repos</code>.</p>
+<aside class="callout why"><p class="callout-title">Why the staging of the run</p><p>A node builds against the new builds of its own run, never against a half-written published repository. Thus the build order comes from the graph, and the result does not depend on old state (<a href="decision.html#problems">problems of the scripts</a>).</p></aside>
+<h3 id="jobs">Jobs and order</h3>
+<p>The job count is the maximum number of nodes in mock at the same time. It comes from <code>-j</code>, then <code>REPOCTL_JOBS</code>, then <code>jobs</code> in the user config, else 2 (<a href="config.html#user-config">user config</a>). Each mock build uses all CPUs, so a high value gives little. When more nodes are ready than slots are free, the node with the most dependents starts first, then the oldest.</p>
+<h3 id="failures">Failures</h3>
+<p>When a node fails, each node that depends on it becomes blocked. The other nodes continue: keep going is the default. With <code>--fail-fast</code>, repoctl starts no new node after the first failure and cancels the running nodes.</p>
+<p>A failure has a class: srpm, builddep, build, stage, mock, host, timeout, canceled or internal (<a href="contract.html#names">shared names</a>). For srpm, builddep, build and stage, the inputs are wrong, and a retry gives the same failure. For host (no disk space, no mock group, a repo metadata error), a retry can help after the person repairs the host. The skill triage-build selects its playbook by the class.</p>
+<h3 id="run-states">Run states</h3>
+<table class="compact">
+<thead><tr><th>Run state</th><th>Meaning</th><th>Exit of build</th></tr></thead>
+<tbody>
+<tr><td>planning</td><td>The run started. The plan is not ready.</td><td>–</td></tr>
+<tr><td>running</td><td>The plan is ready. Nodes build.</td><td>–</td></tr>
+<tr><td>ok</td><td>Each node of the run is ok, current or staged.</td><td>0</td></tr>
+<tr><td>failed</td><td>At least one node failed or is blocked.</td><td>3</td></tr>
+<tr><td>canceled</td><td><code>repoctl cancel</code> or Ctrl-C stopped the run (<a href="#cancel">cancel</a>).</td><td>130</td></tr>
+<tr><td>abandoned</td><td>The journal has no <code>run.finished</code>, and the process of the run no longer holds the set lock. Causes: a crash or a second Ctrl-C.</td><td>–</td></tr>
+</tbody>
+</table>
+<p>There is no queued run state. The exit codes of all commands are in the CLI reference (<a href="cli.html#exit">exit codes</a>). Command: <a href="cli.html#cmd-build">repoctl build</a>. Terminal frames: <a href="terminal.html#build-live">live tree</a>, <a href="terminal.html#build-failed">failure summary</a>.</p>
+
+<h2 id="states">Node states</h2>
+<p>Each surface uses the same word for a state: the journal, <code>--json</code>, the terminal, the web UI and MCP. The plan gives each node its first state. After that, only the transitions of the figure are valid. A node has exactly one terminal state per run.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 288" role="img" aria-labelledby="fig-states-t"><title id="fig-states-t">Node states and their transitions</title>
+<rect class="zone" x="104" y="12" width="520" height="76" rx="8"/>
+<text class="t-small" x="116" y="32">plan states: no change in the run</text>
+<rect class="box-soft" x="116" y="40" width="150" height="40" rx="8"/>
+<text class="t-title" x="128" y="60">current</text>
+<rect class="box-ok" x="288" y="40" width="150" height="40" rx="8"/>
+<text class="t-title" x="300" y="60">staged</text>
+<rect class="box-muted" x="460" y="40" width="150" height="40" rx="8"/>
+<text class="t-title" x="472" y="60">skip</text>
+<text class="t-small" x="472" y="77">not in the run</text>
+<rect class="dot" x="32" y="146" width="12" height="12" rx="6"/>
+<text class="t-small" x="38" y="136" text-anchor="middle">plan</text>
+<path class="edge" d="M38,146 L38,50 L102,50" marker-end="url(#arrow)"/>
+<path class="edge" d="M44,152 L108,152" marker-end="url(#arrow)"/>
+<rect class="box-muted" x="110" y="128" width="140" height="48" rx="8"/>
+<text class="t-title" x="122" y="148">waiting</text>
+<text class="t-small" x="122" y="165">a dependency not done</text>
+<rect class="box-soft" x="320" y="128" width="140" height="48" rx="8"/>
+<text class="t-title" x="332" y="148">queued</text>
+<text class="t-small" x="332" y="165">waits for a job slot</text>
+<rect class="box-accent" x="530" y="128" width="140" height="48" rx="8"/>
+<text class="t-title t-on" x="542" y="148">running</text>
+<text class="t-small t-on" x="542" y="165">srpm, rpm, stage</text>
+<path class="edge" d="M250,152 L318,152" marker-end="url(#arrow)"/>
+<text class="t-small" x="285" y="144" text-anchor="middle">deps done</text>
+<path class="edge" d="M460,152 L528,152" marker-end="url(#arrow)"/>
+<text class="t-small" x="495" y="144" text-anchor="middle">slot free</text>
+<text class="t-small" x="760" y="92">terminal states</text>
+<rect class="box-ok" x="760" y="100" width="184" height="40" rx="8"/>
+<text class="t-title" x="772" y="120">ok</text>
+<text class="t-small" x="772" y="137">staged in the next plan</text>
+<rect class="box-err" x="760" y="152" width="184" height="40" rx="8"/>
+<text class="t-title" x="772" y="172">failed</text>
+<text class="t-small" x="772" y="189">failure class, excerpt</text>
+<rect class="box-soft" x="760" y="204" width="184" height="40" rx="8"/>
+<text class="t-title" x="772" y="224">canceled</text>
+<text class="t-small" x="772" y="241">person, signal, --fail-fast</text>
+<rect class="box-warn" x="110" y="228" width="140" height="48" rx="8"/>
+<text class="t-title" x="122" y="248">blocked</text>
+<text class="t-small" x="122" y="265">a dependency failed</text>
+<path class="edge" d="M670,144 L758,120" marker-end="url(#arrow)"/>
+<path class="edge" d="M670,152 L758,172" marker-end="url(#arrow)"/>
+<path class="edge" d="M670,160 L758,222" marker-end="url(#arrow)"/>
+<path class="edge" d="M180,176 L180,226" marker-end="url(#arrow)"/>
+<path class="edge-muted" d="M390,176 L390,236 L758,236" marker-end="url(#arrow-muted)"/>
+<text class="t-small" x="400" y="254">cancel from waiting or queued</text>
+</svg>
+<figcaption>Node states. current, staged and skip come from the plan and do not change in the run. The other states belong to the build nodes of the run.</figcaption>
+</figure>
+<table class="compact">
+<thead><tr><th>Word</th><th>Kind</th><th>Definition</th></tr></thead>
+<tbody>
+<tr><td>waiting</td><td>node state</td><td>A dependency of the node is not done.</td></tr>
+<tr><td>queued</td><td>node state</td><td>All dependencies are done. The node waits for a free job slot. This is not a build queue.</td></tr>
+<tr><td>running</td><td>node state</td><td>The node is in mock, in step srpm, rpm or stage.</td></tr>
+<tr><td>ok</td><td>terminal</td><td>The three steps ended ok. The node is staged in the next plan.</td></tr>
+<tr><td>failed</td><td>terminal</td><td>A step failed. The node has a failure class and an error excerpt.</td></tr>
+<tr><td>blocked</td><td>terminal</td><td>A dependency failed. The node did not start.</td></tr>
+<tr><td>canceled</td><td>terminal</td><td>A person, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
+<tr><td>current</td><td>plan state</td><td>Plan action current. The node does not change in the run.</td></tr>
+<tr><td>staged</td><td>plan state</td><td>Plan action staged. The node does not change in the run.</td></tr>
+<tr><td>skip</td><td>plan action</td><td>The node is not in the run. The text output hides it.</td></tr>
+</tbody>
+</table>
+<aside class="callout note"><p class="callout-title">The live tree of go-clikit</p><p>The kit counts waiting and queued nodes as "queued", and it shows a blocked node as "canceled". Until the kit has its own end-state word, repoctl prints this note under the tree: <code>canceled in this tree = blocked by a failed dependency</code>. The journal, the JSON output, the UI and MCP use the words of the table. MCP progress comes from the folded journal, not from the kit log.</p></aside>
+
+<h2 id="story">The story run</h2>
+<p>On 2026-11-02 at 17:40, Dennis (d.klein on hpc-a1) bumps ucx from 1.22.0 to 1.22.1 (commit <code>4b1e9c2</code>, "Bump to 1.22.1") and pins it. He also runs <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code>, because he wants the users of ucx built against the new ucx. Then he starts <code>repoctl build</code>, with jobs 3 from his user config. The explainer shows run <code>r-20261102-1750-a3f</code> step by step.</p>
+<figure class="diagram wide explainer">
+<svg viewBox="0 0 960 404" role="img" aria-labelledby="fig-story-t"><title id="fig-story-t">Run r-20261102-1750-a3f, step by step</title>
+<text class="t-title" x="16" y="26" data-f="0">17:49 · plan</text>
+<text class="t-title" x="16" y="26" data-f="1">17:50:08</text>
+<text class="t-title" x="16" y="26" data-f="2">17:54:13</text>
+<text class="t-title" x="16" y="26" data-f="3">17:58:52</text>
+<text class="t-title" x="16" y="26" data-f="4">18:00:40</text>
+<text class="t-title" x="16" y="26" data-f="5">18:15:25</text>
+<text class="t-title" x="16" y="26" data-f="6">18:31:11</text>
+<text class="t-title" x="16" y="26" data-f="7">next plan</text>
+<text class="t-small" x="944" y="26" text-anchor="end" data-f="0">no run yet</text>
+<text class="t-small" x="944" y="26" text-anchor="end" data-f="1">run running · 0/8 builds</text>
+<text class="t-small" x="944" y="26" text-anchor="end" data-f="2">run running · 1/8 builds</text>
+<text class="t-small" x="944" y="26" text-anchor="end" data-f="3">run running · 2/8 builds</text>
+<text class="t-small" x="944" y="26" text-anchor="end" data-f="4">run running · 2/8 builds · 1 failed</text>
+<text class="t-small" x="944" y="26" text-anchor="end" data-f="5">run running · 5/8 builds · 1 failed</text>
+<text class="t-err" x="944" y="26" text-anchor="end" data-f="6">run failed · exit 3 · 41m07s</text>
+<text class="t-small" x="944" y="26" text-anchor="end" data-f="7">el9 publishable · el10 not</text>
+<rect class="zone" x="16" y="40" width="456" height="304" rx="8"/>
+<text class="t-title" x="32" y="64">el9</text>
+<rect class="box-soft" x="252" y="92" width="200" height="56" rx="8"/>
+<text class="t-title" x="264" y="112">7 current</text>
+<text class="t-small" x="264" y="129">from latest c21</text>
+<path class="edge" d="M138,148 L138,178" marker-end="url(#arrow)"/>
+<path class="edge" d="M196,148 L316,178" marker-end="url(#arrow)"/>
+<path class="edge" d="M138,236 L138,266" marker-end="url(#arrow)"/>
+<rect class="box-soft" x="36" y="92" width="204" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="48" y="112" data-f="0">ucx@el9</text>
+<text class="t-small" x="48" y="129" data-f="0">build · commit-changed</text>
+<rect class="box-accent" x="36" y="92" width="204" height="56" rx="8" data-f="1"/>
+<text class="t-title t-mono t-on" x="48" y="112" data-f="1">ucx@el9</text>
+<text class="t-small t-on" x="48" y="129" data-f="1">running</text>
+<rect class="box-ok" x="36" y="92" width="204" height="56" rx="8" data-f="2-6"/>
+<text class="t-title t-mono" x="48" y="112" data-f="2-6">ucx@el9</text>
+<text class="t-small" x="48" y="129" data-f="2-6">ok 4m05s · sonames unchanged</text>
+<rect class="box-ok" x="36" y="92" width="204" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="48" y="112" data-f="7">ucx@el9</text>
+<text class="t-small" x="48" y="129" data-f="7">staged (r-…a3f)</text>
+<rect class="box-soft" x="36" y="180" width="204" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="48" y="200" data-f="0">slurm@el9</text>
+<text class="t-small" x="48" y="217" data-f="0">build · rebuild</text>
+<rect class="box-muted" x="36" y="180" width="204" height="56" rx="8" data-f="1"/>
+<text class="t-title t-mono" x="48" y="200" data-f="1">slurm@el9</text>
+<text class="t-small" x="48" y="217" data-f="1">waiting for ucx@el9</text>
+<rect class="box-accent" x="36" y="180" width="204" height="56" rx="8" data-f="2-4"/>
+<text class="t-title t-mono t-on" x="48" y="200" data-f="2-4">slurm@el9</text>
+<text class="t-small t-on" x="48" y="217" data-f="2-4">running</text>
+<rect class="box-ok" x="36" y="180" width="204" height="56" rx="8" data-f="5-6"/>
+<text class="t-title t-mono" x="48" y="200" data-f="5-6">slurm@el9</text>
+<text class="t-small" x="48" y="217" data-f="5-6">ok 17m40s</text>
+<rect class="box-ok" x="36" y="180" width="204" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="48" y="200" data-f="7">slurm@el9</text>
+<text class="t-small" x="48" y="217" data-f="7">staged (r-…a3f)</text>
+<rect class="box-soft" x="252" y="180" width="200" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="264" y="200" data-f="0">openmpi@el9</text>
+<text class="t-small" x="264" y="217" data-f="0">build · rebuild</text>
+<rect class="box-muted" x="252" y="180" width="200" height="56" rx="8" data-f="1"/>
+<text class="t-title t-mono" x="264" y="200" data-f="1">openmpi@el9</text>
+<text class="t-small" x="264" y="217" data-f="1">waiting for ucx@el9</text>
+<rect class="box-accent" x="252" y="180" width="200" height="56" rx="8" data-f="2-4"/>
+<text class="t-title t-mono t-on" x="264" y="200" data-f="2-4">openmpi@el9</text>
+<text class="t-small t-on" x="264" y="217" data-f="2-4">running</text>
+<rect class="box-ok" x="252" y="180" width="200" height="56" rx="8" data-f="5-6"/>
+<text class="t-title t-mono" x="264" y="200" data-f="5-6">openmpi@el9</text>
+<text class="t-small" x="264" y="217" data-f="5-6">ok 21m12s</text>
+<rect class="box-ok" x="252" y="180" width="200" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="264" y="200" data-f="7">openmpi@el9</text>
+<text class="t-small" x="264" y="217" data-f="7">staged (r-…a3f)</text>
+<rect class="box-soft" x="36" y="268" width="232" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="48" y="288" data-f="0">slurm-singularity-exec@el9</text>
+<text class="t-small" x="48" y="305" data-f="0">build · rebuild</text>
+<rect class="box-muted" x="36" y="268" width="232" height="56" rx="8" data-f="1-4"/>
+<text class="t-title t-mono" x="48" y="288" data-f="1-4">slurm-singularity-exec@el9</text>
+<text class="t-small" x="48" y="305" data-f="1-4">waiting for slurm@el9</text>
+<rect class="box-ok" x="36" y="268" width="232" height="56" rx="8" data-f="5-6"/>
+<text class="t-title t-mono" x="48" y="288" data-f="5-6">slurm-singularity-exec@el9</text>
+<text class="t-small" x="48" y="305" data-f="5-6">ok 1m02s</text>
+<rect class="box-ok" x="36" y="268" width="232" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="48" y="288" data-f="7">slurm-singularity-exec@el9</text>
+<text class="t-small" x="48" y="305" data-f="7">staged (r-…a3f)</text>
+<rect class="zone" x="488" y="40" width="456" height="304" rx="8"/>
+<text class="t-title" x="504" y="64">el10</text>
+<rect class="box-soft" x="724" y="92" width="200" height="56" rx="8"/>
+<text class="t-title" x="736" y="112">6 current</text>
+<text class="t-small" x="736" y="129">from latest c21</text>
+<path class="edge" d="M610,148 L610,178" marker-end="url(#arrow)"/>
+<path class="edge" d="M668,148 L788,178" marker-end="url(#arrow)"/>
+<path class="edge" d="M610,236 L610,266" marker-end="url(#arrow)"/>
+<rect class="box-soft" x="508" y="92" width="204" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="520" y="112" data-f="0">ucx@el10</text>
+<text class="t-small" x="520" y="129" data-f="0">build · commit-changed</text>
+<rect class="box-accent" x="508" y="92" width="204" height="56" rx="8" data-f="1-2"/>
+<text class="t-title t-mono t-on" x="520" y="112" data-f="1-2">ucx@el10</text>
+<text class="t-small t-on" x="520" y="129" data-f="1-2">running</text>
+<rect class="box-ok" x="508" y="92" width="204" height="56" rx="8" data-f="3-6"/>
+<text class="t-title t-mono" x="520" y="112" data-f="3-6">ucx@el10</text>
+<text class="t-small" x="520" y="129" data-f="3-6">ok 8m44s · sonames unchanged</text>
+<rect class="box-ok" x="508" y="92" width="204" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="520" y="112" data-f="7">ucx@el10</text>
+<text class="t-small" x="520" y="129" data-f="7">staged (r-…a3f)</text>
+<rect class="box-warn" x="508" y="180" width="204" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="520" y="200" data-f="0">slurm@el10</text>
+<text class="t-small" x="520" y="217" data-f="0">build · ! dep.not-for-target</text>
+<rect class="box-muted" x="508" y="180" width="204" height="56" rx="8" data-f="1-2"/>
+<text class="t-title t-mono" x="520" y="200" data-f="1-2">slurm@el10</text>
+<text class="t-small" x="520" y="217" data-f="1-2">waiting for ucx@el10</text>
+<rect class="box-accent" x="508" y="180" width="204" height="56" rx="8" data-f="3"/>
+<text class="t-title t-mono t-on" x="520" y="200" data-f="3">slurm@el10</text>
+<text class="t-small t-on" x="520" y="217" data-f="3">running</text>
+<rect class="box-err" x="508" y="180" width="204" height="56" rx="8" data-f="4-6"/>
+<text class="t-title t-mono" x="520" y="200" data-f="4-6">slurm@el10</text>
+<text class="t-small" x="520" y="217" data-f="4-6">failed · builddep</text>
+<rect class="box-soft" x="508" y="180" width="204" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="520" y="200" data-f="7">slurm@el10</text>
+<text class="t-small" x="520" y="217" data-f="7">build · fix the spec</text>
+<rect class="box-soft" x="724" y="180" width="200" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="736" y="200" data-f="0">openmpi@el10</text>
+<text class="t-small" x="736" y="217" data-f="0">build · rebuild</text>
+<rect class="box-muted" x="724" y="180" width="200" height="56" rx="8" data-f="1-2"/>
+<text class="t-title t-mono" x="736" y="200" data-f="1-2">openmpi@el10</text>
+<text class="t-small" x="736" y="217" data-f="1-2">waiting for ucx@el10</text>
+<rect class="box-soft" x="724" y="180" width="200" height="56" rx="8" data-f="3"/>
+<text class="t-title t-mono" x="736" y="200" data-f="3">openmpi@el10</text>
+<text class="t-small" x="736" y="217" data-f="3">queued · no free slot</text>
+<rect class="box-accent" x="724" y="180" width="200" height="56" rx="8" data-f="4-5"/>
+<text class="t-title t-mono t-on" x="736" y="200" data-f="4-5">openmpi@el10</text>
+<text class="t-small t-on" x="736" y="217" data-f="4-5">running</text>
+<rect class="box-ok" x="724" y="180" width="200" height="56" rx="8" data-f="6"/>
+<text class="t-title t-mono" x="736" y="200" data-f="6">openmpi@el10</text>
+<text class="t-small" x="736" y="217" data-f="6">ok 30m31s</text>
+<rect class="box-ok" x="724" y="180" width="200" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="736" y="200" data-f="7">openmpi@el10</text>
+<text class="t-small" x="736" y="217" data-f="7">staged (r-…a3f)</text>
+<rect class="box-soft" x="508" y="268" width="232" height="56" rx="8" data-f="0"/>
+<text class="t-title t-mono" x="520" y="288" data-f="0">slurm-singularity-exec@el10</text>
+<text class="t-small" x="520" y="305" data-f="0">build · rebuild</text>
+<rect class="box-muted" x="508" y="268" width="232" height="56" rx="8" data-f="1-3"/>
+<text class="t-title t-mono" x="520" y="288" data-f="1-3">slurm-singularity-exec@el10</text>
+<text class="t-small" x="520" y="305" data-f="1-3">waiting for slurm@el10</text>
+<rect class="box-warn" x="508" y="268" width="232" height="56" rx="8" data-f="4-6"/>
+<text class="t-title t-mono" x="520" y="288" data-f="4-6">slurm-singularity-exec@el10</text>
+<text class="t-small" x="520" y="305" data-f="4-6">blocked by slurm@el10</text>
+<rect class="box-soft" x="508" y="268" width="232" height="56" rx="8" data-f="7"/>
+<text class="t-title t-mono" x="520" y="288" data-f="7">slurm-singularity-exec@el10</text>
+<text class="t-small" x="520" y="305" data-f="7">build</text>
+<text class="t-small" x="16" y="380">job slots (jobs 3)</text>
+<rect class="box-soft" x="136" y="362" width="256" height="28" rx="8" data-f="1-6"/>
+<text class="t-mono" x="148" y="381" data-f="1">ucx@el9</text>
+<text class="t-mono" x="148" y="381" data-f="2-4">slurm@el9</text>
+<text class="t-mono" x="148" y="381" data-f="5-6">free</text>
+<rect class="box-soft" x="408" y="362" width="256" height="28" rx="8" data-f="1-6"/>
+<text class="t-mono" x="420" y="381" data-f="1-2">ucx@el10</text>
+<text class="t-mono" x="420" y="381" data-f="3">slurm@el10</text>
+<text class="t-mono" x="420" y="381" data-f="4-5">openmpi@el10</text>
+<text class="t-mono" x="420" y="381" data-f="6">free</text>
+<rect class="box-soft" x="680" y="362" width="256" height="28" rx="8" data-f="1-6"/>
+<text class="t-mono" x="692" y="381" data-f="1">free</text>
+<text class="t-mono" x="692" y="381" data-f="2-4">openmpi@el9</text>
+<text class="t-mono" x="692" y="381" data-f="5-6">free</text>
+<text class="t-small" x="136" y="381" data-f="0">plan only: no run, no set lock</text>
+<text class="t-small" x="136" y="381" data-f="7">no run: the plan reads latest and the staging</text>
+</svg>
+<script type="application/json" class="steps">["17:49 · The plan: 8 build, 13 current. ucx has the reason commit-changed; slurm, openmpi and slurm-singularity-exec have the reason rebuild. Warning: slurm@el10 needs rocm-smi-devel, and rocm-smi is built for el9 only.", "17:50:08 · Run r-20261102-1750-a3f starts from the lock, with jobs 3, and holds the set lock. Only ucx@el9 and ucx@el10 have all dependencies done, so one job slot stays free. The other build nodes are waiting.", "17:54:13 · ucx@el9 is ok after 4m05s. The soname check gives: sonames unchanged. slurm@el9 and openmpi@el9 take the two free job slots.", "17:58:52 · ucx@el10 is ok after 8m44s. slurm@el10 and openmpi@el10 are ready, but only one slot is free. slurm@el10 has more dependents, so it starts first. openmpi@el10 is queued.", "18:00:40 · slurm@el10 fails in step rpm: builddep, rocm-smi-devel is needed. slurm-singularity-exec@el10 is blocked. openmpi@el10 takes the free slot. At 18:01:06 the run chip shows r-…a3f 2/8 builds · 1 failed · 11m02s.", "18:11 to 18:15 · slurm@el9 is ok after 17m40s. slurm-singularity-exec@el9 starts and is ok after 1m02s. openmpi@el9 is ok after 21m12s.", "18:31:11 · openmpi@el10 is ok. The run ends failed after 41m07s, exit 3: 6 ok, 1 failed, 1 blocked, 13 current. The last hint gives repoctl publish --target el9.", "Next plan · The 6 ok nodes are staged. Each el9 node is current or staged, so el9 is publishable. On el10, slurm and slurm-singularity-exec keep the action build until the spec has a fix."]</script>
+<figcaption>The 8 build nodes of the run on el9 and el10. Copper: running. Dashed: waiting. Green: ok or staged. Red: failed. Amber: blocked or a warning. An arrow means "is needed to build".</figcaption>
+</figure>
+<p>The journal of this run is the example of the machine contract (<a href="contract.html#journal">journal</a>). The publish of el9 on the next day takes the staged el9 nodes (<a href="publish.html#takes">what a publish takes</a>).</p>
+
+<h2 id="lock">Set lock and no queue</h2>
+<p>Two different things have the name "lock". The help and the messages always say which one.</p>
+<dl>
+  <dt>Lock file</dt><dd><code>repoctl.lock</code> in the set: the pinned commits, committed to git (<a href="config.html#lock">lock file</a>).</dd>
+  <dt>Set lock</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>: one writer per set at a time, for one user on one host. It records the holder: command, pid, host, user, start time and run id.</dd>
+</dl>
+<p>A command that writes the set or its build state takes the set lock: checkout, pin, rebuild, build (for the whole run), publish, repo pull and the repo commands that make a snapshot, sign add, retire, remove and deployed, release write, clean, mock update and mock clean. repo verify takes it shared. A read command takes no set lock and never waits. <code>repoctl check</code> takes none, so a check can run while a build runs. Each command block gives its lock (<a href="cli.html#commands">commands</a>).</p>
+<p>When another process holds the set lock, a command waits up to <code>--lock-wait</code> (default 0: no wait). While it waits, it prints the holder. When the time ends, it stops with exit 7 and the problem code <code>set.busy</code>.</p>
+<aside class="callout rule"><p class="callout-title">Rule: no build queue</p><p>A second build of the same user on the same host stops at once with exit 7 (<code>set.busy</code>). The message names the running run. This is true in the CLI, in the UI and in MCP.</p></aside>
+<pre class="term">$ repoctl build slurm
+repoctl: error: set slurm-26.05 is busy: repoctl build holds the set lock (run r-20261102-1750-a3f, pid 48213 on hpc-a1)
+hint: watch that run. run: repoctl runs latest --follow
+hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
+<p>The set lock ends with its process. Thus a stale set lock cannot stay, and no command removes one. Two admins have two set locks on two hosts. They share no lease. Publish compares latest with its base in step 1 and in step 7 (<a href="publish.html#admins">two admins</a>). The team coordinates in its own channel (<a href="model.html#people">people and hosts</a>).</p>
+
+<h2 id="soname">Soname check after a node build</h2>
+<p>At the end of step rpm, repoctl compares the sonames that the new RPMs provide with the sonames of the newest published build of the node. The published sonames come from the <code>provides</code> list of the node in the RepoManifest of latest.</p>
+<ul>
+  <li>A soname is gone, and a kept set package requires it: repoctl writes the required advisory <code>soname.removed/DIR@TARGET</code> (<a href="advisories.html#codes">advisory codes</a>). The publish gate decides if it blocks (<a href="advisories.html#gate">publish gate</a>).</li>
+  <li>No soname is gone: the result is <code>unchanged</code>. repoctl writes it into the node record as <code>checks.soname: unchanged</code>. This is a result, not an advisory.</li>
+</ul>
+<p>The plan and the UI show the result in the row of the node: "sonames unchanged: rebuild not necessary". While the node is in the run, its soname advisory is pending (<a href="advisories.html#states">advisory states</a>). The optional ABI check (<code>abi.changed</code>, needs libabigail) also runs after the node build.</p>
+<p>In the story, ucx 1.22.1 keeps <code>libucp.so.0</code>, <code>libuct.so.0</code> and <code>libucs.so.0</code>. The result of ucx@el9 and ucx@el10 is unchanged. Thus the rebuilds of slurm, openmpi and slurm-singularity-exec are not necessary. Dennis wants them, and they do no harm: each has a new NVR.</p>
+<aside class="callout why"><p class="callout-title">Why a result and not an advisory</p><p>An advisory asks the person for a step. An unchanged soname asks for nothing. The record shows that the check ran. Thus "no advisory" and "not checked" do not look the same.</p></aside>
+
+<h2 id="rebuild">Rebuild</h2>
+<p><code>repoctl rebuild DIR... --reason TEXT</code> prepares a new build of a package with the same version. It does not start a build. For each package, repoctl adds an empty commit <code>Rebuild: TEXT</code> to the package branch, then pins it in <code>repoctl.lock</code>. rpmautospec counts commits, so the release goes up by one, and the changelog shows the reason. The next plan gives the action build with the reason rebuild on all targets of the package.</p>
+<ul>
+  <li>The reason is required, with at least 8 characters. The UI dialog has the same rule.</li>
+  <li>The worktree must be in-sync, and the lock commit must be the tip of the local branch (<a href="lifecycle.html#lock-states">lock states</a>). Else repoctl stops with exit 5.</li>
+  <li>repoctl fetches the remote branch first and warns when it has new commits.</li>
+  <li>repoctl never pushes. The Next lines give the push of each package branch and the commit of the lock.</li>
+  <li>A rebuild applies to all targets of the package, because the commit is per package.</li>
+  <li><code>--dry-run</code> shows the new NVRs and commits nothing.</li>
+</ul>
+<pre class="term">$ repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"
+slurm                   65bc535 → d42f66a  26.05.4-1 → 26.05.4-2
+openmpi                 e2670a4 → 65a37e5  5.0.11-1 → 5.0.11-2
+slurm-singularity-exec  5c9a123 → 093012d  3.2.0-1 → 3.2.0-2
+Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmpi, slurm-singularity-exec)
+      git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push
+      repoctl build</pre>
+<aside class="callout why"><p class="callout-title">Why a commit</p><p>Each build gets a new NVR, so two builds never share an NVR. Fedora mass rebuilds work the same way: rpmautospec raises the release for each commit, also for an empty one. The reason stays in git and in the changelog.</p></aside>
+<p>The word "rebuild" means only this command, on all surfaces. The MCP tool <code>repoctl_rebuild</code> makes the same local commits and does not push (<a href="agents.html#mcp-tools">MCP tools</a>). The web UI has the Rebuild dialog (<a href="ui-build.html#rebuild-dialog">Rebuild dialog</a>). Synopsis and exit codes: <a href="cli.html#cmd-rebuild">repoctl rebuild</a>.</p>
+
+<h2 id="force">Forced builds</h2>
+<p><code>repoctl build --force</code> builds the selected nodes into staging, also when they are current. The plan reason is forced. This is for tests, for example after a change of the mock config. The commit does not change, so rpmautospec gives the same NVR.</p>
+<p>Publish refuses a forced node whose NVR is already published (<code>nvr.reused</code>, exit 12). It also refuses an NVR that the <code>removed[]</code> list of the RepoManifest holds (<code>nvr.removed</code>), because clients can still have it (<a href="publish.html#checks">checks before the first signature</a>). To publish a new build of the same version, use <code>repoctl rebuild</code>.</p>
+<aside class="callout why"><p class="callout-title">Why</p><p>Clients and mirrors expect that one NVR always has the same content. A second file with the same NVR and other content gives checksum errors on the clients, or two different packages with one name.</p></aside>
+<p>A change in a mock config, a macro file or an extra repository is not in the build identity. It gives the advisory <code>mock.drift</code> or <code>buildroot.drift</code>. Use <code>repoctl rebuild</code> to build against the change. Use <code>--force</code> only to try it.</p>
+
+<h2 id="logs">Logs and the journal</h2>
+<table class="compact">
+<thead><tr><th>File</th><th>Content</th></tr></thead>
+<tbody>
+<tr><td><code>~/.local/state/repoctl/SET/runs/RUN.jsonl</code></td><td>The journal of the run: the repoctl events, for example run.started, plan.ready, node.state, node.step, warning, run.finished.</td></tr>
+<tr><td><code>…/runs/RUN.progress.jsonl</code></td><td>The go-clikit event log of the run, in its own format.</td></tr>
+<tr><td><code>…/logs/RUN/NODE.log</code></td><td>The log of the node: the step markers of repoctl and the mock output.</td></tr>
+<tr><td><code>…/logs/RUN/NODE/STEP/build.log</code>, <code>root.log</code>, <code>state.log</code></td><td>The mock logs of one step (<code>srpm</code> or <code>rpm</code>) of the node. <code>repoctl logs --file</code> opens the file of the last step; <code>--step</code> selects the other step.</td></tr>
+</tbody>
+</table>
+<p>The process that holds the set lock writes the journal. All readers fold the same journal: <code>repoctl runs</code>, <code>repoctl logs</code>, the web UI over SSE, MCP and the skills. Thus a person can watch from a terminal a run that the UI or MCP started: <code>repoctl runs RUN --follow</code>. The machine contract has the format and the event names (<a href="contract.html#journal">journal</a>).</p>
+<p><code>repoctl logs RUN NODE</code> shows the log of one node. Without a node, it shows the first failed node of the run. For a failed node on a terminal, it shows an excerpt from 5 lines above the first error to the end. <code>-v</code> shows the whole log. <code>--file repoctl|root|build|state</code> selects the file. The default <code>repoctl</code> is the node log of repoctl, which holds the mock output; <code>root</code>, <code>build</code> and <code>state</code> select one mock log. The node log page of the web UI opens the file that holds the first error, for example <code>root.log</code> for a builddep failure (<a href="ui-build.html#node-log">node log</a>).</p>
+<pre class="term">$ repoctl logs slurm@el10
+slurm@el10 failed in rpm after 1m48s  run r-20261102-1750-a3f  commit d42f66a
+log  ~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/slurm@el10.log
+     lines 378–396 of 396, from 5 lines above the first error  (-v shows all)
+ 383 ▌ No matching package to install: 'rocm-smi-devel'
+ …
+ 388 ▌ error: Failed build dependencies: rocm-smi-devel is needed by slurm-26.05.4-2.el10.x86_64
+ …
+errors: 383, 385, 388
+hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre>
+<p><code>repoctl clean --logs</code> deletes the journals and logs of finished runs. It keeps the newest <code>state.keep_runs</code> runs (default 50) and the publish runs. Commands: <a href="cli.html#cmd-runs">repoctl runs</a>, <a href="cli.html#cmd-logs">repoctl logs</a>. Web UI: <a href="ui-build.html#run-detail">run detail</a>, <a href="ui-build.html#node-log">node log</a>.</p>
+
+<h2 id="cancel">Cancel and abandoned runs</h2>
+<p><code>repoctl cancel [RUN]</code> stops a running build of this user on this host. The default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock. That process stops its mock children, marks its open nodes canceled, keeps the staging and the logs, and exits 130. When the holder is on another host or is another user, cancel stops with exit 1. There is no queue, so there is no queued run to cancel. The cancel button of the web UI has the same scope and names the origin of the run.</p>
+<ol class="steps">
+  <li>The first Ctrl-C in the terminal of the build does the same as cancel. The tree shows <code>interrupting</code> until the mock children end.</li>
+  <li>A second Ctrl-C exits at once. The journal then has no <code>run.finished</code>, and the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</li>
+</ol>
+<p>A crash also gives an abandoned run. The set lock ends with the process, so the next build can start. The ok nodes of a canceled or abandoned run stay staged. A publish run cannot be canceled after its push step starts (<a href="publish.html#order">publish order</a>). Command: <a href="cli.html#cmd-cancel">repoctl cancel</a>. Web UI: <a href="ui-build.html#finished">finished runs</a>.</p>
+
+<h2 id="mock">Mock roots and verify roots</h2>
+<p>Each target names a mock config: <code>rocky+epel-9-x86_64</code> for el9 and <code>rocky+epel-10-x86_64</code> for el10 (<a href="config.html#targets">targets</a>). repoctl runs on Fedora. The mock chroots are EL9 and EL10.</p>
+<ul>
+  <li>Build roots: one per job. <code>--uniqueext</code> gives each job its own root, for example <code>rocky+epel-10-x86_64-r1750a3f-3</code>.</li>
+  <li>Verify roots: one per target, for publish step verify-el. A verify root has the mock config of the target, plus rpm, dnf and gnupg2. It checks the signatures with the client tools (<a href="signing.html#verify-el">verify in the EL chroot</a>).</li>
+</ul>
+<p><code>repoctl mock update</code> runs <code>mock --update</code> for each selected target, with the config, macros and plugins of the target. It also makes or updates the verify root of each target. <code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots that repoctl made, also on the <code>--uniqueext</code> roots. Both commands take the set lock. <code>repoctl mock shell TARGET</code> opens a shell in a root with its own <code>--uniqueext</code>, for debugging. The doctor check <code>sign.verify-el</code> says when a verify root is missing.</p>
+<pre class="term">$ repoctl mock shell el10 -- rpm -q --whatprovides rocm-smi-devel
+no package provides rocm-smi-devel</pre>
+<p>A change in the mock config or the macros of a target gives the advisory <code>mock.drift</code> for the nodes that the old config built. It does not start a build (<a href="#force">forced builds</a>). Command: <a href="cli.html#cmd-mock">repoctl mock</a>.</p>
+
+<h2 id="help">Help topic build-state</h2>
+<p><code>repoctl help build-state</code> prints this text. The other topics are in the CLI reference (<a href="cli.html#topics">help topics</a>).</p>
+<pre><code class="language-plaintext">BUILD STATE
+
+The build identity of a node is the package commit plus the target.
+repoctl builds each node of one identity once.
+
+"repoctl plan" gives one action for each node:
+  current   the commit is in latest of the target: nothing to do
+  staged    built for this lock in a run of yours, not published yet
+  build     no build of this commit for this target. The reason says why:
+              commit-changed  the package commit changed
+              rebuild         "repoctl rebuild DIR" made an empty commit
+              new-package     the package is new in the set
+              new-target      the target is new for the package
+              forced          --force (for tests; publish refuses an
+                              NVR that is already published)
+  skip      not selected, and no selected node needs it
+
+repoctl does not rebuild dependents by itself. A change in a library can
+need a rebuild of its dependents. An advisory says so (soname.removed,
+closure.broken, provider.changed). You decide.
+
+To build again with the same version:
+  repoctl rebuild DIR --reason TEXT
+This makes an empty commit "Rebuild: TEXT" in the package branch and
+pins it. rpmautospec raises the release. Push the package branch, then
+commit and push repoctl.lock.
+
+A change in a mock config, a macro file or an extra repository is not
+in the build identity. It gives the advisory mock.drift or
+buildroot.drift. Use "repoctl rebuild" to build against the change.
+
+Staging is in $XDG_DATA_HOME/repoctl/SET/staging/. It holds the nodes
+that are built for the lock and not published yet. "repoctl clean" keeps
+these nodes. The next plan shows them as "staged".</code></pre>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>repoctl logs slurm@el10</title>
+<meta name="description" content="repoctl logs of the failed node slurm@el10: 5 lines of context above the first error, error lines marked, mock INFO lines folded.">
+<link rel="stylesheet" href="../assets/term.css">
+</head>
+<body>
+<main class="shot" id="shot">
+<figure class="win" aria-label="Terminal: repoctl logs slurm@el10">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="title"><b>repoctl logs slurm@el10</b> — dklein@hpc-a1: ~/src/slurm-repo</span></div>
+<pre class="scr"><span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl logs slurm@el10
+<span class="b">slurm@el10</span> <span class="err">failed</span> in rpm after 1m48s  <span class="d">run</span> r-20261102-1750-a3f  <span class="d">commit</span> d42f66a
+<span class="d">log</span>  ~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/slurm@el10.log
+<span class="d">     lines 378–396 of 396, from 5 lines above the first error  (-v shows all)</span>
+
+<span class="d"> 378 </span><span class="ln"><span class="bx">│</span></span> Start: build phase for slurm-26.05.4-2.el10.src.rpm
+<span class="d"> 379 </span><span class="ln"><span class="bx">│</span></span> Start: build setup for slurm-26.05.4-2.el10.src.rpm
+<span class="d"> 380 </span><span class="ln"><span class="bx">│</span></span> Rocky Linux 10 - BaseOS                          5.1 MB/s |  11 MB     00:02
+<span class="d"> 381 </span><span class="ln"><span class="bx">│</span></span> Extra Packages for Enterprise Linux 10 - x86_64  4.8 MB/s | 4.6 MB     00:00
+<span class="d"> 382 </span><span class="ln"><span class="bx">│</span></span> repoctl staging r-20261102-1750-a3f el10         2.3 MB/s |  52 kB     00:00
+<span class="x"><span class="err"> 383 </span><span class="err"><span class="bx">▌</span></span> <span class="b">No matching package to install: 'rocm-smi-devel'</span></span>
+<span class="d"> 384 </span><span class="ln"><span class="bx">│</span></span> Not all dependencies satisfied
+<span class="x"><span class="err"> 385 </span><span class="err"><span class="bx">▌</span></span> <span class="b">Error: Some packages could not be found.</span></span>
+<span class="d"> 386 </span><span class="ln"><span class="bx">│</span></span> ERROR: Exception(slurm-26.05.4-2.el10.src.rpm) Config(rocky+epel-10-x86_64) 0 minutes 25 seconds
+<span class="d">     </span><span class="ln"><span class="bx">│</span></span> <span class="d">⋯ 1 INFO line</span>
+<span class="x"><span class="err"> 388 </span><span class="err"><span class="bx">▌</span></span> <span class="b">error: Failed build dependencies: rocm-smi-devel is needed by slurm-26.05.4-2.el10.x86_64</span></span>
+<span class="d"> 389 </span><span class="ln"><span class="bx">│</span></span> ERROR: Command failed:
+<span class="d"> 390 </span><span class="ln"><span class="bx">│</span></span>  # /usr/bin/dnf5 --installroot /var/lib/mock/rocky+epel-10-x86_64/root/ --releasever 10 builddep …
+<span class="d"> 391 </span><span class="ln"><span class="bx">│</span></span> Finish: build setup for slurm-26.05.4-2.el10.src.rpm
+<span class="d"> 392 </span><span class="ln"><span class="bx">│</span></span> Finish: run
+<span class="d">     </span><span class="ln"><span class="bx">│</span></span> <span class="d">⋯ 1 INFO line</span>
+<span class="d"> 394 </span><span class="ln"><span class="bx">│</span></span> <span class="b"><span class="bx">─</span><span class="bx">─</span> repoctl <span class="bx">─</span><span class="bx">─</span></span> rpm failed: rocm-smi-devel is needed
+<span class="d"> 395 </span><span class="ln"><span class="bx">│</span></span> <span class="b"><span class="bx">─</span><span class="bx">─</span> repoctl <span class="bx">─</span><span class="bx">─</span></span> blocked: slurm-singularity-exec@el10
+<span class="d"> 396 </span><span class="ln"><span class="bx">│</span></span> <span class="b"><span class="bx">─</span><span class="bx">─</span> repoctl <span class="bx">─</span><span class="bx">─</span></span> node failed after 1m48s
+
+<span class="d">errors:</span> 383, 385, 388
+<span class="d">hint:</span> read the dnf output of mock. run: <span class="b">repoctl logs slurm@el10 --file root</span>
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> <span class="cur"> </span></pre>
+</figure>
+</main>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>repoctl doctor</title>
+<meta name="description" content="repoctl doctor on hpc-a1: passed checks faint, three warnings, each with its fix under it.">
+<link rel="stylesheet" href="../assets/term.css">
+</head>
+<body>
+<main class="shot" id="shot">
+<figure class="win" aria-label="Terminal: repoctl doctor">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="title"><b>repoctl doctor</b> — dklein@hpc-a1: ~/src/slurm-repo</span></div>
+<pre class="scr"><span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl doctor
+<span class="f">✓ repoctl 0.4.0 (3f9a1c2), go1.26.8, Fedora 44</span>
+<span class="f">✓ git 2.51.1</span>
+<span class="f">✓ mock 6.1, dklein is in group mock, rpmautospec plugin</span>
+<span class="f">✓ mock configs: el9 rocky+epel-9-x86_64, el10 rocky+epel-10-x86_64</span>
+<span class="f">✓ tools: rpmspec 6.0.1, rpmsign 6.0.1, createrepo_c 1.2.1, gpg 2.4.8</span>
+<span class="f">✓ set slurm-26.05: repoctl.yaml valid, 10 worktrees, 1 package in tree</span>
+<span class="f">✓ disk: 182 GiB free in ~/.cache/repoctl</span>
+<span class="f">✓ XDG directories: owned by dklein, mode 0700</span>
+<span class="f">✓ sign.key: d.klein …41D8 0B6E on an OpenPGP card, expires 2029-11-01</span>
+<span class="f">✓ sign.deployed: slurm-release-26.05-2, confirmed by d.klein 2026-09-10</span>
+<span class="f">✓ sign.pinentry: pinentry-gnome3 on the local desktop</span>
+<span class="f">✓ sign.verify-el: verify roots for el9 and el10 ready</span>
+<span class="warn">!</span> sign.retiring: 50 RPMs in latest of el9 carry the retiring key hpc-repo
+    <span class="d">fix:</span> re-sign them with an active key. run: <span class="b">repoctl repo resign --signer hpc-repo --target el9</span>
+<span class="f">✓ registry.login: ghcr.io as dklein</span>
+<span class="warn">!</span> registry.scope: the token has no scope delete:packages, so repo gc cannot run
+    <span class="d">fix:</span> add the scope (only gc needs it). run: <span class="b">gh auth refresh -s delete:packages</span>
+<span class="f">✓ check: timer on, last check 2026-11-03 06:00, ok</span>
+<span class="warn">!</span> skills: triage-build in ~/.claude/skills is 0.3.2, repoctl is 0.4.0
+    <span class="d">fix:</span> update the installed skills. run: <span class="b">repoctl skills install --user</span>
+17 checks: 14 ok, 3 warnings
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> <span class="cur"> </span></pre>
+</figure>
+</main>
+</body>
+</html>

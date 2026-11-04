@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Terminal output</title>
+<meta name="description" content="How repoctl writes to a terminal: state marks, colours, streams, text layout, the calm rules, and one frame for each main command on the story data.">
+</head>
+<body>
+<h1>Terminal output</h1>
+<p class="lede">This chapter specifies what repoctl writes on a terminal. It gives the state marks and colours, the use of the two streams and the text layout. Then it gives the calm rules for the terminal and one frame for each main command. The frames use the story data: run <code>r-20261102-1750-a3f</code> and publish <code>p-20261103-1412-5e1</code>.</p>
+<ul class="keypoints">
+  <li>Each state has one mark and one word. The colour is never the only sign of a state.</li>
+  <li>Colour shows only the states that need action: red for a failure or a blocker, amber for a step to do, copper for work under way.</li>
+  <li>Standard output carries the result. Standard error carries the progress, the notes, the summary line, the error line and the hints.</li>
+  <li>The default output shows the exceptions and a totals line. <code>-v</code> shows all rows. Scripts use <code>--json</code>.</li>
+  <li>A failed command ends with one summary line, one error line and 0 to 3 hints. status, pin, rebuild, a successful build and publish end with one <code>Next:</code> line.</li>
+  <li>A hint follows from a finding in the same output. Static help is in <code>repoctl help TOPIC</code>.</li>
+  <li>All lines fit in 120 columns.</li>
+</ul>
+
+<h2 id="conventions">Conventions</h2>
+<p>The progress displays (tree, counter, plain lines) come from go-clikit <code>progress/display</code>. The tables are go-clikit <code>cliout</code> tables. The doctor text comes from go-clikit <code>doctor.Write</code>. repoctl gives the kit its own marks, words and colours. The output contract (what goes to which stream, the order of the lines, the JSON envelope) is in <a href="cli.html#output">CLI reference: output</a>. The form of an error line and a hint is in <a href="cli.html#errors">CLI reference: error messages</a>. The JSON documents are in <a href="contract.html#envelope">Machine contract</a>.</p>
+
+<h3 id="marks">State marks and colours</h3>
+<p>The table gives the node states, the plan actions and the check results. The node words have one definition for all surfaces (<a href="build.html#states">Build: node states</a>). Without a UTF-8 locale, repoctl writes the ASCII mark.</p>
+<table class="compact">
+<thead><tr><th>State</th><th>Mark</th><th>ASCII</th><th>Colour</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>waiting</td><td><code>◌</code></td><td><code>.</code></td><td>none</td><td>A dependency of the node is not done.</td></tr>
+<tr><td>queued</td><td><code>○</code></td><td><code>o</code></td><td>none</td><td>All dependencies are done. The node waits for a job slot.</td></tr>
+<tr><td>running</td><td><code>▸</code></td><td><code>&gt;</code></td><td>copper</td><td>The node runs in mock. Only live displays show it.</td></tr>
+<tr><td>ok</td><td><code>✓</code></td><td><code>+</code></td><td>none</td><td>The node or the step ended without an error.</td></tr>
+<tr><td>failed</td><td><code>✗</code></td><td><code>x</code></td><td>red</td><td>The node, the step or a required check failed.</td></tr>
+<tr><td>blocked</td><td><code>⊘</code></td><td><code>/</code></td><td>amber</td><td>A dependency failed. The node did not start.</td></tr>
+<tr><td>canceled</td><td><code>⊖</code></td><td><code>~</code></td><td>none</td><td>A person, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
+<tr><td>build (plan action)</td><td><code>◆</code></td><td><code>#</code></td><td>none</td><td>The plan builds the node.</td></tr>
+<tr><td>current (plan action)</td><td><code>≡</code></td><td><code>=</code></td><td>none</td><td>The commit of the node is in latest.</td></tr>
+<tr><td>staged (plan action)</td><td><code>●</code></td><td><code>*</code></td><td>none</td><td>A run built the node for this lock. Nobody published it.</td></tr>
+<tr><td>skip (plan action)</td><td><code>–</code></td><td><code>-</code></td><td>none</td><td>The node is not selected and not needed.</td></tr>
+<tr><td>warning</td><td><code>!</code></td><td><code>!</code></td><td>amber</td><td>A check or a plan row needs a step from the person. It does not stop the command.</td></tr>
+</tbody>
+</table>
+<p>Each colour has one meaning:</p>
+<table class="compact">
+<thead><tr><th>Colour</th><th>Meaning</th><th>Used for</th><th>SGR (16 colours)</th></tr></thead>
+<tbody>
+<tr><td>red</td><td>It failed, or it blocks the task of this command.</td><td><code>✗</code>, <code>failed</code>, <code>required</code>, <code>error:</code></td><td><code>31</code></td></tr>
+<tr><td>amber</td><td>Do a step. It does not fail the task by itself.</td><td><code>⊘</code>, <code>!</code>, <code>blocked</code>, <code>behind</code>, <code>retiring</code>, <code>ahead</code>, <code>kept</code></td><td><code>33</code></td></tr>
+<tr><td>copper</td><td>Work under way.</td><td><code>▸</code>, <code>running</code>, the elapsed time of a live tree</td><td><code>36</code></td></tr>
+<tr><td>bold</td><td>The name of a block, the command to copy, a question.</td><td>step names, the command after <code>run:</code></td><td><code>1</code></td></tr>
+<tr><td>dim</td><td>Secondary text.</td><td>keys, durations, paths, <code>note:</code>, <code>hint:</code>, passed doctor checks</td><td><code>2</code></td></tr>
+</tbody>
+</table>
+<p>States that need no action have no colour: ok, current, staged, skip, waiting, queued, canceled, same, in-sync, up-to-date and info. repoctl uses the 16 basic colours, so the theme of the terminal gives the shade on a light and on a dark background. The frames show the shades of the repoctl palette.</p>
+
+<h3 id="streams">Streams and colour</h3>
+<figure class="diagram">
+<svg viewBox="0 0 760 232" role="img" aria-labelledby="streams-t">
+<title id="streams-t">repoctl writes the result to standard output and all other lines to standard error, in a fixed order</title>
+<rect class="box-accent" x="16" y="96" width="112" height="44" rx="8"/>
+<text class="t-on t-title" x="72" y="118" text-anchor="middle" dominant-baseline="middle">repoctl</text>
+<rect class="zone" x="168" y="16" width="576" height="80" rx="8"/>
+<text class="t-small t-muted" x="184" y="36">standard output: the result</text>
+<rect class="box" x="184" y="48" width="256" height="32" rx="8"/>
+<text class="t" x="312" y="64" text-anchor="middle" dominant-baseline="middle">tables, report, summary</text>
+<rect class="box-muted" x="456" y="48" width="272" height="32" rx="8"/>
+<text class="t-mono t-small" x="592" y="64" text-anchor="middle" dominant-baseline="middle">--json: one JSON document</text>
+<rect class="zone" x="168" y="112" width="576" height="104" rx="8"/>
+<text class="t-small t-muted" x="184" y="132">standard error: progress and messages, in this order</text>
+<rect class="box-soft" x="184" y="152" width="84" height="44" rx="8"/>
+<text class="t" x="226" y="174" text-anchor="middle" dominant-baseline="middle">progress</text>
+<rect class="box-soft" x="284" y="152" width="76" height="44" rx="8"/>
+<text class="t" x="322" y="174" text-anchor="middle" dominant-baseline="middle">notes</text>
+<rect class="box" x="376" y="152" width="92" height="44" rx="8"/>
+<text class="t" x="422" y="174" text-anchor="middle" dominant-baseline="middle">summary</text>
+<rect class="box-err" x="484" y="152" width="68" height="44" rx="8"/>
+<text class="t" x="518" y="174" text-anchor="middle" dominant-baseline="middle">error</text>
+<rect class="box-soft" x="568" y="152" width="160" height="44" rx="8"/>
+<text class="t" x="648" y="166" text-anchor="middle" dominant-baseline="middle">0–3 hints, or</text>
+<text class="t-mono t-small" x="648" y="184" text-anchor="middle" dominant-baseline="middle">Next: CMD</text>
+<line class="edge" x1="268" y1="174" x2="280" y2="174" marker-end="url(#arrow)"/>
+<line class="edge" x1="360" y1="174" x2="372" y2="174" marker-end="url(#arrow)"/>
+<line class="edge" x1="468" y1="174" x2="480" y2="174" marker-end="url(#arrow)"/>
+<line class="edge" x1="552" y1="174" x2="564" y2="174" marker-end="url(#arrow)"/>
+<path class="edge" d="M128 110 C148 110 148 64 180 64" marker-end="url(#arrow)"/>
+<path class="edge" d="M128 126 C148 126 148 174 180 174" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>The two streams. A failed command ends with the error line and the hints; a command that succeeds ends with the Next line. A pipe or a file on standard output gets only the result.</figcaption>
+</figure>
+<ul>
+  <li>Standard output carries the result only. With <code>--json</code>, it carries one JSON document and no colour.</li>
+  <li>Standard error carries the other lines, in this order: progress display, <code>note:</code> and <code>warning:</code> lines, summary line, one error line, 0 to 3 <code>hint:</code> lines. A confirmation question also goes to standard error.</li>
+  <li>A <code>hint:</code> line tells what to do about a finding (an error or a warning) in this output. A <code>Next: CMD</code> line gives the one next step of the normal path. repoctl status computes it and writes it as its last line; pin, rebuild, a successful build and publish write it at the end. A failed command writes hints and no <code>Next:</code> line.</li>
+  <li>repoctl writes escape codes to a stream only when that stream is a terminal. <code>NO_COLOR</code> (any value), <code>--no-color</code> and <code>TERM=dumb</code> turn off colour, bold and dim. The marks stay, because they are text.</li>
+  <li><code>--progress auto</code> (the default, <code>REPOCTL_PROGRESS</code>) draws the tree when standard error is a terminal, and plain lines when it is not. In a pipe or a file, plain lines have no colour and no mark. A command that ends in less than one second draws no progress and no summary line.</li>
+  <li>Tables have no colour. A table shows a state with a word or a mark. The own lines of repoctl (key-value blocks, step lines, hints, log excerpts) can colour a state word.</li>
+  <li>Text from other programs (mock, git, gpg) goes through <code>termtext</code> escaping before repoctl writes it.</li>
+</ul>
+<p>The environment variables are in <a href="config.html#env">Configuration: environment variables</a>.</p>
+
+<h3 id="layout">Text layout</h3>
+<ul>
+  <li>All lines fit in 120 columns. On a narrower terminal, the live tree cuts a row at the terminal width with <code>…</code>. Tables do not cut a cell, so a pipe gets full rows.</li>
+  <li>Tables: UPPERCASE headers, two spaces between columns, numbers right-aligned, one totals line under the table.</li>
+  <li>Key-value blocks: a lowercase key in dim, padded to one column, then the value.</li>
+  <li>A node is always <code>DIR@TARGET</code>. A commit has 7 hex digits. A snapshot digest has 4 hex digits (<code>sha256:9d07…</code>). A key fingerprint shows in groups of 4, or as its last 8 digits (<code>…41D8 0B6E</code>).</li>
+  <li>Run ids and publish ids are always complete, because a person copies them into the next command.</li>
+  <li>Durations: <code>4.2s</code>, <code>26s</code>, <code>6m53s</code>, <code>41m07s</code>, <code>1h12m</code>. The elapsed time of a live tree: <code>11:02.4</code>. A plain line starts with <code>[m:ss]</code>. Times of day: <code>17:50</code>. Dates: <code>2026-11-02</code>.</li>
+  <li>Tree rows: mark, name, elapsed time, step, and the last line of the child process in dim.</li>
+  <li>Plain lines: <code>[m:ss] mark path: text</code>. The parts of the path use <code>›</code>, or <code>&gt;</code> without a UTF-8 locale.</li>
+</ul>
+
+<h2 id="calm">Calm rules for the terminal</h2>
+<p>The calm rules of the web UI (<a href="ui.html#calm">Web UI: calm rules</a>) apply to the terminal where they fit. In the terminal they give these rules.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p>Print the exceptions and a totals line. <code>-v</code> prints all rows. A hint must follow from a finding in this output. Colour only the states that need action.</p>
+</aside>
+<table>
+<thead><tr><th>Rule</th><th>In the terminal</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Exceptions first</td><td>Show the rows that differ from the default state (current, ok, in-sync, same, up-to-date). Fold the other rows into the totals line. <code>-v</code> shows all rows.</td><td><a href="#status">status</a>, <a href="#upstream">upstream</a>, <a href="#checkout">checkout</a></td></tr>
+<tr><td>A fold keeps its count</td><td>A folded group shows its count, and its names when they fit. Thus "all fine" and "not shown" do not look the same.</td><td><a href="#plan">plan</a>: <code>7 current: munge rocm-smi …</code></td></tr>
+<tr><td>Say it once</td><td>A column with the same value on every row goes into the header line. Rows with the same action and reason on all targets merge into one row. Each fact shows in one command where the person acts on it.</td><td><a href="#publish">publish</a>, <a href="#plan">plan</a></td></tr>
+<tr><td>All-pass lists fold</td><td>A list where all items pass folds to one line. Passed checks that stay visible are dim.</td><td><a href="#publish">publish</a> steps, <a href="#doctor">doctor</a></td></tr>
+<tr><td>Explain once</td><td>No tutorial hints. A legend or an explanation goes into a help topic.</td><td><a href="#graph">graph</a>: the legend is in <code>repoctl help graph</code></td></tr>
+<tr><td>Fixed end of a failed command</td><td>One summary line, one error line, then 0 to 3 hints. Hint form: <code>hint: WHAT TO DO. run: CMD</code> (<a href="cli.html#errors">error messages</a>). A command that succeeds can end with one <code>Next: CMD</code> line instead.</td><td><a href="#build-failed">build-failed</a>, <a href="#status">status</a></td></tr>
+<tr><td>Red for the task only</td><td>Colour only states that need action. Red only for a failure or the blocker of this task. A required advisory that does not block this publish has no colour.</td><td><a href="#publish">publish</a></td></tr>
+<tr><td>Words before codes</td><td>The error line starts with the node and a plain cause. Problem codes and exit codes are in <code>--json</code> and in the help.</td><td><a href="#build-failed">build-failed</a></td></tr>
+<tr><td>Quiet live output</td><td>Plain lines write a line when a count changes, and one keep-alive line each 60 s without a change. A log excerpt starts 5 lines above the first error and folds the <code>INFO:</code> lines of mock.</td><td><a href="#build-plain">build-plain</a>, <a href="#logs">logs</a></td></tr>
+</tbody>
+</table>
+<p>The frames below follow these rules. Each frame is a standalone page in <code>mockups/term/</code>, 120 columns wide, in the light and the dark theme.</p>
+
+<h2 id="status">repoctl status</h2>
+<figure class="shot term"><a href="mockups/term/status.html"><img src="img/term-status.webp" alt="repoctl status: set line, two published lines, last run failed, 1 required advisory, 2 upstream updates, retiring key, totals line, two hints and a Next line" loading="lazy"></a><figcaption>repoctl status after the publish of el9 on 2026-11-03.</figcaption></figure>
+<p>The block shows only lines with a finding. el9 and el10 have different snapshots, so the published line has one row per target. When the targets have the same snapshot, it is one row. el9 is served behind until the mirror job runs. All packages are in-sync with the lock, so only the totals line of the package table stays. <code>-v</code> adds the store, the mock configs, the check line, the staging line and all package rows. The two hints act on the required advisory and the retiring key. The last line is the next step of the normal path: read the log of the failed node slurm@el10. Command: <a href="cli.html#cmd-status">repoctl status</a>; served state: <a href="publish.html#freshness">Publish: freshness</a>.</p>
+
+<h2 id="plan">repoctl plan</h2>
+<figure class="shot term"><a href="mockups/term/plan.html"><img src="img/term-plan.webp" alt="repoctl plan: four merged build rows for el9 and el10, a warning under the slurm row, one line of current nodes per target, totals line and a note on the required advisory" loading="lazy"></a><figcaption>repoctl plan on 2026-11-02 17:49, before run a3f.</figcaption></figure>
+<p>Each package that builds on both targets for the same reason has one row. The current nodes fold to one line per target with their names. The warning <code>dep.not-for-target</code> is under the slurm row, because it applies only to slurm@el10. Plan actions have no colour, because they need no action. The note says why the required advisory <code>closure.broken/pmix@el9</code> does not block a publish of this plan. Command: <a href="cli.html#cmd-plan">repoctl plan</a>; actions and reasons: <a href="build.html#plan">Build: plan</a>.</p>
+
+<h2 id="graph">repoctl graph</h2>
+<figure class="shot term"><a href="mockups/term/graph.html"><img src="img/term-graph.webp" alt="repoctl graph of el9 as a lane graph with 11 nodes in 4 layers, then the package by target matrix" loading="lazy"></a><figcaption>repoctl graph of el9, and the matrix of all targets.</figcaption></figure>
+<p>The text graph is a lane graph, as <code>git log --graph</code> draws it. A boxed layout of 11 nodes and 14 edges does not fit in 120 columns. The node glyph is the mark of its plan action. Each row repeats its dependencies (<code>← munge ucx …</code>), so the graph is clear without the lanes and in a screen reader. The legend of the lanes is in <code>repoctl help graph</code>. The matrix shows each package on each target; <code>--run RUN</code> shows the node states of a run with the same marks. Command: <a href="cli.html#cmd-graph">repoctl graph</a>; the graph: <a href="build.html#graph">Build: graph</a>.</p>
+
+<h2 id="build-live">repoctl build: live tree</h2>
+<figure class="shot term"><a href="mockups/term/build-live.html"><img src="img/term-build-live.webp" alt="Live tree of run a3f at 11 minutes 2 seconds: el9 with two running nodes, el10 with one failed, one blocked and one running node" loading="lazy"></a><figcaption>The live tree of run r-20261102-1750-a3f at 11m02s (18:01).</figcaption></figure>
+<p>Each target is a step with its counts. A running node shows its elapsed time, its step (srpm, rpm, stage) and the last line of mock. In each target, the failed and blocked nodes come first. Nodes that ended ok show only in the count. The targets share one job limit (3 at a time). The time left comes from the last duration of the same package on the same target. <code>--progress counter</code> writes the same counts on one line. Command: <a href="cli.html#cmd-build">repoctl build</a>; the run: <a href="build.html#run">Build: run</a>.</p>
+
+<h2 id="build-plain">repoctl build --progress plain</h2>
+<figure class="shot term"><a href="mockups/term/build-plain.html"><img src="img/term-build-plain.webp" alt="Plain progress lines of run a3f with time stamps, cut markers, the failure of slurm@el10, the summary line, the error line, three hints and exit status 3" loading="lazy"></a><figcaption>Plain lines of the same run. The dashed rows are cuts in the figure, not output.</figcaption></figure>
+<p>Plain lines are for a CI log. repoctl writes a line when a step starts or ends, when a node fails, and when a count changes. Without a change, it writes one keep-alive line each 60 s. <code>-v</code> adds one line per target each 10 s. In the frame, standard output goes to a file, so the terminal shows only standard error. The exit status is 3: a node failed (<a href="cli.html#exit">exit codes</a>). Command: <a href="cli.html#cmd-build">repoctl build</a>.</p>
+
+<h2 id="build-failed">repoctl build: end after a failure</h2>
+<figure class="shot term"><a href="mockups/term/build-failed.html"><img src="img/term-build-failed.webp" alt="End of run a3f: step lines for plan, el10 and el9, the failed node slurm@el10 with two log lines, the staging path, one summary line, one error line and three hints" loading="lazy"></a><figcaption>The end of run r-20261102-1750-a3f: 6 ok, 1 failed, 1 blocked, 41m07s.</figcaption></figure>
+<p>When the run ends, the tree goes away and the step lines stay. The report on standard output shows the failed node and the staging path. It quotes at most 4 error lines from <code>root.log</code> and <code>build.log</code>, each with its log file. Then come one summary line, one error line and three hints. The hint about <code>%if</code> comes from a rule: a missing BuildRequires that a package of the set provides only on other targets. The last hint says that el9 is complete. Command: <a href="cli.html#cmd-build">repoctl build</a>; logs: <a href="build.html#logs">Build: logs</a>.</p>
+
+<h2 id="logs">repoctl logs</h2>
+<figure class="shot term"><a href="mockups/term/logs.html"><img src="img/term-logs.webp" alt="repoctl logs slurm@el10: header, log lines 378 to 396 with three error lines marked red, two folded INFO lines, the list of error lines and a hint" loading="lazy"></a><figcaption>The log of the failed node slurm@el10.</figcaption></figure>
+<p>On a terminal, for a failed node, repoctl logs shows an excerpt from 5 lines above the first error to the end of the node log. Error lines have a red bar and a light red band. The <code>INFO:</code> lines of mock fold to a count. The header goes to standard error, so <code>repoctl logs … &gt; FILE</code> holds only the log. In a pipe, and with <code>-v</code>, the command writes the whole log. Command: <a href="cli.html#cmd-logs">repoctl logs</a>.</p>
+
+<h2 id="publish">repoctl publish</h2>
+<figure class="shot term"><a href="mockups/term/publish.html"><img src="img/term-publish.webp" alt="repoctl publish of el9: header with publish id, target and source run, base, store, signer, a table of four changed packages, sign and checks lines, the typed set name, one folded step line, published and served behind" loading="lazy"></a><figcaption>repoctl publish of el9 on 2026-11-03 14:12: 38 new RPMs, 170 kept, 208 after.</figcaption></figure>
+<p>The header line names the publish id, the target and the source run, because they are the same for every row. The table has one row per source package that changes. The checks line holds the inputs, the trust block and the gates; a failed check has its own red line. <code>closure.broken/pmix@el9</code> is open, but this publish does not change its closure, so the line has no colour. The person types the set name; a trust change first asks for each added key id (<a href="signing.html#trust-block">Signing: trust block</a>). After success, the eight steps fold to one line. <code>-v</code> shows each step, for example <code>push 38s 54 new blobs (412 MiB), 170 known</code>. <code>served</code> stays behind until the mirror job runs. <code>Next: repoctl status</code> shows when the served tree is the same as latest. The retiring key hpc-repo shows in <a href="#status">status</a> and <a href="#doctor">doctor</a>, not here. Command: <a href="cli.html#cmd-publish">repoctl publish</a>; summary and steps: <a href="publish.html#summary">Publish: summary</a>, <a href="publish.html#order">Publish: order</a>; gate: <a href="advisories.html#gate">Advisories: publish gate</a>.</p>
+<p>A target that is not publishable gives a refusal in the fixed end form:</p>
+<pre class="term">$ repoctl publish --target el10
+repoctl: error: el10 is not publishable: slurm@el10 failed, slurm-singularity-exec@el10 is blocked
+hint: read the log. run: repoctl logs slurm@el10
+hint: fix slurm.spec, commit and push it. run: repoctl pin slurm
+$ echo $?
+12</pre>
+
+<h2 id="check">repoctl check</h2>
+<figure class="shot term"><a href="mockups/term/check.html"><img src="img/term-check.webp" alt="repoctl check: four open advisories, one required and three info, a totals line with one dismissed, and a hint" loading="lazy"></a><figcaption>repoctl check on 2026-11-03: the same advisories as the timer run at 06:00.</figcaption></figure>
+<p>The rows are the open advisories, the required ones first. The subject names the target, so the table has no target column. The dismissed advisory <code>upstream.release/slurm-singularity-exec</code> is only in the count; <code>-v</code> lists it. The timer runs with <code>--quiet</code> and writes nothing on success. The exit status is 0; with <code>--check</code>, an open advisory at <code>--min-level</code> gives 11. Command: <a href="cli.html#cmd-check">repoctl check</a>; behaviour and codes: <a href="advisories.html#check">Advisories: check</a>, <a href="advisories.html#codes">codes</a>.</p>
+
+<h2 id="upstream">repoctl upstream</h2>
+<figure class="shot term"><a href="mockups/term/upstream.html"><img src="img/term-upstream.webp" alt="repoctl upstream: rows for slurm, openmpi and slurm-singularity-exec with updates and pmix_v4 frozen, a totals line and a hint" loading="lazy"></a><figcaption>repoctl upstream: three updates, one of them dismissed, and one frozen stream.</figcaption></figure>
+<p>The table shows the updates and the frozen stream. Up-to-date packages fold into the totals line. The source of each package (GitHub repository and tag filter) is only in <code>-v</code> and <code>--json</code>. The row of slurm-singularity-exec shows the note of its dismissal. The hint names the two packages with an open update. Command: <a href="cli.html#cmd-upstream">repoctl upstream</a>.</p>
+
+<h2 id="doctor">repoctl doctor</h2>
+<figure class="shot term"><a href="mockups/term/doctor.html"><img src="img/term-doctor.webp" alt="repoctl doctor on hpc-a1: fourteen passed checks in dim, three warnings each with a fix line under it, and a totals line" loading="lazy"></a><figcaption>repoctl doctor on hpc-a1: 17 checks, 3 warnings.</figcaption></figure>
+<p>Passed checks are dim, so the three warnings stand out. Each warning has its fix directly under it, with the command to copy. The retiring key hpc-repo is a warning here, with <code>repoctl repo resign</code> as the fix. The exit status is 0 with warnings, 8 with <code>--strict</code>, and 9 when a required check fails. Command: <a href="cli.html#cmd-doctor">repoctl doctor</a>; re-sign: <a href="signing.html#resign">Signing: re-sign</a>.</p>
+
+<h2 id="ui">repoctl ui</h2>
+<figure class="shot term"><a href="mockups/term/ui.html"><img src="img/term-ui.webp" alt="Two terminals: the first start of repoctl ui prints the launch address and runs in the foreground; a second start in another set directory uses the same server" loading="lazy"></a><figcaption>repoctl ui: the first start, and a second start in another set directory.</figcaption></figure>
+<p>repoctl ui prints one launch address on standard output and opens it in the browser. The token in the address is for one use and is valid for 60 s. The server runs in the foreground for the local user only. A second start, also from another set directory, uses the same server and adds the set. Command: <a href="cli.html#cmd-ui">repoctl ui</a>; sessions: <a href="ui.html#auth">Web UI: authentication</a>.</p>
+
+<h2 id="checkout">repoctl checkout</h2>
+<figure class="shot term"><a href="mockups/term/checkout.html"><img src="img/term-checkout.webp" alt="repoctl checkout in a new clone: one fetch line, one worktrees line and a totals line" loading="lazy"></a><figcaption>repoctl checkout in a new clone of the set.</figcaption></figure>
+<p>All worktrees are new and in their default place <code>packages/DIR</code>, so the table folds into the totals line. While the fetch runs, the tree shows the bytes and the rate of the clone of rocm-smi. A worktree that is ahead of the lock or dirty is kept; it gets a row and the hint <code>repoctl pin DIR</code>. Command: <a href="cli.html#cmd-checkout">repoctl checkout</a>; external clones: <a href="lifecycle.html#clones">Sets and packages: clones</a>.</p>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Configuration</title>
+<meta name="description" content="The configuration of repoctl: layers and precedence, set discovery, repoctl.yaml, repoctl.lock, the user config, environment variables, XDG directories, targets and external repositories.">
+</head>
+<body>
+<h1>Configuration</h1>
+<p class="lede">This chapter specifies the configuration of repoctl. It gives the layers and their precedence, the set discovery, <code>repoctl.yaml</code>, <code>repoctl.lock</code>, the user config, the environment variables and the XDG directories. It also says what the first release covers and where the schema stays open.</p>
+<ul class="keypoints">
+  <li>Three files: <code>repoctl.yaml</code> (what to build, committed), <code>repoctl.lock</code> (pinned commits, written by repoctl) and the user config (how and where on this host).</li>
+  <li>repoctl takes each value from the first layer that gives it: flag, <code>REPOCTL_*</code> variable, user config, set config, default.</li>
+  <li>Only the set config changes what repoctl builds. Thus the set commit fixes the output.</li>
+  <li>repoctl finds <code>repoctl.yaml</code> as git finds <code>.git</code>: it goes up from the start directory.</li>
+  <li>No secrets and no host paths in <code>repoctl.yaml</code>. Credentials come from git, ssh and the container credential store.</li>
+  <li>Only the cache is safe to delete. The data directory holds staging, the local copy of <code>latest</code> and the clones of external packages.</li>
+  <li>One set has many targets and can take packages from any git server.</li>
+</ul>
+
+<h2 id="layers">Layers and precedence</h2>
+<figure class="diagram">
+<svg viewBox="0 0 820 316" role="img" aria-labelledby="layers-t">
+<title id="layers-t">Five configuration layers; the first layer that gives a value wins</title>
+<rect class="box-soft" x="20" y="16" width="560" height="44" rx="8"/>
+<text class="t" x="36" y="38" dominant-baseline="middle">1 command-line flag</text>
+<text class="t-small t-mono" x="564" y="38" text-anchor="end" dominant-baseline="middle">--jobs 4</text>
+<rect class="box-soft" x="20" y="70" width="560" height="44" rx="8"/>
+<text class="t" x="36" y="92" dominant-baseline="middle">2 REPOCTL_* variable</text>
+<text class="t-small t-mono" x="564" y="92" text-anchor="end" dominant-baseline="middle">REPOCTL_JOBS=4</text>
+<rect class="box" x="20" y="124" width="560" height="54" rx="8"/>
+<text class="t-title" x="36" y="145">3 user config</text>
+<text class="t-small t-muted" x="36" y="165">~/.config/repoctl/config.yaml: sets.NAME first, then top level</text>
+<text class="t-small t-mono" x="564" y="151" text-anchor="end" dominant-baseline="middle">jobs: 3</text>
+<rect class="box-accent" x="20" y="188" width="560" height="54" rx="8"/>
+<text class="t-title t-on" x="36" y="209">4 set config (committed)</text>
+<text class="t-small t-on" x="36" y="229">repoctl.yaml and repoctl.lock</text>
+<text class="t-small t-on" x="564" y="215" text-anchor="end" dominant-baseline="middle">packages, targets, repos</text>
+<rect class="box-muted" x="20" y="252" width="560" height="44" rx="8"/>
+<text class="t" x="36" y="274" dominant-baseline="middle">5 built-in default</text>
+<text class="t-small t-mono" x="564" y="274" text-anchor="end" dominant-baseline="middle">jobs: 2, lock_wait: 0</text>
+<line class="edge" x1="604" y1="16" x2="604" y2="178"/>
+<text class="t-small" x="616" y="92">how and where:</text>
+<text class="t-small" x="616" y="110">jobs, sign.key, lock_wait,</text>
+<text class="t-small" x="616" y="128">progress, ui.*, agent</text>
+<line class="edge-accent" x1="604" y1="188" x2="604" y2="242"/>
+<text class="t-small t-accent" x="616" y="212">what to build:</text>
+<text class="t-small t-accent" x="616" y="230">only this layer</text>
+<path class="edge-muted" d="M790,20 L790,290" marker-end="url(#arrow-muted)"/>
+<text class="t-small t-muted" x="780" y="300" text-anchor="end">lookup order</text>
+</svg>
+<figcaption>repoctl reads the layers from the top. The first layer that gives a value wins. Only layer 4 can say what to build.</figcaption>
+</figure>
+<ol>
+  <li>Command-line flag.</li>
+  <li><code>REPOCTL_*</code> variable (<a href="#env">environment variables</a>).</li>
+  <li>User config <code>$XDG_CONFIG_HOME/repoctl/config.yaml</code>: the entry under <code>sets.&lt;set name&gt;</code> first, then the top-level entry.</li>
+  <li>Set config: <code>repoctl.yaml</code> and <code>repoctl.lock</code>.</li>
+  <li>Built-in default.</li>
+</ol>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p>Layers 1 to 3 change only how and where, for example <code>jobs</code>, <code>sign.key</code>, <code>sign.backend</code>, <code>lock_wait</code>, <code>progress</code>, <code>ui.*</code> and <code>agent</code>. Only layer 4 changes what repoctl builds: packages, branches, commits, targets, mock configs, macros and repos. A key of layer 4 in the user config is an error (<code>config.unknown-key</code>, exit 1). Thus the set commit fixes the output.</p>
+</aside>
+<p><code>repoctl config show</code> prints each value and the layer that gave it (<a href="cli.html#cmd-config">cli.html#cmd-config</a>):</p>
+<pre class="term">$ repoctl config show
+KEY            VALUE         SOURCE
+jobs           3             user config ~/.config/repoctl/config.yaml
+sign.key       d.klein       user config ~/.config/repoctl/config.yaml
+sign.backend   gpg           default
+lock_wait      0             default
+progress       auto          default
+ui.listen      127.0.0.1:0   default
+ui.open        true          default</pre>
+
+<h2 id="discovery">Set discovery</h2>
+<ul>
+  <li>The start directory is <code>-C DIR</code>, else <code>REPOCTL_DIR</code>, else the current directory.</li>
+  <li>repoctl goes up from the start directory. The first directory with a <code>repoctl.yaml</code> is the set directory. repoctl does not stop at a <code>.git</code> file. Thus a command in <code>packages/slurm</code> (a worktree) finds the set above it.</li>
+  <li>repoctl stops at the file system root and at a mount point, as git does without <code>GIT_DISCOVERY_ACROSS_FILESYSTEM</code>.</li>
+  <li>The set directory must be in a git work tree. Else repoctl stops with exit 1.</li>
+  <li>The set name is <code>name</code> in <code>repoctl.yaml</code>. All XDG paths use it.</li>
+</ul>
+<pre class="term">$ cd ~/src/slurm-repo/packages/ucx
+$ repoctl status -q | head -1
+set       slurm-26.05  ~/src/slurm-repo  (branch builder/slurm-26.05)
+$ cd /tmp
+$ repoctl status
+repoctl: error: no set: no repoctl.yaml in /tmp or in a parent directory
+hint: give the set directory. run: repoctl -C ~/src/slurm-repo status
+hint: start a new set here. run: repoctl init</pre>
+<p>These commands work without a set: <code>version</code>, <code>completion</code>, <code>help</code>, <code>schema</code>, <code>skills ls|show|path</code>, <code>mcp tools</code>, <code>config paths</code> (user paths only), <code>doctor</code> (host checks only), <code>init</code>, <code>migrate</code>, <code>repo ls --path DIR</code> and <code>ui</code> (it opens the overview of the known sets).</p>
+
+<h2 id="set-config">repoctl.yaml</h2>
+<p>The set config says what to build. It is committed on the builder branch. This is the file of the set <code>slurm-26.05</code>:</p>
+<pre><code class="language-yaml">apiVersion: repoctl/v1alpha1
+name: slurm-26.05                  # set id: in all local paths and OCI package names
+
+repo:
+  name: slurm                      # gives slurm, slurm-source, slurm-debuginfo
+  debuginfo: true
+  source: true
+  url: https://repo.example.org/slurm-26.05   # what the clients use; needed to publish
+
+store:
+  oci: ghcr.io/gsi-hpc/slurm-repo  # one OCI package SET-TARGET per target; needed to publish
+
+sign:                              # trusted keys; "repoctl sign add" writes them
+  keys:
+    - id: d.klein
+      file: keys/d.klein.asc
+      fingerprint: 4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E
+      state: active
+    - id: hpc-repo
+      file: keys/hpc-repo.asc
+      fingerprint: 9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2
+      state: retiring
+  release:
+    keyfile: RPM-GPG-KEY-slurm     # key file in the release package
+  checks:
+    key_expiry_warn: 180d
+    key_min_validity: 30d          # gate 1 refuses a signer that expires sooner
+
+retention:
+  snapshots: {keep: 10, keep_days: 90d}   # rules for "repoctl repo gc"
+
+targets:                           # one mock chroot each
+  - id: el9
+    mock: rocky+epel-9-x86_64
+    plugins: [rpmautospec]         # required: a rebuild commit needs it
+    macros: [rpm/macros]
+    path: el9                      # client path below repo.url
+  - id: el10
+    mock: rocky+epel-10-x86_64
+    plugins: [rpmautospec]
+    macros: [rpm/macros]
+    path: el10
+    repos:                         # extra RPM repos for build dependencies (mock --addrepo)
+      - https://repo.example.org/el10/extra
+
+defaults:
+  git:
+    remote: origin                 # the package branches are in this repository
+
+packages:
+  - dir: munge
+    branch: munge/slurm-26.05
+    upstream: {github: dun/munge, fedora: munge}
+  - dir: ucx
+    branch: ucx/slurm-26.05
+    upstream: {github: openucx/ucx, fedora: ucx}
+  - dir: rocm-smi
+    git: {url: https://git.gsi.de/SDE/packages/rocm-smi.git}   # external repository
+    branch: slurm-26.05
+    targets: [el9]                 # build only for these targets
+    upstream: {github: ROCm/rocm-systems, tags: '^therock-[0-9]'}
+    notes: Follow the TheRock stream. rocm-X.Y.Z is frozen at 7.2.4.
+  - dir: pmix
+    branch: pmix/slurm-26.05
+    upstream: {github: openpmix/openpmix, tags: '^v6', fedora: pmix}
+  - dir: pmix_v5
+    branch: pmix/slurm-26.05-v5
+    upstream: {github: openpmix/openpmix, tags: '^v5'}
+  - dir: pmix_v4
+    branch: pmix/slurm-26.05-v4
+    upstream: {github: openpmix/openpmix, tags: '^v4'}
+    notes: Upstream 4.x is frozen at 4.2.9.
+  - dir: prrte
+    branch: prrte/slurm-26.05
+    upstream: {github: openpmix/prrte, fedora: prrte}
+  - dir: slurm
+    branch: slurm/slurm-26.05
+    upstream: {github: SchedMD/slurm, tags: '^slurm-', fedora: slurm}
+  - dir: openmpi
+    branch: openmpi/slurm-26.05
+    upstream: {github: open-mpi/ompi, tags: '^v5\.', fedora: openmpi}
+  - dir: slurm-singularity-exec
+    branch: slurm-singularity-exec/slurm-26.05
+    upstream: {github: GSI-HPC/slurm-singularity-exec}
+  - dir: slurm-release
+    path: packages/slurm-release   # in-tree: no branch, %autorelease in its spec
+    role: release                  # "repoctl release write" writes its key file and .repo file
+
+skills: [.claude/skills]           # optional set-local skills; they can only add</code></pre>
+<table class="compact">
+<thead><tr><th>Key</th><th>Required</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>apiVersion</code></td><td>yes</td><td><code>repoctl/v1alpha1</code>.</td></tr>
+<tr><td><code>name</code></td><td>yes</td><td>Set id: lowercase letters, digits, <code>.</code> and <code>-</code>.</td></tr>
+<tr><td><code>repo.name</code></td><td>yes</td><td>Gives the repositories NAME, NAME-source and NAME-debuginfo.</td></tr>
+<tr><td><code>repo.debuginfo</code>, <code>repo.source</code></td><td>no</td><td>Default true.</td></tr>
+<tr><td><code>repo.url</code></td><td>to publish</td><td>The URL that the clients use. The mirror job serves it. status compares the served tree with <code>latest</code>.</td></tr>
+<tr><td><code>store.oci</code></td><td>to publish</td><td>The registry path. One OCI package per set and target: <code>STORE/SET-TARGET</code> (<a href="publish.html#paths">publish.html#paths</a>).</td></tr>
+<tr><td><code>sign.keys[]</code>: <code>id</code>, <code>file</code>, <code>fingerprint</code>, <code>state</code></td><td>to publish</td><td>The keys that the clients trust. <code>state</code> is active, retiring or removed (<a href="signing.html#lifecycle">signing.html#lifecycle</a>).</td></tr>
+<tr><td><code>sign.release.keyfile</code></td><td>to publish</td><td>The name of the key file in the release package.</td></tr>
+<tr><td><code>sign.checks.key_expiry_warn</code>, <code>.key_min_validity</code></td><td>no</td><td>Defaults 180d and 30d (<a href="signing.html#expiry">signing.html#expiry</a>).</td></tr>
+<tr><td><code>retention.snapshots.keep</code>, <code>.keep_days</code></td><td>no</td><td>Rules for <code>repo gc</code>. Defaults 10 and 90d (<a href="publish.html#gc">publish.html#gc</a>).</td></tr>
+<tr><td><code>targets[].id</code>, <code>.mock</code></td><td>yes</td><td>The target id and the mock config name.</td></tr>
+<tr><td><code>targets[].plugins</code></td><td>yes</td><td>Must contain <code>rpmautospec</code>.</td></tr>
+<tr><td><code>targets[].macros</code>, <code>.path</code>, <code>.repos</code></td><td>no</td><td>Macro files, the client path below <code>repo.url</code>, extra RPM repos for mock.</td></tr>
+<tr><td><code>defaults.git.remote</code></td><td>no</td><td>The remote of the package branches. Default <code>origin</code>.</td></tr>
+<tr><td><code>packages[].dir</code></td><td>yes</td><td>The worktree name below <code>packages/</code> and the DIR of <code>DIR@TARGET</code>.</td></tr>
+<tr><td><code>packages[].branch</code> or <code>.path</code></td><td>one of them</td><td>The package branch, or the path of an in-tree package.</td></tr>
+<tr><td><code>packages[].git.url</code></td><td>no</td><td>An external repository (<a href="#external">external</a>).</td></tr>
+<tr><td><code>packages[].targets</code></td><td>no</td><td>The targets of this package. Default all.</td></tr>
+<tr><td><code>packages[].role</code></td><td>no</td><td><code>release</code> for the release package (<a href="signing.html#release">signing.html#release</a>).</td></tr>
+<tr><td><code>packages[].upstream</code>: <code>github</code>, <code>tags</code>, <code>fedora</code></td><td>no</td><td>The input of <code>repoctl upstream</code>: GitHub repository, tag filter (regular expression), Fedora package name.</td></tr>
+<tr><td><code>packages[].notes</code></td><td>no</td><td>Free text for people and skills.</td></tr>
+<tr><td><code>skills[]</code></td><td>no</td><td>Directories with set-local skills (<a href="agents.html#skills">agents.html#skills</a>).</td></tr>
+</tbody>
+</table>
+<p><code>repoctl init</code> writes a starter file with comments and an empty lock (<a href="cli.html#cmd-init">cli.html#cmd-init</a>). <code>repoctl schema config</code> prints the JSON Schema for editors and agents (<a href="cli.html#cmd-schema">cli.html#cmd-schema</a>).</p>
+
+<h2 id="rules">Rules</h2>
+<ul>
+  <li>An unknown key is an error (<code>config.unknown-key</code>, exit 1). <code>apiVersion</code> lets the schema change without silent errors.</li>
+  <li>The schema also has keys for later releases (<a href="#scope">narrow now, open later</a>). repoctl rejects them with <code>config.unsupported</code>.</li>
+  <li>The file has no build order. repoctl makes the graph from <code>rpmspec --buildrequires</code> and the <code>Provides</code> of each package (<a href="build.html#graph">build.html#graph</a>).</li>
+  <li>The file has no secrets and no host paths. It has no registry credentials and no publish path. Push credentials come from the container credential store of the user (<a href="publish.html#registry">publish.html#registry</a>). Git credentials come from the git and ssh setup of the user.</li>
+  <li>Every target has <code>plugins: [rpmautospec]</code>. Without it, a rebuild commit gives no new NVR. Else <code>config.invalid</code>, exit 1. doctor and status show the plugins of each target.</li>
+  <li>A package has exactly one of <code>branch</code> and <code>path</code>.</li>
+  <li>Package facts (upstream repository, tag filter, notes) live in this file, not in a skill. Thus the CLI and the skills read the same facts.</li>
+  <li>publish needs <code>repo.url</code>, <code>store.oci</code>, <code>sign.keys</code> and <code>sign.release.keyfile</code>. doctor warns when one is missing.</li>
+</ul>
+
+<h2 id="lock">repoctl.lock</h2>
+<p>The lock file holds the pinned commit of each package. This is the lock of the story run, after <code>repoctl pin</code>:</p>
+<pre><code class="language-yaml"># Written by repoctl pin. Do not edit.
+apiVersion: repoctl/v1alpha1
+packages:
+  munge:    {branch: munge/slurm-26.05,   commit: 3a244fd4728f94342beba4a7634c463370a7b877}
+  ucx:      {branch: ucx/slurm-26.05,     commit: 4b1e9c27d0a35f6e81c2b94d7a1e0c5f3b6d8e21}
+  pmix:     {branch: pmix/slurm-26.05,    commit: 6644bdf188c30a62ff595435a8170d6566283b70}
+  pmix_v5:  {branch: pmix/slurm-26.05-v5, commit: 2dff24ab20d95858ff653a540a9fe4e8753b3aa0}
+  pmix_v4:  {branch: pmix/slurm-26.05-v4, commit: 75255956ca468de54df4cbda1e9a455f6cd81534}
+  prrte:    {branch: prrte/slurm-26.05,   commit: 58caa8c66db06076290d71dc3b25c5c6a1f2ee37}
+  slurm:    {branch: slurm/slurm-26.05,   commit: d42f66a56a3f3f0f788e79fb723e451da2d67ba7}
+  openmpi:  {branch: openmpi/slurm-26.05, commit: 65a37e5d2d440f2035a6710a44faa3252d01926d}
+  slurm-singularity-exec:
+    branch: slurm-singularity-exec/slurm-26.05
+    commit: 093012de97ac201aa2063b37ee5d9c130b3703b2
+  rocm-smi:
+    url: https://git.gsi.de/SDE/packages/rocm-smi.git
+    branch: slurm-26.05
+    commit: cae3663bc5c9f97abb8e49c8adebfc4bedde98a0</code></pre>
+<ul>
+  <li>Only <code>pin</code>, <code>rebuild</code>, <code>init</code> and <code>migrate</code> write the lock, with an atomic write under a file lock.</li>
+  <li>The lock is a separate file, like <code>go.sum</code>. A version bump changes one line in the lock and nothing in <code>repoctl.yaml</code>.</li>
+  <li>An entry has <code>branch</code> and <code>commit</code>. An external package also has <code>url</code>.</li>
+  <li>An in-tree package has no lock line, and it is never unpinned. Its commit is the last set commit that changes its path.</li>
+  <li>A missing lock file counts as an empty lock. <code>repoctl migrate</code> converts <code>packages.lock</code> once (<a href="cli.html#cmd-migrate">cli.html#cmd-migrate</a>).</li>
+  <li>A package without a lock line is <code>unpinned</code>. A lock line without a package is <code>orphaned</code>. The lock states are in <a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>.</li>
+</ul>
+<h3 id="set-lock">The lock file and the set lock</h3>
+<p>Two things have the name "lock". The help and the messages always say which one.</p>
+<table>
+<thead><tr><th></th><th>Lock file</th><th>Set lock</th></tr></thead>
+<tbody>
+<tr><td>What</td><td>The pinned commits of the set.</td><td>One writer per set at a time, for one user on one host.</td></tr>
+<tr><td>Where</td><td><code>repoctl.lock</code> in the set directory, committed.</td><td><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>.</td></tr>
+<tr><td>Holds</td><td>Branch, commit and URL per package.</td><td>The holder: command, pid, host, user, start time and run id.</td></tr>
+<tr><td>Busy</td><td>-</td><td>A command waits up to <code>--lock-wait</code> (default 0), then stops with exit 7. Read-only commands never wait.</td></tr>
+</tbody>
+</table>
+<p>Which command takes the set lock, and what a busy set shows, is in <a href="build.html#lock">build.html#lock</a>.</p>
+
+<h2 id="user-config">User config</h2>
+<p>The user config holds the values of one person on one host. It never says what to build.</p>
+<pre><code class="language-yaml"># ~/.config/repoctl/config.yaml of dklein on hpc-a1
+jobs: 3                        # parallel mock builds
+sign:
+  key: d.klein                 # an id from sign.keys of the set, or a full fingerprint
+  backend: gpg                 # default; a YubiKey or a key file
+agent:
+  command: claude              # turns on the agent buttons of the web UI
+  args: []
+sets:
+  slurm-25.11:
+    jobs: 2                    # this set only</code></pre>
+<table class="compact">
+<thead><tr><th>Key</th><th>Default</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>jobs</code></td><td>2</td><td>The maximum number of nodes in mock at the same time. Each mock build uses all CPUs, so a high value gives little.</td></tr>
+<tr><td><code>lock_wait</code></td><td>0</td><td>How long a command waits for a busy set lock.</td></tr>
+<tr><td><code>progress</code></td><td>auto</td><td>The progress display: auto, tree, counter, plain, none.</td></tr>
+<tr><td><code>sign.key</code></td><td><code>rpm --eval %{_gpg_name}</code></td><td>The signing key of this person: an id from <code>sign.keys</code> or a full fingerprint. <code>sign.gpg_name</code> is an alias.</td></tr>
+<tr><td><code>sign.backend</code></td><td>gpg</td><td>gpg works with a YubiKey and with a key file. Other backends are for later (<a href="#scope">scope</a>).</td></tr>
+<tr><td><code>sign.gpg.homedir</code></td><td><code>GNUPGHOME</code>, else <code>~/.gnupg</code></td><td>The GnuPG home directory.</td></tr>
+<tr><td><code>ui.listen</code>, <code>ui.open</code></td><td>127.0.0.1:0, true</td><td>The loopback address of the web UI, and whether <code>repoctl ui</code> opens a browser.</td></tr>
+<tr><td><code>agent.command</code>, <code>agent.args</code></td><td>none</td><td>The local agent of the agent buttons. Without it, the web UI shows no agent buttons (<a href="agents.html#agent-config">agents.html#agent-config</a>).</td></tr>
+<tr><td><code>state.keep_runs</code></td><td>50</td><td>The number of finished runs whose journals and logs stay.</td></tr>
+<tr><td><code>sets.NAME.*</code></td><td>-</td><td>The same keys for one set. They win over the top-level keys.</td></tr>
+</tbody>
+</table>
+<p>The set config lists the keys that the clients trust. The user config only selects the key of this person (<a href="signing.html#probe">signing.html#probe</a>). A user config has no publish path, because no admin writes the served tree.</p>
+
+<h2 id="env">Environment variables</h2>
+<p>A <code>REPOCTL_*</code> variable stands in for a flag that the command line does not give. A variable with the empty string counts as not set. The help of each flag names its variable before the default. A value that repoctl cannot use fails the command with exit 1 and names the variable. <code>REPOCTL_PROGRESS</code>, <code>REPOCTL_PROGRESS_LOG</code> and <code>REPOCTL_VERBOSE</code> never fail a command: repoctl writes one note and continues without them.</p>
+<table class="compact">
+<thead><tr><th>Variable</th><th>Stands in for</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>REPOCTL_DIR</code></td><td><code>-C</code>, <code>--dir</code></td><td>The start directory of the set discovery.</td></tr>
+<tr><td><code>REPOCTL_CONFIG</code></td><td><code>--config</code></td><td>The user config file. <code>--config ""</code> reads no user config.</td></tr>
+<tr><td><code>REPOCTL_TARGET</code></td><td><code>--target</code></td><td>A comma list: <code>el9,el10</code>.</td></tr>
+<tr><td><code>REPOCTL_JSON</code></td><td><code>--json</code></td><td><code>1</code> or <code>true</code>.</td></tr>
+<tr><td><code>REPOCTL_PROGRESS</code></td><td><code>--progress</code></td><td>auto, tree, counter, plain, none.</td></tr>
+<tr><td><code>REPOCTL_PROGRESS_LOG</code></td><td><code>--progress-log</code></td><td>A file for a copy of the progress log.</td></tr>
+<tr><td><code>REPOCTL_QUIET</code></td><td><code>-q</code></td><td><code>1</code>.</td></tr>
+<tr><td><code>REPOCTL_VERBOSE</code></td><td><code>-v</code></td><td>A number: <code>2</code> is <code>-vv</code>.</td></tr>
+<tr><td><code>REPOCTL_JOBS</code></td><td><code>--jobs</code></td><td>Also the user config key <code>jobs</code>.</td></tr>
+<tr><td><code>REPOCTL_LOCK_WAIT</code></td><td><code>--lock-wait</code></td><td>A duration, for example <code>10m</code>.</td></tr>
+<tr><td><code>REPOCTL_SIGN_KEY</code></td><td>user config <code>sign.key</code></td><td>No flag: a person sets the key once. <code>REPOCTL_GPG_NAME</code> is an alias.</td></tr>
+<tr><td><code>REPOCTL_UI_LISTEN</code></td><td><code>repoctl ui --listen</code></td><td>A loopback address only.</td></tr>
+<tr><td><code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code></td><td>no flag</td><td><code>1</code> lets publish, repo push, repo restore, repo prune and repo resign run with <code>--yes</code> and without a terminal. It never allows repo gc, sign deployed or a trust change. repoctl reads it from the environment only, never from a file (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
+</tbody>
+</table>
+<p>repoctl also reads these variables:</p>
+<table class="compact">
+<thead><tr><th>Use</th><th>Variables</th></tr></thead>
+<tbody>
+<tr><td>Paths</td><td><code>XDG_CONFIG_HOME</code>, <code>XDG_CACHE_HOME</code>, <code>XDG_STATE_HOME</code>, <code>XDG_DATA_HOME</code>, <code>XDG_RUNTIME_DIR</code></td></tr>
+<tr><td>Display</td><td><code>NO_COLOR</code> (same as <code>--no-color</code>), <code>TERM</code>, <code>COLORTERM</code>, <code>LC_ALL</code>, <code>LC_CTYPE</code>, <code>LANG</code></td></tr>
+<tr><td>Trace in the journal</td><td><code>TRACEPARENT</code>, <code>TRACESTATE</code></td></tr>
+<tr><td>Upstream queries</td><td><code>GH_TOKEN</code>, <code>GITHUB_TOKEN</code>; else <code>gh auth token</code>; else anonymous</td></tr>
+<tr><td>Signing</td><td><code>GNUPGHOME</code>, <code>GPG_TTY</code></td></tr>
+<tr><td>Browser start of <code>repoctl ui</code></td><td><code>SSH_CONNECTION</code>, <code>DISPLAY</code>, <code>WAYLAND_DISPLAY</code></td></tr>
+</tbody>
+</table>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p><code>repoctl ui</code> and <code>repoctl mcp start</code> run each command without the variables that stand in for a flag, and with <code>REPOCTL_PROGRESS=none</code>. They also remove <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code>. Thus a run does what its shown command says. repoctl never writes a token or a passphrase into a config file, a log or a <code>--json</code> result.</p>
+</aside>
+
+<h2 id="xdg">XDG directories</h2>
+<p>The set directory holds only committed files and the package worktrees. All generated files go to the XDG directories of the user.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 420" role="img" aria-labelledby="xdg-t">
+<title id="xdg-t">Where repoctl writes files: the set directory and five XDG directories</title>
+<rect class="box-accent" x="20" y="20" width="250" height="160" rx="8"/>
+<text class="t-title t-on" x="36" y="44">set directory (git)</text>
+<text class="t-small t-on" x="36" y="68">repoctl.yaml, repoctl.lock</text>
+<text class="t-small t-on" x="36" y="88">rpm/macros, keys/</text>
+<text class="t-small t-on" x="36" y="108">.repoctl/advisories.yaml</text>
+<text class="t-small t-on" x="36" y="128">packages/slurm-release</text>
+<text class="t-small t-on" x="36" y="148">packages/DIR: worktrees,</text>
+<text class="t-small t-on" x="36" y="166">ignored by git</text>
+<rect class="box" x="300" y="20" width="580" height="46" rx="8"/>
+<text class="t-title" x="316" y="40">$XDG_CONFIG_HOME/repoctl/</text>
+<text class="t-small" x="316" y="57">config.yaml: the user config</text>
+<text class="t-small t-muted" x="864" y="40" text-anchor="end">edit by hand</text>
+<rect class="box-muted" x="300" y="76" width="580" height="46" rx="8"/>
+<text class="t-title" x="316" y="96">$XDG_CACHE_HOME/repoctl/</text>
+<text class="t-small" x="316" y="113">srpm/: SRPMs and spec facts per commit · upstream/: answers of the last hour · mock/: work files</text>
+<text class="t-small t-ok" x="864" y="96" text-anchor="end">safe to delete</text>
+<rect class="box" x="300" y="132" width="580" height="80" rx="8"/>
+<text class="t-title" x="316" y="152">$XDG_DATA_HOME/repoctl/</text>
+<text class="t-small" x="316" y="170">SET/staging/RUN/: staged nodes · SET/repo/TARGET/: local copy of latest, snapshot.json</text>
+<text class="t-small" x="316" y="186">SET/publishes/ID/: signed tree of a publish</text>
+<text class="t-small" x="316" y="202">git/HASH.git: bare clones of external package repositories</text>
+<text class="t-small t-warn" x="864" y="152" text-anchor="end">build state: keep</text>
+<rect class="box" x="300" y="222" width="580" height="64" rx="8"/>
+<text class="t-title" x="316" y="242">$XDG_STATE_HOME/repoctl/SET/</text>
+<text class="t-small" x="316" y="260">runs/: journals and progress logs · logs/RUN/: node and mock logs · activity.jsonl</text>
+<text class="t-small" x="316" y="276">check.json: last repoctl check · agent/ID.json: agent results</text>
+<text class="t-small t-muted" x="864" y="242" text-anchor="end">history of this user</text>
+<rect class="box" x="300" y="296" width="580" height="46" rx="8"/>
+<text class="t-title" x="316" y="316">$XDG_RUNTIME_DIR/repoctl/</text>
+<text class="t-small" x="316" y="333">SET.lock: the set lock · ui.sock, ui.json: the web UI server</text>
+<text class="t-small t-muted" x="864" y="316" text-anchor="end">until logout</text>
+<text class="t-small t-muted" x="20" y="376">mock keeps /var/lib/mock and /var/cache/mock. repoctl gives each job its own root with --uniqueext</text>
+<text class="t-small t-muted" x="20" y="396">and its work files in the cache. Defaults: ~/.config, ~/.cache, ~/.local/share, ~/.local/state, /run/user/UID.</text>
+</svg>
+<figcaption>Only the cache is safe to delete. The data directory is build state.</figcaption>
+</figure>
+<table class="compact">
+<thead><tr><th>Path</th><th>Holds</th><th>Delete</th></tr></thead>
+<tbody>
+<tr><td><code>$XDG_CONFIG_HOME/repoctl/config.yaml</code></td><td>the user config</td><td>edit by hand</td></tr>
+<tr><td><code>$XDG_CACHE_HOME/repoctl/srpm/</code>, <code>upstream/</code>, <code>mock/</code></td><td>SRPMs and spec facts per commit, upstream answers (1 hour), mock work files of all sets</td><td>safe: <code>repoctl clean --cache</code></td></tr>
+<tr><td><code>$XDG_DATA_HOME/repoctl/SET/staging/RUN/</code></td><td>the RPMs of a run, per target</td><td><code>repoctl clean</code> keeps staged nodes and publishable runs</td></tr>
+<tr><td><code>$XDG_DATA_HOME/repoctl/SET/repo/TARGET/</code></td><td>the local copy of <code>latest</code> and its <code>snapshot.json</code></td><td>never; <code>repoctl repo pull</code> makes it again</td></tr>
+<tr><td><code>$XDG_DATA_HOME/repoctl/SET/publishes/ID/</code></td><td>the signed tree of a publish until step 8</td><td><code>repoctl repo push ID</code> completes it, <code>repoctl clean --publish ID</code> deletes it</td></tr>
+<tr><td><code>$XDG_DATA_HOME/repoctl/git/HASH.git</code></td><td>bare clones of external package repositories, one per URL</td><td><code>repoctl clean --git</code>, only without worktree and unpushed commits</td></tr>
+<tr><td><code>$XDG_STATE_HOME/repoctl/SET/runs/</code>, <code>logs/</code></td><td>journals, progress logs, node and mock logs</td><td><code>repoctl clean --logs</code>; <code>state.keep_runs</code></td></tr>
+<tr><td><code>$XDG_STATE_HOME/repoctl/SET/check.json</code></td><td>the result of the last <code>repoctl check</code></td><td>the next check writes it again</td></tr>
+<tr><td><code>$XDG_STATE_HOME/repoctl/SET/agent/</code></td><td>the results of agent buttons</td><td>with the logs</td></tr>
+<tr><td><code>$XDG_RUNTIME_DIR/repoctl/</code></td><td>the set lock <code>SET.lock</code>, the web UI socket <code>ui.sock</code> and <code>ui.json</code></td><td>at logout</td></tr>
+</tbody>
+</table>
+<ul>
+  <li><b>Only the cache is safe to delete.</b> The next build is slower, not different.</li>
+  <li><b>The data directory is build state.</b> It holds the staged nodes, the local copy of <code>latest</code> and the external clones. A clone can hold commits that are not pushed, so it is not cache.</li>
+  <li><b>The registry decides what is published.</b> No file on this host does (<a href="model.html#records">model.html#records</a>).</li>
+  <li><b>State is kept.</b> The journals feed <code>repoctl logs</code>, the web UI and the agent.</li>
+</ul>
+<p><code>repoctl config paths</code> prints the paths of this set with their sizes (<a href="cli.html#cmd-config">cli.html#cmd-config</a>).</p>
+
+<h2 id="targets">Many targets</h2>
+<figure class="diagram wide">
+<svg viewBox="0 0 1000 250" role="img" aria-labelledby="targets-t">
+<title id="targets-t">Each target has its own chroot, graph, staging, OCI package and client path</title>
+<text class="t-small t-muted" x="108" y="32" text-anchor="middle">target and mock chroot</text>
+<text class="t-small t-muted" x="304" y="32" text-anchor="middle">graph</text>
+<text class="t-small t-muted" x="500" y="32" text-anchor="middle">staging of a run</text>
+<text class="t-small t-muted" x="696" y="32" text-anchor="middle">OCI package (snapshots)</text>
+<text class="t-small t-muted" x="892" y="32" text-anchor="middle">client path</text>
+<rect class="box-accent" x="20" y="46" width="176" height="60" rx="8"/>
+<text class="t-title t-on" x="108" y="68" text-anchor="middle">el9</text>
+<text class="t-small t-mono t-on" x="108" y="90" text-anchor="middle">rocky+epel-9-x86_64</text>
+<rect class="box" x="216" y="46" width="176" height="60" rx="8"/>
+<text class="t" x="304" y="68" text-anchor="middle">11 nodes</text>
+<text class="t-small t-muted" x="304" y="90" text-anchor="middle">SRPMs from this chroot</text>
+<rect class="box" x="412" y="46" width="176" height="60" rx="8"/>
+<text class="t-small t-mono" x="500" y="68" text-anchor="middle">r-…-a3f, el9 repo</text>
+<text class="t-small t-muted" x="500" y="90" text-anchor="middle">4 nodes ok</text>
+<rect class="box" x="608" y="46" width="176" height="60" rx="8"/>
+<text class="t-small t-mono" x="696" y="68" text-anchor="middle">…/slurm-26.05-el9</text>
+<text class="t-small t-muted" x="696" y="90" text-anchor="middle">latest: p-…-5e1</text>
+<rect class="box" x="804" y="46" width="176" height="60" rx="8"/>
+<text class="t-small t-mono" x="892" y="76" text-anchor="middle">…/slurm-26.05/el9/</text>
+<rect class="box-accent" x="20" y="136" width="176" height="60" rx="8"/>
+<text class="t-title t-on" x="108" y="158" text-anchor="middle">el10</text>
+<text class="t-small t-mono t-on" x="108" y="180" text-anchor="middle">rocky+epel-10-x86_64</text>
+<rect class="box" x="216" y="136" width="176" height="60" rx="8"/>
+<text class="t" x="304" y="158" text-anchor="middle">10 nodes</text>
+<text class="t-small t-muted" x="304" y="180" text-anchor="middle">no rocm-smi</text>
+<rect class="box-warn" x="412" y="136" width="176" height="60" rx="8"/>
+<text class="t-small t-mono" x="500" y="158" text-anchor="middle">r-…-a3f, el10 repo</text>
+<text class="t-small" x="500" y="180" text-anchor="middle">slurm@el10 failed</text>
+<rect class="box" x="608" y="136" width="176" height="60" rx="8"/>
+<text class="t-small t-mono" x="696" y="158" text-anchor="middle">…/slurm-26.05-el10</text>
+<text class="t-small t-muted" x="696" y="180" text-anchor="middle">latest: p-…-c21</text>
+<rect class="box" x="804" y="136" width="176" height="60" rx="8"/>
+<text class="t-small t-mono" x="892" y="166" text-anchor="middle">…/slurm-26.05/el10/</text>
+<path class="edge" d="M196,76 L214,76" marker-end="url(#arrow)"/>
+<path class="edge" d="M392,76 L410,76" marker-end="url(#arrow)"/>
+<path class="edge" d="M588,76 L606,76" marker-end="url(#arrow)"/>
+<path class="edge" d="M784,76 L802,76" marker-end="url(#arrow)"/>
+<path class="edge" d="M196,166 L214,166" marker-end="url(#arrow)"/>
+<path class="edge" d="M392,166 L410,166" marker-end="url(#arrow)"/>
+<path class="edge-muted" d="M588,166 L606,166" marker-end="url(#arrow-muted)"/>
+<path class="edge" d="M784,166 L802,166" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="20" y="232">The story after the el9 publish: el9 has a new latest; el10 is not publishable, so its latest stays.</text>
+</svg>
+<figcaption>Targets are independent from the chroot to the client path. A failed el10 node does not stop el9.</figcaption>
+</figure>
+<ul>
+  <li><b>Node = package × target.</b> repoctl builds each package for each target in its <code>targets</code> list. The default is all targets (<a href="model.html#nodes">model.html#nodes</a>).</li>
+  <li><b>One graph per target.</b> repoctl builds the SRPM in the mock chroot of the target and reads its requires. Thus <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives correct edges. repoctl cannot see dynamic <code>BuildRequires</code> (<code>%generate_buildrequires</code>) before the build, and it writes a warning for them.</li>
+  <li><b>Missing dependency for a target.</b> plan shows the gap before the build: "slurm@el10 needs rocm-smi-devel; rocm-smi is not built for el10" (<code>dep.not-for-target</code>, warn).</li>
+  <li><b>Staging and publish per target.</b> Each target has its own staging repo in a run and its own OCI package. A publish covers the targets that are ready.</li>
+  <li><b>Extra RPM repos</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. A change in these repos can change a build result. repoctl does not rebuild by itself. It shows the advisory <code>buildroot.drift</code>, and the person decides.</li>
+  <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
+</ul>
+<p>Build a package for some targets only, and add or drop a target: <a href="lifecycle.html#some-targets">lifecycle.html#some-targets</a>, <a href="lifecycle.html#targets">lifecycle.html#targets</a>.</p>
+
+<h2 id="external">External package repositories</h2>
+<ul>
+  <li><code>git.url</code> on a package points to any git server. The lock stores the URL, the branch and the commit.</li>
+  <li>repoctl keeps one bare clone per URL with the full history in <code>$XDG_DATA_HOME/repoctl/git/HASH.git</code>, because rpmautospec needs the history. <code>repoctl checkout</code> fetches the clone and makes the worktree.</li>
+  <li>repoctl makes the clone with <code>git clone --bare URL</code> and the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>. It does not set <code>remote.origin.mirror</code>. Thus <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</li>
+  <li><code>repoctl clean</code> does not touch the clones. <code>repoctl clean --git</code> deletes a clone only when it has no worktree and no commit that is not on the remote. Else it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</li>
+  <li>Credentials come from the git and ssh setup of the user. The config never holds them. <code>repoctl doctor</code> checks that each URL is reachable, and it warns about clones with commits that are not pushed.</li>
+</ul>
+<p>The steps to add an external package are in <a href="lifecycle.html#add-external">lifecycle.html#add-external</a>.</p>
+
+<h2 id="scope">Narrow now, open later</h2>
+<p>The first release covers the slurm sets. The schema leaves room for more. repoctl rejects a key for later with <code>config.unsupported</code>.</p>
+<table>
+<thead><tr><th>Topic</th><th>First release</th><th>Room for later</th></tr></thead>
+<tbody>
+<tr><td>Targets</td><td>Many mock chroots (el9, el10).</td><td>Per-target overrides of more keys.</td></tr>
+<tr><td>Package source</td><td>A branch in the set repository or in an external git repository; an in-tree path.</td><td>Tarball-only sources, dist-git layouts.</td></tr>
+<tr><td>Upstream check</td><td>GitHub tags and releases, the Fedora version.</td><td><code>upstream</code> kinds GitLab, PyPI, URL pattern.</td></tr>
+<tr><td>Signing</td><td>Personal keys with local gpg (YubiKey or key file), many trusted keys, <code>sign.backend: gpg</code>.</td><td>Other backends: central signing over an agent socket, no signing for CI, sops.</td></tr>
+<tr><td>Publish</td><td>Snapshots in an OCI registry (<code>store.oci</code>). The HTTP server at <code>repo.url</code> is a mirror.</td><td>Other registries, other mirror kinds.</td></tr>
+<tr><td>Release package</td><td>An in-tree spec. <code>repoctl release write</code> writes the key file and the <code>.repo</code> baseurl.</td><td>A release package that repoctl writes in full.</td></tr>
+<tr><td>Host</td><td>Fedora only. The mock chroots are EL9 and EL10.</td><td>repoctl on EL.</td></tr>
+</tbody>
+</table>
+<h3 id="generic">The "generic" test</h3>
+<p>repoctl must not know the word slurm. The test is the branch <code>main</code> as its own set. <code>main</code> gets a <code>repoctl.yaml</code>: name <code>repoctl</code>, one target for the current Fedora, and the packages <code>repoctl</code> and <code>repoctl-release</code> (in-tree, <code>role: release</code>).</p>
+<p>The test passes when repoctl builds and publishes this set with the same commands as a slurm set. It runs on a Fedora host with a personal key, and the snapshot goes to GHCR. The release-version check (<a href="signing.html#release">signing.html#release</a>) compares the release package with the version in the set name. The name <code>repoctl</code> has no version, so the check is off for this set.</p>
+<p>The Fedora RPM repo on GitHub Pages stays the output of the Pages job (<a href="decision.html#pages">decision.html#pages</a>). A CI job that signs and publishes through repoctl without a person is a later feature.</p>
+</body>
+</html>
