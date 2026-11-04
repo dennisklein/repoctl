@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <title>Sets and packages</title>
-<meta name="description" content="Package states, a new set from an old one, the end of a set, the ordered steps for each package change, and the help topics new-set, end-set and packages.">
+<meta name="description" content="The tasks of an admin over the life of a set: package and lock states, a new set, testing sets, each package change, targets, a mass rebuild, the end of a set, a set move, external package clones, adopted entries and the help topics new-set, end-set and packages.">
 </head>
 <body>
 <h1>Sets and packages</h1>
-<p class="lede">This chapter specifies the life of a package in a set, the start of a new set and the end of a set. It gives the package states, the ordered steps for each package change and the text of the help topics <code>new-set</code>, <code>end-set</code> and <code>packages</code>.</p>
+<p class="lede">The tasks of an admin over the life of a set: start it, change its packages and targets, and end it. Each task gives the ordered steps, then the result to expect. The chapter also gives the package states and the help topics <code>new-set</code>, <code>end-set</code> and <code>packages</code>.</p>
 <ul class="keypoints">
   <li>A package has a lock state (repoctl.yaml, repoctl.lock and the worktree) and a publish state (staging and latest of each target).</li>
   <li>Two lock states mark a gap between the files: <code>unpinned</code> (no lock entry) and <code>orphaned</code> (no repoctl.yaml entry).</li>
   <li>A new set forks each branch from the previous set at its lock commit. The rpmautospec history and the changelogs continue.</li>
   <li><code>checkout --create</code> needs one start point and checks the remote first. repoctl never pushes.</li>
-  <li>Each package change is a list of ordered steps. Each step names the repository of its commit and the plan reason to expect.</li>
+  <li>Each step names the repository of its commit. Each change ends with the plan reason to expect.</li>
   <li>Old package versions stay in the repo. Removal is explicit: <code>repoctl repo prune --package NAME --all</code>.</li>
 </ul>
 
 <h2 id="states">Package states</h2>
-<p>A package has two kinds of state. The <dfn>lock state</dfn> compares <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the worktree in <code>packages/DIR</code>. The <dfn>publish state</dfn> compares the set with the staging of the runs and with latest of each target. repoctl computes both states each time. It stores neither of them.</p>
+<p>A package has two kinds of state. The <dfn>lock state</dfn> compares <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the worktree in <code>packages/DIR</code>. The <dfn>publish state</dfn> compares the set with the staging of the runs and with latest of each target. repoctl computes both states and stores neither.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 290" role="img" aria-labelledby="pkg-states-t">
 <title id="pkg-states-t">Life of a package: declared, pinned, staged, published, retired, pruned</title>
@@ -66,40 +66,39 @@
 </svg>
 <figcaption>The life of one package. A new commit or a rebuild commit takes a published package back to pinned, and plan builds it again. Retired and orphaned are computed.</figcaption>
 </figure>
-<p>The plan actions and plan reasons are in <a href="build.html#actions">Build</a>. The RepoManifest in latest says which commit gives a published NVR (<a href="model.html#manifest">Core model</a>). A source package name is <dfn>retired</dfn> on a target when no dir in <code>repoctl.yaml</code> builds it for that target. Latest of the target still holds its RPMs.</p>
+<p>A source package name is <dfn>retired</dfn> on a target when no dir in <code>repoctl.yaml</code> builds it for that target. Latest of the target still holds its RPMs. The plan actions and plan reasons are in <a href="build.html#actions">Build</a>. The RepoManifest in latest says which commit gives a published NVR (<a href="model.html#manifest">Core model</a>).</p>
 
 <h2 id="lock-states">Lock states</h2>
 <p>For each package, repoctl compares the commit in <code>repoctl.lock</code> with the worktree. The contract enum <code>LockState</code> has nine values. <code>repoctl status</code> lists each package that is not <code>in-sync</code> or <code>in-tree</code> and prints the hint of the first problem (<a href="terminal.html#status">terminal frame</a>).</p>
 <table class="compact">
-<thead><tr><th>State</th><th>Meaning</th><th>status hint (<code>run:</code>)</th></tr></thead>
+<thead><tr><th>State</th><th>Meaning</th><th><code>pin</code></th><th>status hint (<code>run:</code>)</th></tr></thead>
 <tbody>
-<tr><td><code>in-sync</code></td><td>The worktree HEAD is the lock commit. No tracked file has a change.</td><td>none</td></tr>
-<tr><td><code>in-tree</code></td><td>An in-tree package (<code>path:</code>) with no change under its path. It has no lock line and no worktree. Its commit is the last set commit that changes its path.</td><td>none</td></tr>
-<tr><td><code>ahead</code></td><td>The worktree HEAD is a descendant of the lock commit. A commit is not pinned yet.</td><td><code>repoctl pin DIR</code></td></tr>
-<tr><td><code>behind</code></td><td>The worktree HEAD is an ancestor of the lock commit, for example after a colleague pinned a newer commit.</td><td><code>repoctl checkout DIR</code></td></tr>
-<tr><td><code>diverged</code></td><td>The worktree and the lock commit both have commits that the other does not have.</td><td>rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code></td></tr>
-<tr><td><code>dirty</code></td><td>A tracked file has an uncommitted change. For an in-tree package (<code>path:</code>), a file under its path has a change.</td><td>commit in <code>packages/DIR</code>, then <code>repoctl pin DIR</code></td></tr>
-<tr><td><code>missing</code></td><td>The package has no worktree.</td><td><code>repoctl checkout DIR</code></td></tr>
-<tr><td><code>unpinned</code></td><td>The package is in <code>repoctl.yaml</code>. It has no entry in <code>repoctl.lock</code>.</td><td><code>repoctl pin DIR</code></td></tr>
-<tr><td><code>orphaned</code></td><td>The package is in <code>repoctl.lock</code>. It is not in <code>repoctl.yaml</code>.</td><td><code>repoctl pin --orphans</code> (removes it)</td></tr>
+<tr><td><code>in-sync</code></td><td>The worktree HEAD is the lock commit. No tracked file has a change.</td><td>Keeps the commit. Writes a new branch or URL.</td><td>none</td></tr>
+<tr><td><code>in-tree</code></td><td>An in-tree package (<code>path:</code>) with no change under its path. It has no lock line and no worktree. Its commit is the last set commit that changes its path.</td><td>Writes nothing.</td><td>none</td></tr>
+<tr><td><code>ahead</code></td><td>The worktree HEAD is a descendant of the lock commit. A commit is not pinned yet.</td><td>Writes the HEAD commit.</td><td><code>repoctl pin DIR</code></td></tr>
+<tr><td><code>behind</code></td><td>The worktree HEAD is an ancestor of the lock commit, for example after a colleague pinned a newer commit.</td><td>Keeps the line.</td><td><code>repoctl checkout DIR</code></td></tr>
+<tr><td><code>diverged</code></td><td>The worktree and the lock commit both have commits that the other does not have.</td><td>Stops.</td><td>rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code></td></tr>
+<tr><td><code>dirty</code></td><td>A tracked file has an uncommitted change. For an in-tree package (<code>path:</code>), a file under its path has a change.</td><td>Stops.</td><td>commit in <code>packages/DIR</code>, then <code>repoctl pin DIR</code></td></tr>
+<tr><td><code>missing</code></td><td>The package has no worktree.</td><td>Keeps the line.</td><td><code>repoctl checkout DIR</code></td></tr>
+<tr><td><code>unpinned</code></td><td>The package is in <code>repoctl.yaml</code>. It has no entry in <code>repoctl.lock</code>.</td><td>Writes the HEAD commit.</td><td><code>repoctl pin DIR</code></td></tr>
+<tr><td><code>orphaned</code></td><td>The package is in <code>repoctl.lock</code>. It is not in <code>repoctl.yaml</code>.</td><td>Without arguments: removes the line and lists it.</td><td><code>repoctl pin --orphans</code> (removes it)</td></tr>
 </tbody>
 </table>
-<p>"The lock is dirty": a selected package is not <code>in-sync</code> or <code>in-tree</code>, or <code>repoctl.lock</code> has uncommitted changes. The file format is in <a href="config.html#lock">Configuration</a>.</p>
+<p>pin writes a commit only for an <code>ahead</code> or an <code>unpinned</code> package. Thus a pin after a <code>git pull</code> never takes back the newer pin of a colleague (<a href="cli.html#cmd-pin">command block</a>). "The lock is dirty": a selected package is not <code>in-sync</code> or <code>in-tree</code>, or <code>repoctl.lock</code> has uncommitted changes (<a href="config.html#lock">file format</a>).</p>
 <aside class="callout rule">
-<p class="callout-title">Rule</p>
+<p class="callout-title">Rule: unpinned and orphaned packages</p>
 <ul>
 <li><code>LockEntry.commit</code> is required, except for state <code>unpinned</code>.</li>
 <li>plan shows an unpinned node with the note "not pinned" and the action <code>skip</code>. With <code>--from worktree</code>, the action is <code>build</code>.</li>
-<li><code>build --from lock</code> with a selected unpinned node stops with exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>. publish stops with the same code when a selected target has an unpinned package (<a href="publish.html#checks">checks before the first signature</a>).</li>
-<li><code>checkout</code> without <code>--create</code> makes the worktree of an unpinned package on its local branch at the tip of the remote branch (<a href="cli.html#local-branch">local branch</a>) and prints "not pinned: run repoctl pin DIR". This is how a human checks out the new package of a colleague.</li>
-<li><code>pin</code> without arguments removes orphaned entries and lists them (<a href="cli.html#cmd-pin">command block</a>). <code>pin DIR</code> for a dir that is not in <code>repoctl.yaml</code> is a usage error.</li>
-<li><code>pin</code> writes a line only for a worktree that is ahead, or for an unpinned package. It keeps the line of a <code>behind</code> or <code>missing</code> worktree and stops at a <code>diverged</code> or <code>dirty</code> one. Thus a pin after a <code>git pull</code> never takes back the newer pin of a colleague.</li>
-<li>publish refuses a set with an orphaned entry: exit 5, <code>lock.orphaned</code>. The lock and <code>repoctl.yaml</code> must agree, so that the set commit fixes the output (<a href="publish.html#checks">checks before the first signature</a>).</li>
+<li><code>build --from lock</code> with a selected unpinned node stops: exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>.</li>
+<li>publish stops with exit 5 before the first signature (<a href="publish.html#checks">checks</a>): <code>lock.missing-package</code> when a selected target has an unpinned package, <code>lock.orphaned</code> for an orphaned entry. The lock and <code>repoctl.yaml</code> must agree, so that the set commit fixes the output.</li>
+<li><code>checkout</code> without <code>--create</code> puts the worktree of an unpinned package at the tip of the remote branch, on its <a href="cli.html#local-branch">local branch</a>. It prints "not pinned: run repoctl pin DIR". Thus a human checks out the new package of a colleague.</li>
+<li><code>pin DIR</code> for a dir that is not in <code>repoctl.yaml</code> is a usage error.</li>
 </ul>
 </aside>
 
 <h2 id="new-set">New set</h2>
-<p>A new set forks each package branch from the previous set. Thus the rpmautospec history and the changelogs continue. The builder branch also forks from the previous builder branch. The example starts set <code>slurm-26.11</code> from <code>slurm-26.05</code>.</p>
+<p>A new set forks the builder branch and each package branch from the previous set, so the rpmautospec history and the changelogs continue. The example starts set <code>slurm-26.11</code> from <code>slurm-26.05</code> with the steps of <a href="#help-new-set">help new-set</a>.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 880 300" role="img" aria-labelledby="new-set-t">
 <title id="new-set-t">Set slurm-26.11 forks the builder branch and each package branch of slurm-26.05 at the lock commit</title>
@@ -140,17 +139,22 @@
 </figure>
 
 <h3 id="init-from">repoctl init --from</h3>
-<p><code>repoctl init --from SET --name NAME</code> forks the set config (<a href="cli.html#cmd-init">command block</a>). <code>SET</code> is a set directory or a builder branch, for example <code>builder/slurm-26.05</code>. init reads its <code>repoctl.yaml</code> and writes a new one in the start directory:</p>
-<ul>
-<li><code>name</code> becomes <code>NAME</code>.</li>
-<li>In each <code>branch</code>, repoctl replaces the old set name with the new one: <code>pmix/slurm-26.05-v4</code> becomes <code>pmix/slurm-26.11-v4</code>. This is also true for an external package (<code>slurm-26.05</code> becomes <code>slurm-26.11</code>).</li>
-<li>A branch that does not contain the old set name stays the same. init lists it as "shared branch". Example: <code>slurm-25.11</code> uses <code>pmix/slurm-26.05-v4</code>.</li>
-<li>The other keys stay the same: targets, repo, store, upstream, notes, roles. The human sets <code>repo.url</code> for the clients of the new set (help step 3).</li>
-<li>init keeps the active keys of <code>sign.keys</code>. It drops each key in state retiring, removed or revoked and lists it as "dropped key". No RPM of the new set carries such a key, so its clients do not need it.</li>
-<li>When the start directory is a fork of <code>SET</code> (its <code>repoctl.yaml</code> has the old set name), init changes the file in place without <code>--force</code>. Otherwise init also copies the files that <code>repoctl.yaml</code> names: the macro files, the release package path and the key file of each kept key (<code>keys/ID.asc</code>).</li>
-<li>The new set starts without the records of the old set. init writes an empty <code>repoctl.lock</code>. It does not copy <code>.repoctl/advisories.yaml</code> or <code>keys/deployed.yaml</code>. In a fork, it deletes them and the key files of the dropped keys. The new set has new branches, new advisories and new OCI packages, so it needs new deployment records (help step 14).</li>
-<li>init does not create branches. <code>checkout --create</code> does that.</li>
-</ul>
+<p><code>repoctl init --from SET --name NAME</code> forks the set config (<a href="cli.html#cmd-init">command block</a>). <code>SET</code> is a set directory or a builder branch, for example <code>builder/slurm-26.05</code>. init reads its <code>repoctl.yaml</code> and writes the files of the new set in the start directory:</p>
+<table>
+<thead><tr><th>Part</th><th>What init writes</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td><code>NAME</code>.</td></tr>
+<tr><td><code>branch</code> of each package</td><td>The old set name becomes the new one, also for an external package: <code>pmix/slurm-26.05-v4</code> becomes <code>pmix/slurm-26.11-v4</code>, <code>slurm-26.05</code> becomes <code>slurm-26.11</code>.</td></tr>
+<tr><td>A branch without the old set name</td><td>Stays the same. init lists it as "shared branch". Example: <code>slurm-25.11</code> uses <code>pmix/slurm-26.05-v4</code>.</td></tr>
+<tr><td>targets, repo, store, upstream, notes, roles</td><td>Stay the same. The human sets <code>repo.url</code> for the clients of the new set (help step 3).</td></tr>
+<tr><td><code>sign.keys</code></td><td>Keeps the active keys. Drops each key in state retiring, removed or revoked, and lists it as "dropped key". No RPM of the new set carries such a key, so its clients do not need it.</td></tr>
+<tr><td><code>repoctl.lock</code></td><td>Empty.</td></tr>
+<tr><td><code>.repoctl/advisories.yaml</code>, <code>keys/deployed.yaml</code></td><td>Not copied: the new set starts without the records of the old set. It has new branches, new advisories and new OCI packages, so it needs new deployment records (help step 14).</td></tr>
+<tr><td>The macro files, the release package path and the key file of each kept key (<code>keys/ID.asc</code>), as <code>repoctl.yaml</code> names them</td><td>Copied, when the start directory is not a fork of <code>SET</code>.</td></tr>
+<tr><td>Branches</td><td>None. <code>checkout --create</code> makes them.</td></tr>
+</tbody>
+</table>
+<p>A start directory is a fork of <code>SET</code> when its <code>repoctl.yaml</code> has the old set name. In a fork, init changes the file in place without <code>--force</code>. It deletes <code>.repoctl/advisories.yaml</code>, <code>keys/deployed.yaml</code> and the key files of the dropped keys.</p>
 <p>init ends with a Next list. With <code>--from</code>, the list is <code>repoctl help new-set</code> from step 3. Without <code>--from</code>, the list is the steps of <code>repoctl help packages</code> for the first package (<a href="#help">help topics</a>).</p>
 
 <h3 id="checkout-create">repoctl checkout --create</h3>
@@ -164,14 +168,17 @@
 <tr><td><code>--orphan</code></td><td>A new branch without history. Only on request.</td></tr>
 </tbody>
 </table>
-<ul>
-<li>Without a start point: exit 2, "say --from-set, --from, --from fedora or --orphan".</li>
-<li>Before it creates a branch, repoctl runs <code>git ls-remote</code> on the remote of the package. When the branch exists there, repoctl does not create it: exit 1, <code>branch.exists-remote</code>, hint <code>repoctl checkout DIR</code>.</li>
-<li>For an external package, the server repository must exist. When <code>ls-remote</code> fails: exit 1, <code>git.unreachable</code>, hint "create the project on the git server first".</li>
-<li>The output gives the start point of each branch: "forked from pmix/slurm-26.05 at 6644bdf" or "orphan".</li>
-<li>repoctl makes the new branch as a local branch at the start point and attaches the worktree to it (<a href="cli.html#local-branch">local branch</a>). A commit in <code>packages/DIR</code> goes to that branch.</li>
-<li>repoctl does not push. The output ends with one push command for all new branches, then <code>repoctl pin</code>.</li>
-</ul>
+<p>Before it creates a branch, repoctl runs <code>git ls-remote</code> on the remote of the package:</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>No start point</td><td>exit 2, "say --from-set, --from, --from fedora or --orphan"</td></tr>
+<tr><td>The branch exists on the remote</td><td>No new branch. exit 1, <code>branch.exists-remote</code>, hint <code>repoctl checkout DIR</code></td></tr>
+<tr><td>External package: <code>ls-remote</code> fails, because the server repository must exist</td><td>exit 1, <code>git.unreachable</code>, hint "create the project on the git server first"</td></tr>
+<tr><td>The branch is new</td><td>repoctl makes it as a local branch at the start point and attaches the worktree to it (<a href="cli.html#local-branch">local branch</a>). A commit in <code>packages/DIR</code> goes to that branch.</td></tr>
+</tbody>
+</table>
+<p>The output gives the start point of each branch: "forked from pmix/slurm-26.05 at 6644bdf" or "orphan". repoctl does not push. The output ends with one push command for all new branches, then <code>repoctl pin</code>.</p>
 <pre class="term">$ repoctl checkout --create --from-set builder/slurm-26.05
 munge                    munge/slurm-26.11                    forked from munge/slurm-26.05 at 3a244fd
 pmix                     pmix/slurm-26.11                     forked from pmix/slurm-26.05 at 6644bdf
@@ -194,8 +201,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td>Set committed and pushed</td><td><code>repoctl.yaml</code> and <code>repoctl.lock</code> are committed and on the remote.</td></tr>
 <tr><td>Host ready</td><td><code>repoctl doctor</code> has no failed check.</td></tr>
 <tr><td>First publish</td><td>latest exists for each target (<a href="publish.html#format">snapshot names</a>).</td></tr>
-<tr><td>Packages public</td><td>Each OCI package of the set is public and inherits the access of the set repository: the doctor check <code>registry.public</code> is ok (<a href="publish.html#registry">registry access</a>).</td></tr>
-<tr><td>Packages public</td><td>The doctor check <code>registry.public</code> passes: each OCI package of the set is public. An organization owner sets this after the first publish (<a href="publish.html#registry">registry access</a>).</td></tr>
+<tr><td>Packages public</td><td>The doctor check <code>registry.public</code> passes: each OCI package of the set is public and inherits the access of the set repository. An organization owner sets this after the first publish (<a href="publish.html#registry">registry access</a>).</td></tr>
 <tr><td>Served</td><td>The mirror job serves latest at <code>repo.url</code> (<a href="publish.html#mirror">mirror job</a>).</td></tr>
 <tr><td>Release deployed</td><td>For each target with a latest, <code>keys/deployed.yaml</code> has a record of at least one active key (<a href="signing.html#deployment-record">deployment record</a>). From the second publish of a target, gate 2 needs it.</td></tr>
 <tr><td>Check timer</td><td>The timer instance for the set is active on this host (<a href="advisories.html#timer">timer units</a>).</td></tr>
@@ -203,7 +209,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </table>
 
 <h2 id="testing">Testing and production sets</h2>
-<p>A <dfn>testing set</dfn> builds changes for test clients before its production set gets them. Example: <code>slurm-25.11-testing</code> tests the changes for <code>slurm-25.11</code>. For repoctl, a testing set is a normal set. It has its own name, <code>repo.url</code>, OCI packages, builder branch and package branches. Only the steps below connect the two sets.</p>
+<p>A <dfn>testing set</dfn> builds changes for test clients before its production set gets them. Example: <code>slurm-25.11-testing</code> tests the changes for <code>slurm-25.11</code>. For repoctl, a testing set is a normal set with its own name, <code>repo.url</code>, OCI packages, builder branch and package branches. Only the steps below connect the two sets.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 210" role="img" aria-labelledby="testing-t">
 <title id="testing-t">A change goes from the testing set to the production set with a fast-forward merge; the testing build has the lower NVR</title>
@@ -235,14 +241,17 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </svg>
 <figcaption>The production set builds the same commit as the testing set. The suffix <code>~testing</code> of the testing set gives the production build the higher NVR.</figcaption>
 </figure>
-<p>Start a testing set:</p>
+
+<h3 id="testing-start">Start a testing set</h3>
 <ol class="steps">
 <li>Follow <a href="#help-new-set">help new-set</a> with <code>repoctl init --from builder/slurm-25.11 --name slurm-25.11-testing</code>. init renames each branch: <code>munge/slurm-25.11</code> becomes <code>munge/slurm-25.11-testing</code>.</li>
 <li>Give the set its own <code>repo.url</code>, for example <code>https://repo.example.org/slurm-25.11-testing</code>. Only the test clients install its release package.</li>
 <li>Before the first build, add a macro file for each target that adds <code>~testing</code> to <code>%dist</code>. Example: <code>rpm/dist-el9</code> with the line <code>%dist .el9~testing</code>, in <code>targets[].macros</code> of el9. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each NVR ends with <code>.el9~testing</code>.</li>
 </ol>
-<p>Move a change from the testing set to the production set with git. Never copy RPMs between the sets.</p>
+
+<h3 id="testing-move">Move a change to the production set</h3>
+<p>Move a change with git. Never copy RPMs between the sets.</p>
 <ol class="steps">
 <li>In the testing set: commit the change on the testing package branch, push, pin, build and publish. Test it on the test clients.</li>
 <li>In the production set: run <code>git -C packages/DIR merge --ff-only origin/TESTING-BRANCH</code>. When git refuses, the production branch has commits that the testing branch does not have. Merge the production branch into the testing branch, publish and test that in the testing set, then try again.</li>
@@ -254,14 +263,14 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p class="callout-title">Rule: NVRs of two sets</p>
 <ul>
 <li><code>nvr.reused</code> compares only with latest of the same set. Without the suffix, a testing build and a production build of the same commit have the same NVR and other bytes. A client that moves between the sets then keeps the build of the old set.</li>
-<li>rpm sorts <code>~</code> before the end of a string. Thus <code>2.el9~testing</code> is older than <code>2.el9</code>, and the production build of a commit is newer than its testing build. A client that moves from the testing set to the production set updates each package.</li>
+<li>rpm sorts <code>~</code> before the end of a string, so <code>2.el9~testing</code> is older than <code>2.el9</code>. A client that moves from the testing set to the production set updates each package.</li>
 <li>To move a client from the production set to the testing set, config management swaps the release package and runs <code>dnf distro-sync</code>.</li>
 <li>An imported testing set keeps the NVRs of its adopted builds without the suffix. Only its new builds get the suffix.</li>
 </ul>
 </aside>
 
 <h2 id="changes">Package changes</h2>
-<p>Each case below gives the ordered steps. A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>builder branch</dfn> (the set directory). Each list ends with the plan result that the human must see. <code>repoctl help packages</code> prints the short form (<a href="#help-packages">text</a>).</p>
+<p>A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>builder branch</dfn> (the set directory). <code>repoctl help packages</code> prints the short form of these steps (<a href="#help-packages">text</a>).</p>
 <table class="compact">
 <thead><tr><th>Change</th><th>Commits in</th><th>plan shows</th></tr></thead>
 <tbody>
@@ -293,7 +302,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>commit-changed</code> on each of its targets.</li>
 <li>Run <code>repoctl build</code>. Read the soname result of each node of DIR (<a href="build.html#soname">soname check</a>). "sonames unchanged" means that no dependent needs a rebuild. An advisory <code>soname.removed</code> names the dependents: follow the <a href="advisories.html#recovery">recovery path</a>.</li>
 <li>Run <code>repoctl publish</code>.</li>
-<li>Run <code>repoctl status</code>. Expect: "served same" after the next run of the mirror job (<a href="publish.html#mirror">mirror job</a>).</li>
+<li>Run <code>repoctl status</code>. Expect: "served same" after the next run of the <a href="publish.html#mirror">mirror job</a>.</li>
 </ol>
 
 <h3 id="add">Add a package in this repository</h3>
@@ -310,7 +319,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </ol>
 
 <h3 id="add-external">Add an external package</h3>
-<p>An external package has <code>git: {url: …}</code> in its entry, for example <code>rocm-smi</code> on <code>https://git.gsi.de/SDE/packages/rocm-smi.git</code>. The steps are the steps of <a href="#add">Add a package</a>, with these changes:</p>
+<p>An external package has <code>git: {url: …}</code> in its entry, for example <code>rocm-smi</code> on <code>https://git.gsi.de/SDE/packages/rocm-smi.git</code>. The steps of <a href="#add">Add a package</a> change:</p>
 <ol class="steps">
 <li>Create the project on the git server first. repoctl cannot do this.</li>
 <li>Add the entry with <code>git: {url: URL}</code>, <code>branch</code> and <code>upstream</code>.</li>
@@ -333,7 +342,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>Add <code>targets: [el9]</code> to the entry. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: no node on the other targets. The advisory <code>retired.published</code> (info) names the RPMs that stay published there. A dependent on another target gets <code>dep.not-for-target</code> (warn, <a href="build.html#graph">graph per target</a>).</li>
-<li>The published RPMs of the package on the other targets stay. The package is retired on those targets. To remove them, follow <a href="#retire">Retire a package</a> from step 5.</li>
+<li>The package is retired on the other targets, and its published RPMs there stay. To remove them, follow <a href="#retire">Retire a package</a> from step 5.</li>
 </ol>
 <p>Example: rocm-smi is built for el9 only. slurm@el10 requires <code>rocm-smi-devel</code>, so the plan warns before the build.</p>
 
@@ -343,20 +352,21 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>repoctl pin --orphans</code>. It removes the orphaned lock entry and changes no other line.</li>
 <li>Run <code>git commit -am "feat!: remove DIR from the set" &amp;&amp; git push</code>. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: no node for DIR. The advisory <code>retired.published/NAME</code> (info) gives the RPMs that stay published.</li>
-<li>The RPMs stay in the repo by default. Clients that installed them keep them.</li>
-<li>Optional, explicit: run <code>repoctl repo prune --target T --package NAME --all</code>. This is a dry run. Read it. Then run it again with <code>--apply</code>. The prune makes a new snapshot and records the removed NVRs in <code>removed[]</code> (<a href="publish.html#retention">prune</a>, <a href="cli.html#cmd-repo-prune">command block</a>). It does not free storage in the registry, because gc keeps the newest snapshot that holds each removed NVR (<a href="publish.html#gc">gc</a>).</li>
+<li>Optional, explicit: run <code>repoctl repo prune --target T --package NAME --all</code>. This is a dry run. Read it. Then run it again with <code>--apply</code> (<a href="publish.html#retention">prune</a>).</li>
 <li>Optional, on the clients: remove the package through config management, or add Obsoletes to the release package.</li>
 <li>Run <code>git worktree remove packages/DIR</code>. Keep the package branch. It holds the history of the published NVRs.</li>
 </ol>
+<p>Result: the RPMs stay in the repo by default, and clients that installed them keep them. publish never removes a file. Thus the publish summary has no "removed" count. It shows "retired: N packages still published". <code>repo diff</code> between two snapshots still marks a removed file with <code>-</code>.</p>
 <aside class="callout rule" id="prune-retired">
 <p class="callout-title">Rule: repo prune --package NAME --all</p>
 <ul>
-<li>NAME is a source package name. It must be retired on the target. Otherwise: exit 1, <code>prune.not-retired</code>. The rule "never delete the newest NVR of a package" stays for the kept packages.</li>
-<li>The prune adds no broken requirement against the base (<code>prune.breaks-closure</code>, exit 12, <a href="advisories.html#gate-kinds">gate per publish kind</a>). When a kept package requires NAME, the prune stops and names that package.</li>
+<li>NAME is a source package name. It must be retired on the target. Otherwise: exit 1, <code>prune.not-retired</code>.</li>
+<li>The rule "never delete the newest NVR of a package" stays for the kept packages (<a href="publish.html#retention">prune rules</a>).</li>
+<li>The prune adds no broken requirement against the base. When a kept package requires NAME, the prune stops with <code>prune.breaks-closure</code> (exit 12) and names that package.</li>
+<li>The prune makes a new snapshot and records the removed NVRs in <code>removed[]</code>. It does not free storage in the registry, because gc keeps the newest snapshot that holds each removed NVR (<a href="publish.html#gc">gc</a>).</li>
 <li>A retired package is not in any closure of the <a href="advisories.html#gate">publish gate</a>. It never blocks a publish, and repoctl never suggests a rebuild for it.</li>
 </ul>
 </aside>
-<p>publish never removes a file. Thus the publish summary has no "removed" count. It shows "retired: N packages still published". <code>repo diff</code> between two snapshots still marks a removed file with <code>-</code>.</p>
 
 <h3 id="rename">Rename</h3>
 <p>Rename a dir, for example <code>rocm-smi</code> to <code>rocm-smi-lib</code>. Nothing builds.</p>
@@ -374,13 +384,17 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p>Rename the branch. The commit stays the same, so nothing builds.</p>
 <ol class="steps">
 <li>Rename the local branch: <code>git -C packages/DIR branch -m OLD NEW</code>. Push it: <code>git -C packages/DIR push origin NEW</code>. Change <code>branch</code> in <code>repoctl.yaml</code>.</li>
-<li>Run <code>repoctl pin</code>. The worktree is in-sync, so pin writes only the new branch into the line. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl pin</code>. The worktree is <code>in-sync</code>, so pin writes only the new branch into the line. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 </ol>
-<p>Rename a set or a target: repoctl does not do this. The set name and the target id are in the OCI package name, so they never change after the first publish (<a href="config.html#rules">config rules</a>). To rename a set, start a new set (<a href="#help-new-set">help new-set</a>) and end the old one (<a href="#end-set">End a set</a>). To rename a target, add a target with the new id and retire the old one (<a href="#targets">Add or retire a target</a>).</p>
+<p>repoctl does not rename a set or a target. The set name and the target id are in the OCI package name, so they never change after the first publish (<a href="config.html#rules">config rules</a>).</p>
+<ul>
+<li>To rename a set, start a <a href="#new-set">new set</a> and <a href="#end-set">end the old set</a>.</li>
+<li>To rename a target, <a href="#targets">add a target</a> with the new id and retire the old target.</li>
+</ul>
 
 <h3 id="move">Move a package to another source</h3>
-<p>A package has one of three sources: a path in the set tree (in-tree), a branch in the set repository, or a branch on an external server. rpmautospec computes the release from the history, so a move keeps the history. The plan result depends on the commits (<a href="model.html#manifest">match key</a>):</p>
+<p>A package comes from a path in the set tree (in-tree), a branch in the set repository, or a branch on an external server. rpmautospec computes the release from the history, so a move keeps the history. The plan result depends on the commits (<a href="model.html#manifest">match key</a>):</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
 <ul>
@@ -403,37 +417,67 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Push the history: <code>git -C packages/DIR push URL BRANCH</code>. The commits stay the same.</li>
 <li>Run <code>git worktree remove packages/DIR</code>. Add <code>git: {url: URL}</code> to the entry.</li>
 <li>Run <code>repoctl checkout DIR</code>. The worktree now comes from the bare clone of URL (<a href="#clones">external package clones</a>).</li>
-<li>Run <code>repoctl pin DIR</code>. The worktree is in-sync, so pin writes only the URL into the line. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl pin DIR</code>. The worktree is <code>in-sync</code>, so pin writes only the URL into the line. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 <li>Keep the old branch in the set repository, or delete it. The external server holds the same commits.</li>
 </ol>
-<p>A move from an external server to the set repository uses the same steps in the other direction: push the branch to <code>origin</code>, remove <code>git.url</code>, then checkout and pin. Expect: <code>current</code>. This release has no steps for a move from a branch into the set tree.</p>
+<p>A move from an external server to the set repository uses the same steps in the other direction. Push the branch to <code>origin</code>, remove <code>git.url</code>, then checkout and pin. Expect: <code>current</code>. This release has no steps for a move from a branch into the set tree.</p>
 
 <h3 id="targets">Add or retire a target</h3>
 <p>Add a target, for example el10:</p>
 <ol class="steps">
 <li>Add the entry to <code>targets</code>. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each node of the target has the reason <code>new-target</code>.</li>
-<li>Run <code>repoctl build</code> and <code>repoctl publish</code>. The first publish makes the first snapshot of the target. No client uses the target yet, so gate 2 does not apply (<a href="signing.html#gates">gates</a>). publish checks this: <code>repo.url</code> serves no repo for the target, and no deployment record exists for it. Example: el10 has no import; its first snapshot is <code>p-20260912-1403-c21</code>.</li>
-<li>Ask an organization owner to set the new OCI package to public and to turn on the inherited access. <code>repoctl doctor</code> shows <code>registry.public</code> until it is done (<a href="publish.html#registry">registry access</a>). The mirror job pulls only a public package.</li>
-<li>Add the target to the mirror job (<a href="publish.html#mirror">mirror job</a>).</li>
+<li>Run <code>repoctl build</code> and <code>repoctl publish</code>. The first publish makes the first snapshot of the target. Example: el10 has no import, so its first snapshot is <code>p-20260912-1403-c21</code>.</li>
+<li>Ask an organization owner to set the new OCI package to public and to turn on the inherited access. The mirror job pulls only a public package. <code>repoctl doctor</code> shows <code>registry.public</code> until it is done (<a href="publish.html#registry">registry access</a>).</li>
+<li>Add the target to the <a href="publish.html#mirror">mirror job</a>.</li>
 <li>Install the release package on the clients of the target (config management).</li>
-<li>Confirm the deployment for each active key: <code>repoctl sign deployed KEY --release NVR --target el10</code>. From the second publish of the target, gate 2 needs this record (<a href="signing.html#deployment-record">deployment record</a>).</li>
+<li>Confirm the deployment for each active key: <code>repoctl sign deployed KEY --release NVR --target el10</code>.</li>
 <li>Run <code>repoctl status</code>. Expect: no open setup step for the target (<a href="#setup">setup state</a>).</li>
 </ol>
+<p>Gate 2 does not apply to the first publish, because no client uses the target yet (<a href="signing.html#gates">gates</a>). From the second publish, gate 2 needs the record of step 7 (<a href="signing.html#deployment-record">deployment record</a>).</p>
 <p>Retire a target, for example el9 when all its clients use el10. Do not delete the entry: the repo commands find the OCI package of the target through it.</p>
 <ol class="steps">
 <li>Add <code>state: retired</code> to the entry. Commit and push. Repository: the builder branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: no node on that target. plan, build, graph and publish skip a retired target. For them, <code>--target</code> with a retired id is a usage error (exit 2).</li>
-<li>Run <code>repoctl status</code>. Expect: the target shows "retired" next to its latest, with no hint. The published repo, its OCI package and the served tree stay.</li>
-<li>The repo commands, the sign commands, status and doctor still act on the retired target. <code>repo prune</code>, <code>repo restore</code> and <code>repo resign --target ID</code> make new snapshots of it.</li>
-<li>A key offboarding skips a retired target: <code>repo resign</code> without <code>--target</code> does not select it, and <code>sign remove</code> does not count its latest for <code>sign.key-in-use</code>. Its RPMs keep their signatures. Thus move its clients away before the offboarding removes the key on the clients.</li>
-<li>To stop serving the target, first move its clients away (config management). Then remove the line of the target from the mirror job config. The next run of the job deletes the served tree of that line (<a href="publish.html#mirror">mirror job</a>).</li>
+<li>Run <code>repoctl plan</code>. Expect: no node on that target.</li>
+<li>Run <code>repoctl status</code>. Expect: the target shows "retired" next to its latest, with no hint.</li>
+<li>To stop serving the target, first move its clients away (config management). Then remove the line of the target from the mirror job config. The next run of the job deletes the served tree of that line.</li>
 <li>Keep the OCI package. repoctl has no command that deletes an OCI package (<a href="#end-set">End a set</a>).</li>
 </ol>
+<p id="retired-target">Result: the published repo, its OCI package and the served tree stay.</p>
+<table class="compact">
+<thead><tr><th>Command</th><th>On a retired target</th></tr></thead>
+<tbody>
+<tr><td>plan, build, graph, publish</td><td>Skip it. <code>--target</code> with a retired id is a usage error (exit 2).</td></tr>
+<tr><td>the repo commands, the sign commands, status, doctor</td><td>Still act on it.</td></tr>
+<tr><td><code>repo prune</code>, <code>repo restore</code>, <code>repo resign --target ID</code></td><td>Make new snapshots of it.</td></tr>
+<tr><td><code>repo resign</code> without <code>--target</code> (key offboarding)</td><td>Does not select it. Its RPMs keep their signatures.</td></tr>
+<tr><td><code>sign remove</code> (key offboarding)</td><td>Does not count its latest for <code>sign.key-in-use</code>.</td></tr>
+</tbody>
+</table>
+<p>Thus move the clients of a retired target away before a key offboarding removes the key on the clients.</p>
+
+<h3 id="mass-rebuild">Rebuild the set</h3>
+<p>Rebuild the whole set when its build roots change for all packages. Examples: a minor release of the distribution (Rocky 9.8), or a change of the macro files.</p>
+<p>The advisory <code>mock.drift</code> says when the mock config or the macros of this host differ from the manifest (<a href="advisories.html#codes">codes</a>). Each host computes it from its own mock config. Thus do the steps on the host that builds the set.</p>
+<ol class="steps">
+<li>Run <code>repoctl mock update</code>. The roots of each target get the new packages of the distribution.</li>
+<li>Run <code>repoctl rebuild '*' --reason "Rocky 9.8" --dry-run</code>. Expect: one new NVR per package. The glob leaves out each in-tree package with the warning <code>rebuild.in-tree</code>.</li>
+<li>Run the same command without <code>--dry-run</code>. repoctl makes one empty commit per package branch and pins it. Repository: each package branch.</li>
+<li>Push each package branch with the Next lines of the command.</li>
+<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>To build an in-tree package again too, change a file below its path, for example its changelog. Commit it to the builder branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: each node has the reason <code>rebuild</code> on each of its targets.</li>
+<li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
+</ol>
+<p>Result: the commit is per package, so a rebuild applies to all targets of the package. A rebuild for a minor release of el9 also builds the el10 nodes again, each with a new NVR.</p>
+<aside class="callout tip">
+<p class="callout-title">Tip: one target only</p>
+<p>To build one target only for a test, use <code>repoctl build --force @el9</code>. A forced build of a current node is never staged, so it is never published (<a href="build.html#force">forced builds</a>).</p>
+</aside>
 
 <h2 id="end-set">End a set</h2>
-<p>A set ends when its clients move to a newer set, for example from slurm-25.11 to slurm-26.05. A set whose targets all have <code>state: retired</code> is a <dfn>retired set</dfn>. repoctl never deletes a set: its OCI packages, its builder branch and its package branches stay. They are the record of what the clients got. <code>repoctl help end-set</code> prints the short form (<a href="#help-end-set">text</a>).</p>
+<p>A set ends when its clients move to a newer set, for example from slurm-25.11 to slurm-26.05. A set whose targets all have <code>state: retired</code> is a <dfn>retired set</dfn>. repoctl never deletes a set: its OCI packages and branches are the record of what the clients got. <code>repoctl help end-set</code> prints the short form (<a href="#help-end-set">text</a>).</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 200" role="img" aria-labelledby="end-set-t">
 <title id="end-set-t">End a set: move the clients, retire the targets, remove the mirror lines, clean each admin host; the records stay</title>
@@ -460,36 +504,31 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <text class="t-title" x="28" y="144">Stays: the OCI packages, the builder branch, the package branches</text>
 <text class="t-small t-muted" x="28" y="166">the repo commands and the sign commands still act on a retired set; a key offboarding skips it</text>
 </svg>
-<figcaption>The order of the steps. Each step names where it acts. The records of the set stay.</figcaption>
+<figcaption>Each step names where it acts. The records of the set stay.</figcaption>
 </figure>
 <ol class="steps">
-<li>Start the next set first (<a href="#help-new-set">help new-set</a>). Move the clients: config management installs the release package of the next set and removes the release package of the old set. Its <code>.repo</code> file goes with it. Do the next steps only when no client uses the old set.</li>
+<li>Start the next set first (<a href="#help-new-set">help new-set</a>).</li>
+<li>Move the clients: config management installs the release package of the next set. It removes the release package of the old set. Its <code>.repo</code> file goes with it. Do the next steps only when no client uses the old set.</li>
 <li>Add <code>state: retired</code> to each entry of <code>targets</code>. Commit and push. Repository: the builder branch.</li>
-<li>Run <code>repoctl status</code>. Expect: "set retired" and each target with its latest. plan gives the warning <code>set.retired</code> and no nodes. build and publish stop with <code>set.retired</code> (exit 12).</li>
-<li>The repo commands, the sign commands, status and doctor still act on the retired set. A key offboarding skips a retired set: no client uses it, and it cannot publish a new release package. Its RPMs keep their signatures (<a href="signing.html#offboarding">offboarding and rotation</a>).</li>
-<li>On the HTTP server, remove the lines of the set from the mirror job config. The next run of the job deletes the served trees of these lines (<a href="publish.html#mirror">mirror job</a>). The URL then gives 404. To keep a frozen served tree, keep the lines. latest of a retired set moves only with prune, restore or resign.</li>
+<li>Run <code>repoctl status</code>. Expect: "set retired" and each target with its latest.</li>
+<li>On the HTTP server, remove the lines of the set from the mirror job config. The next run of the job deletes the served trees of these lines (<a href="publish.html#mirror">mirror job</a>). The URL then gives 404. To keep a frozen served tree, keep the lines.</li>
 <li>On each admin host, run <code>repoctl check --remove-timer</code> in the set directory. A retired set needs no check timer, and the check health signals do not apply to it.</li>
-<li>On each admin host, remove the package worktrees and the set directory with <code>git worktree remove</code>. Then run <code>repoctl clean --set NAME</code>. It deletes the data and state directories of the set and removes the set from the web UI list (<a href="cli.html#cmd-clean">command block</a>). Remove <code>sets.NAME</code> from the user config by hand.</li>
-<li>Keep the builder branch and each package branch. They hold the history of the published NVRs, and another set can pin a package branch (shared branch, <a href="#init-from">init --from</a>). repoctl never deletes a branch.</li>
-<li>Keep the OCI packages public. repo gc never deletes latest, and repoctl has no command that deletes an OCI package. An organization owner can delete a package in its GitHub settings. Then no repoctl command can act on that target again.</li>
+<li>On each admin host, remove the package worktrees and the set directory with <code>git worktree remove</code>.</li>
+<li>Run <code>repoctl clean --set NAME</code>. It deletes the data and state directories of the set. It also removes the set from the web UI list (<a href="cli.html#cmd-clean">command block</a>). Remove <code>sets.NAME</code> from the user config by hand.</li>
+<li>Keep the builder branch and each package branch. They hold the history of the published NVRs, and another set can pin a package branch (shared branch, <a href="#init-from">init --from</a>).</li>
+<li>Keep the OCI packages public.</li>
 </ol>
-
-<h3 id="mass-rebuild">Rebuild the set</h3>
-<p>Rebuild the whole set when its build roots change for all packages, for example at a minor release of the distribution (Rocky 9.8) or after a change of the macro files. The advisory <code>mock.drift</code> says when the mock config or the macros of this host differ from the manifest. Each host computes it from its own mock config, so do the steps on the host that builds the set.</p>
-<ol class="steps">
-<li>Run <code>repoctl mock update</code>. The roots of each target get the new packages of the distribution.</li>
-<li>Run <code>repoctl rebuild '*' --reason "Rocky 9.8" --dry-run</code>. Expect: one new NVR per package. The glob leaves out each in-tree package with the warning <code>rebuild.in-tree</code>.</li>
-<li>Run the same command without <code>--dry-run</code>. repoctl makes one empty commit per package branch and pins it. Repository: each package branch.</li>
-<li>Push each package branch with the Next lines of the command.</li>
-<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the builder branch.</li>
-<li>To build an in-tree package again too, change a file below its path, for example its changelog, and commit it to the builder branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: each node has the reason <code>rebuild</code> on each of its targets.</li>
-<li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
-</ol>
-<p>The commit is per package, so a rebuild applies to all targets of the package. A rebuild for a minor release of el9 also builds the el10 nodes again, each with a new NVR. To build one target only, use <code>repoctl build --force @el9</code> for a test. A forced build of a current node is never staged, so it is never published (<a href="build.html#force">forced builds</a>).</p>
+<p>Result: each target of the set acts as a <a href="#retired-target">retired target</a>, and:</p>
+<ul>
+<li>plan gives the warning <code>set.retired</code> and no nodes. build and publish stop with <code>set.retired</code> (exit 12).</li>
+<li>latest of a retired set moves only with prune, restore or resign.</li>
+<li>A key offboarding skips the set: no client uses it, and it cannot publish a new release package (<a href="signing.html#offboarding">offboarding and rotation</a>).</li>
+<li>repoctl never deletes a branch. repo gc never deletes latest, and repoctl has no command that deletes an OCI package.</li>
+<li>An organization owner can delete a package in its GitHub settings. Then no repoctl command can act on that target again.</li>
+</ul>
 
 <h2 id="move-set">Move a set directory</h2>
-<p>The data and state directories of a set use the set name, so they stay correct after a move. Two things use the path of the set directory: the check timer instance (the escaped path, <a href="advisories.html#timer">timer units</a>) and the list of the web UI (<code>-ui/sets.yaml</code>, <a href="ui.html#sets">Sets page</a>). Move a set directory, for example from <code>~/src/slurm-repo</code> to <code>~/work/slurm-repo</code>, in this order:</p>
+<p>The data and state directories of a set use the set name, so they stay correct after a move. Two things use its path: the check timer instance (the escaped path, <a href="advisories.html#timer">timer units</a>) and the web UI list (<code>$XDG_STATE_HOME/repoctl/-ui/sets.yaml</code>, <a href="ui.html#sets">Sets page</a>). Move a set directory, for example from <code>~/src/slurm-repo</code> to <code>~/work/slurm-repo</code>, in this order:</p>
 <ol class="steps">
 <li>In the old directory, run <code>repoctl check --remove-timer</code>.</li>
 <li>In the web UI, choose "Remove from list" in the ⋯ menu of the set card. The server refuses a second set with the same name from another path.</li>
@@ -500,7 +539,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </ol>
 
 <h2 id="clones">External package clones</h2>
-<p>A package with <code>git.url</code> (in its entry or in <code>defaults.git</code>) lives on another git server. rpmautospec needs the full history, so repoctl keeps one bare clone per URL (<a href="config.html#external">external package repos</a>).</p>
+<p>A package with <code>git.url</code> (in its entry or in <code>defaults.git</code>) lives on another git server (<a href="config.html#external">fields</a>). rpmautospec needs the full history, so repoctl keeps one bare clone per URL. <code>checkout</code> fetches the clone and makes the worktree from it.</p>
 <figure class="diagram">
 <svg viewBox="0 0 720 140" role="img" aria-labelledby="clones-t">
 <title id="clones-t">Bare clone, worktree and external server</title>
@@ -520,19 +559,18 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <path class="edge-muted" d="M616,80 L616,120 L124,120 L124,82" marker-end="url(#arrow-muted)"/>
 <text class="t-small t-muted" x="366" y="114" text-anchor="middle">git -C packages/rocm-smi push origin slurm-26.05</text>
 </svg>
-<figcaption>One bare clone per URL in <code>$XDG_DATA_HOME/repoctl/git/</code>. The worktree pushes through the clone to the external server.</figcaption>
+<figcaption>The worktree pushes through the bare clone to the external server.</figcaption>
 </figure>
-<ul>
-<li>The clone is <code>$XDG_DATA_HOME/repoctl/git/HASH.git</code> (HASH: the first 10 hex digits of the sha256 of the normalized URL). <code>checkout</code> fetches it and makes the worktree from it. The lock stores the URL, the branch and the commit. The clone can hold commits that are not pushed, so it is data and not cache (<a href="config.html#xdg">XDG directories</a>). Thus the whole cache is safe to delete.</li>
-<li>Before the hash, repoctl normalizes the URL: lower-case scheme and host, no trailing <code>/</code>, no trailing <code>.git</code>. An scp-like URL <code>USER@HOST:PATH</code> becomes <code>ssh://USER@HOST/PATH</code>. Thus two spellings of one URL give one clone. The lock and the clone keep the URL as <code>repoctl.yaml</code> gives it.</li>
-<li>All sets of the user on the host share the clone. A set lock protects one set only. Thus each command that fetches into the clone, adds or removes one of its worktrees, or deletes it also takes the <dfn>clone lock</dfn> <code>$XDG_RUNTIME_DIR/repoctl/git-HASH.lock</code>, for that git step only. A second command waits for it up to <code>--lock-wait</code>, and at least 60 s. Then it stops with exit 7 and <code>git.busy</code>.</li>
-<li>repoctl makes it with <code>git clone --bare URL</code> and the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>. It does not set <code>remote.origin.mirror</code>. Thus <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</li>
-<li>The local branches of the clone are its <code>refs/heads/*</code>. <code>git clone --bare</code> copies each remote branch there one time, and the refspec does not update them. checkout uses them as in the set repository: it creates <code>BRANCH</code> at the lock commit, or fast-forwards a stale copy to it (<a href="cli.html#local-branch">local branch</a>).</li>
-<li><a href="cli.html#cmd-clean"><code>repoctl clean</code></a> does not touch <code>$XDG_DATA_HOME/repoctl/git</code>. <code>repoctl clean --git</code> first runs <code>git worktree prune</code> in the clone, so that the record of a deleted worktree does not keep it. Then it deletes a clone only when it has no worktree and no commit that is not on the remote. Otherwise it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</li>
-<li><code>repoctl doctor</code> warns about an external clone with commits that are not pushed. It also checks that each external URL is reachable.</li>
-<li>The pin warning "not on origin" and the rebuild banner print the push command for the package.</li>
-<li>Credentials come from the git and ssh setup of the user. The config never holds them.</li>
-</ul>
+<dl>
+<dt>Path</dt><dd><code>$XDG_DATA_HOME/repoctl/git/HASH.git</code>. HASH is the first 10 hex digits of the sha256 of the normalized URL. The clone can hold commits that are not pushed, so it is data and not cache (<a href="config.html#xdg">XDG directories</a>). Thus the whole cache is safe to delete.</dd>
+<dt>Normalized URL</dt><dd>Lower-case scheme and host, no trailing <code>/</code>, no trailing <code>.git</code>. An scp-like URL <code>USER@HOST:PATH</code> becomes <code>ssh://USER@HOST/PATH</code>. Thus two spellings of one URL give one clone. The lock and the clone keep the URL as <code>repoctl.yaml</code> gives it.</dd>
+<dt>Clone lock</dt><dd>A set lock protects one set only, but all sets of the user on the host share the clone. Thus each git step on the clone also takes the <dfn>clone lock</dfn> <code>$XDG_RUNTIME_DIR/repoctl/git-HASH.lock</code>, for that step only. A git step fetches into the clone, adds or removes a worktree, or deletes the clone. A second command waits up to <code>--lock-wait</code>, and at least 60 s. Then it stops with exit 7 and <code>git.busy</code>.</dd>
+<dt>Remote</dt><dd><code>git clone --bare URL</code> with the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>, without <code>remote.origin.mirror</code>. Thus <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</dd>
+<dt>Local branches</dt><dd>The <code>refs/heads/*</code> of the clone. <code>git clone --bare</code> copies each remote branch there one time, and the refspec does not update them. checkout uses them as in the set repository: it creates <code>BRANCH</code> at the lock commit, or fast-forwards a stale copy to it (<a href="cli.html#local-branch">local branch</a>).</dd>
+<dt>Clean</dt><dd><a href="cli.html#cmd-clean"><code>repoctl clean</code></a> does not touch <code>$XDG_DATA_HOME/repoctl/git</code>. <code>repoctl clean --git</code> first runs <code>git worktree prune</code> in the clone, so that the record of a deleted worktree does not keep it. Then it deletes a clone only when it has no worktree and no commit that is not on the remote. Otherwise it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</dd>
+<dt>Checks and hints</dt><dd><code>repoctl doctor</code> warns about a clone with commits that are not pushed, and checks that each external URL is reachable. The pin warning "not on origin" and the rebuild banner print the push command for the package.</dd>
+<dt>Credentials</dt><dd>From the git and ssh setup of the user. The config never holds them.</dd>
+</dl>
 
 <h2 id="adopted">Adopted manifest entries</h2>
 <p>The <a href="../runbooks/import.html">import runbook</a> writes RepoManifest entries for the RPMs that the bash-era scripts built. These entries use the RepoManifest format (<a href="model.html#manifest">Core model</a>) with these values:</p>
@@ -544,7 +582,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td><code>dir</code></td><td>The dir that builds the name, or <code>null</code> when no dir in <code>repoctl.yaml</code> builds it (a retired name).</td></tr>
 <tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code>, <code>buildrootFile</code>, <code>run</code></td><td><code>null</code>. The bash-era scripts did not record them.</td></tr>
 <tr><td><code>provides</code>, <code>requires</code></td><td>From the RPM headers.</td></tr>
-<tr><td><code>records</code></td><td><code>provenance</code> is <code>null</code>: the build facts are lost. <code>repo push --from</code> writes the SBOM of each adopted build from the RPM headers and the SRPM (<a href="supply-chain.html#layout">supply-chain.html#layout</a>).</td></tr>
+<tr><td><code>records</code></td><td><code>provenance</code> is <code>null</code>: the build facts are lost. <code>repo push --from</code> writes the SBOM of each adopted build from the RPM headers and the SRPM (<a href="supply-chain.html#layout">record layout</a>).</td></tr>
 <tr><td><code>built</code></td><td>BUILDTIME of the SRPM, in UTC.</td></tr>
 <tr><td><code>publish</code></td><td>The import publish id <code>p-import-YYYYMMDD</code>, for example <code>p-import-20260828</code>.</td></tr>
 <tr><td><code>signer</code></td><td>The full fingerprint of the key of the RPM signature, for example the fingerprint of <code>hpc-repo</code>.</td></tr>
