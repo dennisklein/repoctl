@@ -193,6 +193,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td>Set committed and pushed</td><td><code>repoctl.yaml</code> and <code>repoctl.lock</code> are committed and on the remote.</td></tr>
 <tr><td>Host ready</td><td><code>repoctl doctor</code> has no failed check.</td></tr>
 <tr><td>First publish</td><td>latest exists for each target (<a href="publish.html#format">snapshot names</a>).</td></tr>
+<tr><td>Packages public</td><td>Each OCI package of the set is public and inherits the access of the set repository: the doctor check <code>registry.public</code> is ok (<a href="publish.html#registry">registry access</a>).</td></tr>
 <tr><td>Served</td><td>The mirror job serves latest at <code>repo.url</code> (<a href="publish.html#mirror">mirror job</a>).</td></tr>
 <tr><td>Check timer</td><td>The timer instance for the set is active on this host (<a href="advisories.html#timer">timer units</a>).</td></tr>
 </tbody>
@@ -452,10 +453,12 @@ that gets the commit.
   9. repoctl plan           expect: every node "new-package"
  10. repoctl build
  11. repoctl publish        first snapshot of each target
- 12. Add the set to the mirror job on the HTTP server.
- 13. Install the release package on the clients (config management),
+ 12. An organization owner sets each new OCI package public and turns
+     on "Inherit access from source repository" (doctor: registry.public).
+ 13. Add the set to the mirror job on the HTTP server.
+ 14. Install the release package on the clients (config management),
      then confirm it: repoctl sign deployed KEY --release NVR
- 14. repoctl check --install-timer
+ 15. repoctl check --install-timer
 
 repoctl status lists the steps that are still open.</pre>
 
