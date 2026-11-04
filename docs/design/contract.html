@@ -401,7 +401,7 @@
   <li>The journal writer has the rules of <code>progress.Log</code>: whole lines, <code>O_APPEND</code>, file mode 0600, a trusted state directory. It flushes every 250 ms, and at once after a terminal <code>node.state</code> and after <code>run.finished</code>.</li>
   <li>Text from mock goes through <code>progress.Sanitize</code>. At 32 MiB, repoctl stops the <code>node.log</code> lines of the run and writes the warning <code>journal.sampling-stopped</code>. State lines continue.</li>
   <li>A killed process leaves a journal without <code>run.finished</code>. A reader then shows the run as abandoned (<a href="build.html#cancel">Cancel and abandoned runs</a>).</li>
-  <li>At the start of a build, repoctl deletes the run files of runs beyond <code>state.keep_runs</code> (user config, default 50). It keeps active runs and runs with staged nodes. <code>activity.jsonl</code> rotates at 8 MiB.</li>
+  <li>At the start of a build, repoctl deletes the run files of runs beyond <code>state.keep_runs</code> (user config, default 50). It keeps active runs, runs with staged nodes and the runs of other hosts (<a href="#readers">readers</a>). <code>activity.jsonl</code> rotates at 8 MiB.</li>
 </ul>
 
 <h3 id="trace">Trace context and spans</h3>
@@ -523,6 +523,16 @@
 </table>
 <aside class="callout rule"><p class="callout-title">Rule</p>
 <p>A program that shows node state reads it through <code>journal.Fold</code> or through a result that <code>journal.Fold</code> made. Thus <code>repoctl runs</code>, the web UI and the MCP tools always show the same state. MCP resources for runs are in <a href="agents.html#resources">Resources</a>.</p>
+</aside>
+<aside class="callout rule"><p class="callout-title">Rule: runs of another host</p>
+<p>On a home directory that two hosts share, for example over NFS, the state and data directories hold runs of both hosts. The set lock is per host. The rules for a run whose <code>origin.host</code> is not this host:</p>
+<ul>
+  <li>A reader cannot check the set lock of another host. It never shows such a run as abandoned. Such a run without <code>run.finished</code> is running, and the reader names its host.</li>
+  <li>Retention and <code>repoctl clean</code> never delete the files or the staging of such a run.</li>
+  <li>The plan never stages a node of such a run. The node gets the action build.</li>
+  <li><code>repoctl runs</code>, the web UI and MCP list only the runs of this host.</li>
+</ul>
+<p>The doctor check <code>host.shared-state</code> warns when the state or the data directory is on a network file system.</p>
 </aside>
 <aside class="callout rule"><p class="callout-title">Rule: the commit of a node</p>
 <p><code>journal.Fold</code> takes the commit of each node from <code>commits</code> of <code>plan.ready</code>. <code>NodeResult.commit</code> comes from there. The staged rule of the plan compares the commit and the target with this value of the earlier run (<a href="build.html#actions">plan actions</a>). It never uses <code>setCommit</code> or the lock of today. <code>setCommit</code> and <code>lockDigest</code> record the set inputs of the run for a human.</p>
