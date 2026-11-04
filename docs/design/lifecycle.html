@@ -352,7 +352,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p class="callout-title">Rule: repo prune --package NAME --all</p>
 <ul>
 <li>NAME is a source package name. It must be retired on the target. Otherwise: exit 1, <code>prune.not-retired</code>. The rule "never delete the newest NVR of a package" stays for the kept packages.</li>
-<li>The prune must add no broken requirement compared with the base (<a href="publish.html#retention">prune</a>). When a kept package requires NAME, the prune stops with <code>prune.unsafe</code> and names that package.</li>
+<li>The prune adds no broken requirement against the base (<code>prune.breaks-closure</code>, exit 12, <a href="advisories.html#gate-kinds">gate per publish kind</a>). When a kept package requires NAME, the prune stops and names that package.</li>
 <li>A retired package is not in any closure of the <a href="advisories.html#gate">publish gate</a>. It never blocks a publish, and repoctl never suggests a rebuild for it.</li>
 </ul>
 </aside>

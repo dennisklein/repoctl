@@ -330,10 +330,11 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 120 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 122 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
+<tr><td><code>advisory.gate-unavailable</code></td><td>13</td><td>The advisory gate cannot read the repodata of the result tree or of a closure repo. It fails closed; no acceptance overrides it.</td><td>Try again when the repo answers. The message names the repo.</td></tr>
 <tr><td><code>advisory.not-blocking</code></td><td>12</td><td><code>--accept-advisory</code> names an id that does not block this publish.</td><td>Remove the flag for this id; <code>repoctl publish --dry-run</code> shows the gate rows.</td></tr>
 <tr><td><code>advisory.not-dismissable</code></td><td>1</td><td>A required advisory cannot be dismissed.</td><td><code>repoctl publish --accept-advisory ID --reason TEXT</code></td></tr>
 <tr><td><code>advisory.open</code></td><td>12</td><td>A required advisory is open, and the publish changes its closure.</td><td>Fix it, or accept it for one publish (<code>accept-advisory</code>).</td></tr>
@@ -387,8 +388,9 @@
 <tr><td><code>nvr.older</code></td><td>12</td><td>A new NVR is not newer than the newest NVR of its source package name in the base or in <code>removed[]</code>. Clients never install it.</td><td>Raise <code>Epoch</code> or the version (<a href="publish.html#restore">Restore and fix forward</a>).</td></tr>
 <tr><td><code>nvr.removed</code></td><td>12</td><td>A prune or a restore removed this NVR, and the new build has other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
 <tr><td><code>nvr.reused</code></td><td>12</td><td>latest holds this NVR with other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
+<tr><td><code>prune.breaks-closure</code></td><td>12</td><td>The prune gives a broken requirement that the base does not have.</td><td>Keep the NVR that the message names; prune the requirer first.</td></tr>
 <tr><td><code>prune.not-retired</code></td><td>1</td><td><code>repo prune --package NAME --all</code>: NAME is not retired.</td><td>Retire it first (<a href="lifecycle.html#retire">Retire</a>).</td></tr>
-<tr><td><code>prune.unsafe</code></td><td>12</td><td><code>repo prune --nvr</code> or <code>--package NAME --all</code> selects an NVR that a rule protects: the newest NVR of a kept package, a release NVR of a deployment record, or an NVR whose removal adds a broken requirement.</td><td>The message names the rule. Select other NVRs.</td></tr>
+<tr><td><code>prune.unsafe</code></td><td>12</td><td><code>repo prune --nvr</code> or <code>--package NAME --all</code> selects an NVR that a rule protects: the newest NVR of a kept package or a release NVR of a deployment record. A new broken requirement is <code>prune.breaks-closure</code>.</td><td>The message names the rule. Select other NVRs.</td></tr>
 <tr><td><code>publish.needs-confirmation</code></td><td>6</td><td>No terminal for the confirmation, or the human answers no.</td><td>Publish in a terminal or in the UI (<code>confirm</code>).</td></tr>
 <tr><td><code>publish.not-ready</code></td><td>12</td><td>A node of a selected target is not current or staged.</td><td>Build it, or publish the other targets. For an urgent fix, hold the node for one publish: <code>repoctl publish --hold NODE --reason TEXT</code> (<a href="publish.html#urgent">urgent fix</a>).</td></tr>
 <tr><td><code>publish.not-verified</code></td><td>10</td><td><code>repo push</code>: the state file of the tree does not record verify and verify-el ok for the target.</td><td>Discard the tree: <code>repoctl clean --publish p-…</code>, then publish again.</td></tr>

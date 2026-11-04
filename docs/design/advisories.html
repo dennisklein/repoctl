@@ -534,6 +534,20 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
   soname.removed/ucx@el9  libucp.so.0 removed; openmpi requires it (closure: ucx, openmpi)
 hint: rebuild the dependents into this publish. run: repoctl rebuild openmpi --reason "ucx: libucp.so.0 removed"
 hint: or accept it for this publish. run: repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 --reason TEXT</pre>
+<h3 id="gate-kinds">Gate per publish kind</h3>
+<p>Each publish run has a <code>publishKind</code> (<a href="publish.html#format">snapshot format</a>). The kind decides how the gate runs and which dirs count as the dirs of the publish.</p>
+<table class="compact">
+<thead><tr><th>Kind</th><th>Gate</th><th>Dirs of the publish</th><th>Acceptance</th></tr></thead>
+<tbody>
+<tr><td>publish</td><td>Runs as above.</td><td>The dirs of the taken nodes.</td><td><code>--accept-advisory</code></td></tr>
+<tr><td>restore</td><td>Runs as above, on the files of REF.</td><td>The dirs whose newest NVR is different in the base and in REF.</td><td><code>repo restore --accept-advisory</code></td></tr>
+<tr><td>prune</td><td>Runs <code>dnf repoclosure --newest</code> on the base and on the result tree. A broken requirement that only the result tree has refuses the prune: <code>prune.breaks-closure</code> (exit 12). A broken requirement that the base has, for example <code>closure.broken/pmix@el9</code>, does not block.</td><td>-</td><td>none</td></tr>
+<tr><td>resign</td><td>Skips the gate. A new signature does not change the requirements of an RPM.</td><td>-</td><td>-</td></tr>
+<tr><td>import</td><td>Runs as a report. The summary shows each broken requirement, and it is an open advisory after the import. It does not block, because the clients already have this tree.</td><td>All dirs of the manifest.</td><td>-</td></tr>
+</tbody>
+</table>
+<h3 id="gate-unavailable">When the gate cannot run</h3>
+<p>The gate fails closed. When repoctl cannot read the repodata of the result tree or of a closure repo, it stops the publish in step check with <code>advisory.gate-unavailable</code> (exit 13). The message names the repo. No acceptance overrides this stop, and the last check result never stands in for the gate. This is true for each kind that runs the gate, also for prune and import. Run the publish again when the repo answers.</p>
 <h3 id="accept">Acceptance</h3>
 <ul>
   <li><code>--accept-advisory</code> takes an id, not a code. One flag accepts one advisory. It does not accept a later advisory with the same code.</li>
