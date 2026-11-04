@@ -166,7 +166,7 @@
 </figure>
 <p>What repoctl does:</p>
 <ul>
-  <li>Each admin makes an RSA 4096 key on a YubiKey, with the touch policy "cached". The key hpc-repo of the bash scripts (GSI HPC repo &lt;hpc-repo@gsi.de&gt;, …7C3A 19F2) stays trusted in state retiring until no RPM in latest carries it.</li>
+  <li>Each admin makes an RSA 4096 key on a YubiKey, with the touch policy "cached" and an expiry of 3 years or less (<a href="#help-key">help key</a>). The key hpc-repo of the bash scripts (GSI HPC repo &lt;hpc-repo@gsi.de&gt;, …7C3A 19F2) stays trusted in state retiring until no RPM in latest carries it.</li>
   <li>repoctl signs each new RPM with <code>rpmsign --resign</code>. It passes <code>%_gpg_name</code> (rpm 4) and <code>%_openpgp_sign_id</code> (rpm 6) as the full fingerprint. It never uses <code>--addsign</code> and never passes <code>--rpmv6</code>, so the result is the same on rpm 4.16, 4.19 and 6.</li>
   <li>repoctl writes <code>repomd.xml.asc</code> with one <code>gpg --detach-sign --armor -u &lt;FPR&gt;!</code>. It has exactly one signature packet. <code>repoctl doctor</code> checks this (<code>sign.repomd</code>).</li>
   <li>The signer host is always Fedora (rpm 6 with rpm-sequoia). The EL chroot check covers the client side (<a href="#verify-el">verify-el</a>).</li>
@@ -702,6 +702,21 @@ Next: check each publish, then repoctl repo resign --signer a.admin --target el9
 <p>Keep two active keys or more with a deployment record for each target. Then a lost key is a normal rotation, and <code>sign.last-signer</code> never stops a retire.</p>
 </aside>
 
+<h3 id="card">Card and key failures</h3>
+<p>Each admin makes the key on the card (<a href="#help-key">help key</a>). The secret key never leaves the card, so it has no backup. Thus each failure that loses the key is a key change. The table gives the action for each failure:</p>
+<table class="compact">
+<thead><tr><th>Failure</th><th>Effect</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>PIN forgotten, or no PIN retries left</td><td>The probe fails: <code>sign.locked</code>, exit 9. The key is safe.</td><td><code>gpg --card-edit</code>, then <code>unblock</code> with the reset code. Or <code>admin</code>, <code>passwd</code>, "unblock PIN" with the Admin PIN.</td></tr>
+<tr><td>PIN, reset code and Admin PIN blocked</td><td>The card cannot sign again.</td><td>A lost key: <code>sign retire</code>, then a rotation (<a href="#recovery">recovery</a>).</td></tr>
+<tr><td>Card broken</td><td>The card cannot sign again.</td><td>A lost key, as above.</td></tr>
+<tr><td>Card lost or stolen</td><td>Another human has the card and can try the PIN.</td><td>A compromise: <code>sign revoke</code> (<a href="#compromise">key compromise</a>).</td></tr>
+<tr><td>File key: the disk is lost or deleted</td><td>The key cannot sign again.</td><td>A lost key, as above.</td></tr>
+<tr><td>File key: a copy exists, or an attacker controls its host</td><td>Another human can sign.</td><td>A compromise, as above.</td></tr>
+</tbody>
+</table>
+<p>The bash-era key hpc-repo is a file key. Only the human whose <code>sign.key</code> is hpc-repo keeps its secret key, in the gpg keyring of one admin host. After <code>repoctl sign remove hpc-repo</code>, that human deletes the secret key with <code>gpg --delete-secret-keys FPR</code>.</p>
+
 <h2 id="doctor">Doctor checks</h2>
 <p><code>repoctl doctor</code> has these sign checks. The registry checks are in <a href="publish.html#registry">publish.html#registry</a>, and the doctor frame is <a href="terminal.html#doctor">terminal.html#doctor</a>.</p>
 <table class="compact">
@@ -720,14 +735,14 @@ Next: check each publish, then repoctl repo resign --signer a.admin --target el9
 <tr><td><code>sign.retiring</code></td><td>A key in state retiring still signs RPMs in latest. It warns with the hint to resign.</td></tr>
 <tr><td><code>sign.repomd</code></td><td>Each <code>repomd.xml.asc</code> in latest has exactly one signature packet.</td></tr>
 <tr><td><code>sign.agent</code></td><td>The gpg-agent socket path is short enough (limit 107 bytes).</td></tr>
-<tr><td><code>sign.card</code></td><td>The OpenPGP card is present and has PIN retries left.</td></tr>
+<tr><td><code>sign.card</code></td><td>The OpenPGP card is present and has PIN retries left. It also shows the retries of the Admin PIN and of the reset code, and the touch policy of the signature slot. It warns when a retry counter is 1 or 0, when the card has no reset code, or when the touch policy is "on".</td></tr>
 <tr><td><code>sign.pinentry</code></td><td>A pinentry for the local terminal or desktop is installed.</td></tr>
 <tr><td><code>sign.verify-el</code></td><td>A verify root exists for each target (<code>repoctl mock update</code>).</td></tr>
 </tbody>
 </table>
 
 <h2 id="help">Help topics</h2>
-<p>These are the texts of <code>repoctl help signing</code>, <code>repoctl help emergency</code> and <code>repoctl help team</code>. The list of all topics is in <a href="cli.html#topics">cli.html#topics</a>.</p>
+<p>These are the texts of <code>repoctl help signing</code>, <code>repoctl help key</code>, <code>repoctl help emergency</code> and <code>repoctl help team</code>. The list of all topics is in <a href="cli.html#topics">cli.html#topics</a>.</p>
 <h3 id="help-signing">repoctl help signing</h3>
 <pre><code class="language-plaintext">SIGNING
 
@@ -740,6 +755,7 @@ the clients trust (sign.keys), each with a state:
 A key is "deployed" when keys/deployed.yaml records that config
 management installed a release package that holds the key.
 
+Make a key:     repoctl help key
 Add a key:      repoctl sign add ID --fingerprint FPR
                 (writes the key file of the release package, commits)
 See the steps:  repoctl sign onboard ID
@@ -764,6 +780,25 @@ as a key change, and re-sign its RPMs before it expires.
 
 publish signs only with an active, deployed key. It re-signs no old
 RPM; only "repoctl repo resign" does. "repoctl doctor" checks sign.*.</code></pre>
+<h3 id="help-key">repoctl help key</h3>
+<pre><code class="language-plaintext">KEY
+
+Make a signing key on a YubiKey (OpenPGP card). The card makes the
+secret key, and the key never leaves the card. There is no backup:
+a lost card is a key change (repoctl help emergency).
+  1. ykman openpgp reset                    only for a new card
+  2. ykman openpgp access change-pin        default PIN 123456
+     ykman openpgp access change-admin-pin  default 12345678
+     ykman openpgp access change-reset-code
+  3. ykman openpgp keys set-touch sig cached
+  4. gpg --card-edit, then: admin, key-attr (RSA 4096), generate
+     no off-card backup; expiry 3y or less
+  5. gpg --list-keys --with-fingerprint     the full fingerprint
+  6. repoctl sign add ID --fingerprint FPR
+A file key, without a card:
+  gpg --quick-gen-key "NAME &lt;MAIL&gt;" rsa4096 sign 3y
+Make the next key 180 days before this key expires (repoctl doctor:
+sign.expiry). Keep two deployed keys for each target.</code></pre>
 <h3 id="help-emergency">repoctl help emergency</h3>
 <pre><code class="language-plaintext">EMERGENCY
 
@@ -778,7 +813,7 @@ A key is compromised (another human can sign with it):
   5. repoctl repo resign --signer ID --target T   (another deployed key)
   6. Publish the release package with the next publish.
 
-A key is lost (card broken, PIN and reset code blocked, disk lost):
+A key is lost (card broken, all PINs blocked, file key deleted):
   repoctl sign retire ID, then the normal rotation (help signing).
   The last deployed signer is lost:
     repoctl sign add NEW --fingerprint FPR; push
