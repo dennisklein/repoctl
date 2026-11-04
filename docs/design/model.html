@@ -333,7 +333,7 @@
 <tr><td>Supply chain records</td><td>files in the snapshot (<code>slurm/records/</code>), with their sha256 in the RepoManifest</td><td>publish, repo push, restore, prune, resign</td><td>repo provenance, repo sbom, repo verify, mirror job, scanners</td><td>part of the snapshot</td></tr>
 <tr><td>Served tree</td><td>HTTP server</td><td>mirror job</td><td>clients, status</td><td>copy for dnf</td></tr>
 <tr><td><code>keys/deployed.yaml</code></td><td>builder branch (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
-<tr><td><code>.repoctl/advisories.yaml</code></td><td>builder branch (git)</td><td>advisories dismiss</td><td>check, plan, publish</td><td>team record</td></tr>
+<tr><td><code>.repoctl/advisories.yaml</code></td><td>builder branch (git)</td><td>advisories dismiss</td><td>check, plan, status, advisories, web UI; never publish</td><td>team record</td></tr>
 <tr><td>Runs, staging, journals, logs</td><td><code>$XDG_DATA_HOME</code> (staging), <code>$XDG_STATE_HOME</code> (runs, journals, logs)</td><td>build, publish</td><td>the same user</td><td>personal, not shared</td></tr>
 </tbody>
 </table>
@@ -360,7 +360,7 @@
 <tbody>
 <tr><td><span class="tag read">read</span></td><td>Nothing that matters (a cache file or <code>check.json</code> at most).</td><td>status, plan, graph, check, repo ls, repo verify, sign ls, doctor</td><td>No question, no lock or a shared lock. MCP tools are allowed.</td></tr>
 <tr><td><span class="tag staging">staging</span></td><td>The staging, the logs and the journal of this user.</td><td>build, cancel, clean, mock update</td><td>Takes the set lock. No question, except a delete in clean.</td></tr>
-<tr><td><span class="tag local">local write</span></td><td>Worktrees, branches and set files on this host.</td><td>checkout, pin, rebuild, repo pull, release write, sign add, advisories dismiss</td><td>Takes the set lock. Never pushes; the hint gives the push command.</td></tr>
+<tr><td><span class="tag local">local write</span></td><td>Worktrees, branches and set files on this host.</td><td>checkout, pin, rebuild, repo pull, release write, sign add, advisories dismiss</td><td>Takes the set lock; advisories dismiss takes only the short lock of the dismissal file. Never pushes; the hint gives the push command.</td></tr>
 <tr><td><span class="tag shared">shared state</span></td><td>What other humans see or trust.</td><td>publish, repo push, repo restore, repo prune --apply, repo gc --apply, repo resign, sign deployed, sign removed</td><td>Dry run, summary, typed confirmation by a human, journal, no MCP tool.</td></tr>
 </tbody>
 </table>

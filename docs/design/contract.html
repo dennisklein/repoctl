@@ -330,10 +330,11 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 124 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 125 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
+<tr><td><code>advisories.invalid</code></td><td>1 in dismiss, undismiss; warning</td><td><code>.repoctl/advisories.yaml</code> is invalid or has conflict markers. repoctl ignores the file: no advisory is dismissed.</td><td>Keep the entries of both sides, remove the markers, commit (<a href="advisories.html#dismissals">dismissals</a>).</td></tr>
 <tr><td><code>advisory.gate-unavailable</code></td><td>13</td><td>The advisory gate cannot read the repodata of the result tree or of a closure repo. It fails closed; no acceptance overrides it.</td><td>Try again when the repo answers. The message names the repo.</td></tr>
 <tr><td><code>advisory.not-blocking</code></td><td>12</td><td><code>--accept-advisory</code> names an id that does not block this publish.</td><td>Remove the flag for this id; <code>repoctl publish --dry-run</code> shows the gate rows.</td></tr>
 <tr><td><code>advisory.not-dismissable</code></td><td>1</td><td>A required advisory cannot be dismissed.</td><td><code>repoctl publish --accept-advisory ID --reason TEXT</code></td></tr>

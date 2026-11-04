@@ -228,11 +228,13 @@ dismissed:
 <ul>
   <li>repoctl writes the file atomically and keeps the entries sorted by id. Thus two dismissals of different ids seldom give a git conflict.</li>
   <li>repoctl does not commit the file. dismiss prints the commit and push command. <code>repoctl status</code> shows "advisories.yaml: not committed" when the file has changes.</li>
-  <li>Publish does not require that this file is committed, because the file does not change the output of a build.</li>
+  <li>Publish does not require that this file is committed, because the file does not change the output of a build. Publish never reads it: the gate uses only required advisories, and they cannot be dismissed.</li>
+  <li>An invalid file gives the warning <code>advisories.invalid</code>: a YAML error, git conflict markers, an unknown <code>apiVersion</code> or a bad entry. repoctl then ignores the whole file, so no advisory is dismissed. dismiss and undismiss refuse to change an invalid file (exit 1, <code>advisories.invalid</code>).</li>
+  <li>After a git conflict, keep the entries of both sides and remove the markers. Two entries with the same id are valid. repoctl uses the entry with the newest <code>at</code>, and the next dismiss or undismiss writes one entry per id.</li>
   <li>An entry whose id is gone, or whose digest does not match, is stale. A <code>mock.drift</code> entry whose id this host does not find is not stale, because another host can still find it. <code>repoctl advisories ls --dismissed</code> marks it. <code>repoctl advisories undismiss --stale</code> removes all stale entries.</li>
   <li>A new set does not copy this file from the old set (<a href="lifecycle.html#new-set">new set</a>).</li>
 </ul>
-<p><code>repoctl advisories dismiss ID... --note TEXT</code> adds a dismissal for each open id. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, problem code <code>advisory.not-dismissable</code>, and the hint gives <code>repoctl publish --accept-advisory</code>. An id that is not open gives exit 1, <code>advisory.unknown</code>. dismiss and undismiss take no set lock and write only this file.</p>
+<p><code>repoctl advisories dismiss ID... --note TEXT</code> adds a dismissal for each open id. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, problem code <code>advisory.not-dismissable</code>, and the hint gives <code>repoctl publish --accept-advisory</code>. An id that is not open gives exit 1, <code>advisory.unknown</code>. dismiss and undismiss take no set lock, because a build can hold it for an hour. They take a short file lock, <code>$XDG_RUNTIME_DIR/repoctl/SET.advisories.lock</code>, for the read, the change and the rename of the file. They write only this file.</p>
 <pre class="term">$ repoctl advisories dismiss upstream.release/slurm-singularity-exec --note "3.2.1 only changes the docs"
 dismissed upstream.release/slurm-singularity-exec (facts sha256:802ef6…)
 Next: git add .repoctl/advisories.yaml &amp;&amp; git commit -m "chore: dismiss upstream.release/slurm-singularity-exec" &amp;&amp; git push</pre>
