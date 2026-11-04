@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <title>Delivery and verification</title>
-<meta name="description" content="The delivery phases of repoctl, the tests that must pass before the code depends on a fact, the assumptions and the open questions.">
+<meta name="description" content="The delivery phases of repoctl, its requirements, the tests that must pass before the code depends on a fact, the assumptions and the open questions.">
 </head>
 <body>
 <h1>Delivery and verification</h1>
-<p class="lede">This chapter gives the order in which repoctl is built and the tests that must pass before the code depends on a fact. It also lists the assumptions of the design and the questions that are still open.</p>
+<p class="lede">This chapter gives the order in which repoctl is built, the limits of scale, time and disk that the design supports, and the tests that must pass before the code depends on a fact. It also lists the assumptions of the design and the questions that are still open.</p>
 <ul class="keypoints">
   <li>Eight phases, 0 to 7. Each phase ends with a "done when" in the terms of the data story.</li>
   <li>Phase 0 puts the tool on branch <code>main</code>, with CI and this docs site on GitHub Pages.</li>
   <li>The bash-era scripts stay on the builder branches until the first publish with repoctl.</li>
   <li>Tests V1 to V29 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
   <li>Each open question names the phase that needs the answer.</li>
+  <li>The requirements give a value from the data story and a design limit for each scale, time and disk row.</li>
 </ul>
 
 <h2 id="phases">Delivery phases</h2>
@@ -86,6 +87,37 @@
 <tr><td>7 Web UI</td>
 <td><code>repoctl ui</code> for the local user, with the token launch URL. Server-rendered pages with htmx and one SSE connection per tab. The calm rules R1 to R13. The pages of <a href="ui.html#sitemap">the sitemap</a>, the agent buttons and the agent panel.</td>
 <td>At 18:01 during run a3f, the Overview shows the run chip "r-…a3f 2/8 builds · 1 failed · 11m02s", and the graph changes the node states live. Explain failure on slurm@el10 runs triage-build with the read-only MCP server and names the fix for <code>rocm-smi-devel</code>. The el9 publish review at 14:05 shows 38 new and 170 kept, and the publish asks for the typed set name.</td></tr>
+</tbody>
+</table>
+
+<h2 id="requirements">Requirements</h2>
+<p>These are the non-functional requirements of repoctl. The column "Story" gives the value of the data story. The column "Design limit" gives the largest value that the design supports. A result outside the limit is a bug, not a new design question. A change of a limit changes this table.</p>
+<p>The times are for an admin host like <code>hpc-a1</code>. They do not include the time in mock, the time of the human (confirmation, PIN, touch) and the network transfer.</p>
+<table class="compact">
+<thead><tr><th>Area</th><th>Requirement</th><th>Story</th><th>Design limit</th></tr></thead>
+<tbody>
+<tr><td>Scale</td><td>Packages in one set</td><td>11</td><td>100</td></tr>
+<tr><td>Scale</td><td>Targets in one set</td><td>2 (el9, el10)</td><td>8</td></tr>
+<tr><td>Scale</td><td>Nodes in one set</td><td>21</td><td>800</td></tr>
+<tr><td>Scale</td><td>Depth of the graph of one target</td><td>4</td><td>20</td></tr>
+<tr><td>Scale</td><td>Sets of one human on one host</td><td>1</td><td>10</td></tr>
+<tr><td>Scale</td><td>RPMs in the snapshot of one target, source and debuginfo included</td><td>208 after <code>p-20261103-1412-5e1</code>; about 300 for a full target (V8)</td><td>5000. The manifest of the snapshot then stays below 4 MiB, the default manifest limit of the CNCF <span class="no-gl">distribution registry</span>.</td></tr>
+<tr><td>Scale</td><td>Admins who publish one set</td><td>2 (<a href="publish.html#admins">two admins</a>)</td><td>5. More admins need a tag compare-and-swap (<a href="#assumptions">assumptions</a>).</td></tr>
+<tr><td>Time</td><td><code>status</code>, <code>list</code>, <code>show</code>, <code>graph</code> with a warm SRPM cache</td><td>none</td><td>2 s for one set, with one HEAD request per target</td></tr>
+<tr><td>Time</td><td><code>plan</code> with a warm SRPM cache</td><td>none</td><td>5 s for 21 nodes, 30 s for 800 nodes</td></tr>
+<tr><td>Time</td><td><code>plan</code> with a cold SRPM cache</td><td>"can take minutes" (<a href="build.html#graph">graph per target</a>)</td><td>One SRPM build in mock per node, with up to the job count in parallel. The plan shows progress.</td></tr>
+<tr><td>Time</td><td>Work of repoctl per node outside mock: stage, <code>createrepo_c --update</code>, soname check</td><td>ucx@el9: 4m05s in total</td><td>30 s</td></tr>
+<tr><td>Time</td><td>One build run</td><td><code>r-20261102-1750-a3f</code>: 8 nodes, 3 jobs, 41m07s; openmpi@el9 alone 21m12s</td><td>The mock time of the longest path in the graph, plus 30 s per node</td></tr>
+<tr><td>Time</td><td>One publish of one target</td><td><code>p-20261103-1412-5e1</code>: 38 new RPMs; push 38 s for 412 MiB</td><td>3 minutes for 50 new RPMs. For <code>repo resign</code> of a full target, V8 gives the number.</td></tr>
+<tr><td>Time</td><td>From the tag move to the served tree</td><td>The mirror job served 5e1 at 14:15:02.</td><td>One interval of the mirror job (5 minutes) plus the download. The clients see the tree after <code>metadata_expire</code> (one hour).</td></tr>
+<tr><td>Time</td><td>Web UI</td><td>none</td><td>300 ms server time for a page or a fragment. At most 2 node events per node per second (<a href="ui.html#live">live updates</a>).</td></tr>
+<tr><td>Disk</td><td>Staging</td><td><code>repoctl clean</code> frees 7.0 GiB of two old runs (<a href="cli.html#cmd-clean">repoctl clean</a>).</td><td>The RPMs of the ok nodes of each kept run (<a href="build.html#staging">staging</a>)</td></tr>
+<tr><td>Disk</td><td>Local copy</td><td>none</td><td>One snapshot per target: all its RPMs, source and debuginfo included</td></tr>
+<tr><td>Disk</td><td>New tree of a publish</td><td>412 MiB of new blobs</td><td>Hard links to the local copy. New space only for the new and re-signed RPMs and the repodata.</td></tr>
+<tr><td>Disk</td><td>Journals</td><td>none</td><td>About 32 MiB per run (<a href="contract.html#writing">writing and retention</a>), for <code>state.keep_runs</code> runs (default 50): about 1.6 GiB per set</td></tr>
+<tr><td>Disk</td><td>Mock</td><td>none</td><td>One build root per job slot, plus the mock caches</td></tr>
+<tr><td>Disk</td><td>Preflight of <code>build</code></td><td>none</td><td>At least 10 GiB free per job slot in the mock directory (<code>/var/lib/mock</code>) and 5 GiB in the data directory. Else <code>host.not-ready</code> (exit 9).</td></tr>
+<tr><td>Disk</td><td>Preflight of <code>publish</code></td><td>none</td><td>Free space in the data directory for the RPMs that the publish signs, plus 1 GiB. Else <code>host.not-ready</code> (exit 9).</td></tr>
 </tbody>
 </table>
 

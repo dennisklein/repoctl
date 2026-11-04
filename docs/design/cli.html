@@ -565,7 +565,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <tr><td><code>--force</code></td><td>Build current nodes too (reason forced), for tests. Publish refuses a reused NVR (<a href="build.html#force">build.html#force</a>).</td></tr>
   </tbody>
   </table>
-  <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run</dd><dt>Preflight</dt><dd>mock, the group mock, the mock configs, the rpmautospec plugin, free disk; no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run</dd><dt>Preflight</dt><dd>mock, the group mock, the mock configs, the rpmautospec plugin, free disk (<a href="delivery.html#requirements">requirements</a>); no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
   <pre class="term">$ repoctl build
 note: run r-20261102-1750-a3f: 8 to build, 13 current, 3 at a time
 ✓ plan  4.2s    8 build, 13 current
@@ -649,7 +649,7 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
   <tr><td><code>--reason TEXT</code></td><td>Required with <code>--accept-advisory</code>, 8 characters or more. It goes into the journal and the snapshot annotations.</td></tr>
   </tbody>
   </table>
-  <dl class="facts"><dt>Lock</dt><dd>set lock; publish compares latest with the base in the check step and before the tag moves (<a href="publish.html#admins">publish.html#admins</a>)</dd><dt>Preflight</dt><dd>rpmsign, createrepo_c, gpg, the secret key of <code>sign.key</code>, the signer probe (<a href="signing.html#probe">signing.html#probe</a>), free space</dd><dt>Writes</dt><dd>a new tree in <code>~/.local/share/repoctl/SET/publishes/ID/</code>; GHCR blobs, manifest and tags; the local copy; the journal</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>kind: publish</code></dd><dt>Exit</dt><dd>0; 1; 4; 5; 6; 7; 9; 10 (nothing pushed); 12; 13; 130 (before the push: nothing changed)</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock; publish compares latest with the base in the check step and before the tag moves (<a href="publish.html#admins">publish.html#admins</a>)</dd><dt>Preflight</dt><dd>rpmsign, createrepo_c, gpg, the secret key of <code>sign.key</code>, the signer probe (<a href="signing.html#probe">signing.html#probe</a>), free space (<a href="delivery.html#requirements">requirements</a>)</dd><dt>Writes</dt><dd>a new tree in <code>~/.local/share/repoctl/SET/publishes/ID/</code>; GHCR blobs, manifest and tags; the local copy; the journal</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>kind: publish</code></dd><dt>Exit</dt><dd>0; 1; 4; 5; 6; 7; 9; 10 (nothing pushed); 12; 13; 130 (before the push: nothing changed)</dd></dl>
   <pre class="term">$ repoctl publish --target el10
 repoctl: error: el10 is not publishable: slurm@el10 failed, slurm-singularity-exec@el10 is blocked
 hint: read the log. run: repoctl logs slurm@el10
