@@ -272,7 +272,7 @@
 <table class="compact">
 <thead><tr><th>Action</th><th>Request</th><th>Behaviour</th></tr></thead>
 <tbody>
-<tr><td>Cancel run…</td><td><code>GET …/-/dialog/cancel?run=RUN</code>, then <code>POST /s/&lt;set&gt;/-/actions/cancel</code></td><td>A confirm dialog that names the origin of the run, then <code>repoctl cancel RUN</code> (<a href="build.html#cancel">build.html#cancel</a>): open nodes become canceled, ok nodes stay staged.</td></tr>
+<tr><td>Cancel run…</td><td><code>GET …/-/dialog/cancel?run=RUN</code>, then <code>POST /s/&lt;set&gt;/-/actions/cancel</code></td><td>A confirm dialog that names the origin of the run, then <code>repoctl cancel RUN</code> (<a href="build.html#cancel">build.html#cancel</a>): open nodes become canceled, ok nodes stay staged. While the run is interrupting, the button is Stop now…, and it runs <code>repoctl cancel RUN --force</code>.</td></tr>
 <tr><td>Retry failed</td><td><code>POST /s/&lt;set&gt;/-/actions/build</code></td><td>A new run with the dirs of the failed and blocked nodes, on the old targets (<code>repoctl build slurm slurm-singularity-exec</code>). The plan reads repoctl.lock again. Off while the old run is active. The entry says when a retry cannot help: the commit did not change since the failure.</td></tr>
 <tr><td>Open in terminal</td><td>client side</td><td>In the CLI toggle. Copies <code>repoctl -C ~/src/slurm-repo runs RUN --follow</code>.</td></tr>
 <tr><td>Copy for agent</td><td>client side</td><td>Copies <code>repoctl logs RUN NODE --json</code>, which includes the problems list.</td></tr>

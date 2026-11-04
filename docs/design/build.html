@@ -275,6 +275,18 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <h3 id="failures">Failures</h3>
 <p>When a node fails, each node that depends on it becomes blocked. The other nodes continue: keep going is the default. With <code>--fail-fast</code>, repoctl starts no new node after the first failure and cancels the running nodes.</p>
 <p>A failure has a class: srpm, builddep, build, stage, mock, host, timeout, canceled or internal (<a href="contract.html#names">shared names</a>). For srpm, builddep, build and stage, the inputs are wrong, and a retry gives the same failure. For host (no disk space, no mock group, a repo metadata error), a retry can help after the human repairs the host. The skill triage-build selects its playbook by the class.</p>
+<p>Each step has a time limit, and mock must write output. The limits are keys of the user config (<a href="config.html#user-config">user config</a>). They do not change the build result.</p>
+<table class="compact">
+<thead><tr><th>Key</th><th>Default</th><th>Limit</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><code>build.timeout.srpm</code></td><td>30m</td><td>step srpm of one node</td><td>node failed, class timeout</td></tr>
+<tr><td><code>build.timeout.rpm</code></td><td>12h</td><td>step rpm of one node</td><td>node failed, class timeout</td></tr>
+<tr><td><code>build.timeout.stage</code></td><td>30m</td><td>step stage of one node</td><td>node failed, class timeout</td></tr>
+<tr><td><code>build.timeout.idle</code></td><td>1h</td><td>time without a new line in the node log</td><td>node failed, class timeout</td></tr>
+<tr><td><code>build.timeout.run</code></td><td>0 (no limit)</td><td>the whole run</td><td><code>run.cancel-requested</code> with reason <code>deadline</code>; run canceled, exit 130</td></tr>
+</tbody>
+</table>
+<p>When a step limit or the idle limit ends, repoctl sends SIGTERM to the process group of the mock child. After 60 s it sends SIGKILL. The node then ends failed with the class timeout. <code>error.step</code> names the step, and the message names the limit. The other nodes continue, as after any failure. When <code>build.timeout.run</code> ends, repoctl cancels the run as <code>repoctl cancel</code> does (<a href="#cancel">cancel</a>). Thus a hung mock never holds the set lock for longer than its limit.</p>
 <h3 id="run-states">Run states</h3>
 <table class="compact">
 <thead><tr><th>Run state</th><th>Meaning</th><th>Exit of build</th></tr></thead>
@@ -607,10 +619,11 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 <p><code>repoctl clean --logs</code> deletes the journals and logs of finished runs. It keeps the newest <code>state.keep_runs</code> runs (default 50) and the publish runs. Commands: <a href="cli.html#cmd-runs">repoctl runs</a>, <a href="cli.html#cmd-logs">repoctl logs</a>. Web UI: <a href="ui-build.html#run-detail">run detail</a>, <a href="ui-build.html#node-log">node log</a>.</p>
 
 <h2 id="cancel">Cancel and abandoned runs</h2>
-<p><code>repoctl cancel [RUN]</code> stops a running build of this user on this host. The default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock. That process stops its mock children, marks its open nodes canceled, keeps the staging and the logs, and exits 130. When the holder is on another host or is another user, cancel stops with exit 1. There is no queue, so there is no queued run to cancel. The cancel button of the web UI has the same scope and names the origin of the run.</p>
+<p><code>repoctl cancel [RUN]</code> stops a running build of this user on this host. The default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock. That process stops its mock children (SIGTERM to the process group of each child, SIGKILL after 60 s), marks its open nodes canceled, keeps the staging and the logs, and exits 130. When the holder is on another host or is another user, cancel stops with exit 1. There is no queue, so there is no queued run to cancel. The cancel button of the web UI has the same scope and names the origin of the run.</p>
 <ol class="steps">
-  <li>The first Ctrl-C in the terminal of the build does the same as cancel. The tree shows <code>interrupting</code> until the mock children end.</li>
-  <li>A second Ctrl-C exits at once. The journal then has no <code>run.finished</code>, and the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</li>
+  <li>The first Ctrl-C in the terminal of the build does the same as cancel. The tree shows <code>interrupting</code> until the mock children end, at most 60 s.</li>
+  <li>A second Ctrl-C sends SIGKILL to the mock children and exits at once. <code>repoctl cancel --force</code> does the same for a run without a terminal, for example a run of the UI or of MCP. A second <code>repoctl cancel</code> without <code>--force</code> changes nothing: it prints that the run is interrupting.</li>
+  <li>After a second Ctrl-C or <code>--force</code>, the journal has no <code>run.finished</code>, and the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</li>
 </ol>
 <p>A crash also gives an abandoned run. The set lock ends with the process, so the next build can start. The ok nodes of a canceled or abandoned run stay staged. A publish run cannot be canceled after its push step starts (<a href="publish.html#order">publish order</a>). Command: <a href="cli.html#cmd-cancel">repoctl cancel</a>. Web UI: <a href="ui-build.html#finished">finished runs</a>.</p>
 

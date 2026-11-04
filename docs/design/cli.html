@@ -664,8 +664,8 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 
 <section class="cmd" id="cmd-cancel">
   <h4><code>repoctl cancel</code> <span class="tag staging">staging</span></h4>
-  <pre class="synopsis">repoctl cancel [RUN] [--wait]</pre>
-  <p>Stop a running build run of this user on this host; the default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock. That process stops its mock children, marks the open nodes canceled, keeps the staging and exits 130. cancel cannot stop a publish run after its push step starts (<a href="publish.html#order">publish.html#order</a>). <code>--wait</code> waits for the end of the run.</p>
+  <pre class="synopsis">repoctl cancel [RUN] [--wait] [--force]</pre>
+  <p>Stop a running build run of this user on this host; the default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock. That process stops its mock children (SIGTERM, SIGKILL after 60 s), marks the open nodes canceled, keeps the staging and exits 130. cancel cannot stop a publish run after its push step starts (<a href="publish.html#order">publish.html#order</a>). <code>--wait</code> waits for the end of the run. <code>--force</code> acts as a second Ctrl-C: SIGKILL to the mock children at once, and the run ends abandoned. A second cancel without <code>--force</code> changes nothing.</p>
   <dl class="facts"><dt>Lock</dt><dd>none; cancel signals the holder</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0; 1 no running run, or <code>cancel.foreign-run</code> (another host or user)</dd></dl>
 </section>
 
