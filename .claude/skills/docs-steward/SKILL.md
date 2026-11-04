@@ -53,6 +53,53 @@ pull request which steps you did.
   `pre.term`, `pre > code.language-*`, `span.tag`, `figure.diagram`,
   `figure.shot`.
 
+## 2a. One home, the right form, a calm text image
+
+Each fact has one home: the chapter whose title a reader searches first. The
+other places keep at most one sentence and a link. Before you add a rule, find
+its home and put it there.
+
+| Topic | Home | Other places keep |
+|---|---|---|
+| Behaviour of a command | its chapter | `cli.html`: synopsis, safety class, flags, exit and problem codes, one purpose line, the link |
+| Problem codes | `contract.html#problems`: code, exit, one line | the chapter: when and why |
+| Steps of an incident | the runbook | the chapter: the rules and the reasons |
+| Calm rules | `ui.html#calm` | `terminal.html#calm`: terminal-only rules |
+| Doctor checks | the chapter of the check | `cli.html`: one table of all checks |
+
+Pick the form by the type of information (Information Mapping):
+
+| Information | Form |
+|---|---|
+| Steps that a human does in order | `ol.steps` |
+| Cases: condition → result, problem code, exit | decision table |
+| Items with two or more attributes | table |
+| Three or more parallel rules or items | bullet list |
+| Structure: what holds what, what calls what | `figure.diagram` |
+| States and transitions | state diagram and a transition table |
+| A process in time where several records change | `figure.diagram.explainer` |
+| What a page or a terminal shows | `figure.shot` or `pre.term` |
+| A concept, a reason, a trade-off | short prose; a reason in `aside.callout.why` |
+
+Do not add bloat:
+
+- No fact twice on one page. The lede says the scope in 1 to 3 sentences. The
+  key points give 4 to 7 decisions. The body specifies and does not repeat them.
+- No meta text ("This section specifies", "The table shows"). The heading and
+  the caption say it.
+- No rule wall: five or more rules or cases in one paragraph become a decision
+  table or a list. Add a new case as a new row, not as a new sentence at the
+  end of a paragraph.
+- One link per target in a section.
+
+Keep the text image calm: at most 25 words in a sentence (20 in a step), at
+most 60 words and 6 sentences in a paragraph, at most 40 words in a table
+cell, a heading every 150 to 400 words of running text. Check a page with:
+
+```sh
+python3 tools/site/textlint.py docs/design/build.html
+```
+
 ## 3. Diagrams
 
 - Use `figure.diagram` with inline SVG and the diagram classes (`box`, `edge`,
