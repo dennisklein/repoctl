@@ -628,7 +628,20 @@ Each admin works as an own user and/or on an own host. The state of
 a host is not shared. The registry and git are shared. Two admins
 coordinate in the team channel; repoctl does not lock between hosts.
 If latest moved, publish stops with state.behind (exit 13): run
-"repoctl repo pull".</code></pre>
+"repoctl repo pull".
+
+Stand in for an admin who is away:
+  1. git pull; repoctl checkout; repoctl repo pull
+  2. repoctl status         "in flight" counts the pinned nodes that
+                            latest does not hold, and how many build here
+  3. repoctl plan; repoctl build
+                            the staging of the other admin is not on this
+                            host, so these nodes build again here
+  4. repoctl sign ls        publish only the targets where your key has
+                            a deployment record (gate 2)
+  5. repoctl publish --target TARGET
+                            for a failed node that is not urgent, see
+                            "repoctl help urgent"</code></pre>
 
 <h2 id="sources">Sources</h2>
 <ul>
