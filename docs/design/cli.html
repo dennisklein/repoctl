@@ -41,6 +41,7 @@
 <tr><td><code>cancel</code></td><td>A run that the UI or MCP started has no terminal for Ctrl-C.</td></tr>
 <tr><td><code>schema [NAME]</code></td><td>Agents need the schema of each <code>--json</code> result, not only of <code>repoctl.yaml</code>.</td></tr>
 <tr><td><code>repo verify</code></td><td>Publish verifies before it pushes. An audit of a snapshot or of the served tree needs the same checks.</td></tr>
+<tr><td><code>repo provenance</code>, <code>repo sbom</code></td><td>An auditor or a scanner needs the records of one build or one target in a standard form, also from a registry snapshot.</td></tr>
 <tr><td><code>config show</code></td><td>Five configuration layers need a command that shows which layer gave a value.</td></tr>
 </tbody>
 </table>
@@ -67,7 +68,9 @@
 <tr><td>Repository</td><td><a href="#cmd-publish"><code>publish</code></a></td><td><span class="tag shared">shared state</span></td><td>Sign, push a snapshot, move latest</td></tr>
 <tr><td></td><td><a href="#cmd-repo-ls"><code>repo ls</code></a></td><td><span class="tag read">read</span></td><td>RPMs of a repository</td></tr>
 <tr><td></td><td><a href="#cmd-repo-diff"><code>repo diff</code></a></td><td><span class="tag read">read</span></td><td>Staging against latest, or two snapshots</td></tr>
-<tr><td></td><td><a href="#cmd-repo-verify"><code>repo verify</code></a></td><td><span class="tag read">read</span></td><td>Signatures, checksums, repodata</td></tr>
+<tr><td></td><td><a href="#cmd-repo-verify"><code>repo verify</code></a></td><td><span class="tag read">read</span></td><td>Signatures, checksums, repodata, records</td></tr>
+<tr><td></td><td><a href="#cmd-repo-provenance"><code>repo provenance</code></a></td><td><span class="tag read">read</span></td><td>Provenance record of a build</td></tr>
+<tr><td></td><td><a href="#cmd-repo-sbom"><code>repo sbom</code></a></td><td><span class="tag read">read</span></td><td>SBOM of a target or a build</td></tr>
 <tr><td></td><td><a href="#cmd-repo-pull"><code>repo pull</code></a></td><td><span class="tag local">local write</span></td><td>Local copy equal to a snapshot</td></tr>
 <tr><td></td><td><a href="#cmd-repo-push"><code>repo push</code></a></td><td><span class="tag shared">shared state</span></td><td>Complete a publish; push an import</td></tr>
 <tr><td></td><td><a href="#cmd-repo-snapshots"><code>repo snapshots</code></a></td><td><span class="tag read">read</span></td><td>Snapshot chain of a target</td></tr>
@@ -690,11 +693,42 @@ el9  latest p-20260912-1403-c21 → staging r-20261102-1750-a3f
 <section class="cmd" id="cmd-repo-verify">
   <h4><code>repoctl repo verify</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl repo verify [--snapshot REF | --run RUN | --path DIR | --served] [--el] [--key FPR]...</pre>
-  <p>Check the RPM signatures, the repodata checksums, exactly one signature in each <code>repomd.xml.asc</code>, and the key file against its checksum. The default is the local copy. <code>--snapshot</code> checks a registry snapshot, <code>--served</code> the served tree over HTTP. <code>--el</code> adds the check in the verify root with the client rpm and dnf (<a href="signing.html#verify-el">signing.html#verify-el</a>). The default keys are the client trust set; <code>--key</code> gives other keys. A staging has no signatures, so only the checksums apply.</p>
+  <p>Check the RPM signatures, the repodata checksums, exactly one signature in each <code>repomd.xml.asc</code>, the key file against its checksum, and the supply chain records: the sha256 of each record against the RepoManifest and of each subject against its file (<a href="supply-chain.html#verify">supply-chain.html#verify</a>). The default is the local copy. <code>--snapshot</code> checks a registry snapshot, <code>--served</code> the served tree over HTTP. <code>--el</code> adds the check in the verify root with the client rpm and dnf (<a href="signing.html#verify-el">signing.html#verify-el</a>). The default keys are the client trust set; <code>--key</code> gives other keys. A staging has no signatures, so only the checksums apply.</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock (shared)</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>one line per repository, in the doctor form; kind <code>DoctorReport</code></dd><dt>Exit</dt><dd>0; 1; 10; 13</dd></dl>
   <pre class="term">$ repoctl repo verify --el --target el9
 ✓ el9: 208 RPMs in 3 repositories, signers d.klein (158) hpc-repo (50), checksums ok, 3 repomd.xml.asc ok
+✓ el9 records: provenance and SBOM equal to the RepoManifest, subjects equal to the files
 ✓ el9 verify root (rpm 4.16, dnf 4.14): key file of slurm-release-26.05-2, checksig ok, makecache ok</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-provenance">
+  <h4><code>repoctl repo provenance</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl repo provenance NVR|DIR@TARGET [--snapshot REF] [--raw]</pre>
+  <p>Show the provenance record of one build (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>): the commit, the run, the builder, the subjects and the buildroot changes since the previous build of the same dir. The default is the build in the local copy of latest; <code>DIR@TARGET</code> selects the newest build of that node. repoctl checks the record against the RepoManifest before it shows it. <code>--raw</code> writes the stored in-toto Statement to stdout, byte for byte. An adopted build has no provenance: exit 1, <code>records.missing</code>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Provenance</code>; <code>--raw</code>: the stored file</dd><dt>Exit</dt><dd>0; 1; 2; 10 <code>records.mismatch</code></dd></dl>
+  <pre class="term">$ repoctl repo provenance ucx@el9
+ucx-1.22.1-1.el9  el9 of slurm-26.05  publish p-20261103-1412-5e1
+source    ucx/slurm-26.05 at 4b1e9c2  reason commit-changed
+run       r-20261102-1750-a3f  dklein@hpc-a1  17:50:08 → 17:54:13
+builder   repoctl 0.4.0, mock 6.6, rocky+epel-9-x86_64 (sha256:9a0c…)
+subjects  14 RPMs, sha256 equal to the files
+sources   ucx-1.22.1.tar.gz  sha256:8e2f…  github.com/openucx/ucx
+buildroot 214 RPMs, 3 changed since ucx-1.22.0-2.el9: gcc, glibc-devel, rdma-core-devel</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-sbom">
+  <h4><code>repoctl repo sbom</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl repo sbom [--build NVR] [--snapshot REF] [--raw]</pre>
+  <p>Show the SBOM of each target, or of one build with <code>--build</code> (<a href="supply-chain.html#sbom-record">supply-chain.html#sbom-record</a>): the components, their purls, versions and licenses. <code>--raw</code> writes the stored CycloneDX file, for Grype or Trivy. repoctl checks the file against the RepoManifest first.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Sbom</code>; <code>--raw</code>: the stored file</dd><dt>Exit</dt><dd>0; 1; 2; 10 <code>records.mismatch</code></dd></dl>
+  <pre class="term">$ repoctl repo sbom --target el9 --raw | grype
+$ repoctl repo sbom --target el9 --build ucx-1.22.1-1.el9
+COMPONENT          VERSION        PURL                                         LICENSE
+ucx (upstream)     1.22.1         pkg:github/openucx/ucx@v1.22.1               BSD-3-Clause
+ucx                1.22.1-1.el9   pkg:rpm/gsi-hpc/ucx@1.22.1-1.el9?arch=x86_64  BSD-3-Clause
+ucx-devel          1.22.1-1.el9   pkg:rpm/gsi-hpc/ucx-devel@1.22.1-1.el9?…      BSD-3-Clause
+…
+14 RPMs, 1 upstream source, 0 bundled libraries</pre>
 </section>
 
 <section class="cmd" id="cmd-repo-pull">
@@ -712,7 +746,7 @@ el10  p-20260912-1403-c21  same as the local copy</pre>
   <pre class="synopsis">repoctl repo push [PUBLISH] [--dry-run] [--yes]
 repoctl repo push --from DIR --manifest FILE --target ID [--dry-run] [--yes]</pre>
   <p>Complete a publish that stopped in the push or tag step; the default is the newest signed publish that is not in the registry. push runs the steps push, tag and cache. When latest moved since the base of that publish, it stops with <code>snapshot.diverged</code>.</p>
-  <p>With <code>--from DIR</code>, push makes the first snapshot of a target from a signed tree, for the import runbook (<a href="../runbooks/import.html#push">../runbooks/import.html#push</a>). The registry must have no snapshot of that target. push keeps the RPM signatures, adds the manifest from FILE, signs the new <code>repomd.xml</code>, runs verify and verify-el, and pushes <code>p-import-YYYYMMDD</code>. Gate 2 applies: first record the old key with <code>repoctl sign deployed</code> (<a href="../runbooks/import.html#record-key">../runbooks/import.html#record-key</a>).</p>
+  <p>With <code>--from DIR</code>, push makes the first snapshot of a target from a signed tree, for the import runbook (<a href="../runbooks/import.html#push">../runbooks/import.html#push</a>). The registry must have no snapshot of that target. push keeps the RPM signatures, adds the manifest from FILE, writes the SBOM of each adopted build, signs the new <code>repomd.xml</code>, runs verify and verify-el, and pushes <code>p-import-YYYYMMDD</code>. Gate 2 applies: first record the old key with <code>repoctl sign deployed</code> (<a href="../runbooks/import.html#record-key">../runbooks/import.html#record-key</a>).</p>
   <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>GHCR blobs, manifest and tags; the local copy; the journal</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>publishKind</code> publish or import</dd><dt>Exit</dt><dd>0; 1; 6; 7; 10; 12 gate 2; 13</dd></dl>
 </section>
 
@@ -937,7 +971,7 @@ repoctl skills install [--user | --project] [NAME...]</pre>
   <h4><code>repoctl doctor</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl doctor [--strict] [--only host|set|sign|registry|check]</pre>
   <p>Check this host for build, sign and registry. This replaces <code>scripts/setup</code>, except the dnf install. Each check is ok, warning or failed; passed checks are dim, and each warning or failure has its fix under it. Required for build: git, mock, the group mock, the mock configs, rpmautospec, rpmspec, createrepo_c, the XDG directories and a valid <code>repoctl.yaml</code>. Required for publish: also rpmsign, gpg, the secret key, gates 1 and 3. A missing secret key is a warning, so a host that only builds gets exit 0.</p>
-  <p>The sign checks include <code>sign.key</code>, <code>sign.keyfile</code>, <code>sign.release</code>, <code>sign.retiring</code> (a retiring key still signs RPMs in latest), <code>sign.deployed</code> and <code>sign.verify-el</code>; <a href="signing.html#doctor">signing.html#doctor</a> has the full list. The registry checks are in <a href="publish.html#registry">publish.html#registry</a>, the check health in <a href="advisories.html#health">advisories.html#health</a>.</p>
+  <p>The sign checks include <code>sign.key</code>, <code>sign.keyfile</code>, <code>sign.release</code>, <code>sign.retiring</code> (a retiring key still signs RPMs in latest), <code>sign.deployed</code> and <code>sign.verify-el</code>; <a href="signing.html#doctor">signing.html#doctor</a> has the full list. The registry checks are in <a href="publish.html#registry">publish.html#registry</a>, the check health in <a href="advisories.html#health">advisories.html#health</a>. The set check <code>sbom.license</code> warns about a spec whose License tag is not an SPDX expression (<a href="supply-chain.html#sbom-record">supply-chain.html#sbom-record</a>).</p>
   <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>stdout: the checks with ✓ ! ✗; kind <code>DoctorReport</code></dd><dt>Exit</dt><dd>0 (warnings too); 8 warnings with <code>--strict</code>; 9 a required check failed</dd></dl>
   <pre class="term">$ repoctl doctor
 ✓ repoctl 0.4.0 (3f9a1c2), go1.26.8, Fedora 44

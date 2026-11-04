@@ -214,6 +214,8 @@
 <tr><td><a href="contract/schema/output.schema.json#/$defs/NodeLog">NodeLog</a></td><td><code>logs</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/RepoContents">RepoContents</a></td><td><code>repo ls</code></td><td>1 per target and repo</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/RepoDiff">RepoDiff</a></td><td><code>repo diff</code></td><td>1 per target and repo</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/Provenance">Provenance</a></td><td><code>repo provenance</code></td><td>1</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/Sbom">Sbom</a></td><td><code>repo sbom</code></td><td>1 per target, or 1 for a build</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Snapshot">Snapshot</a></td><td><code>repo pull</code></td><td>1 per target</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/SnapshotList">SnapshotList</a></td><td><code>repo snapshots</code>, <code>repo gc</code> (with <code>gc</code>: delete or keep)</td><td>1 per target</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Advisory">Advisory</a></td><td><code>advisories show</code></td><td>1</td></tr>
@@ -273,7 +275,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 74 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 76 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -317,6 +319,8 @@
 <tr><td><code>publish.not-ready</code></td><td>12</td><td>A node of a selected target is not current or staged.</td><td>Build it, or publish the other targets.</td></tr>
 <tr><td><code>publish.nothing-to-publish</code></td><td>4</td><td>No node is staged, or prune finds nothing.</td><td>-</td></tr>
 <tr><td><code>publish.unattended-refused</code></td><td>6</td><td><code>--yes</code> without a terminal, and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is not 1.</td><td><a href="cli.html#safety">Shared-state safety</a></td></tr>
+<tr><td><code>records.mismatch</code></td><td>10</td><td>A supply chain record does not have the sha256 in the RepoManifest, or a subject does not have the sha256 of its file.</td><td>The message names the record. Publish keeps the tree; the mirror job keeps the old tree.</td></tr>
+<tr><td><code>records.missing</code></td><td>1; warning in repo verify</td><td>The build has no record of this type, for example an adopted build without provenance.</td><td>-</td></tr>
 <tr><td><code>registry.denied</code></td><td>13</td><td>The token has no write scope for the OCI package.</td><td>The message names the scope.</td></tr>
 <tr><td><code>registry.unreachable</code></td><td>13; warning in plan, build</td><td>The registry does not answer.</td><td>Plan and build use the local copy.</td></tr>
 <tr><td><code>run.not-finished</code></td><td>1</td><td>The run is still active.</td><td><code>repoctl runs RUN --follow</code></td></tr>
@@ -522,6 +526,7 @@
 <tr><td><a href="contract/examples/journal.jsonl">journal.jsonl</a></td><td>the journal of the run</td><td>the excerpt, the end of each node, <code>run.finished</code></td></tr>
 <tr><td><a href="contract/examples/advisories.json">advisories.json</a></td><td><code>repoctl advisories ls --dismissed --json</code>, 11-03 14:05</td><td><code>closure.broken/pmix@el9</code> required and open; three info advisories; one dismissed; the check of 06:00</td></tr>
 <tr><td><a href="contract/examples/snapshots.json">snapshots.json</a></td><td><code>repoctl repo snapshots --target el9 --json</code>, 14:14</td><td>the chain 5e1 (208 RPMs, 38 new), c21 (170), 4a7 (50), <code>p-import-20260828</code> (48)</td></tr>
+<tr><td><a href="contract/examples/provenance.json">provenance.json</a></td><td><code>repoctl repo provenance ucx@el9 --json</code>, 14:20</td><td>the provenance of ucx-1.22.1-1.el9: 14 subjects, the source archive, 3 changed buildroot RPMs, the stored in-toto Statement</td></tr>
 <tr><td><a href="contract/examples/sign-ls.json">sign-ls.json</a></td><td><code>repoctl sign ls --json</code>, 15:00</td><td>d.klein active, with records for el9 (09-10) and el10 (09-15); hpc-repo retiring, el9 record only; a.admin without a record</td></tr>
 <tr><td><a href="contract/examples/mcp-build-call.json">mcp-build-call.json</a></td><td>MCP <code>repoctl_build</code>, 11-02 17:52</td><td>a build call while run a3f is active</td></tr>
 <tr><td><a href="contract/examples/mcp-build-result.json">mcp-build-result.json</a></td><td>its result</td><td><code>set.busy</code>, exit code 7, the Run of a3f in <code>items</code></td></tr>

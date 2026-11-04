@@ -18,6 +18,8 @@
         "repoctl_repo_ls",
         "repoctl_repo_diff",
         "repoctl_repo_verify",
+        "repoctl_repo_provenance",
+        "repoctl_repo_sbom",
         "repoctl_snapshots",
         "repoctl_advisories",
         "repoctl_advisory",
@@ -450,6 +452,67 @@
         "additionalProperties": false
       },
       "outputKind": "DoctorReport",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "class": "read"
+    },
+    {
+      "name": "repoctl_repo_provenance",
+      "title": "Provenance of a build",
+      "description": "Show the SLSA provenance record of one build: commit, run, builder, subjects, source archives and the buildroot changes since the previous build of the same dir. The default source is the local copy of latest. Use it to answer how an RPM was built, or which builds used a buildroot package. Returns kind Provenance.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "build"
+        ],
+        "properties": {
+          "build": {
+            "type": "string",
+            "description": "An NVR, or DIR@TARGET for the newest build of that node."
+          },
+          "snapshot": {
+            "type": "string",
+            "description": "A publish id or digest. The server reads the record from the registry."
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Provenance",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "class": "read"
+    },
+    {
+      "name": "repoctl_repo_sbom",
+      "title": "SBOM of a target or a build",
+      "description": "Show the CycloneDX SBOM of each target, or of one build: components, purls, versions, licenses. Use it to find the RPMs that hold an upstream version, for example for a CVE. Returns kind Sbom, one item per target or one for the build.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Target ids. Absent: all targets."
+          },
+          "build": {
+            "type": "string",
+            "description": "NVR of one build."
+          },
+          "snapshot": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputKind": "Sbom",
       "annotations": {
         "readOnlyHint": true,
         "idempotentHint": true,

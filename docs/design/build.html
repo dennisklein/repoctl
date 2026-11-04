@@ -189,6 +189,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <li>Only a node with the terminal state ok in the journal of its run is staged. This is also true for a canceled or an abandoned run.</li>
   <li>Staging belongs to one user on one host. Another admin does not see it and builds the node again.</li>
   <li>A new commit of the package ends the reuse. The plan action is then build.</li>
+  <li>Each staged node keeps its record draft next to its RPMs: the buildroot lock of mock, the sha256 and URL of each source archive, and the run facts. Publish writes the supply chain records from it (<a href="supply-chain.html#capture">supply-chain.html#capture</a>).</li>
   <li><code>repoctl clean</code> keeps a staging that holds staged nodes or a publishable target (<a href="cli.html#cmd-clean">repoctl clean</a>). A publish whose staging is gone stops with <code>run.staging-missing</code>.</li>
 </ul>
 
@@ -588,7 +589,7 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 <h2 id="mock">Mock roots and verify roots</h2>
 <p>Each target names a mock config: <code>rocky+epel-9-x86_64</code> for el9 and <code>rocky+epel-10-x86_64</code> for el10 (<a href="config.html#targets">targets</a>). repoctl runs on Fedora. The mock chroots are EL9 and EL10.</p>
 <ul>
-  <li>Build roots: one per job. <code>--uniqueext</code> gives each job its own root, for example <code>rocky+epel-10-x86_64-r1750a3f-3</code>.</li>
+  <li>Build roots: one per job. <code>--uniqueext</code> gives each job its own root, for example <code>rocky+epel-10-x86_64-r1750a3f-3</code>. The mock plugin <code>buildroot_lock</code> is on in each build root.</li>
   <li>Verify roots: one per target, for publish step verify-el. A verify root has the mock config of the target, plus rpm, dnf and gnupg2. It checks the signatures with the client tools (<a href="signing.html#verify-el">verify in the EL chroot</a>).</li>
 </ul>
 <p><code>repoctl mock update</code> runs <code>mock --update</code> for each selected target, with the config, macros and plugins of the target. It also makes or updates the verify root of each target. <code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots that repoctl made, also on the <code>--uniqueext</code> roots. Both commands take the set lock. <code>repoctl mock shell TARGET</code> opens a shell in a root with its own <code>--uniqueext</code>, for debugging. The doctor check <code>sign.verify-el</code> says when a verify root is missing.</p>
