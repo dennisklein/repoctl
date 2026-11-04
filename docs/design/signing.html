@@ -592,7 +592,8 @@ metadata_expire=1h</code></pre>
 <tr><td><a href="cli.html#cmd-sign-activate"><code>sign activate ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets a retiring key back to active after a typed key id, makes one set commit. The key signs again with its deployment record.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-remove"><code>sign remove ID</code></a></td><td><span class="tag local">local write</span></td><td>Refuses while latest of a target holds an RPM of the key (<code>sign.key-in-use</code>, exit 12, hint <code>repoctl repo resign --signer ID</code>). Then sets state removed, writes a key file without it, makes one set commit.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-revoke"><code>sign revoke ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets state revoked after a typed key id, writes a key file without the key, makes one set commit. For a compromised key (<a href="#compromise">key compromise</a>).</td></tr>
-<tr><td><a href="cli.html#cmd-sign-offboard"><code>sign offboard ID</code></a></td><td><span class="tag read">read</span></td><td>Prints the commands for the clients. For a revoked key, also the snapshots in the registry with files of the key.</td></tr>
+<tr><td><a href="cli.html#cmd-sign-offboard"><code>sign offboard ID</code></a></td><td><span class="tag read">read</span></td><td>Checks the six offboarding steps and prints the commands for the clients. For a revoked key, also the snapshots in the registry with files of the key.</td></tr>
+<tr><td><a href="cli.html#cmd-sign-removed"><code>sign removed ID --target ID</code></a></td><td><span class="tag shared">shared state</span></td><td>Writes the <a href="#removal-record">removal record</a> after a typed key id.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-ls"><code>sign ls</code></a></td><td><span class="tag read">read</span></td><td>Lists the keys with state, deployment record, expiry and the count of RPMs per target in latest.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-keyfile"><code>sign keyfile --target ID --checksum</code></a></td><td><span class="tag read">read</span></td><td>Prints the sha256 of the key file in latest, the pin of the client bootstrap.</td></tr>
 </tbody>
@@ -647,7 +648,7 @@ metadata_expire=1h</code></pre>
 <g data-f="5-6"><rect class="box-ok" x="808" y="26" width="124" height="44" rx="6"/><text class="t-small" x="816" y="44">publish by a.admin</text><text class="t-small t-ok" x="816" y="62">gates pass</text><rect class="box-ok" x="808" y="146" width="124" height="44" rx="6"/><text class="t-small" x="816" y="164">mirror job</text><text class="t-small" x="816" y="182">verifies</text></g>
 <g data-f="6"><rect class="box-ok" x="808" y="206" width="124" height="44" rx="6"/><text class="t-small" x="816" y="224">dnf accepts</text><text class="t-small" x="816" y="242">a.admin files</text></g>
 </svg>
-<script type="application/json" class="steps">["2026-11-03 14:40. A. Admin has a key on a YubiKey. On hpc-a2, A. Admin runs repoctl sign add a.admin. repoctl writes keys/a.admin.asc and the key file and makes the set commit 7e21d0a \"Trust key a.admin C2F9…52A7\". A. Admin pushes it.", "15:00. The key is active, but no record says that the clients have it. A publish signed by a.admin stops at gate 2: sign.not-deployed, exit 12. repoctl sign onboard a.admin shows 2 of 5 steps done.", "d.klein builds slurm-release-26.05-3: the key change is a commit on its path, and %autorelease raises the release. 2026-11-04: d.klein publishes it for el9 with the deployed key d.klein. el10 follows only after the fix of slurm@el10. The summary shows the trust block, and d.klein types a.admin.", "Config management installs slurm-release-26.05-3 on the el9 clients and puts its key file at the keyring of the el9 mirror line on the HTTP server (puppet run 2026-11-05 08:00). It gives no feedback to repoctl. An organization owner adds A. Admin to the team slurm-repo-admins for GHCR write access.", "2026-11-05 09:12. d.klein checks the clients with rpm -q on 4 clusters and runs repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9. repoctl writes the el9 record to keys/deployed.yaml and makes a set commit. d.klein pushes it.", "A. Admin publishes el9 again. Gate 2 passes for el9. verify-el uses the key file of slurm-release-26.05-3, which the clients have. The mirror job verifies with the same key file.", "The el9 clients accept the files that a.admin signed. All 5 onboarding steps are done for el9. el10 needs its own record."]</script>
+<script type="application/json" class="steps">["2026-11-03 14:40. A. Admin has a key on a YubiKey. On hpc-a2, A. Admin runs repoctl sign add a.admin. repoctl writes keys/a.admin.asc and the key file and makes the set commit 7e21d0a \"Trust key a.admin C2F9…52A7\". A. Admin is not in the team yet and cannot push. A. Admin pushes it to a fork, and d.klein pushes the same commit to the builder branch.", "15:00. The key is active, but no record says that the clients have it. A publish signed by a.admin stops at gate 2: sign.not-deployed, exit 12. repoctl sign onboard a.admin shows 2 of 5 steps done.", "d.klein builds slurm-release-26.05-3: the key change is a commit on its path, and %autorelease raises the release. 2026-11-04: d.klein publishes it for el9 with the deployed key d.klein. el10 follows only after the fix of slurm@el10. The summary shows the trust block, and d.klein types a.admin.", "Config management installs slurm-release-26.05-3 on the el9 clients and puts its key file at the keyring of the el9 mirror line on the HTTP server (puppet run 2026-11-05 08:00). It gives no feedback to repoctl. An organization owner adds A. Admin to the team slurm-repo-admins for GHCR write access.", "2026-11-05 09:12. d.klein checks the clients with rpm -q on 4 clusters and runs repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9. repoctl writes the el9 record to keys/deployed.yaml and makes a set commit. d.klein pushes it.", "A. Admin publishes el9 again. Gate 2 passes for el9. verify-el uses the key file of slurm-release-26.05-3, which the clients have. The mirror job verifies with the same key file.", "The el9 clients accept the files that a.admin signed. All 5 onboarding steps are done for el9. el10 needs its own record."]</script>
 <figcaption>The onboarding of a.admin on the story data. Use Back, Play and Next to step through it.</figcaption>
 </figure>
 <p><code>repoctl sign onboard</code> checks five steps. It changes nothing. At 2026-11-03 15:00, two steps are done:</p>
@@ -659,71 +660,84 @@ metadata_expire=1h</code></pre>
 5 ✗ GHCR write access                       a.admin is not in team slurm-repo-admins
 Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</pre>
 <p>A target that is not publishable does not stop a key change. In the story, el10 waits for the fix of slurm@el10. When a.admin must sign for el10 before that fix, config management installs the key file of 7e21d0a on the el10 clients, and d.klein records it with <code>repoctl sign deployed a.admin --keyfile SHA256 --target el10</code> (<a href="#deployment-record">key file record</a>).</p>
+<p>The team membership is the last step, and an organization owner adds it. Until then, the new admin cannot push: an admin of the team pushes the set commit of <code>sign add</code> with the same commit id, for example from a fork of the new admin. Offboarding removes the membership first (<a href="#offboarding">offboarding</a>).</p>
+<p>Each set has its own <code>sign.keys</code>, release package and mirror lines. Do steps 1 to 4 in each set that the key must sign. A set that misses them fails safe: gate 2 stops a publish there, and its mirror lines keep the old tree. <code>repoctl doctor</code> names each set whose keys differ (<code>sign.cross-set</code>, <a href="#doctor">doctor checks</a>).</p>
 <p>A new admin host follows the steps of <a href="#help-team">help team</a>. The registry rules for the team are in <a href="publish.html#registry">publish.html#registry</a>.</p>
 
 <h3 id="offboarding">Offboarding and rotation</h3>
-<p>Offboarding removes the trust in one key. The order protects the clients: re-sign first, then the new key file, then the key removal on the clients.</p>
+<p>Offboarding removes the trust in one key. The order protects the clients: first the access of the human, then the re-sign, then the new key file, then the key removal on the clients.</p>
 <figure class="diagram">
 <svg viewBox="0 0 900 232" role="img" aria-labelledby="off-t">
-<title id="off-t">The offboarding order: four steps in repoctl, then the clients and the GitHub team</title>
-<text class="t-small t-muted" x="16" y="20">REPOCTL (admin host)</text>
-<text class="t-small t-muted" x="588" y="20">CONFIG MANAGEMENT AND GITHUB</text>
-<line class="edge-muted" x1="576" y1="8" x2="576" y2="224"/>
-<rect class="box" x="16" y="32" width="128" height="104" rx="8"/>
-<text class="t t-title" x="26" y="56">1 retire</text>
-<text class="t-small t-mono" x="26" y="78">sign retire ID</text>
-<text class="t-small" x="26" y="96">state retiring</text>
-<text class="t-small" x="26" y="114">set commit</text>
-<rect class="box" x="156" y="32" width="128" height="104" rx="8"/>
-<text class="t t-title" x="166" y="56">2 re-sign</text>
-<text class="t-small t-mono" x="166" y="78">repo resign</text>
-<text class="t-small t-mono" x="166" y="96">--signer ID</text>
-<text class="t-small" x="166" y="114">per target</text>
-<rect class="box" x="296" y="32" width="128" height="104" rx="8"/>
-<text class="t t-title" x="306" y="56">3 remove</text>
-<text class="t-small t-mono" x="306" y="78">sign remove ID</text>
-<text class="t-small" x="306" y="96">new key file</text>
-<text class="t-small" x="306" y="114">set commit</text>
-<rect class="box" x="436" y="32" width="128" height="104" rx="8"/>
-<text class="t t-title" x="446" y="56">4 release</text>
-<text class="t-small" x="446" y="78">build and publish</text>
-<text class="t-small" x="446" y="96">release package</text>
-<text class="t-small" x="446" y="114">(new key file)</text>
-<rect class="box-accent" x="588" y="32" width="136" height="104" rx="8"/>
-<text class="t t-title t-on" x="598" y="56">5 clients</text>
-<text class="t-small t-on" x="598" y="78">dnf upgrade release</text>
-<text class="t-small t-on" x="598" y="96">rpm -e gpg-pubkey-…</text>
-<text class="t-small t-on" x="598" y="114">rm repo pubring</text>
-<rect class="box" x="736" y="32" width="148" height="104" rx="8"/>
-<text class="t t-title" x="746" y="56">6 team</text>
-<text class="t-small" x="746" y="78">remove the human</text>
-<text class="t-small" x="746" y="96">from the GitHub team</text>
-<line class="edge" x1="144" y1="84" x2="154" y2="84" marker-end="url(#arrow)"/>
-<line class="edge" x1="284" y1="84" x2="294" y2="84" marker-end="url(#arrow)"/>
-<line class="edge" x1="424" y1="84" x2="434" y2="84" marker-end="url(#arrow)"/>
-<line class="edge" x1="564" y1="84" x2="586" y2="84" marker-end="url(#arrow)"/>
-<line class="edge" x1="724" y1="84" x2="734" y2="84" marker-end="url(#arrow)"/>
-<rect class="box-soft" x="16" y="160" width="548" height="48" rx="8"/>
-<text class="t-small" x="32" y="189">Clients still accept the old key until step 5.</text>
-<rect class="box-warn" x="588" y="160" width="296" height="48" rx="8"/>
-<text class="t-small" x="604" y="189">Trust in the old key ends only at step 5.</text>
+<title id="off-t">The offboarding order: the GitHub team, four steps in repoctl, then the clients</title>
+<text class="t-small t-muted" x="16" y="20">GITHUB</text>
+<text class="t-small t-muted" x="152" y="20">REPOCTL (admin host)</text>
+<text class="t-small t-muted" x="664" y="20">CONFIG MANAGEMENT</text>
+<line class="edge-muted" x1="140" y1="8" x2="140" y2="224"/>
+<line class="edge-muted" x1="652" y1="8" x2="652" y2="224"/>
+<rect class="box" x="16" y="32" width="112" height="104" rx="8"/>
+<text class="t t-title" x="26" y="56">1 team</text>
+<text class="t-small" x="26" y="78">remove from</text>
+<text class="t-small" x="26" y="96">the GitHub team</text>
+<text class="t-small" x="26" y="114">delete the token</text>
+<rect class="box" x="152" y="32" width="116" height="104" rx="8"/>
+<text class="t t-title" x="162" y="56">2 retire</text>
+<text class="t-small t-mono" x="162" y="78">sign retire ID</text>
+<text class="t-small" x="162" y="96">state retiring</text>
+<text class="t-small" x="162" y="114">set commit</text>
+<rect class="box" x="276" y="32" width="116" height="104" rx="8"/>
+<text class="t t-title" x="286" y="56">3 re-sign</text>
+<text class="t-small t-mono" x="286" y="78">repo resign</text>
+<text class="t-small t-mono" x="286" y="96">--signer ID</text>
+<text class="t-small" x="286" y="114">per target</text>
+<rect class="box" x="400" y="32" width="116" height="104" rx="8"/>
+<text class="t t-title" x="410" y="56">4 remove</text>
+<text class="t-small t-mono" x="410" y="78">sign remove ID</text>
+<text class="t-small" x="410" y="96">new key file</text>
+<text class="t-small" x="410" y="114">set commit</text>
+<rect class="box" x="524" y="32" width="116" height="104" rx="8"/>
+<text class="t t-title" x="534" y="56">5 release</text>
+<text class="t-small" x="534" y="78">build, publish</text>
+<text class="t-small" x="534" y="96">per target</text>
+<text class="t-small" x="534" y="114">(new key file)</text>
+<rect class="box-accent" x="664" y="32" width="220" height="104" rx="8"/>
+<text class="t t-title t-on" x="676" y="56">6 clients</text>
+<text class="t-small t-on" x="676" y="78">dnf upgrade release, new keyring</text>
+<text class="t-small t-on" x="676" y="96">rpm -e gpg-pubkey-…, rm pubring</text>
+<text class="t-small t-on" x="676" y="114">then: sign removed ID --target T</text>
+<line class="edge" x1="128" y1="84" x2="150" y2="84" marker-end="url(#arrow)"/>
+<line class="edge" x1="268" y1="84" x2="274" y2="84" marker-end="url(#arrow)"/>
+<line class="edge" x1="392" y1="84" x2="398" y2="84" marker-end="url(#arrow)"/>
+<line class="edge" x1="516" y1="84" x2="522" y2="84" marker-end="url(#arrow)"/>
+<line class="edge" x1="640" y1="84" x2="662" y2="84" marker-end="url(#arrow)"/>
+<rect class="box-soft" x="16" y="160" width="624" height="48" rx="8"/>
+<text class="t-small" x="32" y="189">Clients still accept the old key until step 6. Steps 2 to 5 repeat in each set that trusts the key.</text>
+<rect class="box-warn" x="664" y="160" width="220" height="48" rx="8"/>
+<text class="t-small" x="680" y="189">Trust in the old key ends at step 6.</text>
 </svg>
-<figcaption>The offboarding order. repoctl does steps 1 to 4. repoctl sign offboard ID prints the commands of step 5.</figcaption>
+<figcaption>The offboarding order. repoctl does steps 2 to 5. repoctl sign offboard ID prints the commands of step 6, and repoctl sign removed records it.</figcaption>
 </figure>
 <ol class="steps">
-  <li><code>repoctl sign retire ID</code>: state retiring, set commit. The key cannot sign any more.</li>
+  <li>When the human leaves the team: an organization owner removes the human from the GitHub team, and the human deletes the registry token. The team removal alone ends the write access to the set repository and to the packages, because the token has its access only through the team (<a href="publish.html#registry">publish.html#registry</a>). Skip this step for a key without a team member, for example hpc-repo, and for a rotation.</li>
+  <li><code>repoctl sign retire ID</code>: state retiring, set commit. The key cannot sign any more. An other admin pushes the commit.</li>
   <li><code>repoctl repo resign --signer ID</code> per target, by an admin with an active, deployed key. Each RPM of that key gets a new signature.</li>
   <li><code>repoctl sign remove ID</code>. It refuses while latest of a target holds an RPM of that key. Then: state removed, a new key file without the key, set commit.</li>
-  <li>Build and publish the new release package. Config management rolls it out.</li>
-  <li>Config management removes the key on each client. <code>repoctl sign offboard ID</code> prints the commands.</li>
-  <li>Remove the human from the GitHub team. The entry in <code>keys/deployed.yaml</code> can stay, because gate 1 refuses a removed key.</li>
+  <li>Build and publish the new release package for each target. Config management rolls it out to the clients and to the keyring of each mirror line.</li>
+  <li>Config management removes the key on each client. <code>repoctl sign offboard ID</code> prints the commands. Then a human records it per target: <code>repoctl sign removed ID --target T</code> (<a href="#removal-record">removal record</a>).</li>
 </ol>
-<p>In the story, hpc-repo is the next key to leave. It is in state retiring, and 50 RPMs in latest of el9 carry it; el10 has none. After steps 1 to 4, <code>repoctl sign offboard hpc-repo</code> prints the client commands:</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: each set that trusts the key</p>
+<p>Each set has its own <code>sign.keys</code>, release package and mirror lines. Do steps 2 to 5 in each set whose <code>sign.keys</code> has the fingerprint. Do step 6 only after that: <code>rpm -e gpg-pubkey-…</code> removes the key for all repositories of a client, so a set that still has RPMs of the key breaks on that client. The doctor check <code>sign.cross-set</code> names each set that still has the key.</p>
+</aside>
+<p>In the story, hpc-repo is the next key to leave. It is in state retiring, and 50 RPMs in latest of el9 carry it; el10 has none. After steps 2 to 5, <code>repoctl sign offboard hpc-repo</code> prints the client commands:</p>
 <pre class="term">Run on every client after "dnf upgrade slurm-release":
   EL9:    rpm -e gpg-pubkey-7c3a19f2
   EL10:   rpmkeys --erase 7c3a19f2      # EL10.1 and later; else use the EL9 line
   both:   rm -rf /var/cache/dnf/slurm*/pubring</pre>
 <p>A rotation is an onboarding of the new key, then an offboarding of the old key. An expiring key uses the same rotation (<a href="#expiry">key expiry</a>). A move to a central signer (option E) also uses it: add the central key, then offboard the personal keys.</p>
+<h3 id="removal-record">Removal record</h3>
+<p>Config management gives no feedback, so a human confirms the key removal of step 6, as for a deployment. <code>repoctl sign removed ID --target ID... [--note TEXT] [--dry-run]</code> records that config management removed the key from all clients of each target. It is a shared-state command: the typed key id, a set commit, no unattended mode and no MCP tool. It checks that the key is in state removed and that the key file in latest of each target does not hold it. Else it stops with <code>sign.not-removed</code> (exit 12).</p>
+<p>The command writes one entry per key and target into the list <code>removals</code> of <code>keys/deployed.yaml</code>: <code>key</code>, <code>target</code>, <code>fingerprint</code>, <code>confirmedBy</code>, <code>at</code> and an optional <code>note</code>. The rules of the file apply (<a href="#deployment-record">deployment record</a>). The deployment entry of the key stays, because gate 1 refuses a removed key.</p>
+<p>Until the removal record exists, <code>repoctl sign ls</code> shows a removed key with "clients: unconfirmed" for that target, and <code>sign offboard</code> shows step 6 as open. After the record, it shows "clients: removed", with the human and the date.</p>
 
 <h2 id="emergency">Emergency: a lost or a compromised key</h2>
 <p>Two failures do not fit the normal order of onboarding and offboarding. A compromised key must lose the trust of the clients at once. A lost key can leave a target without a deployed signer. Both use a key file that config management installs without a release package, because a release package needs a deployed signer and a publishable target. The runbook <a href="../runbooks/key-compromise.html">Key compromise or lost key</a> gives the steps for a human.</p>
@@ -832,6 +846,7 @@ Next: check each publish, then repoctl repo resign --signer a.admin --target el9
 <tr><td><code>sign.expiry</code></td><td>No key expires inside <code>key_expiry_warn</code> (180 days). Else a warning with the fix line.</td></tr>
 <tr><td><code>sign.algorithm</code></td><td>Each key meets gate 3: RSA 2048 or more, or Ed25519, and no SHA-1 self-signature.</td></tr>
 <tr><td><code>sign.deployed</code></td><td>The key of this human has a deployment record for each target, and the release of the record is in latest.</td></tr>
+<tr><td><code>sign.cross-set</code></td><td>Each other builder branch on <code>origin</code> (<code>builder/*</code> with a <code>repoctl.yaml</code>) has the same keys in <code>sign.keys</code>, with the same states. A difference is a warning that names each set and key, with the hint to do the onboarding or offboarding steps in that set. Without network, the check reads the last fetched branches.</td></tr>
 <tr><td><code>sign.keyfile</code></td><td>The key file of the in-tree release package equals <code>sign.keys</code> (states active and retiring).</td></tr>
 <tr><td><code>sign.release</code></td><td>The release package in latest has the same key file. It warns between a key change and the publish of the new release.</td></tr>
 <tr><td><code>release.url</code></td><td>The <code>baseurl</code> lines of each <code>.repo</code> file equal <code>repo.url</code> and <code>targets[].path</code>.</td></tr>
@@ -874,7 +889,10 @@ Withdraw:       repoctl sign deployed ID --target T --withdraw
 Replace a key:  add and deploy the new key, then "repoctl sign retire
                 OLD", "repoctl repo resign --signer OLD", "repoctl
                 sign remove OLD", and publish the new release package.
-Clients:        "repoctl sign offboard ID" prints the commands.
+Clients:        "repoctl sign offboard ID" prints the commands. Then
+                record it: repoctl sign removed ID --target T
+Several sets:   each set has its own sign.keys and release package.
+                Repeat the steps in each set that the key signs.
 Set commits:    sign each commit that changes repoctl.yaml,
                 repoctl.lock, keys/, a macros file or an in-tree
                 package (git config commit.gpgsign true). publish

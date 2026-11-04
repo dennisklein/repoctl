@@ -323,7 +323,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <table class="compact">
 <thead><tr><th>Commands</th><th>Why there is no tool</th></tr></thead>
 <tbody>
-<tr><td><code>publish</code>, <code>repo push</code>, <code>repo restore</code>, <code>repo prune</code>, <code>repo gc</code>, <code>repo resign</code>, <code>sign deployed</code></td><td>Shared state. A human confirms each one (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
+<tr><td><code>publish</code>, <code>repo push</code>, <code>repo restore</code>, <code>repo prune</code>, <code>repo gc</code>, <code>repo resign</code>, <code>sign deployed</code>, <code>sign removed</code></td><td>Shared state. A human confirms each one (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
 <tr><td><code>sign add|retire|activate|remove|revoke</code>, <code>release write</code></td><td>Trust commands. They change which keys the clients trust.</td></tr>
 <tr><td><code>advisories dismiss|undismiss</code></td><td>A dismissal is a committed team file (<a href="advisories.html#dismissals">advisories.html#dismissals</a>). An acceptance is part of a publish.</td></tr>
 <tr><td><code>repo pull</code>, <code>clean</code>, <code>mock *</code></td><td>They replace the local copy, delete caches or change a mock chroot.</td></tr>
@@ -366,6 +366,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>publish</code></td><td>run <code>repoctl publish</code> and confirm it</td></tr>
 <tr><td><code>repo-pull</code>, <code>repo-push</code>, <code>restore</code>, <code>prune</code>, <code>gc</code>, <code>resign</code></td><td>run the repository command</td></tr>
 <tr><td><code>sign-deployed</code></td><td>record a deployment with <code>repoctl sign deployed</code></td></tr>
+<tr><td><code>sign-removed</code></td><td>record a key removal on the clients with <code>repoctl sign removed</code></td></tr>
 <tr><td><code>trust-change</code></td><td>run a trust command and confirm the key id</td></tr>
 <tr><td><code>accept-advisory</code></td><td>accept a required advisory at publish (<code>--accept-advisory ID --reason TEXT</code>)</td></tr>
 <tr><td><code>dismiss-advisory</code></td><td>dismiss an info or warn advisory, then commit the file</td></tr>

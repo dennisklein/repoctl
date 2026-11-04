@@ -221,7 +221,7 @@
 <tr><td><a href="contract/schema/output.schema.json#/$defs/SnapshotList">SnapshotList</a></td><td><code>repo snapshots</code>, <code>repo gc</code> (with <code>gc</code>: delete or keep)</td><td>1 per target</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Advisory">Advisory</a></td><td><code>advisories show</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/AdvisoryList">AdvisoryList</a></td><td><code>check</code>, <code>advisories ls</code>, <code>advisories dismiss</code>, <code>advisories undismiss</code></td><td>1</td></tr>
-<tr><td><a href="contract/schema/output.schema.json#/$defs/SignerList">SignerList</a></td><td><code>sign ls</code>, <code>sign add</code>, <code>sign retire</code>, <code>sign activate</code>, <code>sign remove</code>, <code>sign revoke</code>, <code>sign deployed</code></td><td>1</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/SignerList">SignerList</a></td><td><code>sign ls</code>, <code>sign add</code>, <code>sign retire</code>, <code>sign activate</code>, <code>sign remove</code>, <code>sign revoke</code>, <code>sign deployed</code>, <code>sign removed</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/OnboardReport">OnboardReport</a></td><td><code>sign onboard</code>, <code>sign offboard</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/DoctorReport">DoctorReport</a></td><td><code>doctor</code>, <code>repo verify</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Upstream">Upstream</a></td><td><code>upstream</code></td><td>1 per dir</td></tr>
@@ -247,7 +247,7 @@
 <tr><td><a href="contract/schema/mcp-tools.json">mcp-tools.json</a></td><td>The MCP tools with input schemas, output kinds, classes and annotations; the tool modes; the resources</td><td><code>tools/list</code> of <code>repoctl mcp start</code>; <a href="agents.html#mcp-tools">Tools</a></td></tr>
 </tbody>
 </table>
-<p><code>output.schema.json</code> also holds the file schema of <code>keys/deployed.yaml</code>: <code>$defs/KeyDeployments</code>, with one <code>KeyDeploymentEntry</code> per key and target. <code>repoctl schema deployments</code> prints it.</p>
+<p><code>output.schema.json</code> also holds the file schema of <code>keys/deployed.yaml</code>: <code>$defs/KeyDeployments</code>, with one <code>KeyDeploymentEntry</code> per key and target. Its list <code>removals</code> holds one <code>KeyRemovalEntry</code> per key and target. <code>repoctl schema deployments</code> prints it.</p>
 <p>The <code>$id</code> values are <code>https://gsi-hpc.github.io/repoctl/schema/v1alpha1/output.json</code> and <code>…/events.json</code>. The Envelope selects the schema of the items by kind. Excerpt:</p>
 <pre><code class="language-json">"Envelope": {
   "type": "object",
@@ -278,7 +278,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 110 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 111 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -363,6 +363,7 @@
 <tr><td><code>sign.no-pinentry</code></td><td>9</td><td>No pinentry works.</td><td>Install a pinentry.</td></tr>
 <tr><td><code>sign.not-active</code></td><td>12</td><td>Gate 1: the key is not active in <code>sign.keys</code>.</td><td><code>repoctl sign onboard ID</code></td></tr>
 <tr><td><code>sign.not-deployed</code></td><td>12</td><td>Gate 2: <code>keys/deployed.yaml</code> has no record of the key for a selected target.</td><td><code>repoctl sign onboard ID</code> (<code>sign-deployed</code>)</td></tr>
+<tr><td><code>sign.not-removed</code></td><td>12</td><td><code>sign removed</code>: the key is not in state removed, or the key file in latest of the target still holds it.</td><td><code>repoctl sign offboard ID</code></td></tr>
 <tr><td><code>sign.removed-signer</code></td><td>12; warning in repo pull</td><td>A kept RPM has the signature of a removed or revoked key. repo pull gives a warning for a revoked key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
 <tr><td><code>sign.repofile-stale</code></td><td>5</td><td>A <code>.repo</code> file of the in-tree release package differs from the file that <code>repoctl release write</code> writes.</td><td><code>repoctl release write</code>, then commit.</td></tr>
 <tr><td><code>sign.retiring</code></td><td>warning in doctor</td><td>RPMs in latest have the signature of a retiring key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>

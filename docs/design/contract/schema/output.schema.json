@@ -719,6 +719,7 @@
         "sign.no-pinentry",
         "sign.not-active",
         "sign.not-deployed",
+        "sign.not-removed",
         "sign.removed-signer",
         "sign.repofile-stale",
         "sign.retiring",
@@ -777,6 +778,7 @@
             "gc",
             "resign",
             "sign-deployed",
+            "sign-removed",
             "trust-change",
             "accept-advisory",
             "dismiss-advisory"
@@ -4337,6 +4339,16 @@
                       "type": "integer"
                     },
                     "description": "Per target: RPMs in latest that this key signed."
+                  },
+                  "removals": {
+                    "type": "object",
+                    "description": "Removed keys only. Per target: the removal record. A target without a record is absent; sign ls shows it as clients: unconfirmed.",
+                    "propertyNames": {
+                      "$ref": "#/$defs/TargetId"
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/$defs/KeyRemoval"
+                    }
                   }
                 }
               }
@@ -4400,7 +4412,7 @@
     },
     "KeyDeployments": {
       "type": "object",
-      "description": "File schema of keys/deployed.yaml (repoctl schema deployments). repoctl writes one entry per key and target, sorted by key, then target. When two entries have one key and target, the entry with the newest at wins.",
+      "description": "File schema of keys/deployed.yaml (repoctl schema deployments). repoctl writes one entry per key and target, sorted by key, then target. When two entries have one key and target, the entry with the newest at wins. The list removals holds the removal records.",
       "required": [
         "apiVersion",
         "kind",
@@ -4419,6 +4431,13 @@
           "items": {
             "$ref": "#/$defs/KeyDeploymentEntry"
           }
+        },
+        "removals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KeyRemovalEntry"
+          },
+          "description": "repoctl sign removed: one entry per key and target, sorted by key, then target."
         }
       }
     },
@@ -4454,6 +4473,62 @@
         "confirmedBy": {
           "type": "string",
           "description": "Key id of the human who ran repoctl sign deployed."
+        },
+        "at": {
+          "$ref": "#/$defs/Time"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "KeyRemoval": {
+      "type": "object",
+      "description": "A removal record for one target: a human confirmed that config management removed the key from all clients of the target.",
+      "required": [
+        "confirmedBy",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "confirmedBy": {
+          "type": "string",
+          "description": "Key id of the human who ran repoctl sign removed."
+        },
+        "at": {
+          "$ref": "#/$defs/Time"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "KeyRemovalEntry": {
+      "type": "object",
+      "description": "One entry of removals in keys/deployed.yaml.",
+      "required": [
+        "key",
+        "target",
+        "fingerprint",
+        "confirmedBy",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Key id in sign.keys, state removed."
+        },
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$"
+        },
+        "confirmedBy": {
+          "type": "string",
+          "description": "Key id of the human who ran repoctl sign removed."
         },
         "at": {
           "$ref": "#/$defs/Time"
