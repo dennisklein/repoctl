@@ -117,12 +117,12 @@
 <thead><tr><th>Code</th><th>Level</th><th>Computed in</th><th>Check</th><th>Suggests</th></tr></thead>
 <tbody>
 <tr><td><code>soname.removed</code></td><td><span class="tag req">required</span></td><td>after a node build</td><td>A soname that the newest published build of the node provides is gone in the new build, and a kept set package requires it. A retired package does not count.</td><td><code>repoctl rebuild DEPENDENTS --reason "ucx: libucp.so.0 → .so.1"</code></td></tr>
-<tr><td><code>closure.broken</code></td><td><span class="tag req">required</span></td><td>plan, check, publish gate</td><td><code>dnf repoclosure --newest</code> per target, on the published repo plus the upstream repos, finds a requirement with no provider. Only the newest NVR of each name counts.</td><td>Rebuild the affected package, or change its spec.</td></tr>
+<tr><td><code>closure.broken</code></td><td><span class="tag req">required</span></td><td>plan, check, publish gate</td><td><code>dnf repoclosure --newest</code> per target, on the published repo plus the closure repos, finds a requirement with no provider. Only the newest NVR of each name counts.</td><td>Rebuild the affected package, or change its spec.</td></tr>
 <tr><td><code>closure.broken</code> of a retired package</td><td><span class="tag warn">warn</span></td><td>plan, check</td><td>As above, for a source package that no dir in repoctl.yaml builds.</td><td><code>repoctl repo prune --package NAME --all</code>. Never a rebuild.</td></tr>
 <tr><td><code>provider.changed</code></td><td><span class="tag warn">warn</span></td><td>plan, check</td><td>A current node took a BuildRequires provider from outside the set. Now a set package provides it, for example a new hwloc in the set. The recorded buildroot shows the old provider.</td><td><code>repoctl rebuild DEPENDENTS --reason "build against set hwloc"</code></td></tr>
 <tr><td><code>abi.changed</code></td><td><span class="tag warn">warn</span></td><td>after a node build (optional, needs libabigail)</td><td><code>abidiff</code> of the shared libraries, old and new, with the same soname.</td><td>Review. Rebuild the dependents when the change matters.</td></tr>
 <tr><td><code>sign.expiring</code></td><td><span class="tag warn">warn</span>, <span class="tag req">required</span></td><td>check</td><td>Published RPMs carry a signer whose key expires inside the warn window (<code>sign.checks.key_expiry_warn</code>, default 180 days): level warn. Inside <code>sign.checks.key_min_validity</code> (default 30 days): level required. The advisory has no closure, so it never blocks a publish.</td><td>Treat it as a key change, and re-sign the RPMs before the expiry (<a href="signing.html#expiry">key expiry</a>).</td></tr>
-<tr><td><code>buildroot.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>A BuildRequires provider in the upstream repos has a newer version than the recorded buildroot.</td><td>Nothing, or a rebuild.</td></tr>
+<tr><td><code>buildroot.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>A BuildRequires provider in the closure repos has a newer version than the recorded buildroot.</td><td>Nothing, or a rebuild.</td></tr>
 <tr><td><code>mock.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The hash of the mock config or the macros of this host differs from the manifest.</td><td>Nothing, or a rebuild.</td></tr>
 <tr><td><code>upstream.release</code></td><td><span class="tag info">info</span></td><td>upstream, check</td><td>A new upstream version of the package.</td><td>Bump the version (skill bump-package).</td></tr>
 <tr><td><code>retired.published</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The published repo of a target holds RPMs of a source package that no dir in repoctl.yaml builds. Facts: NVRs, RPM count, size.</td><td>Nothing (the default), or <code>repoctl repo prune --package NAME --all</code>.</td></tr>
@@ -236,10 +236,11 @@ Next: git add .repoctl/advisories.yaml &amp;&amp; git commit -m "chore: dismiss 
 <p><code>repoctl check</code> computes all advisories that need no build, for each target. Its inputs are:</p>
 <ul>
   <li>the RepoManifest and the repodata of latest (check pulls only the repodata, not the RPMs),</li>
-  <li>the upstream repos of the target,</li>
+  <li>the closure repos of the target,</li>
   <li>the upstream release feeds,</li>
   <li>the mock config of this host.</li>
 </ul>
+<p>The <dfn>closure repos</dfn> of a target are the RPM repos that its clients have. They are <code>targets[].closure_repos</code> in <code>repoctl.yaml</code> (<a href="config.html#set-config">repoctl.yaml</a>). Without this key, they are the enabled repos of the mock config of the target, plus <code>targets[].repos</code>. The closure check, <code>buildroot.drift</code> and the publish gate read the same closure repos. In the story, the closure repos of el9 are Rocky 9 BaseOS, AppStream and CRB, and EPEL 9.</p>
 <p>The check is read-only. It takes no set lock and can run while a build runs. It writes <code>check.json</code> in the state directory and a journal with <code>kind: check</code>. When one input fails, for example an upstream repo that is not reachable, the other checks still run. <code>check.json</code> records the failure (<code>upstream.unreachable</code>), and the exit code is 1. With <code>--check</code>, the exit code is 11 when an open advisory has the level of <code>--min-level</code> (default warn) or higher. <code>--quiet</code> prints nothing on success; the timer uses it.</p>
 <pre class="term">$ repoctl check
 ADVISORY                   LEVEL     FACTS
@@ -373,7 +374,7 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
 <p>The gate runs in the check step of publish (<a href="publish.html#checks">checks before the first signature</a>). It runs for each target of the publish, with these rules:</p>
 <ol class="steps">
   <li>Make the result tree of the target: the published repo of latest, plus the nodes that the publish takes (<a href="publish.html#takes">what a publish takes</a>). A new NVR is the newest NVR of its name, because publish refuses an older one (<code>nvr.older</code>).</li>
-  <li>Run <code>dnf repoclosure --newest</code> on the result tree plus the upstream repos of the target. The result is a list of broken requirements: an RPM and a requirement.</li>
+  <li>Run <code>dnf repoclosure --newest</code> on the result tree plus the closure repos of the target. The result is a list of broken requirements: an RPM and a requirement.</li>
   <li>For each broken requirement, find its closure: the dir that built the RPM, plus the dir whose newest published build provided the requirement and whose new build does not provide it.</li>
   <li>A required advisory blocks the target when its closure contains a dir of the publish on that target, and the human did not accept it.</li>
 </ol>
@@ -556,7 +557,19 @@ An unrelated publish on the same target does not wait for this path.
 To publish with a required advisory open, give the reason:
   repoctl publish --target T --accept-advisory ID --reason "..."
 Only info and warn advisories can be dismissed:
-  repoctl advisories dismiss ID --note "..."</code></pre>
+  repoctl advisories dismiss ID --note "..."
+
+A REQUIRED ADVISORY THAT IS WRONG OR HAS NO FIX
+
+A required advisory is never dismissed. Remove its cause:
+  - The clients get the provider from a repo that the check does not
+    read: add the repo to targets[].closure_repos in repoctl.yaml,
+    commit, push, then repoctl check. The advisory is gone.
+  - The requirement in the spec is wrong: fix the spec (step 2).
+  - The package is not needed any more: retire it (repoctl help
+    packages). Its closure.broken is then a warn advisory, and a
+    dismissal can hide it.</code></pre>
+<p>A required advisory stays open until its cause changes. Thus <code>repoctl check --check</code> gives exit 11, and each publish that changes its closure needs an acceptance. The three ways above remove the cause. A wrong advisory comes most often from closure repos that do not agree with the repos of the clients.</p>
 
 <h2 id="surfaces">Surfaces</h2>
 <table class="compact">

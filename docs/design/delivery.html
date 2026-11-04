@@ -12,7 +12,7 @@
   <li>Eight phases, 0 to 7. Each phase ends with a "done when" in the terms of the data story.</li>
   <li>Phase 0 puts the tool on branch <code>main</code>, with CI and this docs site on GitHub Pages.</li>
   <li>The bash-era scripts stay on the builder branches until the first publish with repoctl.</li>
-  <li>Tests V1 to V33 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
+  <li>Tests V1 to V34 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
   <li>Each open question names the phase that needs the answer.</li>
   <li>The requirements give a value from the data story and a design limit for each scale, time and disk row.</li>
 </ul>
@@ -46,6 +46,7 @@
 <rect class="box" x="256" y="144" width="208" height="72" rx="8"/>
 <text class="t-title" x="272" y="168">5 Advisories</text>
 <text class="t-small t-muted" x="272" y="188">check timer, lifecycle</text>
+<text class="t-small t-mono" x="272" y="206">V34</text>
 <rect class="box" x="488" y="144" width="208" height="72" rx="8"/>
 <text class="t-title" x="504" y="168">6 Agents</text>
 <text class="t-small t-muted" x="504" y="188">skills, MCP</text>
@@ -180,6 +181,7 @@
 <tr><td>V31</td><td>Mirror job on EL9: replace <code>KEYRING</code> with a key file without key B. Then publish a snapshot with RPMs of B, and a snapshot without them.</td><td>The job refuses the first snapshot and keeps the served tree. It serves the second one (<a href="signing.html#compromise">key compromise</a>).</td><td>3</td></tr>
 <tr><td>V32</td><td>Delete a test package in GHCR. Run <code>repoctl repo push --reseed</code> from the local copy, then the mirror job and a publish.</td><td>The mirror job serves the same files. The publish passes gate 2 and keeps <code>removed[]</code> (<a href="publish.html#disaster">registry loss</a>).</td><td>3</td></tr>
 <tr><td>V33</td><td>Client bootstrap of a new Rocky 9 and Rocky 10 client from a served tree: the root key file with a pinned sha256, <code>rpmkeys --checksig</code> and <code>dnf install</code> of the root <code>slurm-release.rpm</code>, then <code>dnf makecache</code>. Then again with a wrong pin.</td><td>The client reads the repository with <code>repo_gpgcheck=1</code>. The wrong pin stops before <code>rpm --import</code>.</td><td>3</td></tr>
+<tr><td>V34</td><td>Fedora host: <code>dnf repoclosure --newest</code> with <code>--repofrompath</code> on a local el9 and el10 repo plus the Rocky and EPEL closure repos of each target. Repeat in <code>rocky:9</code> and <code>rocky:10</code>. Add one RPM with a requirement that no repo provides.</td><td>The same broken requirements on the Fedora host and in the EL container, and the added RPM is in both lists. If not, the check runs repoclosure in the verify root.</td><td>5</td></tr>
 </tbody>
 </table>
 
