@@ -356,10 +356,38 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 
 <h2 id="takes">What a publish takes</h2>
 <p>Publish works on the plan, not on one run. For each selected target, publish takes each node with the plan action staged. Of a staged node, it takes only the files of its <code>artifact.added</code> events, never a whole staging directory, and it checks the sha256 of each file. A staged node has a build for the current lock in an unpublished run of this user (<a href="build.html#staging">staging and node reuse</a>). The summary names the source run of each node. When two runs have a build of one node, publish takes the build of the newest run (<code>fromRun</code>). <code>--run RUN</code> limits the publish to the nodes of one run.</p>
-<p>A target is publishable when each node of the target is current (in the base) or staged. Without <code>--target</code>, publish takes the publishable targets, and the summary names the others. A target that <code>--target</code> names and that is not publishable stops the publish with <code>publish.not-ready</code> (exit 12). When no target is publishable, publish stops with the same code.</p>
+<p>A target is publishable when each node of the target is current (in the base) or staged. Without <code>--target</code>, publish takes the publishable targets, and the summary names the others. A target that <code>--target</code> names and that is not publishable stops the publish with <code>publish.not-ready</code> (exit 12). When no target is publishable, publish stops with the same code. <code>--hold NODE</code> makes a target publishable for one urgent publish (<a href="#urgent">urgent fix</a>).</p>
 <aside class="callout rule"><p class="callout-title">Rule: publish the ready target first</p><p>Publish a publishable target before you pin a fix of a package that it shares with a failed target. The commit is per package, so the pin ends the staged node of the package on each target. If the publishable target is not yet published, it then needs a new build too. If it is published, the fix gives it a new NVR with the same content. Example: <a href="build.html#story">the story run</a>.</p></aside>
 <p>Publish never builds. It never signs a node whose plan action is not current or staged. The advisory gate looks at the whole publish, so a dependent that another staged run rebuilt counts (<a href="advisories.html#gate">advisories.html#gate</a>).</p>
 <p>In the story, the review of el9 at 2026-11-03 14:05 takes the four staged el9 nodes of <code>r-20261102-1750-a3f</code>: ucx, slurm, openmpi and slurm-singularity-exec. These give 38 new RPMs. The 170 RPMs of the base stay, so the new snapshot has 208 RPMs. el10 is not publishable: slurm@el10 failed, and slurm-singularity-exec@el10 is blocked. The web UI shows this on <a href="ui-publish.html#blocked">the blocked page</a>.</p>
+<h3 id="urgent">Urgent fix</h3>
+<p>A failed, blocked or unbuilt node of an other package makes its target not publishable. For an urgent fix, the human holds that node back for one publish. A <dfn>held node</dfn> keeps its build in the base. When the base has no build of the node, the node stays out of the snapshot. The publish takes the other staged nodes as usual.</p>
+<ul>
+  <li><code>--hold NODE</code> needs <code>--reason TEXT</code> with 8 characters or more. A held node that is current or staged is a usage error (exit 2), so nobody holds in advance.</li>
+  <li>The advisory gate runs on the result tree with the base build of each held node. When a taken node needs the new build of a held node, the gate finds the broken requirement and blocks the publish.</li>
+  <li>The summary shows each held node with the NVR that it keeps and the reason. The annotation <code>io.repoctl.held</code> and the publish history record the held nodes with the reason.</li>
+  <li>The lock does not change. The next plan shows each held node with the action build again.</li>
+</ul>
+<p>A variant of the story, not the story: ucx 1.22.1 is a security fix, and el10 must get it before the fix of slurm@el10. ucx@el10 and openmpi@el10 are staged in <code>r-20261102-1750-a3f</code>.</p>
+<pre class="term">$ repoctl publish --target el10 --hold slurm@el10 --hold slurm-singularity-exec@el10 \
+    --reason "ucx 1.22.1 security fix before the fix of slurm@el10"
+publish  p-20261103-1520-0d4  el10 of slurm-26.05  from run r-20261102-1750-a3f
+…
+held     slurm@el10 keeps 26.05.4-1.el10 · slurm-singularity-exec@el10 keeps 3.2.0-1.el10
+         reason: ucx 1.22.1 security fix before the fix of slurm@el10</pre>
+<p><code>repoctl help urgent</code> prints the steps:</p>
+<pre class="term">URGENT
+
+Publish a fix fast, while another node of the target is not ready.
+  1. Commit the fix in packages/DIR and push the package branch.
+  2. repoctl pin DIR, then commit and push repoctl.lock.
+  3. repoctl build DIR --target TARGET
+  4. repoctl publish --target TARGET --dry-run
+     A node that is not current or staged stops it: publish.not-ready.
+  5. repoctl publish --target TARGET --hold NODE --reason "TEXT"
+     Each held node keeps its published build for this publish only.
+  6. repoctl status          served: same after the mirror job ran
+The held nodes build again with the next plan. Fix them, then publish.</pre>
 
 <h2 id="admins">Two admins</h2>
 <p>Changes are rare, and the team coordinates in its own channel. Thus repoctl has no lease in the registry. The set lock is a local lock. It protects the processes of one user on one host (<a href="build.html#lock">build.html#lock</a>).</p>
@@ -385,7 +413,8 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
   <li>the signer with its deployment record,</li>
   <li>one row per changed source package: published NVR, new NVR and RPM count, then the totals and the count of unchanged packages,</li>
   <li>the sign counts per key: new, keep and re-sign,</li>
-  <li>the checks: the inputs (the set commit and the package commits are pushed), the trust state, gates 1 to 3, the signer probe and the advisory gate.</li>
+  <li>the checks: the inputs (the set commit and the package commits are pushed), the trust state, gates 1 to 3, the signer probe and the advisory gate,</li>
+  <li>when the publish holds a node, the held nodes with the NVR that each keeps and the reason (<a href="#urgent">urgent fix</a>).</li>
 </ul>
 <p>When the key file changes, the trust block (<a href="signing.html#trust-block">signing.html#trust-block</a>) replaces "trust no change". A retired package that still has RPMs in the repository shows as "retired: N packages still published" (<a href="lifecycle.html#retire">lifecycle.html#retire</a>). The story publish of el9:</p>
 <pre class="term">$ repoctl publish --target el9
@@ -421,7 +450,7 @@ Next: repoctl status</pre>
 <tr><td>Tags</td><td><code>latest</code>, and one tag per publish id, for example <code>p-20261103-1412-5e1</code>. The package name holds the set and the target, so the tags do not repeat them.</td></tr>
 <tr><td>artifactType</td><td><code>application/vnd.repoctl.repo.v1</code></td></tr>
 <tr><td>Layers</td><td>One blob per file. The annotation <code>org.opencontainers.image.title</code> gives the path in the tree, for example <code>slurm/Packages/u/ucx-1.22.1-1.el9.x86_64.rpm</code>.</td></tr>
-<tr><td>Annotations</td><td><code>org.opencontainers.image.source</code> (the GitHub repository of the set), <code>io.repoctl.set</code>, <code>.target</code>, <code>.publish</code>, <code>.kind</code> (publish, restore, prune, resign, import), <code>.parent</code> (digest of the base), <code>.set-commit</code>, <code>.signer</code> (full fingerprint), <code>.user</code>, <code>.host</code>, <code>.created</code>, <code>.repoctl-version</code>, <code>.advisories.accepted</code> (the acceptances of this publish, with the reason). An unattended publish also records <code>unattended: true</code> with the trace parent.</td></tr>
+<tr><td>Annotations</td><td><code>org.opencontainers.image.source</code> (the GitHub repository of the set), <code>io.repoctl.set</code>, <code>.target</code>, <code>.publish</code>, <code>.kind</code> (publish, restore, prune, resign, import), <code>.parent</code> (digest of the base), <code>.set-commit</code>, <code>.signer</code> (full fingerprint), <code>.user</code>, <code>.host</code>, <code>.created</code>, <code>.repoctl-version</code>, <code>.advisories.accepted</code> (the acceptances of this publish, with the reason), <code>.held</code> (the held nodes of this publish, with the reason). An unattended publish also records <code>unattended: true</code> with the trace parent.</td></tr>
 </tbody>
 </table>
 <figure class="diagram">
@@ -475,7 +504,7 @@ Next: repoctl status</pre>
 <tr><td><code>p-import-20260828</code></td><td>import of the bash-era repository</td><td>d.klein@hpc-a1</td><td>hpc-repo</td><td>48</td><td>48</td></tr>
 </tbody>
 </table>
-<p>The annotations go away when gc deletes a snapshot. Thus the RepoManifest of each snapshot also holds the publish history <code>history[]</code>: one entry per publish of the chain, with the publish id, the kind, the human, the host, the signer, the set commit, each acceptance with its reason and each trust change. Each snapshot copies the list from its base and adds its own entry. The list is in the signed repodata, and latest always holds it. Thus latest is the full audit record of the target, also for the snapshots that gc deleted (<a href="model.html#manifest">model.html#manifest</a>). <code>repoctl repo snapshots --history</code> lists it.</p>
+<p>The annotations go away when gc deletes a snapshot. Thus the RepoManifest of each snapshot also holds the publish history <code>history[]</code>: one entry per publish of the chain, with the publish id, the kind, the human, the host, the signer, the set commit, each acceptance with its reason, each held node with its reason and each trust change. Each snapshot copies the list from its base and adds its own entry. The list is in the signed repodata, and latest always holds it. Thus latest is the full audit record of the target, also for the snapshots that gc deleted (<a href="model.html#manifest">model.html#manifest</a>). <code>repoctl repo snapshots --history</code> lists it.</p>
 <h3 id="removed">RepoManifest and removed[]</h3>
 <p>The RepoManifest (<a href="model.html#manifest">model.html#manifest</a>) is in the repodata of the binary repository (<code>slurm/</code>) only. Its entries list the source RPM and the debuginfo RPMs, so slurm-source and slurm-debuginfo need no manifest of their own.</p>
 <p>The RepoManifest has the list <code>removed[]</code>. Each entry has the NVR, the sha256 of each RPM, the publish id and the reason (prune or restore). Each new snapshot copies the list from its base. Thus plan and publish know each NVR that clients can still have, also when the repository no longer holds it. Publish refuses a build that gives such an NVR again with other content (<code>nvr.removed</code>, exit 12).</p>

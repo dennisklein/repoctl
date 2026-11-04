@@ -2383,6 +2383,29 @@
                   }
                 }
               },
+              "held": {
+                "type": "array",
+                "description": "The held nodes of this publish: each keeps its build in the base (publish --hold).",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "node",
+                    "reason"
+                  ],
+                  "properties": {
+                    "node": {
+                      "$ref": "#/$defs/NodeId"
+                    },
+                    "nvr": {
+                      "type": "string",
+                      "description": "The NVR that the node keeps; absent when the base has no build of it."
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
               "sign": {
                 "type": "object",
                 "properties": {
@@ -4113,6 +4136,29 @@
               },
               "factsDigest": {
                 "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "held": {
+          "type": "array",
+          "description": "The held nodes of this publish: each keeps its build in the base (publish --hold).",
+          "items": {
+            "type": "object",
+            "required": [
+              "node",
+              "reason"
+            ],
+            "properties": {
+              "node": {
+                "$ref": "#/$defs/NodeId"
+              },
+              "nvr": {
+                "type": "string",
+                "description": "The NVR that the node keeps; absent when the base has no build of it."
               },
               "reason": {
                 "type": "string"
