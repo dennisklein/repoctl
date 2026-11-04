@@ -305,7 +305,7 @@
 <p>After the gates, publish checks the signers of the base. An RPM of a removed or revoked key gives <code>sign.removed-signer</code> (exit 12). An RPM of an unknown key, or without a signature, gives <code>sign.unknown-signer</code> (exit 10) with the file names (<a href="#resign">re-sign rules</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: first publish</p>
-<p>Gate 2 does not apply when the registry has no snapshot of the target and the publish is not an import. No client uses such a target yet. The summary then says "first publish of el10: no clients yet; the signer must be in the key file of this release". A key that a publish adds can never sign that publish.</p>
+<p>Gate 2 does not apply when the registry has no snapshot of the target, the local copy has none, <code>keys/deployed.yaml</code> has no record for the target, and the publish is not an import. No client uses such a target yet. When the local copy or a record exists, the OCI package is lost, and publish stops with <code>snapshot.missing</code> (<a href="publish.html#disaster">publish.html#disaster</a>). The summary then says "first publish of el10: no clients yet; the signer must be in the key file of this release". A key that a publish adds can never sign that publish.</p>
 </aside>
 <p>Gate 2 reads only the committed record. The record is in the pushed set commit (<a href="publish.html#checks">publish.html#checks</a>). Publish also stops when the remote branch has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit (<code>sign.trust-behind</code>, exit 13, <a href="security.html#remote-tip">security.html#remote-tip</a>). Thus each publish reads the newest record, and all admins see the same record.</p>
 <aside class="callout why">

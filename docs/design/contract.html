@@ -167,7 +167,7 @@
 <tr><td>target</td><td><code>TargetId</code></td><td>a target id of repoctl.yaml</td><td><code>el9</code></td></tr>
 <tr><td>node</td><td><code>NodeId</code></td><td><code>DIR@TARGET</code></td><td><code>slurm@el10</code></td></tr>
 <tr><td>run</td><td><code>RunId</code></td><td><code>r-YYYYMMDD-HHMM-xxx</code> (build, check, gc), <code>p-YYYYMMDD-HHMM-xxx</code> (publish)</td><td><code>r-20261102-1750-a3f</code></td></tr>
-<tr><td>publish id</td><td><code>Snapshot.publish</code></td><td>the id of the publish run; an import has <code>p-import-YYYYMMDD</code></td><td><code>p-20261103-1412-5e1</code></td></tr>
+<tr><td>publish id</td><td><code>Snapshot.publish</code></td><td>the id of the publish run; an import has <code>p-import-YYYYMMDD</code>, a re-seed <code>p-reseed-YYYYMMDD</code></td><td><code>p-20261103-1412-5e1</code></td></tr>
 <tr><td>advisory</td><td><code>Advisory.id</code></td><td><code>CODE/SUBJECT</code>; the subject is a node, a dir or a key id</td><td><code>closure.broken/pmix@el9</code>, <code>sign.expiring/d.klein</code></td></tr>
 <tr><td>key</td><td><code>Signer.keyId</code></td><td>an id in <code>sign.keys</code></td><td><code>d.klein</code></td></tr>
 <tr><td>fingerprint</td><td><code>Signer.fingerprint</code></td><td>OpenPGP v4, 40 upper-case hex digits</td><td><code>4E7A0C93…41D80B6E</code></td></tr>
@@ -190,7 +190,7 @@
 <tr><td>AdvisoryCode</td><td><code>soname.removed</code> <code>closure.broken</code> <code>provider.changed</code> <code>abi.changed</code> <code>sign.expiring</code> <code>buildroot.drift</code> <code>mock.drift</code> <code>upstream.release</code> <code>retired.published</code></td><td><a href="advisories.html#codes">Codes</a></td></tr>
 <tr><td>AdvisoryLevel; AdvisoryState</td><td><code>info</code> <code>warn</code> <code>required</code>; <code>pending</code> <code>open</code> <code>dismissed</code></td><td><a href="advisories.html#states">Advisory states</a></td></tr>
 <tr><td>local copy; served tree</td><td><code>same</code> <code>behind</code> <code>unpushed</code> <code>none</code>; <code>same</code> <code>behind</code> <code>unknown</code></td><td><a href="publish.html#freshness">Freshness check</a></td></tr>
-<tr><td>publishKind</td><td><code>publish</code> <code>restore</code> <code>prune</code> <code>resign</code> <code>import</code></td><td><a href="publish.html#format">Snapshot format</a></td></tr>
+<tr><td>publishKind</td><td><code>publish</code> <code>restore</code> <code>prune</code> <code>resign</code> <code>import</code> <code>reseed</code></td><td><a href="publish.html#format">Snapshot format</a></td></tr>
 <tr><td>publish step</td><td><code>check</code> <code>sign</code> <code>repodata</code> <code>verify</code> <code>verify-el</code> <code>push</code> <code>tag</code> <code>cache</code></td><td><a href="publish.html#order">Publish order</a></td></tr>
 <tr><td>key state</td><td><code>active</code> <code>retiring</code> <code>removed</code> <code>revoked</code></td><td><a href="signing.html#lifecycle">Key lifecycle</a></td></tr>
 <tr><td>UpstreamStatus</td><td><code>up-to-date</code> <code>update-available</code> <code>ahead</code> <code>frozen</code> <code>unknown</code></td><td><a href="cli.html#cmd-upstream">repoctl upstream</a></td></tr>
@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 106 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 108 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -372,6 +372,8 @@
 <tr><td><code>skills.guard</code></td><td>warning in doctor</td><td>A skill of repoctl is installed, or the plugin is on, and no guard hook covers the set directory. Or the deny list of a settings file differs from the list of the binary.</td><td><code>repoctl skills install</code> with the same scope (<a href="agents.html#guard">Guard hook</a>).</td></tr>
 <tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
 <tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
+<tr><td><code>snapshot.exists</code></td><td>13</td><td><code>repo push --from</code> or <code>--reseed</code>: the registry has a snapshot of the target.</td><td>Use publish. These forms work only on an empty package.</td></tr>
+<tr><td><code>snapshot.missing</code></td><td>13; warning in plan, build, status</td><td>The registry has no snapshot of the target, but the local copy or <code>keys/deployed.yaml</code> says that it was published. The OCI package is lost.</td><td>Re-seed it: <code>repoctl repo push --reseed --target ID</code> (<code>repo-push</code>, <a href="publish.html#disaster">Registry outage and loss</a>).</td></tr>
 <tr><td><code>snapshot.not-found</code></td><td>1</td><td>REF names no snapshot of the target: no tag, publish id or digest has this value.</td><td><code>repoctl repo snapshots --all</code></td></tr>
 <tr><td><code>snapshot.orphaned</code></td><td>warning</td><td>The local copy holds a publish of this user that is not on the parent chain of latest. Another publish won the tag race.</td><td><code>repoctl repo pull</code>, then plan and publish again. The staged nodes of that publish are staged again.</td></tr>
 <tr><td><code>snapshot.push-failed</code></td><td>13</td><td>An upload failed. The signed tree stays.</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>)</td></tr>
