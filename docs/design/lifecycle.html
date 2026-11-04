@@ -185,7 +185,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p>The release package <code>slurm-release</code> is in the set tree and has no branch. Thus 10 of the 11 packages get a branch.</p>
 
 <h3 id="setup">Setup state</h3>
-<p>For a set without a snapshot on a target, <code>repoctl status</code> and the Needs you list of the <a href="ui-build.html#overview">Overview</a> show the open setup steps. repoctl computes each step from facts:</p>
+<p>Until each step is done, <code>repoctl status</code> and the Needs you list of the <a href="ui-build.html#overview">Overview</a> show the open setup steps. repoctl computes each step from facts and stores nothing. Thus a step can open again: a new target opens the steps of that target. A retired target has no setup steps.</p>
 <table>
 <thead><tr><th>Step</th><th>Done when</th></tr></thead>
 <tbody>
@@ -195,7 +195,9 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td>Host ready</td><td><code>repoctl doctor</code> has no failed check.</td></tr>
 <tr><td>First publish</td><td>latest exists for each target (<a href="publish.html#format">snapshot names</a>).</td></tr>
 <tr><td>Packages public</td><td>Each OCI package of the set is public and inherits the access of the set repository: the doctor check <code>registry.public</code> is ok (<a href="publish.html#registry">registry access</a>).</td></tr>
+<tr><td>Packages public</td><td>The doctor check <code>registry.public</code> passes: each OCI package of the set is public. An organization owner sets this after the first publish (<a href="publish.html#registry">registry access</a>).</td></tr>
 <tr><td>Served</td><td>The mirror job serves latest at <code>repo.url</code> (<a href="publish.html#mirror">mirror job</a>).</td></tr>
+<tr><td>Release deployed</td><td>For each target with a latest, <code>keys/deployed.yaml</code> has a record of at least one active key (<a href="signing.html#deployment-record">deployment record</a>). From the second publish of a target, gate 2 needs it.</td></tr>
 <tr><td>Check timer</td><td>The timer instance for the set is active on this host (<a href="advisories.html#timer">timer units</a>).</td></tr>
 </tbody>
 </table>
@@ -355,7 +357,11 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Add the entry to <code>targets</code>. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each node of the target has the reason <code>new-target</code>.</li>
 <li>Run <code>repoctl build</code> and <code>repoctl publish</code>. The first publish makes the first snapshot of the target. No client uses the target yet, so gate 2 does not apply (<a href="signing.html#gates">gates</a>). publish checks this: <code>repo.url</code> serves no repo for the target, and no deployment record exists for it. Example: el10 has no import; its first snapshot is <code>p-20260912-1403-c21</code>.</li>
+<li>Ask an organization owner to set the new OCI package to public and to turn on the inherited access. <code>repoctl doctor</code> shows <code>registry.public</code> until it is done (<a href="publish.html#registry">registry access</a>). The mirror job pulls only a public package.</li>
 <li>Add the target to the mirror job (<a href="publish.html#mirror">mirror job</a>).</li>
+<li>Install the release package on the clients of the target (config management).</li>
+<li>Confirm the deployment for each active key: <code>repoctl sign deployed KEY --release NVR --target el10</code>. From the second publish of the target, gate 2 needs this record (<a href="signing.html#deployment-record">deployment record</a>).</li>
+<li>Run <code>repoctl status</code>. Expect: no open setup step for the target (<a href="#setup">setup state</a>).</li>
 </ol>
 <p>Retire a target, for example el9 when all its clients use el10. Do not delete the entry: the repo commands find the OCI package of the target through it.</p>
 <ol class="steps">
@@ -506,7 +512,8 @@ that gets the commit.
  13. Add one mirror line per target to the mirror job on the HTTP
      server, and put the key file of the release at its keyring.
  14. Install the release package on the clients (config management),
-     then confirm it: repoctl sign deployed KEY --release NVR --target T
+     then confirm it for each active key and target:
+     repoctl sign deployed KEY --release NVR --target T
  15. repoctl check --install-timer
 
 repoctl status lists the steps that are still open.</pre>
