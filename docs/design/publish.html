@@ -321,6 +321,29 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 </tbody>
 </table>
 <p>The hints of each code are in <a href="contract.html#problems">contract.html#problems</a>. The exit codes are in <a href="cli.html#exit">cli.html#exit</a>.</p>
+<h3 id="per-kind">Checks and steps per publish kind</h3>
+<p>The table above gives the checks of kind publish. Restore, prune, resign and import are publish runs with the same eight steps, but with other checks and other actions in steps 2 and 3. Each kind signs <code>repomd.xml</code>, so each kind runs gates 1 to 3, the signer probe, verify and verify-el.</p>
+<table class="compact">
+<thead><tr><th>Check or step</th><th>publish</th><th>restore</th><th>prune</th><th>resign</th><th>import</th></tr></thead>
+<tbody>
+<tr><td>Staged nodes</td><td>takes them</td><td>takes none</td><td>takes none</td><td>takes none</td><td>takes none</td></tr>
+<tr><td><code>lock.dirty</code></td><td>applies</td><td>applies</td><td>applies</td><td>applies</td><td>applies</td></tr>
+<tr><td><code>lock.unpushed</code></td><td>the set commit and each pinned package commit</td><td>the set commit only</td><td>the set commit only</td><td>the set commit only</td><td>the set commit only</td></tr>
+<tr><td>Freshness (<code>state.*</code>)</td><td>applies</td><td>applies</td><td>applies</td><td>applies</td><td>replaced: the registry has no snapshot of the target</td></tr>
+<tr><td><code>publish.not-ready</code></td><td>applies</td><td>skipped: no node is taken</td><td>skipped</td><td>skipped</td><td>skipped</td></tr>
+<tr><td><code>nvr.reused</code>, <code>nvr.removed</code>, <code>nvr.older</code></td><td>applies</td><td>skipped: no new build</td><td>skipped</td><td>skipped</td><td>skipped</td></tr>
+<tr><td>Advisory gate</td><td>applies</td><td>skipped: the summary lists each new broken requirement as info</td><td>replaced: no new broken requirement (<code>prune.unsafe</code>)</td><td>skipped: the NVRs and the payloads do not change</td><td>skipped: no base</td></tr>
+<tr><td>Gates 1 to 3, signer probe</td><td>applies</td><td>applies</td><td>applies</td><td>applies</td><td>applies; gate 2 reads the record of the old key</td></tr>
+<tr><td>Signers of the base</td><td>applies</td><td>replaced: RPMs of REF from a removed key get a new signature; an unknown signer refuses</td><td>applies to the kept RPMs</td><td>replaced: the RPMs of the key ID get a new signature, also when ID is removed</td><td>replaced: each RPM verifies with <code>sign.keys</code></td></tr>
+<tr><td>Trust block</td><td>when the release package has a new key file</td><td>when the newest release NVR of the result tree has another key file than the base</td><td>never: the newest release NVR stays</td><td>never</td><td>never: no base</td></tr>
+<tr><td>Step 2, sign</td><td>copy the base, add the RPMs of the staged nodes, sign the new RPMs</td><td>download the missing blobs of REF, copy REF and the kept release NVRs, re-sign the RPMs of removed keys</td><td>copy the base without the selected NVRs; sign no RPM</td><td>copy the base, re-sign the RPMs of the key ID</td><td>copy DIR and keep its RPM signatures</td></tr>
+<tr><td>Step 3, RepoManifest</td><td>add one <code>builds[]</code> entry and the records of each new build</td><td>the <code>builds[]</code> entries and records of REF and of the kept release NVRs; each NVR of the base that leaves goes into <code>removed[]</code> (reason restore); an NVR that comes back leaves <code>removed[]</code></td><td>a build whose RPMs all leave moves from <code>builds[]</code> to <code>removed[]</code> (reason prune); a prune of one repository (<code>--repo</code>) removes only those files from <code>builds[].rpms</code> and adds their sha256 to <code>removed[]</code></td><td><code>builds[].signer</code> gets the new fingerprint for each build whose binary RPMs it re-signs; new records for each build that it touches</td><td>the <code>builds[]</code> entries of FILE (reason <code>adopted</code>) and the SBOM of each adopted build</td></tr>
+</tbody>
+</table>
+<aside class="callout why">
+<p class="callout-title">Why</p>
+<p>Restore and prune take no node, so a failed or unbuilt node never blocks an emergency restore. Restore returns to a known snapshot, so an open advisory does not block it. Each kind writes a new <code>repomd.xml.asc</code> with the key of the human, so the signer gates always apply.</p>
+</aside>
 <h3 id="first-publish">First publish and import</h3>
 <p>A first publish of a target has no base: the registry has no snapshot of the target. The freshness check passes. Gate 2 does not apply, because no client uses the target yet. In the story, the first snapshot of el10 is <code>p-20260912-1403-c21</code>.</p>
 <p>An import of an existing repository is different, because clients of the old repository exist. <code>repoctl repo push --from DIR --manifest FILE --target ID</code> makes the first snapshot of a target from a signed tree.</p>
@@ -476,7 +499,7 @@ Next: repoctl status</pre>
 
 <h2 id="retention">Keep all versions and prune</h2>
 <p>Publish adds to the repository. It never deletes. All old versions stay, as with <code>createrepo_c --update</code> in the bash scripts. Clients can still install each old version. Step 4 enforces this rule: a file of the base that is not in the new tree gives <code>verify.failed</code>, also when the local copy lost the file (<a href="#order">publish order</a>).</p>
-<p><code>repoctl repo prune</code> removes NVRs only on request. The dry run is the default, and <code>--apply</code> acts. With <code>--apply</code>, prune is a publish run of kind prune: steps 1 to 8 make a new snapshot without the selected NVRs. The NVRs go into <code>removed[]</code>. Old snapshots still hold the files until gc deletes these snapshots. The selectors combine:</p>
+<p><code>repoctl repo prune</code> removes NVRs only on request. The dry run is the default, and <code>--apply</code> acts. With <code>--apply</code>, prune is a publish run of kind prune: steps 1 to 8 make a new snapshot without the selected NVRs (<a href="#per-kind">checks per kind</a>). The NVRs go into <code>removed[]</code>. Old snapshots still hold the files until gc deletes these snapshots. The selectors combine:</p>
 <table class="compact">
 <thead><tr><th>Selector</th><th>Effect</th></tr></thead>
 <tbody>
@@ -498,7 +521,7 @@ Next: repoctl status</pre>
 <h2 id="restore">Restore and fix forward</h2>
 <p>To take back a bad build, fix forward: make a new commit or a rebuild (<a href="build.html#rebuild">build.html#rebuild</a>), so that the release goes up, and publish. Clients then update to the fix. This is the normal way back.</p>
 <p>A revert of a version bump gives a lower NVR, for example ucx 1.22.0 after 1.22.1. dnf never installs a lower NVR on a client that has the higher one, so publish refuses it with <code>nvr.older</code> (exit 12). To take back a version, raise <code>Epoch</code> in the spec, or give the old code a version that is higher than the bad one. Clients that installed the bad NVR then update to the fix. New clients get the fix.</p>
-<p><code>repoctl repo restore REF</code> is for a broken repository, for example bad repodata. It makes a new snapshot with the files of the older snapshot REF and moves latest to it. latest moves forward to a new digest. It never moves back to the old digest. Restore is a publish run of kind restore: steps 1 to 8, gates 1 and 2, verify and verify-el.</p>
+<p><code>repoctl repo restore REF</code> is for a broken repository, for example bad repodata. It makes a new snapshot with the files of the older snapshot REF and moves latest to it. latest moves forward to a new digest. It never moves back to the old digest. Restore is a publish run of kind restore: steps 1 to 8 with the checks of its kind (<a href="#per-kind">checks per kind</a>), gates 1 to 3, verify and verify-el.</p>
 <ul>
   <li>The summary lists each NVR that leaves the repository. It says that clients keep these NVRs, because dnf does not downgrade.</li>
   <li>These NVRs go into <code>removed[]</code>. After a restore, publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</li>
