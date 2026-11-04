@@ -12,6 +12,7 @@ and it checks all relative links. Python 3 standard library only.
 """
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -819,6 +820,13 @@ class Site:
                             f'<path d="{esc(d["icon"])}"/></symbol>')
                 self.symbol_ids.add(f"gl-i-{key}")
         self.svg_defs = SVG_DEFS.replace("{symbols}", symbols)
+        # A version of the site CSS and scripts in their URLs (?v=...): a browser that
+        # holds an old copy (GitHub Pages sends max-age=600) loads the new one.
+        h = hashlib.sha256()
+        for f in sorted((self.src / "assets").glob("*.[cj]s*")):
+            if f.suffix in (".css", ".js"):
+                h.update(f.name.encode() + b"\0" + f.read_bytes())
+        self.asset_v = h.hexdigest()[:10]
 
     def problem(self, msg, kind="other"):
         """A problem that fails the build with --strict."""
@@ -1067,11 +1075,11 @@ class Site:
             doc_title = f'{title} · {self.site["title"]} {self.site["label"].lower()}'
         scripts = []
         if rw.has_code:
-            scripts.append(f'<script src="{root}assets/vendor/highlight.min.js" defer></script>')
+            scripts.append(f'<script src="{root}assets/vendor/highlight.min.js?v={self.asset_v}" defer></script>')
         if gl_used or page == gloss.PAGE:
-            scripts.append(f'<script src="{root}assets/glossary-data.js" defer></script>')
-            scripts.append(f'<script src="{root}assets/glossary.js" defer></script>')
-        scripts.append(f'<script src="{root}assets/site.js" defer></script>')
+            scripts.append(f'<script src="{root}assets/glossary-data.js?v={self.asset_v}" defer></script>')
+            scripts.append(f'<script src="{root}assets/glossary.js?v={self.asset_v}" defer></script>')
+        scripts.append(f'<script src="{root}assets/site.js?v={self.asset_v}" defer></script>')
         commit = self.commit
         commit_html = (f'<a class="footer-commit" href="{esc(self.site["repo"])}/commit/{esc(commit)}">'
                        f'<code>{esc(commit)}</code></a>') if commit else ""
@@ -1094,6 +1102,7 @@ class Site:
             "pager": self.pager(page) if not is_home else "",
             "toc": rail,
             "svg_defs": self.svg_defs,
+            "asset_v": self.asset_v,
             "scripts": "\n".join(scripts),
             "commit": commit_html,
             "source_link": esc(f'{self.site["repo"]}/blob/{self.site.get("branch", "main")}/{src_rel}'),
