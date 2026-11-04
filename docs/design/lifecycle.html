@@ -202,6 +202,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <table class="compact">
 <thead><tr><th>Change</th><th>Commits in</th><th>plan shows</th></tr></thead>
 <tbody>
+<tr><td><a href="#bump">Change a spec or bump a version</a></td><td>package branch, builder branch</td><td><code>commit-changed</code></td></tr>
 <tr><td><a href="#add">Add a package</a></td><td>package branch, builder branch</td><td><code>new-package</code></td></tr>
 <tr><td><a href="#add-external">Add an external package</a></td><td>external server, builder branch</td><td><code>new-package</code></td></tr>
 <tr><td><a href="#stream">Add a second stream</a></td><td>package branch, builder branch</td><td><code>new-package</code></td></tr>
@@ -215,6 +216,21 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td><a href="#targets">Drop a target</a></td><td>builder branch</td><td>no node on that target</td></tr>
 </tbody>
 </table>
+
+<h3 id="bump">Change a spec or bump a version</h3>
+<p>This is the most frequent change. Example: ucx 1.22.0 to 1.22.1 in the story (<a href="build.html#story">story run</a>).</p>
+<ol class="steps">
+<li>Run <code>repoctl status</code>. The worktree of DIR must be <code>in-sync</code> on its local branch. If not, run <code>repoctl checkout DIR</code> first.</li>
+<li>Change the spec in <code>packages/DIR</code>, for example <code>Version</code>. Do not change <code>Release</code>: <code>%autorelease</code> computes it.</li>
+<li>Run <code>git -C packages/DIR commit -am "Bump to VERSION"</code>. Repository: the package branch. Optional: try the commit with <code>repoctl build DIR --from worktree</code>. That run is unpinned and never publishable.</li>
+<li>Run <code>git -C packages/DIR push origin BRANCH</code>.</li>
+<li>Run <code>repoctl pin DIR</code>.</li>
+<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>commit-changed</code> on each of its targets.</li>
+<li>Run <code>repoctl build</code>. Read the soname result of each node of DIR (<a href="build.html#soname">soname check</a>). "sonames unchanged" means that no dependent needs a rebuild. An advisory <code>soname.removed</code> names the dependents: follow the <a href="advisories.html#recovery">recovery path</a>.</li>
+<li>Run <code>repoctl publish</code>.</li>
+<li>Run <code>repoctl status</code>. Expect: "served same" after the next run of the mirror job (<a href="publish.html#mirror">mirror job</a>).</li>
+</ol>
 
 <h3 id="add">Add a package in this repository</h3>
 <ol class="steps">
@@ -428,6 +444,15 @@ repoctl status lists the steps that are still open.</pre>
 <h3 id="help-packages">repoctl help packages</h3>
 <pre class="term">PACKAGES
 
+Change a spec or bump a version:
+  1. repoctl status         DIR is in-sync; else repoctl checkout DIR
+  2. edit the spec; git -C packages/DIR commit -am "Bump to X"   package branch
+  3. git -C packages/DIR push origin BRANCH
+  4. repoctl pin DIR
+  5. git commit repoctl.lock; git push                builder branch
+  6. repoctl plan           expect: DIR "commit-changed"
+  7. repoctl build          read the soname result of DIR
+  8. repoctl publish; repoctl status    expect: served same
 Add a package in this repository:
   1. add dir, branch, upstream to repoctl.yaml
   2. repoctl checkout --create DIR --from fedora      (or --orphan)
