@@ -2431,6 +2431,13 @@
               "pushable": {
                 "type": "boolean",
                 "description": "The kept tree of this target passed verify and verify-el, and step 8 is not done. repo push completes it. The state file publishes/<publish>/state.json holds the same Run."
+              },
+              "rebuild": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Dir"
+                },
+                "description": "Restore only: the dirs whose locked commit built an NVR that left the repository. Each needs repoctl rebuild or an older pin before the next publish, else nvr.removed."
               }
             }
           }
