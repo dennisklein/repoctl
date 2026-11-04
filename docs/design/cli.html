@@ -577,7 +577,7 @@ $ repoctl graph --target el9 --format dot | dot -Tsvg &gt; el9.svg</pre>
   <h4><code>repoctl plan</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl plan [SELECTOR...] [--with-deps] [--rdeps] [--force] [--from lock|worktree] [--check]</pre>
   <p>Show what <code>repoctl build</code> with the same arguments does, and why. Each node gets one plan action, and a build node gets its plan reasons (<a href="build.html#plan">build.html#plan</a>). The base is the manifest in the local copy of latest. plan builds nothing. Rows of a package with the same action and reason on all targets merge; current nodes fold into one line per target. <code>--check</code> gives exit 11 when a node has the action build.</p>
-  <dl class="facts"><dt>Lock</dt><dd>no set lock; the host mock lock, shared</dd><dt>Reads</dt><dd>the digest of latest; without network, a warning and the local copy</dd><dt>Output</dt><dd>kind <code>Plan</code></dd><dt>Exit</dt><dd>0; 1; 2; 7 <code>mock.busy</code>; 11 with <code>--check</code>; 13 <code>state.behind</code></dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>no set lock; the host mock lock, shared</dd><dt>Reads</dt><dd>the digest of latest; without network, a warning and the local copy</dd><dt>Output</dt><dd>kind <code>Plan</code></dd><dt>Exit</dt><dd>0; 1; 2; 5 <code>lock.dirty</code>, as build gives it; 7 <code>mock.busy</code>; 11 with <code>--check</code>; 13 <code>state.behind</code></dd></dl>
   <pre class="term">$ repoctl plan                           # 2026-11-02 17:49
 plan  slurm-26.05  from repoctl.lock  base latest p-20260912-1403-c21 (local copy same)
 PACKAGE                 TARGETS   ACTION  REASON

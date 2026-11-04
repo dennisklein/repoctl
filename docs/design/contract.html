@@ -308,7 +308,7 @@
 <tr><td><code>host.not-ready</code></td><td>9</td><td>A required host check failed.</td><td><code>repoctl doctor</code> (<code>install-tool</code>)</td></tr>
 <tr><td><code>journal.sampling-stopped</code></td><td>warning</td><td>The journal is 32 MiB. No more <code>node.log</code> lines come.</td><td>The node log has the full text.</td></tr>
 <tr><td><code>lock.behind</code></td><td>5 in <code>pin DIR</code>; warning in <code>pin</code></td><td>The worktree HEAD is an ancestor of the lock commit. pin does not write the older commit back.</td><td><code>repoctl checkout DIR</code>; <code>repoctl pin DIR --older</code> pins the older commit on purpose.</td></tr>
-<tr><td><code>lock.dirty</code></td><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed.</td><td>The exact git commands (<code>commit-worktree</code>, <code>commit-lock</code>).</td></tr>
+<tr><td><code>lock.dirty</code></td><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed. Plan and build give it for a selected worktree.</td><td>The exact git commands (<code>commit-worktree</code>, <code>commit-lock</code>).</td></tr>
 <tr><td><code>lock.diverged</code></td><td>5</td><td>pin: the worktree and the lock commit both have commits that the other does not have.</td><td>Rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code>.</td></tr>
 <tr><td><code>lock.missing-package</code></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line, or publish takes a target that has one.</td><td><code>repoctl pin DIR</code></td></tr>
 <tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin --orphans</code></td></tr>
@@ -365,7 +365,7 @@
 <tr><td><code>upstream.unreachable</code></td><td>1 in check; warning</td><td>An upstream does not answer. The other checks continue.</td><td>Try again later.</td></tr>
 <tr><td><code>verify.el-failed</code></td><td>10</td><td>The check in the EL chroot with the client trust set fails.</td><td>The message names the files.</td></tr>
 <tr><td><code>verify.failed</code></td><td>10</td><td>A signature, a checksum or the repodata is wrong.</td><td>The message names the files.</td></tr>
-<tr><td><code>worktree.dirty</code></td><td>warning</td><td>Plan, status, checkout: a worktree is not in-sync with the lock. The plan uses the lock. checkout keeps the worktree (exit 0).</td><td>Commit and pin.</td></tr>
+<tr><td><code>worktree.dirty</code></td><td>warning</td><td>Status, checkout; plan for a worktree that no selected node uses: a worktree is not in-sync with the lock. The plan uses the lock. checkout keeps the worktree (exit 0).</td><td>Commit and pin.</td></tr>
 <tr><td><code>worktree.missing</code></td><td>warning</td><td>The worktree of a package is not there.</td><td><code>repoctl checkout DIR</code></td></tr>
 </tbody>
 </table>
