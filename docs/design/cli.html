@@ -395,12 +395,14 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
   <pre class="synopsis">repoctl init [--name NAME] [--repo NAME] [--add-target ID=MOCKCFG]... [--force]
 repoctl init --from SET --name NAME [--force]</pre>
   <p>Write a starter <code>repoctl.yaml</code> and an empty <code>repoctl.lock</code> in the start directory (<a href="config.html#set-config">config.html#set-config</a>). init creates no branch and no worktree. Without <code>--from</code>, the default target is <code>el9=rocky+epel-9-x86_64</code>, and <code>--repo</code> defaults to the first part of the set name.</p>
-  <p>With <code>--from SET</code>, init forks a set directory or a builder branch. It replaces the old set name in each branch name and keeps the other keys. init lists a branch without the old set name as "shared branch". It does not copy <code>repoctl.lock</code> or <code>.repoctl/advisories.yaml</code> (<a href="lifecycle.html#init-from">lifecycle.html#init-from</a>).</p>
+  <p>With <code>--from SET</code>, init forks a set directory or a builder branch. It replaces the old set name in each branch name and keeps the other keys. init lists a branch without the old set name as "shared branch". It keeps the active keys and drops the retiring and removed keys. It writes an empty <code>repoctl.lock</code> and does not copy <code>.repoctl/advisories.yaml</code> or <code>keys/deployed.yaml</code>; in a fork, it deletes them (<a href="lifecycle.html#init-from">lifecycle.html#init-from</a>).</p>
   <p>init ends with a <code>Next:</code> list. With <code>--from</code>, it is <code>repoctl help new-set</code> from step 3. Without <code>--from</code>, it is the steps of <code>repoctl help packages</code> for the first package (<a href="lifecycle.html#help">lifecycle.html#help</a>).</p>
-  <dl class="facts"><dt>Lock</dt><dd>none (no set yet)</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>repoctl.lock</code>; with <code>--from</code> also the macro files and the release package</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1 the file exists (without <code>--force</code>) or no git work tree; 2</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>none (no set yet)</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>repoctl.lock</code>; with <code>--from</code> also the macro files, the release package and the key files of the kept keys; in a fork, it deletes <code>.repoctl/advisories.yaml</code>, <code>keys/deployed.yaml</code> and the key files of the dropped keys</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1 the file exists (without <code>--force</code>) or no git work tree; 2</dd></dl>
   <pre class="term">$ repoctl init --from builder/slurm-26.05 --name slurm-26.11
 wrote repoctl.yaml   set slurm-26.11, 10 branches renamed (slurm-26.05 → slurm-26.11), 0 shared branches
-note: repoctl.lock and .repoctl/advisories.yaml are not copied
+wrote repoctl.lock   empty
+dropped key hpc-repo (retiring): no RPM of the new set carries it
+deleted .repoctl/advisories.yaml, keys/deployed.yaml, keys/hpc-repo.asc
 Next: steps 3 to 14 of "repoctl help new-set":
    3. set repo.url in repoctl.yaml; edit the release package: Version 26.11; repoctl release write
    4. git commit -am "feat: start set slurm-26.11"            builder branch
