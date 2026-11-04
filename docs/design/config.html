@@ -224,6 +224,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
   <li>A package has exactly one of <code>branch</code> and <code>path</code>.</li>
   <li>At most one package has <code>role: release</code>, and that package has <code>path</code>. Else <code>config.invalid</code>, exit 1. The release package is in-tree (<a href="signing.html#release">signing.html#release</a>).</li>
   <li>A target that has a latest stays in <code>targets</code>. To stop it, set <code>state: retired</code>. Without the entry, no repoctl command can act on its OCI package.</li>
+  <li><code>name</code> and <code>targets[].id</code> never change after the first publish. They give the OCI package <code>STORE/SET-TARGET</code>, the XDG paths, the set lock and <code>sets.NAME</code> of the user config. A new name or id gives a new OCI package without the history of the old one. The first publish of that package stops with <code>set.renamed</code>, because the served tree names the old set or target (<a href="signing.html#gates">rule: first publish</a>). To rename a set, start a new set. To rename a target, add a new target and retire the old one (<a href="lifecycle.html#rename">rename</a>).</li>
   <li>Package facts (upstream repository, tag filter, notes) live in this file, not in a skill. Thus the CLI and the skills read the same facts.</li>
   <li>publish needs <code>repo.url</code>, <code>store.oci</code>, <code>sign.keys</code> and <code>sign.release.keyfile</code>. doctor warns when one is missing.</li>
 </ul>

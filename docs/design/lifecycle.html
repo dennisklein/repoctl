@@ -317,6 +317,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>repoctl pin</code>. The worktree is in-sync, so pin writes only the new branch into the line. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 </ol>
+<p>Rename a set or a target: repoctl does not do this. The set name and the target id are in the OCI package name, so they never change after the first publish (<a href="config.html#rules">config rules</a>). To rename a set, start a new set (<a href="#help-new-set">help new-set</a>) and end the old one (<a href="#end-set">End a set</a>). To rename a target, add a target with the new id and retire the old one (<a href="#targets">Add or retire a target</a>).</p>
 
 <h3 id="move">Move a package to another source</h3>
 <p>A package has one of three sources: a path in the set tree (in-tree), a branch in the set repository, or a branch on an external server. rpmautospec computes the release from the history, so a move keeps the history. The plan result depends on the commits (<a href="model.html#manifest">match key</a>):</p>
@@ -353,7 +354,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>Add the entry to <code>targets</code>. Commit and push. Repository: the builder branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each node of the target has the reason <code>new-target</code>.</li>
-<li>Run <code>repoctl build</code> and <code>repoctl publish</code>. The first publish makes the first snapshot of the target. No client uses the target yet, so gate 2 does not apply (<a href="signing.html#gates">gates</a>). Example: el10 has no import; its first snapshot is <code>p-20260912-1403-c21</code>.</li>
+<li>Run <code>repoctl build</code> and <code>repoctl publish</code>. The first publish makes the first snapshot of the target. No client uses the target yet, so gate 2 does not apply (<a href="signing.html#gates">gates</a>). publish checks this: <code>repo.url</code> serves no repo for the target, and no deployment record exists for it. Example: el10 has no import; its first snapshot is <code>p-20260912-1403-c21</code>.</li>
 <li>Add the target to the mirror job (<a href="publish.html#mirror">mirror job</a>).</li>
 </ol>
 <p>Retire a target, for example el9 when all its clients use el10. Do not delete the entry: the repo commands find the OCI package of the target through it.</p>
