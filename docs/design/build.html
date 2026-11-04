@@ -297,7 +297,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td>ok</td><td>Each node of the run is ok, current or staged.</td><td>0</td></tr>
 <tr><td>failed</td><td>At least one node failed or is blocked, or the plan stopped with an error.</td><td>3; after a plan error, the exit code of its problem</td></tr>
 <tr><td>canceled</td><td><code>repoctl cancel</code> or Ctrl-C stopped the run (<a href="#cancel">cancel</a>).</td><td>130</td></tr>
-<tr><td>abandoned</td><td>The journal has no <code>run.finished</code>, and the process of the run no longer holds the set lock. Causes: a crash or a second Ctrl-C.</td><td>–</td></tr>
+<tr><td>abandoned</td><td>The journal has no <code>run.finished</code>, and the process of the run no longer holds the set lock. Causes: a crash or a second Ctrl-C. A reader counts the open nodes as canceled (<a href="contract.html#readers">readers</a>).</td><td>–; <code>runs --follow</code> exits 1</td></tr>
 </tbody>
 </table>
 <aside class="callout rule"><p class="callout-title">Rules for the start and the end of a run</p>

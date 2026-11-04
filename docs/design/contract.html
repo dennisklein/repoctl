@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 84 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 85 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -329,6 +329,7 @@
 <tr><td><code>records.missing</code></td><td>1; warning in repo verify</td><td>The build has no record of this type, for example an adopted build without provenance.</td><td>-</td></tr>
 <tr><td><code>registry.denied</code></td><td>13</td><td>The token has no write scope for the OCI package.</td><td>The message names the scope.</td></tr>
 <tr><td><code>registry.unreachable</code></td><td>13; warning in plan, build</td><td>The registry does not answer.</td><td>Plan and build use the local copy.</td></tr>
+<tr><td><code>run.abandoned</code></td><td>1</td><td><code>runs --follow</code>, <code>repoctl_run_wait</code>: the process of the run ended without <code>run.finished</code>.</td><td><code>repoctl mock clean</code></td></tr>
 <tr><td><code>run.not-finished</code></td><td>1</td><td>The run is still active.</td><td><code>repoctl runs RUN --follow</code></td></tr>
 <tr><td><code>run.not-found</code></td><td>1</td><td>No run has this id.</td><td><code>repoctl runs</code></td></tr>
 <tr><td><code>run.staging-missing</code></td><td>1 in publish; warning in plan, build</td><td>A file of a staged node is not in the staging of its run, or has another size or sha256. Plan and build then build the node again (reason <code>staging-missing</code>).</td><td><code>repoctl plan</code>, then <code>repoctl build</code></td></tr>
@@ -527,7 +528,7 @@
 <thead><tr><th>Reader</th><th>Reads</th><th>How</th></tr></thead>
 <tbody>
 <tr><td>terminal display</td><td>the Bus</td><td>cliprogress on stderr, in the process of the run</td></tr>
-<tr><td><code>repoctl runs RUN --follow</code></td><td>journal</td><td><code>eventlog.Tail</code>, then <code>journal.Fold</code>; it ends after <code>run.finished</code></td></tr>
+<tr><td><code>repoctl runs RUN --follow</code></td><td>journal</td><td><code>eventlog.Tail</code>, then <code>journal.Fold</code>; it ends after <code>run.finished</code>, or when the run is abandoned</td></tr>
 <tr><td><code>repoctl logs RUN NODE --follow</code></td><td>node log</td><td>it ends when the node has a terminal state</td></tr>
 <tr><td>web UI</td><td>journal, node log</td><td>one Tail per active run feeds a <code>journal.Fold</code> store, which sends the SSE events (<a href="ui.html#live">Live updates</a>)</td></tr>
 <tr><td>MCP server</td><td>journal</td><td><code>repoctl_run_get</code> and <code>repoctl_run_wait</code> return the folded Run. Progress counts the build nodes with a terminal state.</td></tr>
@@ -537,6 +538,9 @@
 </table>
 <aside class="callout rule"><p class="callout-title">Rule</p>
 <p>A program that shows node state reads it through <code>journal.Fold</code> or through a result that <code>journal.Fold</code> made. Thus <code>repoctl runs</code>, the web UI and the MCP tools always show the same state. MCP resources for runs are in <a href="agents.html#resources">Resources</a>.</p>
+</aside>
+<aside class="callout rule"><p class="callout-title">Rule: a followed run whose process ends</p>
+<p>A tailer checks the holder of the set lock every 2 s: <code>repoctl runs --follow</code>, <code>repoctl_run_wait</code> and the store of the web UI. When no process of the run holds the set lock and the journal has no <code>run.finished</code>, the fold gives the run state abandoned. Its open nodes (waiting, queued, running) count as canceled. <code>repoctl runs --follow</code> then exits 1 with the error <code>run.abandoned</code>. <code>repoctl_run_wait</code> returns at once with the Run and the same error. The web UI shows the finished state abandoned (<a href="ui-build.html#finished">finished runs</a>).</p>
 </aside>
 <aside class="callout rule"><p class="callout-title">Rule: runs of another host</p>
 <p>On a home directory that two hosts share, for example over NFS, the state and data directories hold runs of both hosts. The set lock is per host. The rules for a run whose <code>origin.host</code> is not this host:</p>

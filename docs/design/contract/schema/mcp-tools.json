@@ -259,7 +259,7 @@
     {
       "name": "repoctl_run_wait",
       "title": "Wait for a run",
-      "description": "Wait until a run ends or timeoutSeconds pass, then return the run as repoctl_run_get does. Sends MCP progress notifications (nodes ended of build nodes, from the journal) when the call has a progressToken. If the run is not done when the time ends, call the tool again. Do not poll faster: one call can wait up to 600 seconds.",
+      "description": "Wait until a run ends or timeoutSeconds pass, then return the run as repoctl_run_get does. Sends MCP progress notifications (nodes ended of build nodes, from the journal) when the call has a progressToken. If the run is not done when the time ends, call the tool again. Do not poll faster: one call can wait up to 600 seconds. If the process of the run ended without a result, the call returns at once with state abandoned and the error run.abandoned; the open nodes count as canceled.",
       "inputSchema": {
         "type": "object",
         "required": [
