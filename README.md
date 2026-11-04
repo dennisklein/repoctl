@@ -19,6 +19,7 @@ The source is in [`docs/`](docs/index.html):
 | II How it works | [Build](docs/design/build.html) · [Advisories](docs/design/advisories.html) · [Publish and snapshots](docs/design/publish.html) · [Signing and trust](docs/design/signing.html) · [Sets and packages](docs/design/lifecycle.html) |
 | III Interfaces | [CLI reference](docs/design/cli.html) · [Terminal output](docs/design/terminal.html) · [Machine contract](docs/design/contract.html) · [Agents](docs/design/agents.html) · [Web UI](docs/design/ui.html) · [UI: overview, build, runs](docs/design/ui-build.html) · [UI: packages, publish, signing](docs/design/ui-publish.html) · [Mockup gallery](docs/design/mockups/index.html) |
 | IV Operations | [Import runbook](docs/runbooks/import.html) · [Delivery and verification](docs/design/delivery.html) |
+| V Reviews | [Design completeness review](docs/reviews/completeness.html) |
 
 The JSON Schemas and examples of the machine contract are in
 [`docs/design/contract/`](docs/design/contract/).
