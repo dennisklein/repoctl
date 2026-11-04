@@ -76,6 +76,7 @@
 <tr><td><code>repoctl</code></td><td><code>version</code> and <code>commit</code> of the binary.</td></tr>
 <tr><td><code>run</code></td><td>The run that the command made or read.</td></tr>
 <tr><td><code>targets</code></td><td>The targets of the command, after <code>--target</code>.</td></tr>
+<tr><td><code>next</code></td><td>Lock and File only: the <code>Next:</code> steps of the command, as NextStep objects.</td></tr>
 <tr><td><code>trace</code></td><td>W3C trace id and span id of the command.</td></tr>
 </tbody>
 </table>
@@ -196,7 +197,7 @@
 <tr><td>CheckStatus</td><td><code>ok</code> <code>warning</code> <code>failed</code></td><td><a href="cli.html#cmd-doctor">repoctl doctor</a></td></tr>
 <tr><td>MCP tool class</td><td><code>read</code> <code>staging</code> <code>local-write</code></td><td><a href="model.html#safety">Safety classes</a>; shared state has no tool</td></tr>
 <tr><td><code>HumanAction.action</code></td><td><code>commit-worktree</code> <code>commit-lock</code> <code>confirm</code> <code>trust-change</code> <code>repo-pull</code> <code>repo-push</code> <code>sign-deployed</code> …</td><td><a href="agents.html#human-action">Needs human</a></td></tr>
-<tr><td><code>NextStep.action</code></td><td><code>triage</code> <code>fix-spec</code> <code>rebuild</code> <code>pin</code> <code>commit</code> <code>push</code> <code>build</code> <code>publish</code> <code>cancel</code></td><td><code>Run.next</code>; <code>human: true</code> marks a step for a human</td></tr>
+<tr><td><code>NextStep.action</code></td><td><code>triage</code> <code>fix-spec</code> <code>rebuild</code> <code>pin</code> <code>commit</code> <code>push</code> <code>build</code> <code>publish</code> <code>cancel</code> <code>checkout</code> <code>other</code></td><td><code>next</code> of Status, Run and SignerList, <code>metadata.next</code> of Lock and File (<a href="#kinds">kinds</a>); <code>human: true</code> marks a step for a human. <code>other</code>: <code>command</code> holds the step.</td></tr>
 </tbody>
 </table>
 
@@ -233,6 +234,7 @@
 </tbody>
 </table>
 <p><code>ui</code>, <code>mock</code>, <code>mcp</code> and <code>completion</code> have no <code>--json</code>. <code>schema</code> prints a schema without an envelope.</p>
+<p>The <code>Next:</code> line of a command (<a href="cli.html#next">cli.html#next</a>) is the field <code>next</code>, a list of NextStep objects. A kind with one item holds it in the item: Status, Run and SignerList. A kind with one item per dir or per file holds it in <code>metadata.next</code>: Lock and File. Status also gives each line of <code>repoctl status</code>: <code>set.git.pushed</code>, <code>lockHolder</code>, <code>upstream</code> and <code>signing</code>. Each item of <code>Package.targets[]</code> gives the columns of <code>repoctl show</code> for one target: <code>nvr</code>, <code>dependsOn</code>, <code>usedBy</code>, <code>published</code>, <code>action</code> and <code>reasons</code>.</p>
 <p>A publish run is a Run with <code>kind: publish</code> and a <code>publishKind</code>. Per target, it adds the base, the new snapshot, the gate rows, the sign counts and the eight publish steps. A <code>--dry-run</code> publish gives the same Run with <code>state: planning</code>. <code>repoctl runs</code> lists Runs with empty <code>nodes</code>.</p>
 
 <h2 id="schemas">Schemas</h2>

@@ -353,7 +353,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
   <li><code>hint: WHAT TO DO. run: CMD</code> tells what to do about a finding in this output: an error or a warning. A failed command ends with 0 to 3 hints and has no <code>Next:</code> line.</li>
   <li><code>Next: CMD</code> gives the one next step of the normal path. status computes it from the state and writes it as its last line. pin, rebuild, a successful build and publish write it at the end. init, migrate, sign add, sign deployed and a prune dry run also end with it.</li>
   <li>When the step needs more than one command, the commands follow on indented lines. init and migrate write a numbered list.</li>
-  <li>With <code>--json</code>, the field <code>next</code> of the result holds the step.</li>
+  <li>With <code>--json</code>, the field <code>next</code> holds the step as NextStep objects: in the item of Status, Run and SignerList, and in <code>metadata.next</code> of Lock and File (<a href="contract.html#kinds">contract.html#kinds</a>).</li>
 </ul>
 
 <h2 id="exit">Exit codes</h2>
@@ -428,7 +428,7 @@ Next: check the files, then:
   <pre class="synopsis">repoctl status</pre>
   <p>Show the set and latest of each target, with the state of the local copy and of the served tree. Also show the active or last run, the advisories, the upstream updates, the signing state and the packages that need attention. status runs no mock. It reads the digest of latest with one HEAD request per target and <code>repoctl-snapshot.json</code> of the served tree (<a href="publish.html#freshness">publish.html#freshness</a>). Without network, it shows <code>registry: unknown</code>.</p>
   <p>Only lines with a finding show; <code>-v</code> adds the store, the mock configs, the check, the staging and all package rows. The upstream line counts the open <code>upstream.release</code> advisories. For a target without a snapshot, status lists the open setup steps (<a href="lifecycle.html#setup">lifecycle.html#setup</a>). Hints act on the findings, and the last line is the <code>Next:</code> step.</p>
-  <dl class="facts"><dt>Lock</dt><dd>none; status shows the holder of the set lock</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Status</code></dd><dt>Exit</dt><dd>0; 1. A dirty lock or a local copy that is behind is a finding, not a failure.</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>none; status shows the holder of the set lock</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Status</code>, with <code>lockHolder</code> and <code>next</code></dd><dt>Exit</dt><dd>0; 1. A dirty lock or a local copy that is behind is a finding, not a failure.</dd></dl>
   <pre class="term">$ repoctl status                         # 2026-11-02 17:41, after the ucx commit
 set         slurm-26.05  ~/src/slurm-repo  (builder/slurm-26.05 at 5d81c3e, pushed)
 published   el9 el10  p-20260912-1403-c21  2026-09-12 14:03  local same, served same
@@ -465,7 +465,7 @@ slurm-release           26.05    -        in tree                 el9 el10  -</p
   <h4><code>repoctl show</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl show SELECTOR</pre>
   <p>Show one package: source, lock state, spec, upstream config and notes. For each target, show the NVR, the dependencies, the dependents, the published build and the plan action. The selector must select one package; <code>slurm@el9</code> shows one target. The skills read this view with <code>--json</code>.</p>
-  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache entries</dd><dt>Output</dt><dd>kind <code>Package</code> (one item with <code>targets[]</code>)</dd><dt>Exit</dt><dd>0; 1; 2 the selector selects more than one package</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache entries</dd><dt>Output</dt><dd>kind <code>Package</code> (one item; <code>targets[]</code> holds the row of each target)</dd><dt>Exit</dt><dd>0; 1; 2 the selector selects more than one package</dd></dl>
   <pre class="term">$ repoctl show slurm                     # 2026-11-02 17:49
 package    slurm · branch slurm/slurm-26.05 (origin) · lock d42f66a, worktree in-sync
 upstream   github SchedMD/slurm · tags ^slurm- · fedora slurm

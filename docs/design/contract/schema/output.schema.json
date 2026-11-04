@@ -579,6 +579,13 @@
           },
           "description": "Targets the command looked at, after --target filters."
         },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "description": "Lock and File: the next steps of the command (the Next: lines). Status, Run and SignerList hold next in their item."
+        },
         "trace": {
           "$ref": "#/$defs/TraceRef"
         }
@@ -970,6 +977,10 @@
                 },
                 "dirty": {
                   "type": "boolean"
+                },
+                "pushed": {
+                  "type": "boolean",
+                  "description": "The set commit is on the remote branch of the builder branch."
                 }
               }
             }
@@ -1022,6 +1033,45 @@
             },
             {
               "$ref": "#/$defs/RunSummary"
+            }
+          ]
+        },
+        "lockHolder": {
+          "description": "The holder of the set lock, or null when no process holds it.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "command",
+                "pid",
+                "host",
+                "user",
+                "started"
+              ],
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "The command path, e.g. build."
+                },
+                "pid": {
+                  "type": "integer"
+                },
+                "host": {
+                  "type": "string"
+                },
+                "user": {
+                  "type": "string"
+                },
+                "started": {
+                  "$ref": "#/$defs/Time"
+                },
+                "run": {
+                  "$ref": "#/$defs/RunId"
+                }
+              }
             }
           ]
         },
@@ -1137,6 +1187,63 @@
             }
           }
         },
+        "upstream": {
+          "type": "object",
+          "description": "The open upstream.release advisories.",
+          "properties": {
+            "updates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "dir",
+                  "version"
+                ],
+                "properties": {
+                  "dir": {
+                    "$ref": "#/$defs/Dir"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "signing": {
+          "type": "array",
+          "description": "Keys that need attention: a retiring or removed key that RPMs in latest carry, or a key that expires soon.",
+          "items": {
+            "type": "object",
+            "required": [
+              "keyId",
+              "state"
+            ],
+            "properties": {
+              "keyId": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "retiring",
+                  "removed"
+                ]
+              },
+              "target": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "rpms": {
+                "type": "integer",
+                "description": "RPMs in latest of the target that carry the key."
+              },
+              "expires": {
+                "$ref": "#/$defs/Time"
+              }
+            }
+          }
+        },
         "open": {
           "type": "array",
           "description": "Steps of new-set or onboarding that are not done yet.",
@@ -1158,6 +1265,13 @@
               }
             }
           }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "description": "The Next: step of status, computed from the state."
         }
       }
     },
@@ -1312,8 +1426,71 @@
         },
         "targets": {
           "type": "array",
+          "description": "One object per target of the package, as repoctl show prints it.",
           "items": {
-            "$ref": "#/$defs/TargetId"
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "nvr": {
+                "type": "string",
+                "description": "The NVR of the pinned commit in this chroot."
+              },
+              "dependsOn": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Dir"
+                },
+                "description": "Set packages that this package needs to build on the target."
+              },
+              "usedBy": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Dir"
+                },
+                "description": "Set packages that need this package to build on the target."
+              },
+              "published": {
+                "description": "The build in latest of the target, or null.",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "nvr",
+                      "commit",
+                      "publish"
+                    ],
+                    "properties": {
+                      "nvr": {
+                        "type": "string"
+                      },
+                      "commit": {
+                        "$ref": "#/$defs/Commit"
+                      },
+                      "publish": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              },
+              "action": {
+                "$ref": "#/$defs/PlanAction"
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/PlanReason"
+                }
+              }
+            }
           }
         },
         "versions": {
@@ -3280,8 +3457,11 @@
             "push",
             "build",
             "publish",
-            "cancel"
-          ]
+            "cancel",
+            "checkout",
+            "other"
+          ],
+          "description": "Open enum. other: any other step; command holds it."
         },
         "human": {
           "type": "boolean",
@@ -3881,6 +4061,13 @@
               }
             ]
           }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "description": "sign add, sign deployed: the next steps."
         }
       }
     },
