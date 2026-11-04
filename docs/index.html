@@ -15,7 +15,7 @@
 <p class="hero-tagline">Build signed RPM repositories from a package set.</p>
 </div>
 <div class="hero-side">
-<p class="hero-text">repoctl is one Go binary with a CLI, a local web UI and an MCP server for agents. All three use the same core. repoctl builds each package in a mock chroot with the rpmautospec plugin. It signs the RPMs with personal keys and publishes each repository as a snapshot in GHCR. A mirror job serves the latest snapshot to the clients. repoctl runs on Fedora and builds for EL9 and EL10.</p>
+<p class="hero-text">repoctl is one Go binary with a CLI, a local web UI and an MCP server for agents, all on one core. It builds each package in a mock chroot with the rpmautospec plugin. It signs the RPMs with personal keys and publishes each repository as a snapshot in GHCR. repoctl runs on Fedora and builds for EL9 and EL10.</p>
 <p class="hero-actions"><a class="button button-primary" href="design/decision.html">Read chapter 1</a><a class="button" href="design/mockups/index.html">Mockup gallery</a></p>
 </div>
 </div>
@@ -135,7 +135,7 @@
 <li><a class="decision" href="design/publish.html#topology"><span class="decision-text"><b>GHCR is the authority:</b> each snapshot is one OCI artifact, and a mirror job serves latest over HTTP.</span><span class="decision-link">Publish and snapshots</span></a></li>
 <li><a class="decision" href="design/publish.html#order"><span class="decision-text"><b>Publish has eight steps</b>, and only step 7, the tag, changes what other humans see.</span><span class="decision-link">Publish order</span></a></li>
 <li><a class="decision" href="design/signing.html#choice"><span class="decision-text"><b>Personal signing keys:</b> the clients trust all team keys through the release package, with one signature per file.</span><span class="decision-link">Signing and trust</span></a></li>
-<li><a class="decision" href="design/supply-chain.html#flow"><span class="decision-text"><b>Supply chain records:</b> each build has SLSA provenance and a CycloneDX SBOM in the snapshot, and the repository signature covers them.</span><span class="decision-link">Supply chain records</span></a></li>
+<li><a class="decision" href="design/supply-chain.html#choice"><span class="decision-text"><b>Supply chain records:</b> each build has SLSA provenance and a CycloneDX SBOM in the snapshot, and the repository signature covers them.</span><span class="decision-link">Supply chain records</span></a></li>
 <li><a class="decision" href="design/cli.html#safety"><span class="decision-text"><b>Shared state needs a human:</b> each such command has a dry run, a summary, a confirmation and a journal, and no MCP tool.</span><span class="decision-link">Safety rules</span></a></li>
 <li><a class="decision" href="design/model.html#humans"><span class="decision-text"><b>Fedora hosts, EL targets:</b> each admin builds as an own user or on an own host, without a build queue and without a lease.</span><span class="decision-link">Humans and hosts</span></a></li>
 <li><a class="decision" href="design/ui.html#principles"><span class="decision-text"><b>The web UI is local</b> to one user, and its agent buttons run a fixed skill with a read-only MCP server.</span><span class="decision-link">Web UI</span></a></li>
@@ -178,7 +178,7 @@
 <h2 id="project-status">Status</h2>
 <div class="status-card">
 <span class="status-pill">Design</span>
-<p><strong>Status: design. No code yet.</strong> The delivery phases are in <a href="design/delivery.html#phases">Delivery and verification</a>.</p>
+<p><strong>No code yet.</strong> The delivery phases are in <a href="design/delivery.html#phases">Delivery and verification</a>.</p>
 <a class="button" href="https://github.com/dennisklein/repoctl">Repository on GitHub</a>
 </div>
 </section>

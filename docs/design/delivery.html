@@ -3,22 +3,21 @@
 <head>
 <meta charset="utf-8">
 <title>Delivery and verification</title>
-<meta name="description" content="The delivery phases of repoctl, its requirements, the tests that must pass before the code depends on a fact, the assumptions and the open questions.">
+<meta name="description" content="The delivery phases of repoctl, its requirements, the tests that must pass before the code depends on a fact, the assumptions, the external services and the open questions.">
 </head>
 <body>
 <h1>Delivery and verification</h1>
-<p class="lede">This chapter gives the order in which repoctl is built, the limits of scale, time and disk that the design supports, and the tests that must pass before the code depends on a fact. It also lists the assumptions of the design and the questions that are still open.</p>
+<p class="lede">This chapter gives the delivery phases of repoctl and the limits of scale, time and disk that the design supports. It gives the tests that must pass before the code depends on a fact, the assumptions of the design and the open questions.</p>
 <ul class="keypoints">
-  <li>Eight phases, 0 to 7. Each phase ends with a "done when" in the terms of the data story.</li>
-  <li>Phase 0 puts the tool on branch <code>main</code>, with CI and this docs site on GitHub Pages.</li>
+  <li>Eight phases, 0 to 7. Each phase gives a tool that works on its own and ends with a "done when" in the terms of the data story.</li>
   <li>The bash-era scripts stay on the builder branches until the first publish with repoctl.</li>
+  <li>Each requirement gives a value from the data story and a design limit for scale, time or disk.</li>
   <li>Tests V1 to V34 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
   <li>Each open question names the phase that needs the answer.</li>
-  <li>The requirements give a value from the data story and a design limit for each scale, time and disk row.</li>
 </ul>
 
 <h2 id="phases">Delivery phases</h2>
-<p>Each phase gives a tool that works on its own. A phase starts when the tests that gate it pass (<a href="#verification">verification</a>). The command blocks are in the <a href="cli.html#commands">CLI reference</a>.</p>
+<p>A phase starts when the tests that gate it pass (<a href="#verification">verification</a>). The command blocks are in the <a href="cli.html#commands">CLI reference</a>.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 240" role="img" aria-labelledby="phases-t">
 <title id="phases-t">Delivery phases 0 to 7 and the tests that gate them</title>
@@ -59,71 +58,198 @@
 <line class="edge" x1="464" y1="180" x2="486" y2="180" marker-end="url(#arrow)"/>
 <line class="edge" x1="696" y1="180" x2="718" y2="180" marker-end="url(#arrow)"/>
 </svg>
-<figcaption>The phases in order. The mono labels name the tests that must pass before the phase depends on their facts.</figcaption>
+<figcaption>The phases in order, with the tests that gate each phase.</figcaption>
 </figure>
-<table>
-<thead><tr><th>Phase</th><th>Content</th><th>Done when</th></tr></thead>
-<tbody>
-<tr><td>0 Foundation</td>
-<td>Orphan branch <code>main</code> as the default branch of <a href="https://github.com/dennisklein/repoctl">github.com/dennisklein/repoctl</a> (<a href="decision.html#home">where the tool lives</a>). Go module on <code>GSI-HPC/go-clikit</code>. CI on GitHub Actions: build, test (<a href="#tests">test strategy</a>), lint, and a test that checks each contract example against its schema. This docs site on GitHub Pages.</td>
-<td><code>main</code> is the default branch and CI passes on it. The docs site is online at <code>https://dennisklein.github.io/repoctl/</code>. The builder branches do not change.</td></tr>
-<tr><td>1 Core commands and graph</td>
-<td>Config layers and set discovery, <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the user config with their schemas. <code>init</code>, <code>migrate</code>, <code>status</code>, <code>list</code>, <code>show</code>, <code>checkout</code>, <code>pin</code>, <code>graph</code>, <code>doctor</code>, <code>config</code>, <code>schema</code>, <code>mock update</code>, <code>version</code>, <code>completion</code>. The graph per target from the SRPM in the target chroot. Lock states, exit codes and problem codes.</td>
-<td><code>repoctl migrate</code> on <code>builder/slurm-26.05</code> writes a lock with the same dirs, branches and commits as <code>packages.lock</code>. <code>repoctl graph --target el9</code> shows 11 nodes, 14 edges and depth 4 (<a href="decision.html#graph">the real build graph</a>). With the target el10 added, the el10 graph has 10 nodes. <code>checkout</code> and <code>pin</code> give the same lock as the scripts. <code>repoctl doctor</code> passes on <code>hpc-a1</code>.</td></tr>
-<tr><td>2 Build with staging and the manifest</td>
-<td><code>plan</code> (<a href="build.html#actions">actions and reasons</a>), <code>build</code> (jobs, <code>mock --uniqueext</code>, keep going, <code>--fail-fast</code>), the staging repo with the RepoManifest entry and the record draft of each node (mock plugin <code>buildroot_lock</code>, source sha256), <code>rebuild</code>, <code>runs</code>, <code>logs</code>, <code>cancel</code>, <code>clean</code>. The set lock and exit 7. The journal. The soname check. Terminal output: exceptions plus a totals line, <code>-v</code>, <code>--json</code>.</td>
-<td>Without latest, plan shows every node with the reason <code>new-package</code>: 11 on el9, 10 on el10, and the warning <code>dep.not-for-target</code> for slurm@el10. <code>repoctl rebuild slurm --reason …</code> makes an empty commit, and plan shows slurm with the reason <code>rebuild</code> and the NVR 26.05.4-2. A run with jobs 3 keeps going after slurm@el10 fails, marks slurm-singularity-exec@el10 blocked and exits with 3. The next plan shows the ok nodes as staged. A second build of <code>dklein</code> on <code>hpc-a1</code> stops with exit 7 (<code>set.busy</code>). An unchanged commit gives the same NVR as the bash-era build. The staged ucx@el9 has <code>buildroot/ucx-1.22.1-1.el9.json</code> with each buildroot RPM and its signer, and the sha256 of <code>ucx-1.22.1.tar.gz</code>.</td></tr>
-<tr><td>3 Publish to GHCR</td>
-<td><code>publish</code> with the steps check, sign, repodata, verify, verify-el, push, tag, cache (<a href="publish.html#order">publish order</a>). The <code>repo</code> commands, <code>repo push --from</code> included. The <code>sign</code> commands, <code>release write</code>, <code>keys/deployed.yaml</code>, gates 1 to 3, the signer probe and the verify roots (<a href="signing.html#gates">gates</a>). The mirror job in <code>contrib/mirror/</code>. The registry checks of doctor. The supply chain records: provenance and SBOM of each build, the repository SBOM, the record checks in verify, verify-el and the mirror job, <code>repo provenance</code>, <code>repo sbom</code>, the doctor check <code>sbom.license</code> (<a href="supply-chain.html">supply chain records</a>).</td>
-<td>The publish of el9 from run <code>r-20261102-1750-a3f</code> signs 38 RPMs with <code>d.klein</code> and keeps 170. Step tag moves latest from <code>p-20260912-1403-c21</code> to <code>p-20261103-1412-5e1</code>. <code>publish --target el10</code> stops with <code>publish.not-ready</code> (exit 12). The mirror job serves 5e1 within 5 minutes, and status shows "served: same". Gate 2 refuses <code>a.admin</code> before its deployment record (<code>sign.not-deployed</code>, exit 12). <code>repo restore</code> makes a new snapshot, and latest moves forward. The publish of el9 holds 4 provenance records with the signed sha256 of 38 RPMs. A changed byte in one record gives <code>records.mismatch</code> (exit 10), and the mirror job keeps the old tree. <code>repoctl repo sbom --target el9 --raw | grype</code> lists ucx 1.22.1 with its upstream purl.</td></tr>
-<tr><td>4 Tool RPM, release RPM, Fedora repo on Pages</td>
-<td>The tool RPM <code>repoctl</code>, the release RPM <code>repoctl-release</code> and the noarch mirror job RPM <code>repoctl-mirror</code> for EL and Fedora, in the RPM repo on Pages (<a href="tool.html#pages">GitHub Pages</a>). A GitHub Actions job builds them on each version tag. It signs them with the tool repository key, a secret of the protected environment <code>tool-release</code>, not a slurm key (<a href="tool.html#tool-key">tool repository key</a>). It publishes the dnf repo on GitHub Pages and the RPMs on the GitHub release. The yank job. It writes GitHub artifact attestations (SLSA provenance) for the binary and the RPMs (<a href="tool.html#tool-records">tool.html#tool-records</a>). Then the <a href="../runbooks/import.html">import runbook</a> converts the bash-era repos.</td>
-<td>On a clean Fedora host, the first install with the sha256 and the fingerprint of the chapter works, <code>dnf install repoctl</code> from the Pages repo installs the tool, <code>repoctl doctor</code> passes with <code>tool.repo-key</code>, and <code>gh attestation verify</code> passes for the RPM. On Rocky 9, <code>dnf install repoctl-mirror</code> installs the mirror job. A workflow on a builder branch cannot read <code>TOOL_REPO_KEY</code>. The import of slurm-26.05 el9 gives <code>p-import-20260828</code> (48 RPMs, signer <code>hpc-repo</code>), and no client changes a package. After the first publish with repoctl (<code>p-20260902-1010-4a7</code>), the builder branch has no <code>scripts/</code> and no <code>packages.lock</code>.</td></tr>
-<tr><td>5 Advisories, check timer, lifecycle</td>
-<td><code>check</code>, <code>advisories ls|show|dismiss|undismiss</code>, the publish gate with <code>--accept-advisory ID --reason TEXT</code> (<a href="advisories.html#gate">gate</a>), the timer units and the health signals, <code>upstream</code>. <code>init --from</code>, <code>checkout --create</code> with its four start points, the lock states <code>unpinned</code> and <code>orphaned</code>, <code>repo prune --package NAME --all</code> (<a href="lifecycle.html">Sets and packages</a>). The retired state of a target and of a set, <code>clean --set</code>. The help topics new-set, end-set, packages and advisories.</td>
-<td>The timer check of 2026-11-02 06:00 gives <code>closure.broken/pmix@el9</code> (required) and three info advisories, and keeps the dismissal of <code>upstream.release/slurm-singularity-exec</code>. The el9 publish review shows the gate row "open, not changed by this publish" and does not block. In the variant state, <code>soname.removed/ucx@el9</code> blocks the publish until an acceptance with a reason. <code>init --from</code> and <code>checkout --create --from-set</code> fork slurm-26.11 with 10 branches at the lock commits, and status lists the open setup steps.</td></tr>
-<tr><td>6 Skills and MCP</td>
-<td><code>mcp start</code> with <code>--tools read</code>, <code>mcp tools</code>, <code>skills install</code> and the Claude Code plugin. The skills repoctl, bump-package (draft, apply), triage-build, rebuild-check, package-updates, with a tool list per task (<a href="agents.html#skill-list">skills</a>).</td>
-<td>bump-package in mode apply takes ucx from 1.22.0 to 1.22.1 (commit "Bump to 1.22.1") to a staged build. It reads only <code>--json</code> output. rebuild-check on the ucx bump says "sonames unchanged: rebuild not necessary". <code>repoctl mcp start --tools read</code> lists only read tools, and a call of <code>repoctl_build</code> fails with <code>mcp.tool-not-allowed</code>. No MCP tool publishes, signs or pushes.</td></tr>
-<tr><td>7 Web UI</td>
-<td><code>repoctl ui</code> for the local user, with the token launch URL. Server-rendered pages with htmx and one SSE connection per tab. The calm rules R1 to R13. The pages of <a href="ui.html#sitemap">the sitemap</a>, the agent buttons and the agent panel. At the end of the phase, the move to <code>v1beta1</code> (<a href="contract.html#versioning">versioning</a>): the converters of the stored files, <code>migrate --api</code> and the mirror job that reads both apiVersions.</td>
-<td>At 18:01 during run a3f, the Overview shows the run chip "r-…a3f 2/8 builds · 1 failed · 11m02s", and the graph changes the node states live. Explain failure on slurm@el10 runs triage-build with the read-only MCP server and names the fix for <code>rocm-smi-devel</code>. The el9 publish review at 14:05 shows 38 new and 170 kept, and the publish asks for the typed set name. <code>repoctl migrate --api</code> converts the four set files of slurm-26.05 to <code>v1beta1</code>. A <code>v1alpha1</code> binary then stops on the set with <code>contract.newer-file</code>. The <code>v1beta1</code> binary restores <code>p-import-20260828</code> from its <code>v1alpha1</code> RepoManifest.</td></tr>
-</tbody>
-</table>
+
+<h3 id="phase-0">Phase 0: foundation</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li>Orphan branch <code>main</code> in <a href="https://github.com/dennisklein/repoctl">github.com/dennisklein/repoctl</a> (<a href="decision.html#home">where the tool lives</a>).</li>
+<li>Go module on <code>GSI-HPC/go-clikit</code>.</li>
+<li>CI on GitHub Actions: build, test (<a href="#tests">test strategy</a>), lint, and a check of each contract example against its schema.</li>
+<li>This docs site on GitHub Pages.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li><code>main</code> is the default branch, and CI passes on it.</li>
+<li>The docs site is online at <code>https://dennisklein.github.io/repoctl/</code>.</li>
+<li>The builder branches do not change.</li>
+</ul></dd>
+</dl>
+
+<h3 id="phase-1">Phase 1: core commands and graph</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li>Config layers and set discovery. <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the user config, with their schemas.</li>
+<li><code>init</code>, <code>migrate</code>, <code>status</code>, <code>list</code>, <code>show</code>, <code>checkout</code>, <code>pin</code>, <code>graph</code>, <code>doctor</code>, <code>config</code>, <code>schema</code>, <code>mock update</code>, <code>version</code>, <code>completion</code>.</li>
+<li>The graph per target from the SRPM in the target chroot.</li>
+<li>Lock states, exit codes and problem codes.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li><code>repoctl migrate</code> on <code>builder/slurm-26.05</code> writes a lock with the same dirs, branches and commits as <code>packages.lock</code>.</li>
+<li><code>repoctl graph --target el9</code> shows 11 nodes, 14 edges and depth 4 (<a href="decision.html#graph">the real build graph</a>). With the target el10 added, the el10 graph has 10 nodes.</li>
+<li><code>checkout</code> and <code>pin</code> give the same lock as the scripts.</li>
+<li><code>repoctl doctor</code> passes on <code>hpc-a1</code>.</li>
+</ul></dd>
+</dl>
+
+<h3 id="phase-2">Phase 2: build with staging and the manifest</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li><code>plan</code> (<a href="build.html#actions">actions and reasons</a>). <code>build</code>: jobs, <code>mock --uniqueext</code>, keep going, <code>--fail-fast</code>.</li>
+<li>The staging repo with the RepoManifest entry and the record draft of each node (mock plugin <code>buildroot_lock</code>, source sha256).</li>
+<li><code>rebuild</code>, <code>runs</code>, <code>logs</code>, <code>cancel</code>, <code>clean</code>.</li>
+<li>The set lock and exit 7. The journal. The soname check.</li>
+<li>Terminal output: exceptions plus a totals line, <code>-v</code>, <code>--json</code>.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li>Without latest, plan shows every node with the reason <code>new-package</code>: 11 on el9, 10 on el10. It warns with <code>dep.not-for-target</code> for slurm@el10.</li>
+<li><code>repoctl rebuild slurm --reason …</code> makes an empty commit. plan then shows slurm with the reason <code>rebuild</code> and the NVR 26.05.4-2.</li>
+<li>A run with jobs 3 keeps going after slurm@el10 fails, marks slurm-singularity-exec@el10 blocked and exits with 3. The next plan shows the ok nodes as staged.</li>
+<li>A second build of <code>dklein</code> on <code>hpc-a1</code> stops with exit 7 (<code>set.busy</code>).</li>
+<li>An unchanged commit gives the same NVR as the bash-era build.</li>
+<li>The staged ucx@el9 has <code>buildroot/ucx-1.22.1-1.el9.json</code> with each buildroot RPM and its signer, and the sha256 of <code>ucx-1.22.1.tar.gz</code>.</li>
+</ul></dd>
+</dl>
+
+<h3 id="phase-3">Phase 3: publish to GHCR</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li><code>publish</code> with the steps check, sign, repodata, verify, verify-el, push, tag, cache (<a href="publish.html#order">publish order</a>).</li>
+<li>The <code>repo</code> commands, <code>repo push --from</code> included. The registry checks of doctor.</li>
+<li>The <code>sign</code> commands, <code>release write</code>, <code>keys/deployed.yaml</code>, the signer probe, the verify roots and <a href="signing.html#gates">gates 1 to 3</a>.</li>
+<li>The mirror job in <code>contrib/mirror/</code>.</li>
+<li>The <a href="supply-chain.html">supply chain records</a>: provenance and SBOM of each build, the repository SBOM, and the record checks in verify, verify-el and the mirror job.</li>
+<li><code>repo provenance</code>, <code>repo sbom</code> and the doctor check <code>sbom.license</code>.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li>The publish of el9 from run <code>r-20261102-1750-a3f</code> signs 38 RPMs with <code>d.klein</code> and keeps 170.</li>
+<li>Step tag moves latest from <code>p-20260912-1403-c21</code> to <code>p-20261103-1412-5e1</code>.</li>
+<li><code>publish --target el10</code> stops with <code>publish.not-ready</code> (exit 12).</li>
+<li>The mirror job serves 5e1 within 5 minutes, and status shows "served: same".</li>
+<li>Gate 2 refuses <code>a.admin</code> before its deployment record (<code>sign.not-deployed</code>, exit 12).</li>
+<li><code>repo restore</code> makes a new snapshot, and latest moves forward.</li>
+<li>The publish of el9 holds 4 provenance records with the signed sha256 of 38 RPMs.</li>
+<li>A changed byte in one record gives <code>records.mismatch</code> (exit 10), and the mirror job keeps the old tree.</li>
+<li><code>repoctl repo sbom --target el9 --raw | grype</code> lists ucx 1.22.1 with its upstream purl.</li>
+</ul></dd>
+</dl>
+
+<h3 id="phase-4">Phase 4: tool RPM, release RPM, Fedora repo on Pages</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li>The tool RPM <code>repoctl</code>, the release RPM <code>repoctl-release</code> and the noarch mirror job RPM <code>repoctl-mirror</code>, for EL and Fedora, in the RPM repo on <a href="tool.html#pages">GitHub Pages</a>.</li>
+<li>A GitHub Actions job builds them on each version tag. It signs them with the <a href="tool.html#tool-key">tool repository key</a>, not a slurm key. The key is a secret of the protected environment <code>tool-release</code>.</li>
+<li>The job publishes the dnf repo on GitHub Pages and the RPMs on the GitHub release. It writes <a href="tool.html#tool-records">GitHub artifact attestations</a> (SLSA provenance) for the binary and the RPMs.</li>
+<li>The yank job.</li>
+<li>Then the <a href="../runbooks/import.html">import runbook</a> converts the bash-era repos.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li>On a clean Fedora host, the first install with the sha256 and the fingerprint of <a href="tool.html#tool-bootstrap">Tool releases</a> works.</li>
+<li><code>dnf install repoctl</code> from the Pages repo installs the tool. <code>repoctl doctor</code> passes with <code>tool.repo-key</code>, and <code>gh attestation verify</code> passes for the RPM.</li>
+<li>On Rocky 9, <code>dnf install repoctl-mirror</code> installs the mirror job.</li>
+<li>A workflow on a builder branch cannot read <code>TOOL_REPO_KEY</code>.</li>
+<li>The import of slurm-26.05 el9 gives <code>p-import-20260828</code> (48 RPMs, signer <code>hpc-repo</code>), and no client changes a package.</li>
+<li>After the first publish with repoctl (<code>p-20260902-1010-4a7</code>), the builder branch has no <code>scripts/</code> and no <code>packages.lock</code>.</li>
+</ul></dd>
+</dl>
+
+<h3 id="phase-5">Phase 5: advisories, check timer, lifecycle</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li><code>check</code>, <code>advisories ls|show|dismiss|undismiss</code>, <code>upstream</code>, the timer units and the health signals.</li>
+<li>The publish gate with <code>--accept-advisory ID --reason TEXT</code> (<a href="advisories.html#gate">gate</a>).</li>
+<li><code>init --from</code>, <code>checkout --create</code> with its four start points, the lock states <code>unpinned</code> and <code>orphaned</code>, <code>repo prune --package NAME --all</code> (<a href="lifecycle.html">Sets and packages</a>).</li>
+<li>The retired state of a target and of a set, <code>clean --set</code>.</li>
+<li>The help topics new-set, end-set, packages and advisories.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li>The timer check of 2026-11-02 06:00 gives <code>closure.broken/pmix@el9</code> (required) and three info advisories. It keeps the dismissal of <code>upstream.release/slurm-singularity-exec</code>.</li>
+<li>The el9 publish review shows the gate row "open, not changed by this publish" and does not block.</li>
+<li>In the variant state, <code>soname.removed/ucx@el9</code> blocks the publish until an acceptance with a reason.</li>
+<li><code>init --from</code> and <code>checkout --create --from-set</code> fork slurm-26.11 with 10 branches at the lock commits. status lists the open setup steps.</li>
+</ul></dd>
+</dl>
+
+<h3 id="phase-6">Phase 6: skills and MCP</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li><code>mcp start</code> with <code>--tools read</code>, <code>mcp tools</code>, <code>skills install</code> and the Claude Code plugin.</li>
+<li>The <a href="agents.html#skill-list">skills</a> repoctl, bump-package (draft, apply), triage-build, rebuild-check and package-updates, with a tool list per task.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li>bump-package in mode apply takes ucx from 1.22.0 to 1.22.1 (commit "Bump to 1.22.1") to a staged build. It reads only <code>--json</code> output.</li>
+<li>rebuild-check on the ucx bump says "sonames unchanged: rebuild not necessary".</li>
+<li><code>repoctl mcp start --tools read</code> lists only read tools, and a call of <code>repoctl_build</code> fails with <code>mcp.tool-not-allowed</code>.</li>
+<li>No MCP tool publishes, signs or pushes.</li>
+</ul></dd>
+</dl>
+
+<h3 id="phase-7">Phase 7: web UI</h3>
+<dl>
+<dt>Content</dt>
+<dd><ul>
+<li><code>repoctl ui</code> for the local user, with the token launch URL.</li>
+<li>Server-rendered pages with htmx and one SSE connection per tab. The calm rules R1 to R13.</li>
+<li>The pages of <a href="ui.html#sitemap">the sitemap</a>, the agent buttons and the agent panel.</li>
+<li>At the end of the phase, the move to <code>v1beta1</code> (<a href="contract.html#versioning">versioning</a>): the converters of the stored files, <code>migrate --api</code> and the mirror job that reads both apiVersions.</li>
+</ul></dd>
+<dt>Done when</dt>
+<dd><ul>
+<li>At 18:01 during run a3f, the Overview shows the run chip "r-…a3f 2/8 builds · 1 failed · 11m02s". The graph changes the node states live.</li>
+<li>Explain failure on slurm@el10 runs triage-build with the read-only MCP server and names the fix for <code>rocm-smi-devel</code>.</li>
+<li>The el9 publish review at 14:05 shows 38 new and 170 kept, and the publish asks for the typed set name.</li>
+<li><code>repoctl migrate --api</code> converts the four set files of slurm-26.05 to <code>v1beta1</code>. A <code>v1alpha1</code> binary then stops on the set with <code>contract.newer-file</code>.</li>
+<li>The <code>v1beta1</code> binary restores <code>p-import-20260828</code> from its <code>v1alpha1</code> RepoManifest.</li>
+</ul></dd>
+</dl>
 
 <h2 id="requirements">Requirements</h2>
-<p>These are the non-functional requirements of repoctl. The column "Story" gives the value of the data story. The column "Design limit" gives the largest value that the design supports. A result outside the limit is a bug, not a new design question. A change of a limit changes this table. The scale tests and the end-to-end tests measure these rows (<a href="#tests">test strategy</a>).</p>
+<p>The design limit of a non-functional requirement is the largest value that the design supports. A result outside the limit is a bug, not a new design question. A change of a limit changes this table. The scale tests and the end-to-end tests measure the rows (<a href="#tests">test strategy</a>).</p>
 <p>The times are for an admin host like <code>hpc-a1</code>. They do not include the time in mock, the time of the human (confirmation, PIN, touch) and the network transfer.</p>
 <table class="compact">
 <thead><tr><th>Area</th><th>Requirement</th><th>Story</th><th>Design limit</th></tr></thead>
 <tbody>
-<tr><td>Scale</td><td>Packages in one set</td><td>11</td><td>100</td></tr>
-<tr><td>Scale</td><td>Targets in one set</td><td>2 (el9, el10)</td><td>8</td></tr>
-<tr><td>Scale</td><td>Nodes in one set</td><td>21</td><td>800</td></tr>
-<tr><td>Scale</td><td>Depth of the graph of one target</td><td>4</td><td>20</td></tr>
-<tr><td>Scale</td><td>Sets of one human on one host</td><td>1</td><td>10</td></tr>
-<tr><td>Scale</td><td>RPMs in the snapshot of one target, source and debuginfo included</td><td>208 after <code>p-20261103-1412-5e1</code>; about 300 for a full target (V8)</td><td>5000. The manifest of the snapshot then stays below 4 MiB, the default manifest limit of the CNCF <span class="no-gl">distribution registry</span>.</td></tr>
-<tr><td>Scale</td><td>Admins who publish one set</td><td>2 (<a href="publish.html#admins">two admins</a>)</td><td>5. More admins need a tag compare-and-swap (<a href="#assumptions">assumptions</a>).</td></tr>
-<tr><td>Time</td><td><code>status</code>, <code>list</code>, <code>show</code>, <code>graph</code> with a warm SRPM cache</td><td>none</td><td>2 s for one set, with one HEAD request per target</td></tr>
-<tr><td>Time</td><td><code>plan</code> with a warm SRPM cache</td><td>none</td><td>5 s for 21 nodes, 30 s for 800 nodes</td></tr>
-<tr><td>Time</td><td><code>plan</code> with a cold SRPM cache</td><td>"can take minutes" (<a href="build.html#graph">graph per target</a>)</td><td>One SRPM build in mock per node, with up to the job count in parallel. The plan shows progress.</td></tr>
-<tr><td>Time</td><td>Work of repoctl per node outside mock: stage, <code>createrepo_c --update</code>, soname check</td><td>ucx@el9: 4m05s in total</td><td>30 s</td></tr>
-<tr><td>Time</td><td>One build run</td><td><code>r-20261102-1750-a3f</code>: 8 nodes, 3 jobs, 41m07s; openmpi@el9 alone 21m12s</td><td>The mock time of the longest path in the graph, plus 30 s per node</td></tr>
-<tr><td>Time</td><td>One publish of one target</td><td><code>p-20261103-1412-5e1</code>: 38 new RPMs; push 38 s for 412 MiB</td><td>3 minutes for 50 new RPMs. For <code>repo resign</code> of a full target, V8 gives the number.</td></tr>
-<tr><td>Time</td><td>From the tag move to the served tree</td><td>The mirror job served 5e1 at 14:15:02.</td><td>One interval of the mirror job (5 minutes) plus the download. The clients see the tree after <code>metadata_expire</code> (one hour).</td></tr>
-<tr><td>Time</td><td>Web UI</td><td>none</td><td>300 ms server time for a page or a fragment. At most 2 node events per node per second (<a href="ui.html#live">live updates</a>).</td></tr>
-<tr><td>Disk</td><td>Staging</td><td><code>repoctl clean</code> frees 7.0 GiB of two old runs (<a href="cli.html#cmd-clean">repoctl clean</a>).</td><td>The RPMs of the ok nodes of each kept run (<a href="build.html#staging">staging</a>)</td></tr>
-<tr><td>Disk</td><td>Local copy</td><td>none</td><td>One snapshot per target: all its RPMs, source and debuginfo included</td></tr>
-<tr><td>Disk</td><td>New tree of a publish</td><td>412 MiB of new blobs</td><td>Hard links to the local copy. New space only for the new and re-signed RPMs and the repodata.</td></tr>
-<tr><td>Disk</td><td>Journals</td><td>none</td><td>About 32 MiB per run (<a href="contract.html#writing">writing and retention</a>), for <code>state.keep_runs</code> runs (default 50): about 1.6 GiB per set</td></tr>
-<tr><td>Disk</td><td>Mock</td><td>none</td><td>One build root per job slot, plus the mock caches</td></tr>
-<tr><td>Disk</td><td>Preflight of <code>build</code></td><td>none</td><td>At least 10 GiB free in the data directory, 10 GiB in the cache directory, 1 GiB in the state directory and 20 GiB in the mock directory (<code>/var/lib/mock</code>) (<a href="build.html#run">build.html#run</a>). Else <code>host.not-ready</code> (exit 9).</td></tr>
-<tr><td>Disk</td><td>Preflight of <code>publish</code></td><td>none</td><td>Free space in the data directory for the RPMs that the publish signs, plus 1 GiB. Else <code>host.not-ready</code> (exit 9).</td></tr>
+<tr><th rowspan="7">Scale</th><td>Packages in one set</td><td>11</td><td>100</td></tr>
+<tr><td>Targets in one set</td><td>2 (el9, el10)</td><td>8</td></tr>
+<tr><td>Nodes in one set</td><td>21</td><td>800</td></tr>
+<tr><td>Depth of the graph of one target</td><td>4</td><td>20</td></tr>
+<tr><td>Sets of one human on one host</td><td>1</td><td>10</td></tr>
+<tr><td>RPMs in the snapshot of one target, source and debuginfo included</td><td>208 after <code>p-20261103-1412-5e1</code>; about 300 for a full target (V8)</td><td>5000. The manifest of the snapshot then stays below 4 MiB, the default manifest limit of the CNCF <span class="no-gl">distribution registry</span>.</td></tr>
+<tr><td>Admins who publish one set</td><td>2 (<a href="publish.html#admins">two admins</a>)</td><td>5. More admins need a tag compare-and-swap (<a href="#assumptions">assumptions</a>).</td></tr>
+<tr><th rowspan="8">Time</th><td><code>status</code>, <code>list</code>, <code>show</code>, <code>graph</code> with a warm SRPM cache</td><td>—</td><td>2 s for one set, with one HEAD request per target</td></tr>
+<tr><td><code>plan</code> with a warm SRPM cache</td><td>—</td><td>5 s for 21 nodes, 30 s for 800 nodes</td></tr>
+<tr><td><code>plan</code> with a cold SRPM cache</td><td>"can take minutes" (<a href="build.html#graph">graph per target</a>)</td><td>One SRPM build in mock per node, with up to the job count in parallel. The plan shows progress.</td></tr>
+<tr><td>Work of repoctl per node outside mock: stage, <code>createrepo_c --update</code>, soname check</td><td>ucx@el9: 4m05s in total</td><td>30 s</td></tr>
+<tr><td>One build run</td><td><code>r-20261102-1750-a3f</code>: 8 nodes, 3 jobs, 41m07s; openmpi@el9 alone 21m12s</td><td>The mock time of the longest path in the graph, plus 30 s per node</td></tr>
+<tr><td>One publish of one target</td><td><code>p-20261103-1412-5e1</code>: 38 new RPMs; push 38 s for 412 MiB</td><td>3 minutes for 50 new RPMs. For <code>repo resign</code> of a full target, V8 gives the number.</td></tr>
+<tr><td>From the tag move to the served tree</td><td>The mirror job served 5e1 at 14:15:02.</td><td>One interval of the mirror job (5 minutes) plus the download. The clients see the tree after <code>metadata_expire</code> (one hour).</td></tr>
+<tr><td>Web UI</td><td>—</td><td>300 ms server time for a page or a fragment. At most 2 node events per node per second (<a href="ui.html#live">live updates</a>).</td></tr>
+<tr><th rowspan="7">Disk</th><td>Staging</td><td><code>repoctl clean</code> frees 7.0 GiB of two old runs (<a href="cli.html#cmd-clean">repoctl clean</a>).</td><td>The RPMs of the ok nodes of each kept run (<a href="build.html#staging">staging</a>)</td></tr>
+<tr><td>Local copy</td><td>—</td><td>One snapshot per target: all its RPMs, source and debuginfo included</td></tr>
+<tr><td>New tree of a publish</td><td>412 MiB of new blobs</td><td>Hard links to the local copy. New space only for the new and re-signed RPMs and the repodata.</td></tr>
+<tr><td>Journals</td><td>—</td><td>About 32 MiB per run (<a href="contract.html#writing">writing and retention</a>), for <code>state.keep_runs</code> runs (default 50): about 1.6 GiB per set</td></tr>
+<tr><td>Mock</td><td>—</td><td>One build root per job slot, plus the mock caches</td></tr>
+<tr><td>Preflight of <code>build</code></td><td>—</td><td>At least 10 GiB free in the data directory, 10 GiB in the cache directory, 1 GiB in the state directory and 20 GiB in the mock directory <code>/var/lib/mock</code> (<a href="build.html#run">run</a>). Else <code>host.not-ready</code> (exit 9).</td></tr>
+<tr><td>Preflight of <code>publish</code></td><td>—</td><td>Free space in the data directory for the RPMs that the publish signs, plus 1 GiB. Else <code>host.not-ready</code> (exit 9).</td></tr>
 </tbody>
 </table>
 
 <h2 id="tests">Test strategy</h2>
-<p>The <a href="#verification">verification tests</a> check facts of the environment. The test layers in this section check the code of repoctl. Each layer starts in the phase of the table. Each later phase adds the tests of its own commands to each layer. A phase is done when the tests of its "done when" pass in the end-to-end layer.</p>
+<p>The <a href="#verification">verification tests</a> check facts of the environment. The test layers check the code of repoctl. Each later phase adds the tests of its own commands to each layer. A phase is done when the tests of its "done when" pass in the end-to-end layer.</p>
 <table class="compact">
 <thead><tr><th>Layer</th><th>What it checks</th><th>Fixtures and tools</th><th>Where it runs</th><th>From phase</th></tr></thead>
 <tbody>
@@ -136,82 +262,88 @@
 </tbody>
 </table>
 <ul>
-  <li><b>Story fixture.</b> The <dfn>story fixture</dfn> is the data story as test data. It has the set <code>slurm-26.05</code> with a builder branch and 11 package branches. The specs are small, but they keep the names, versions, <code>BuildRequires</code> and <code>Provides</code> of the story. A script replays the story: the bump of ucx, the rebuild commits, run <code>r-20261102-1750-a3f</code> with the failure of slurm@el10, and publish <code>p-20261103-1412-5e1</code>. The fixture also holds the recorded tool output: <code>rpmspec</code> output, <code>buildroot_lock.json</code> and the mock logs of the story.</li>
-  <li><b>Mock stub.</b> The integration tests put a stub first in <code>PATH</code> with the name <code>mock</code>. It reads the arguments that repoctl gives, writes the recorded RPMs, logs and <code>buildroot_lock.json</code> of the node into <code>--resultdir</code>, and exits with the recorded exit code (0, 1 or 30). Thus CI needs no mock chroot and no network.</li>
+  <li><b>Story fixture.</b> The <dfn>story fixture</dfn> is the data story as test data: the set <code>slurm-26.05</code> with a builder branch and 11 package branches. The specs are small, but they keep the names, versions, <code>BuildRequires</code> and <code>Provides</code> of the story. A script replays the story: the bump of ucx, the rebuild commits, run <code>r-20261102-1750-a3f</code> with the failure of slurm@el10, and publish <code>p-20261103-1412-5e1</code>. The fixture also holds the recorded tool output: <code>rpmspec</code> output, <code>buildroot_lock.json</code> and the mock logs of the story.</li>
+  <li><b>Mock stub.</b> The integration tests put a stub with the name <code>mock</code> first in <code>PATH</code>. It reads the arguments of repoctl and writes the recorded RPMs, logs and <code>buildroot_lock.json</code> of the node into <code>--resultdir</code>. It exits with the recorded exit code (0, 1 or 30). Thus CI needs no mock chroot and no network.</li>
   <li><b>Golden files.</b> A <dfn>golden file</dfn> is the expected output of one command or one UI fragment in the story state. <code>go test -update</code> writes the golden files again, and a human reviews the change. The mockups are the reference for what a human sees. When a golden file changes what a human sees, the same pull request changes the mockup and its screenshot.</li>
-  <li><b>Code.</b> Unit tests are next to their Go package. The fixture is in <code>testdata/story/</code>. The helpers are in <code>internal/testkit</code> (<a href="decision.html#code-layout">Go packages</a>). The end-to-end tests and the scale tests have the Go build tags <code>e2e</code> and <code>scale</code>, so that <code>go test ./...</code> does not run them.</li>
+  <li><b>Code.</b> Unit tests are next to their Go package. The fixture is in <code>testdata/story/</code>, the helpers are in <code>internal/testkit</code> (<a href="decision.html#code-layout">Go packages</a>). The end-to-end tests and the scale tests have the Go build tags <code>e2e</code> and <code>scale</code>, so <code>go test ./...</code> does not run them.</li>
   <li><b>Test keys.</b> The integration tests use the keys A, B and C of the verification tests. No test uses a key of a set.</li>
 </ul>
 
 <h2 id="verification">Verification tests</h2>
-<p>Run these tests before the code depends on them. Use <code>rocky:9</code> and <code>rocky:10</code> containers and the Fedora host, with a local repo over <code>file://</code> where a test needs a repo. The signing tests use two test keys A and B (RSA 4096) and one Ed25519 key C. F1 to F18 are the client facts of <a href="signing.html#facts">Signing and trust</a>.</p>
+<p>Run each test before the code depends on its fact. Use <code>rocky:9</code> and <code>rocky:10</code> containers and the Fedora host, with a local repo over <code>file://</code> where a test needs a repo. The signing tests use two test keys A and B (RSA 4096) and one Ed25519 key C. F1 to F18 are the client facts of <a href="signing.html#facts">Signing and trust</a>.</p>
 <table class="compact">
 <thead><tr><th>Id</th><th>Test</th><th>Expected result</th><th>Gates</th></tr></thead>
 <tbody>
-<tr><td>V1</td><td>Mirror job on EL9 with curl and jq only: anonymous token, manifest and blobs of a public GHCR artifact.</td><td>The pull works without a login.</td><td>3</td></tr>
-<tr><td>V2</td><td>First push of an organisation package with a classic token. Set the package public. Turn on inherited access.</td><td>A team member can push. Anonymous pull works.</td><td>3</td></tr>
-<tr><td>V3</td><td>Push with a fine-grained token.</td><td>Shows if GHCR accepts it. If not, the docs say "classic token".</td><td>3</td></tr>
-<tr><td>V4</td><td>Fedora host: mock verify root for EL9 and EL10, bind_mount, <code>rpmkeys --checksig</code>, <code>dnf makecache</code> with <code>repo_gpgcheck=1</code>.</td><td>Pass with the right key. Fail with a missing key.</td><td>3</td></tr>
-<tr><td>V5</td><td><code>rpmsign --resign</code> on Fedora (rpm 6) of v4 packages. Install on EL9 and EL10.</td><td>One v4 signature. EL9 and EL10 install the packages.</td><td>3</td></tr>
-<tr><td>V6</td><td>rpmautospec on an in-tree package in the set repo: which commits it counts.</td><td>The release goes up for a commit on the path. The record notes the effect of other set commits.</td><td>2</td></tr>
-<tr><td>V7</td><td>An RPM and a <code>repomd.xml.asc</code>, signed by a key that expired after the signature. Check them on an EL9 client, an EL10 client, the Fedora signer host (<code>rpmkeys --checksig</code>) and the mirror host (<code>gpgv</code>, <code>rpmkeys</code>).</td><td>EL10 refuses both (F6). The test gives the result of EL9, Fedora and the mirror host. <code>repoctl repo verify</code> accepts the RPM with <code>sign.expired-signer</code>. After <code>repo resign</code> with a valid key, all hosts accept it (<a href="signing.html#after-expiry">after the expiry</a>).</td><td>3</td></tr>
-<tr><td>V8</td><td>Time of <code>repo resign</code> for a full target (about 300 RPMs, debuginfo included) with a YubiKey, touch policy cached.</td><td>A number for the estimate in the resign summary.</td><td>3</td></tr>
-<tr><td>V9</td><td>Signer probe with pinentry-gnome3 and pinentry-curses. Then the probe of a UI Review load with a YubiKey.</td><td>One PIN prompt at the start, none in the sign step. The touch count per Review load decides when the UI probes.</td><td>3, 7</td></tr>
-<tr><td>V10</td><td>The release RPM ships keys A and B in one file. Publish RPMs signed by A and by B. <code>dnf -y install</code> both.</td><td>Success (F1, F2, F14).</td><td>3</td></tr>
-<tr><td>V11</td><td>Sign <code>repomd.xml.asc</code> with A only, then with B only. <code>repo_gpgcheck=1</code>.</td><td>Success on EL9 and EL10 (F8, F9).</td><td>3</td></tr>
-<tr><td>V12</td><td>Sign <code>repomd.xml.asc</code> with <code>-u A -u B</code>.</td><td>EL9 success, EL10 failure (F8, F9). This confirms "one signature per file".</td><td>3</td></tr>
-<tr><td>V13</td><td>Sign with B while the client has only A.</td><td>A clear dnf error and no metadata. This confirms gate 2.</td><td>3</td></tr>
-<tr><td>V14</td><td>Erase B on the client (<code>rpm -e</code> or <code>rpmkeys --erase</code>).</td><td><code>repo_gpgcheck</code> still accepts B until the repo keyring is deleted. Shows if <code>dnf clean all</code> deletes it (F13).</td><td>3</td></tr>
-<tr><td>V15</td><td>Sign with a YubiKey subkey. Install on EL9 and EL10. Add a second subkey and import the key again.</td><td>The install works (F11). The second import changes nothing (F12).</td><td>3</td></tr>
-<tr><td>V16</td><td>Sign one RPM with key C (Ed25519 on a YubiKey). Install on EL9.</td><td>The install works (F17).</td><td>3</td></tr>
-<tr><td>V17</td><td>On EL10.1, add two v6 signatures (<code>--rpmv6</code>). Install with one key, then with both. Install the same RPM on EL9.</td><td>Confirms F6 and F7. repoctl never writes v6 signatures (gate 3).</td><td>none</td></tr>
-<tr><td>V18</td><td><code>rpmkeys --erase</code> on Rocky 10.0 and on Rocky 10.1.</td><td>Shows which minor release has it (F5, F15). <code>sign offboard</code> prints the matching client command.</td><td>3</td></tr>
-<tr><td>V19</td><td>Empty commit on a package branch with rpmautospec (<code>repoctl rebuild</code>).</td><td>The release goes up by one. The changelog shows the reason.</td><td>2</td></tr>
-<tr><td>V20</td><td>A failed <code>dnf builddep</code> with the mock version of <code>hpc-a1</code>.</td><td>mock exits with 30. The error lines show "Failed build dependencies".</td><td>2</td></tr>
-<tr><td>V21</td><td>Claude Code with the permission rule <code>Bash(git -C packages/:*)</code> and the guard hook, once from the plugin and once from <code>skills install --user</code>. Calls: <code>git -C packages/ucx commit …</code>, <code>git -C packages/ucx push origin ucx/slurm-26.05</code>, <code>git -C packages/ucx/.. commit -a</code>, <code>git -C packages/.. push</code>, an Edit of <code>keys/deployed.yaml</code>, and a commit in a package that <code>repoctl.yaml</code> adds after the install.</td><td>The commits in a package worktree match the prefix rule. The <a href="agents.html#guard">guard hook</a> denies the other calls, also in mode bypassPermissions.</td><td>6</td></tr>
-<tr><td>V22</td><td>mock on Fedora with <code>rocky+epel-9-x86_64</code> and <code>rocky+epel-10-x86_64</code>, with the plugin <code>buildroot_lock</code>, <code>--uniqueext</code> and the rpmautospec plugin.</td><td><code>buildroot_lock.json</code> is in the result directory, with a signer for each Rocky and EPEL RPM.</td><td>2</td></tr>
-<tr><td>V23</td><td>Read <code>SHA256HEADER</code> of each buildroot RPM after the build, before mock deletes the root.</td><td>A sha256 for each lock entry. If it fails, the provenance keeps <code>SIGMD5</code>.</td><td>2</td></tr>
-<tr><td>V24</td><td><code>rpmsign --resign</code> on a v4 RPM: compare the file sha256, <code>SHA256HEADER</code>, <code>PAYLOADDIGEST</code> and <code>SIGMD5</code> before and after.</td><td>Only the file sha256 changes.</td><td>3</td></tr>
-<tr><td>V25</td><td>Size of the records of the publish of el9 (4 builds), and of a full target.</td><td>A number for the publish summary. Expected: under 1 MB per publish.</td><td>3</td></tr>
-<tr><td>V26</td><td>Mirror job on EL9 with jq and sha256sum: check the records of a snapshot.</td><td>Pass on a good snapshot. Fail on a snapshot with one changed record.</td><td>3</td></tr>
-<tr><td>V27</td><td><code>slsa-verifier</code> and <code>cosign verify-attestation</code> on a provenance record.</td><td>Both refuse it (no envelope). <code>repo verify</code> is the verifier (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</td><td>3</td></tr>
-<tr><td>V28</td><td>Read the primary text of BSI TR-03183-2 v2.1: formats and required fields.</td><td>The SBOM has each required field, or the supply chain chapter names the gap.</td><td>3</td></tr>
-<tr><td>V29</td><td>Grype and Trivy on a build SBOM and on the repository SBOM, with the purls <code>pkg:rpm/gsi-hpc/…</code> and <code>pkg:github/…</code>.</td><td>The upstream components match OSV or GHSA entries.</td><td>3</td></tr>
-<tr><td>V30</td><td>Delete a version of a public organization package through the REST API, with a classic token with <code>delete:packages</code> and the package role admin. Read the limits of GitHub for the delete of a public version, for example a download count.</td><td>The delete works, and GitHub frees the blobs that no version uses. A limit goes into <a href="publish.html#gc">gc and retention</a>.</td><td>3</td></tr>
-<tr><td>V31</td><td>Mirror job on EL9: replace <code>KEYRING</code> with a key file without key B. Then publish a snapshot with RPMs of B, and a snapshot without them.</td><td>The job refuses the first snapshot and keeps the served tree. It serves the second one (<a href="signing.html#compromise">key compromise</a>).</td><td>3</td></tr>
-<tr><td>V32</td><td>Delete a test package in GHCR. Run <code>repoctl repo push --reseed</code> from the local copy, then the mirror job and a publish.</td><td>The mirror job serves the same files. The publish passes gate 2 and keeps <code>removed[]</code> (<a href="publish.html#disaster">registry loss</a>).</td><td>3</td></tr>
-<tr><td>V33</td><td>Client bootstrap of a new Rocky 9 and Rocky 10 client from a served tree: the root key file with a pinned sha256, <code>rpmkeys --checksig</code> and <code>dnf install</code> of the root <code>slurm-release.rpm</code>, then <code>dnf makecache</code>. Then again with a wrong pin.</td><td>The client reads the repository with <code>repo_gpgcheck=1</code>. The wrong pin stops before <code>rpm --import</code>.</td><td>3</td></tr>
-<tr><td>V34</td><td>Fedora host: <code>dnf repoclosure --newest</code> with <code>--repofrompath</code> on a local el9 and el10 repo plus the Rocky and EPEL closure repos of each target. Repeat in <code>rocky:9</code> and <code>rocky:10</code>. Add one RPM with a requirement that no repo provides.</td><td>The same broken requirements on the Fedora host and in the EL container, and the added RPM is in both lists. If not, the check runs repoclosure in the verify root.</td><td>5</td></tr>
+<tr id="v1"><td>V1</td><td>Mirror job on EL9 with curl and jq only: anonymous token, manifest and blobs of a public GHCR artifact.</td><td>The pull works without a login.</td><td>3</td></tr>
+<tr id="v2"><td>V2</td><td>First push of an organisation package with a classic token. Set the package public. Turn on inherited access.</td><td>A team member can push. Anonymous pull works.</td><td>3</td></tr>
+<tr id="v3"><td>V3</td><td>Push with a fine-grained token.</td><td>Shows if GHCR accepts it. If not, the docs say "classic token".</td><td>3</td></tr>
+<tr id="v4"><td>V4</td><td>Fedora host: mock verify root for EL9 and EL10, bind_mount, <code>rpmkeys --checksig</code>, <code>dnf makecache</code> with <code>repo_gpgcheck=1</code>.</td><td>Pass with the right key. Fail with a missing key.</td><td>3</td></tr>
+<tr id="v5"><td>V5</td><td><code>rpmsign --resign</code> on Fedora (rpm 6) of v4 packages. Install on EL9 and EL10.</td><td>One v4 signature. EL9 and EL10 install the packages.</td><td>3</td></tr>
+<tr id="v6"><td>V6</td><td>rpmautospec on an in-tree package in the set repo: which commits it counts.</td><td>The release goes up for a commit on the path. The record notes the effect of other set commits.</td><td>2</td></tr>
+<tr id="v7"><td>V7</td><td>An RPM and a <code>repomd.xml.asc</code>, signed by a key that expired after the signature. Check them on an EL9 client, an EL10 client, the Fedora signer host (<code>rpmkeys --checksig</code>) and the mirror host (<code>gpgv</code>, <code>rpmkeys</code>).</td><td>EL10 refuses both (F6). The test gives the result of EL9, Fedora and the mirror host. <code>repoctl repo verify</code> accepts the RPM with <code>sign.expired-signer</code>. After <code>repo resign</code> with a valid key, all hosts accept it (<a href="signing.html#after-expiry">after the expiry</a>).</td><td>3</td></tr>
+<tr id="v8"><td>V8</td><td>Time of <code>repo resign</code> for a full target (about 300 RPMs, debuginfo included) with a YubiKey, touch policy cached.</td><td>A number for the estimate in the resign summary.</td><td>3</td></tr>
+<tr id="v9"><td>V9</td><td>Signer probe with pinentry-gnome3 and pinentry-curses. Then the probe of a UI Review load with a YubiKey.</td><td>One PIN prompt at the start, none in the sign step. The touch count per Review load decides when the UI probes.</td><td>3, 7</td></tr>
+<tr id="v10"><td>V10</td><td>The release RPM ships keys A and B in one file. Publish RPMs signed by A and by B. <code>dnf -y install</code> both.</td><td>Success (F1, F2, F14).</td><td>3</td></tr>
+<tr id="v11"><td>V11</td><td>Sign <code>repomd.xml.asc</code> with A only, then with B only. <code>repo_gpgcheck=1</code>.</td><td>Success on EL9 and EL10 (F8, F9).</td><td>3</td></tr>
+<tr id="v12"><td>V12</td><td>Sign <code>repomd.xml.asc</code> with <code>-u A -u B</code>.</td><td>EL9 success, EL10 failure (F8, F9). This confirms "one signature per file".</td><td>3</td></tr>
+<tr id="v13"><td>V13</td><td>Sign with B while the client has only A.</td><td>A clear dnf error and no metadata. This confirms gate 2.</td><td>3</td></tr>
+<tr id="v14"><td>V14</td><td>Erase B on the client (<code>rpm -e</code> or <code>rpmkeys --erase</code>).</td><td><code>repo_gpgcheck</code> still accepts B until the repo keyring is deleted. Shows if <code>dnf clean all</code> deletes it (F13).</td><td>3</td></tr>
+<tr id="v15"><td>V15</td><td>Sign with a YubiKey subkey. Install on EL9 and EL10. Add a second subkey and import the key again.</td><td>The install works (F11). The second import changes nothing (F12).</td><td>3</td></tr>
+<tr id="v16"><td>V16</td><td>Sign one RPM with key C (Ed25519 on a YubiKey). Install on EL9.</td><td>The install works (F17).</td><td>3</td></tr>
+<tr id="v17"><td>V17</td><td>On EL10.1, add two v6 signatures (<code>--rpmv6</code>). Install with one key, then with both. Install the same RPM on EL9.</td><td>Confirms F6 and F7. repoctl never writes v6 signatures (gate 3).</td><td>none</td></tr>
+<tr id="v18"><td>V18</td><td><code>rpmkeys --erase</code> on Rocky 10.0 and on Rocky 10.1.</td><td>Shows which minor release has it (F5, F15). <code>sign offboard</code> prints the matching client command.</td><td>3</td></tr>
+<tr id="v19"><td>V19</td><td>Empty commit on a package branch with rpmautospec (<code>repoctl rebuild</code>).</td><td>The release goes up by one. The changelog shows the reason.</td><td>2</td></tr>
+<tr id="v20"><td>V20</td><td>A failed <code>dnf builddep</code> with the mock version of <code>hpc-a1</code>.</td><td>mock exits with 30. The error lines show "Failed build dependencies".</td><td>2</td></tr>
+<tr id="v21"><td rowspan="2">V21</td><td>Claude Code with the permission rule <code>Bash(git -C packages/:*)</code> and the guard hook, once from the plugin, once from <code>skills install --user</code>. Commits: <code>git -C packages/ucx commit …</code>; a commit in a package that <code>repoctl.yaml</code> adds after the install.</td><td>The commits in a package worktree match the prefix rule.</td><td rowspan="2">6</td></tr>
+<tr><td>The other calls: <code>git -C packages/ucx push origin ucx/slurm-26.05</code>, <code>git -C packages/ucx/.. commit -a</code>, <code>git -C packages/.. push</code>, an Edit of <code>keys/deployed.yaml</code>.</td><td>The <a href="agents.html#guard">guard hook</a> denies them, also in mode bypassPermissions.</td></tr>
+<tr id="v22"><td>V22</td><td>mock on Fedora with <code>rocky+epel-9-x86_64</code> and <code>rocky+epel-10-x86_64</code>, with the plugin <code>buildroot_lock</code>, <code>--uniqueext</code> and the rpmautospec plugin.</td><td><code>buildroot_lock.json</code> is in the result directory, with a signer for each Rocky and EPEL RPM.</td><td>2</td></tr>
+<tr id="v23"><td>V23</td><td>Read <code>SHA256HEADER</code> of each buildroot RPM after the build, before mock deletes the root.</td><td>A sha256 for each lock entry. If it fails, the provenance keeps <code>SIGMD5</code>.</td><td>2</td></tr>
+<tr id="v24"><td>V24</td><td><code>rpmsign --resign</code> on a v4 RPM: compare the file sha256, <code>SHA256HEADER</code>, <code>PAYLOADDIGEST</code> and <code>SIGMD5</code> before and after.</td><td>Only the file sha256 changes.</td><td>3</td></tr>
+<tr id="v25"><td>V25</td><td>Size of the records of the publish of el9 (4 builds), and of a full target.</td><td>A number for the publish summary. Expected: under 1 MB per publish.</td><td>3</td></tr>
+<tr id="v26"><td>V26</td><td>Mirror job on EL9 with jq and sha256sum: check the records of a snapshot.</td><td>Pass on a good snapshot. Fail on a snapshot with one changed record.</td><td>3</td></tr>
+<tr id="v27"><td>V27</td><td><code>slsa-verifier</code> and <code>cosign verify-attestation</code> on a provenance record.</td><td>Both refuse it (no envelope). <a href="supply-chain.html#verify"><code>repo verify</code></a> is the verifier.</td><td>3</td></tr>
+<tr id="v28"><td>V28</td><td>Read the primary text of BSI TR-03183-2 v2.1: formats and required fields.</td><td>The SBOM has each required field, or the supply chain chapter names the gap.</td><td>3</td></tr>
+<tr id="v29"><td>V29</td><td>Grype and Trivy on a build SBOM and on the repository SBOM, with the purls <code>pkg:rpm/gsi-hpc/…</code> and <code>pkg:github/…</code>.</td><td>The upstream components match OSV or GHSA entries.</td><td>3</td></tr>
+<tr id="v30"><td>V30</td><td>Delete a version of a public organization package through the REST API, with a classic token with <code>delete:packages</code> and the package role admin. Read the limits of GitHub for the delete of a public version, for example a download count.</td><td>The delete works, and GitHub frees the blobs that no version uses. A limit goes into <a href="publish.html#gc">gc and retention</a>.</td><td>3</td></tr>
+<tr id="v31"><td>V31</td><td>Mirror job on EL9: replace <code>KEYRING</code> with a key file without key B. Then publish a snapshot with RPMs of B, and a snapshot without them.</td><td>The job refuses the first snapshot and keeps the served tree. It serves the second one (<a href="signing.html#compromise">key compromise</a>).</td><td>3</td></tr>
+<tr id="v32"><td>V32</td><td>Delete a test package in GHCR. Run <code>repoctl repo push --reseed</code> from the local copy, then the mirror job and a publish.</td><td>The mirror job serves the same files. The publish passes gate 2 and keeps <code>removed[]</code> (<a href="publish.html#disaster">registry loss</a>).</td><td>3</td></tr>
+<tr id="v33"><td rowspan="2">V33</td><td>Client bootstrap of a new Rocky 9 and Rocky 10 client from a served tree: the root key file with a pinned sha256, <code>rpmkeys --checksig</code> and <code>dnf install</code> of the root <code>slurm-release.rpm</code>, then <code>dnf makecache</code>.</td><td>The client reads the repository with <code>repo_gpgcheck=1</code>.</td><td rowspan="2">3</td></tr>
+<tr><td>Then the same with a wrong pin.</td><td>The wrong pin stops before <code>rpm --import</code>.</td></tr>
+<tr id="v34"><td>V34</td><td>Fedora host: <code>dnf repoclosure --newest</code> with <code>--repofrompath</code> on a local el9 and el10 repo plus the Rocky and EPEL closure repos of each target. Repeat in <code>rocky:9</code> and <code>rocky:10</code>. Add one RPM with a requirement that no repo provides.</td><td>The same broken requirements on the Fedora host and in the EL container, and the added RPM is in both lists. If not, the check runs repoclosure in the verify root.</td><td>5</td></tr>
 </tbody>
 </table>
 
 <h2 id="assumptions">Assumptions</h2>
-<p>The design depends on these facts. A test or a human confirms each of them. When one is false, the chapter that it names must change.</p>
-<ul>
-<li>The clients run Rocky 9 and Rocky 10 on <code>x86_64</code> with the stock rpm, dnf and librepo of the c9s and c10s spec files. The facts F1 to F18 hold for these versions (<a href="signing.html#facts">client facts</a>; V10 to V18).</li>
-<li>Config management installs the release package on every client. On the HTTP server, it puts the key file of each set and target at the keyring of its mirror line. A human can tell when the rollout is complete (<a href="signing.html#onboarding">onboarding</a>).</li>
-<li>The HTTP server can run a systemd timer and has curl, jq, gnupg2 and rpm (<a href="publish.html#mirror">mirror job</a>; V1).</li>
-<li>The mirror job runs every 5 minutes. A shorter interval only adds HEAD requests. Clients read a new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour).</li>
-<li>GHCR has no tag compare-and-swap. publish compares latest in step 1 and in step 7. The window between the two is acceptable, because the team coordinates in its own channel (<a href="publish.html#admins">two admins</a>). A publish that loses the race leaves the chain of latest, and repo pull and status warn with <code>snapshot.orphaned</code>.</li>
-<li>The GHCR packages are public, so the mirror job pulls without a token. A push needs a classic token with <code>write:packages</code> and a team with write access (<a href="publish.html#registry">registry access</a>; V2, V3).</li>
-<li>rpmautospec raises the release for each commit, also for an empty one (<a href="build.html#rebuild">rebuild</a>; V19). For an in-tree package, V6 shows which commits count.</li>
-<li>go-clikit gives the span id (<code>Span.TraceContext()</code>), the doctor format and the progress log. repoctl needs no change in go-clikit for the journal (<a href="contract.html#journal">journal</a>).</li>
-<li>The UI agent is Claude Code (<code>agent: {command: claude}</code>). repoctl reads its stream-json output (<a href="agents.html#agent-config">agent config</a>).</li>
-<li>mock exits with 30 when <code>dnf builddep</code> fails (V20).</li>
-<li>Host names, the server path <code>/srv/repos/slurm-repo</code>, the GitHub team name, the fingerprints and the commits in the examples are placeholders. The data story fixes them for all chapters.</li>
-</ul>
+<p>The design depends on these facts. The test of the row confirms a fact; without a test, a human confirms it. When a fact is false, the chapter of the row must change.</p>
+<table class="compact">
+<thead><tr><th>Assumption</th><th>Chapter</th><th>Test</th></tr></thead>
+<tbody>
+<tr><td>The clients run Rocky 9 and Rocky 10 on <code>x86_64</code> with the stock rpm, dnf and librepo of the c9s and c10s spec files. The facts F1 to F18 hold for these versions.</td><td><a href="signing.html#facts">client facts</a></td><td>V10 to V18</td></tr>
+<tr><td>Config management installs the release package on every client. On the HTTP server, it puts the key file of each set and target at the keyring of its mirror line. A human can tell when the rollout is complete.</td><td><a href="signing.html#onboarding">onboarding</a></td><td>—</td></tr>
+<tr><td>The HTTP server can run a systemd timer and has curl, jq, gnupg2 and rpm.</td><td><a href="publish.html#mirror">mirror job</a></td><td>V1</td></tr>
+<tr><td>The mirror job runs every 5 minutes. A shorter interval only adds HEAD requests. Clients read a new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour).</td><td><a href="publish.html#mirror">mirror job</a></td><td>—</td></tr>
+<tr><td>GHCR has no tag compare-and-swap. The race window between the checks of latest in step 1 and step 7 is acceptable, because the team coordinates in its own channel.</td><td><a href="publish.html#admins">two admins</a></td><td>—</td></tr>
+<tr><td>The GHCR packages are public, so the mirror job pulls without a token. A push needs a classic token with <code>write:packages</code> and a team with write access.</td><td><a href="publish.html#registry">registry access</a></td><td>V2, V3</td></tr>
+<tr><td>rpmautospec raises the release for each commit, also for an empty one. For an in-tree package, V6 shows which commits count.</td><td><a href="build.html#rebuild">rebuild</a></td><td>V19, V6</td></tr>
+<tr><td>go-clikit gives the span id (<code>Span.TraceContext()</code>), the doctor format and the progress log. repoctl needs no change in go-clikit for the journal.</td><td><a href="contract.html#journal">journal</a></td><td>—</td></tr>
+<tr><td>The UI agent is Claude Code (<code>agent: {command: claude}</code>). repoctl reads its stream-json output.</td><td><a href="agents.html#agent-config">agent config</a></td><td>—</td></tr>
+<tr><td>mock exits with 30 when <code>dnf builddep</code> fails.</td><td>—</td><td>V20</td></tr>
+<tr><td>Host names, the server path <code>/srv/repos/slurm-repo</code>, the GitHub team name, the fingerprints and the commits in the examples are placeholders. The data story fixes them for all chapters.</td><td><a href="../index.html#example">data story</a></td><td>—</td></tr>
+</tbody>
+</table>
+
 <h3 id="services">External services</h3>
-<p>repoctl uses these services. No service is necessary for the clients: they read only the served tree on the HTTP server. The table gives the effect of an outage and the way to continue. In each case, repoctl changes no shared state by itself, and the next command tries again.</p>
+<p>No service is necessary for the clients: they read only the served tree on the HTTP server. During an outage, repoctl changes no shared state by itself, and the next command tries again.</p>
 <table class="compact">
 <thead><tr><th>Service</th><th>Use</th><th>Effect of an outage</th><th>Way to continue</th></tr></thead>
 <tbody>
 <tr><td>GitHub git: the set repository and its branches</td><td>Builder branch and package branches: fetch and push by the human, <code>checkout</code> of a missing commit, <code>pin --fetch</code>.</td><td><code>checkout</code> of a missing commit and <code>pin --fetch</code> stop with <code>git.fetch-failed</code> (exit 1). <code>pin</code>, <code>plan</code> and <code>build</code> work from the local worktrees and the lock.</td><td>Work on the local worktrees. Push the commits later.</td></tr>
-<tr><td>GHCR (<code>ghcr.io/gsi-hpc/slurm-repo</code>)</td><td>Snapshots: the freshness check, <code>repo pull</code>, <code>publish</code>, <code>repo push</code>, the mirror job.</td><td><code>plan</code> and <code>build</code> warn with <code>registry.unreachable</code> and use the local copy. <code>publish</code> and <code>repo pull</code> stop with <code>registry.unreachable</code> (exit 13). A push that fails keeps the signed tree (<code>snapshot.push-failed</code>). The mirror job keeps the served tree.</td><td>Build to staging. Publish when GHCR answers: <code>repoctl repo push p-…</code> for a publish that stopped, else <code>repoctl publish</code> (<a href="publish.html#freshness">freshness check</a>).</td></tr>
+<tr><td>GHCR (<code>ghcr.io/gsi-hpc/slurm-repo</code>)</td><td>Snapshots: the freshness check, <code>repo pull</code>, <code>publish</code>, <code>repo push</code>, the mirror job.</td><td><code>plan</code> and <code>build</code> warn with <code>registry.unreachable</code> and use the local copy. <code>publish</code> and <code>repo pull</code> stop with it (exit 13). A push that fails keeps the signed tree (<code>snapshot.push-failed</code>). The mirror job keeps the served tree.</td><td>Build to staging. When GHCR answers: <code>repoctl repo push p-…</code> for a publish that stopped, else <code>repoctl publish</code> (<a href="publish.html#freshness">freshness check</a>).</td></tr>
 <tr><td>GitHub API</td><td><code>repoctl upstream</code>, the upstream part of <code>repoctl check</code>, <code>repo gc</code>.</td><td><code>upstream</code> shows the status unknown. <code>check</code> records <code>upstream.unreachable</code>, runs the other checks and exits with 1 (<a href="advisories.html#check">repoctl check</a>). <code>repo gc</code> stops.</td><td>Run the command later. Set <code>GH_TOKEN</code> against the rate limit. gc can wait: it frees storage only.</td></tr>
 <tr><td>GitHub Pages and GitHub Releases</td><td>The docs site, the Fedora repo of repoctl, the tool RPMs.</td><td>A new admin host cannot install or update repoctl. An installed admin host works as before.</td><td>Keep the installed version. Install a new admin host when Pages answers.</td></tr>
 <tr><td>GitHub Actions</td><td>CI, the build of the tool RPMs, the Pages job.</td><td>No new tool release and no docs deploy. The sets do not change.</td><td>Wait. No set operation needs Actions.</td></tr>
 <tr><td>Fedora: <code>src.fedoraproject.org</code></td><td>The Fedora version in <code>repoctl upstream</code>; <code>checkout --create --from fedora</code>.</td><td>The Fedora column of <code>upstream</code> is unknown. <code>checkout --create --from fedora</code> stops with <code>git.fetch-failed</code> (exit 1).</td><td>Run the command later.</td></tr>
-<tr><td>Rocky and EPEL mirrors, and <code>targets[].repos</code></td><td>The build dependencies of mock: the SRPM step of a cold graph, the builds, the verify roots, <code>mock update</code>.</td><td>A node fails with the failure class host (a repo metadata error). A cold plan cannot make the SRPM.</td><td>Run <code>repoctl build</code> again when the mirrors answer. The new plan builds only the failed and the blocked nodes. Do not change the mock config for an outage: a changed config gives <code>mock.drift</code> (<a href="build.html#mock">mock roots</a>).</td></tr>
+<tr><td>Rocky and EPEL mirrors, and <code>targets[].repos</code></td><td>The build dependencies of mock: the SRPM step of a cold graph, the builds, the verify roots, <code>mock update</code>.</td><td>A node fails with the failure class host (a repo metadata error). A cold plan cannot make the SRPM.</td><td>Run <code>repoctl build</code> again when the mirrors answer: the new plan builds only the failed and the blocked nodes. Do not change the mock config for an outage: a changed config gives <code>mock.drift</code> (<a href="build.html#mock">mock roots</a>).</td></tr>
 <tr><td><code>git.gsi.de</code></td><td>The external repository of rocm-smi.</td><td><code>doctor</code> warns with <code>git.unreachable</code>. A fetch of rocm-smi stops with <code>git.fetch-failed</code>. The other packages do not change.</td><td>Build from the local bare clone and the lock (<a href="config.html#external">external package repositories</a>).</td></tr>
 <tr><td>The HTTP server at <code>repo.url</code></td><td>The served tree for the clients; <code>repoctl-snapshot.json</code> for <code>status</code>.</td><td>The clients cannot read new metadata and use their dnf cache. <code>status</code> shows <code>served: unknown</code>. <code>publish</code> works.</td><td>When the server answers, the next <span class="no-gl">run</span> of the mirror job serves <code>latest</code> (<a href="publish.html#mirror">mirror job</a>).</td></tr>
 <tr><td>The agent and its model service</td><td>The skills, the agent buttons and the agent panel of the web UI.</td><td>An agent run fails. No command of repoctl needs an agent.</td><td>Use the CLI or the web UI without the agent (<a href="agents.html#no-agent">no agent configured</a>).</td></tr>
@@ -219,27 +351,29 @@
 </table>
 
 <h2 id="open">Open questions</h2>
-<p>The column "Needed by" gives the phase that needs the answer. Until then, the design text uses the example value or the current rule.</p>
+<p>Until the phase of "Needed by", the design text uses the example value or the current rule.</p>
 <table class="compact">
-<thead><tr><th>Question</th><th>Needed by</th><th>Note</th></tr></thead>
+<thead><tr><th>Needed by</th><th>Question</th><th>Note</th></tr></thead>
 <tbody>
-<tr><td>The slurm sets and the tool share the GitHub repo <code>repoctl</code>: <code>main</code> holds the tool, each <code>builder/&lt;set&gt;</code> branch holds a set. Do the sets move to their own repo?</td><td>4</td><td>The GHCR namespace in the examples is <code>ghcr.io/gsi-hpc/slurm-repo</code>. A move changes <code>store.oci</code>, the image source annotation and the remote of the package branches. The import writes the first snapshot into this namespace. A move also removes the push rights of the set admins from the repository that holds the tool repository key (<a href="tool.html#tool-key">tool repository key</a>).</td></tr>
-<tr><td>Does the repository <code>dennisklein/repoctl</code> move to the GSI-HPC organization?</td><td>4</td><td>The GHCR namespace (<code>ghcr.io/gsi-hpc/…</code>) and the <code>$id</code> host of the schemas (<code>https://gsi-hpc.github.io/repoctl/schema/v1alpha1/</code>) use GSI-HPC. The docs site and the Pages repo are at <code>https://dennisklein.github.io/repoctl/</code>. A move changes the Pages URL, the repo links and the image source annotation. The <code>$id</code> values are identifiers and need not resolve (<a href="contract.html#schemas">schemas</a>).</td></tr>
-<tr><td>Which host is the HTTP server, and who owns the mirror job?</td><td>3</td><td><a href="publish.html#topology">Topology</a>.</td></tr>
-<tr><td>Which name has the GitHub team in GSI-HPC?</td><td>3</td><td>The examples use <code>slurm-repo-admins</code>.</td></tr>
-<tr><td>Does every admin get a YubiKey (or another OpenPGP card)? Who pays, and who keeps a spare?</td><td>3</td><td>A file key also works. The card keeps the key off the disk.</td></tr>
-<tr><td>Does config management run dnf with <code>-y</code> on the clusters, so that new keys import without a prompt? Who owns the removal of a key on the clients?</td><td>3</td><td>F1. <a href="signing.html#offboarding">Offboarding</a>.</td></tr>
-<tr><td>Which Rocky 10 minor release do the clusters get first?</td><td>3</td><td>F5 gives <code>rpmkeys --erase</code> from EL10.1. V18 decides the offboarding command.</td></tr>
-<tr><td><code>createrepo --deltas</code>: keep it (a key such as <code>repo.deltas: true</code>) or drop it?</td><td>3</td><td>The bash-era <code>scripts/build</code> makes delta RPMs. dnf5 does not use them by default. Each delta RPM is also a blob in the snapshot.</td></tr>
-<tr><td>Two set directories with one set name on one host: must the CLI refuse this, or key the state by name and directory?</td><td>1</td><td>All state is keyed by the set name, so two clones share runs and the set lock. The web UI refuses the second set.</td></tr>
-<tr><td>Is <code>-o json</code> an alias of <code>--json</code>, for users of sind?</td><td>1</td><td>sind uses <code>-o, --output human|json</code>.</td></tr>
-<tr><td>Does a set need GitLab upstreams (<code>upstream.gitlab</code>) in the first release?</td><td>5</td><td>The first release has the upstream kinds GitHub and Fedora (<a href="config.html#scope">narrow now, open later</a>). rocm-smi lives on git.gsi.de, but its upstream is on GitHub.</td></tr>
-<tr><td>go-clikit: a theme for the copper look (or program colours and marks); a program word for an end state, so that the tree says "blocked"; a plain mode with one line per node end; state styles in cliout tables.</td><td>2</td><td>Until then the tree says "canceled" with a note (<a href="terminal.html#conventions">conventions</a>). Is the theme ember close enough?</td></tr>
-<tr><td>Does the UI server stop by itself after an idle time with no open tab?</td><td>7</td><td>This changes the text of the session page.</td></tr>
-<tr><td>Can an agent button run before the soname check ends, or only on a final result?</td><td>7</td><td>The mockup disables the button until the result is final.</td></tr>
-<tr><td>For more than 4 targets, does the union view open as the matrix view?</td><td>7</td><td><a href="ui-build.html#matrix">Matrix view</a>.</td></tr>
-<tr><td>Does the UI run the signer probe on each Review load, or only on a click?</td><td>7</td><td>V9 decides. A YubiKey can need a touch for each probe.</td></tr>
-<tr><td>Does the EU Cyber Resilience Act apply to the slurm repositories?</td><td>3</td><td>GSI legal or IT security decides (<a href="supply-chain.html#regulation">regulation</a>). The SBOM format does not depend on the answer.</td></tr>
+<tr><td rowspan="2">1</td><td>Two set directories with one set name on one host: must the CLI refuse this, or key the state by name and directory?</td><td>All state is keyed by the set name, so two clones share runs and the set lock. The web UI refuses the second set.</td></tr>
+<tr><td>Is <code>-o json</code> an alias of <code>--json</code>, for users of sind?</td><td>sind uses <code>-o, --output human|json</code>.</td></tr>
+<tr><td>2</td><td>go-clikit: a theme for the copper look (or program colours and marks); a program word for an end state, so that the tree says "blocked"; a plain mode with one line per node end; state styles in cliout tables.</td><td>Until then the tree says "canceled" with a note (<a href="terminal.html#conventions">conventions</a>). Is the theme ember close enough?</td></tr>
+<tr><td rowspan="7">3</td><td>Which host is the HTTP server, and who owns the mirror job?</td><td><a href="publish.html#topology">Topology</a>.</td></tr>
+<tr><td>Which name has the GitHub team in GSI-HPC?</td><td>The examples use <code>slurm-repo-admins</code>.</td></tr>
+<tr><td>Does every admin get a YubiKey (or another OpenPGP card)? Who pays, and who keeps a spare?</td><td>A file key also works. The card keeps the key off the disk.</td></tr>
+<tr><td>Does config management run dnf with <code>-y</code> on the clusters, so that new keys import without a prompt? Who owns the removal of a key on the clients?</td><td>F1. <a href="signing.html#offboarding">Offboarding</a>.</td></tr>
+<tr><td>Which Rocky 10 minor release do the clusters get first?</td><td>F5 gives <code>rpmkeys --erase</code> from EL10.1. V18 decides the offboarding command.</td></tr>
+<tr><td><code>createrepo --deltas</code>: keep it (a key such as <code>repo.deltas: true</code>) or drop it?</td><td>The bash-era <code>scripts/build</code> makes delta RPMs. dnf5 does not use them by default. Each delta RPM is also a blob in the snapshot.</td></tr>
+<tr><td>Does the EU Cyber Resilience Act apply to the slurm repositories?</td><td>GSI legal or IT security decides (<a href="supply-chain.html#regulation">regulation</a>). The SBOM format does not depend on the answer.</td></tr>
+<tr><td rowspan="4">4</td><td rowspan="2">The slurm sets and the tool share the GitHub repo <code>repoctl</code>: <code>main</code> holds the tool, each <code>builder/&lt;set&gt;</code> branch holds a set. Do the sets move to their own repo?</td><td>The GHCR namespace in the examples is <code>ghcr.io/gsi-hpc/slurm-repo</code>. The import writes the first snapshot into this namespace. A move changes <code>store.oci</code>, the image source annotation and the remote of the package branches.</td></tr>
+<tr><td>A move also removes the push rights of the set admins from the repository that holds the <a href="tool.html#tool-key">tool repository key</a>.</td></tr>
+<tr><td rowspan="2">Does the repository <code>dennisklein/repoctl</code> move to the GSI-HPC organization?</td><td>The GHCR namespace (<code>ghcr.io/gsi-hpc/…</code>) and the <code>$id</code> host of the schemas (<code>https://gsi-hpc.github.io/repoctl/schema/v1alpha1/</code>) use GSI-HPC. The <code>$id</code> values are identifiers and need not resolve (<a href="contract.html#schemas">schemas</a>).</td></tr>
+<tr><td>The docs site and the Pages repo are at <code>https://dennisklein.github.io/repoctl/</code>. A move changes the Pages URL, the repo links and the image source annotation.</td></tr>
+<tr><td>5</td><td>Does a set need GitLab upstreams (<code>upstream.gitlab</code>) in the first release?</td><td>The first release has the upstream kinds GitHub and Fedora (<a href="config.html#scope">narrow now, open later</a>). rocm-smi lives on git.gsi.de, but its upstream is on GitHub.</td></tr>
+<tr><td rowspan="4">7</td><td>Does the UI server stop by itself after an idle time with no open tab?</td><td>This changes the text of the session page.</td></tr>
+<tr><td>Can an agent button run before the soname check ends, or only on a final result?</td><td>The mockup disables the button until the result is final.</td></tr>
+<tr><td>For more than 4 targets, does the union view open as the matrix view?</td><td><a href="ui-build.html#matrix">Matrix view</a>.</td></tr>
+<tr><td>Does the UI run the signer probe on each Review load, or only on a click?</td><td>V9 decides. A YubiKey can need a touch for each probe.</td></tr>
 </tbody>
 </table>
 </body>
