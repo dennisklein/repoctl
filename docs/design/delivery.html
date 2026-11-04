@@ -12,7 +12,7 @@
   <li>Eight phases, 0 to 7. Each phase ends with a "done when" in the terms of the data story.</li>
   <li>Phase 0 puts the tool on branch <code>main</code>, with CI and this docs site on GitHub Pages.</li>
   <li>The bash-era scripts stay on the builder branches until the first publish with repoctl.</li>
-  <li>Tests V1 to V30 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
+  <li>Tests V1 to V31 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
   <li>Each open question names the phase that needs the answer.</li>
   <li>The requirements give a value from the data story and a design limit for each scale, time and disk row.</li>
 </ul>
@@ -35,7 +35,7 @@
 <rect class="box" x="720" y="24" width="208" height="72" rx="8"/>
 <text class="t-title" x="736" y="48">3 Publish</text>
 <text class="t-small t-muted" x="736" y="68">GHCR, mirror job, gates</text>
-<text class="t-small t-mono" x="736" y="86">V1–V5 V7–V16 V18 V24–V30</text>
+<text class="t-small t-mono" x="736" y="86">V1–V5 V7–V16 V18 V24–V31</text>
 <line class="edge" x1="232" y1="60" x2="254" y2="60" marker-end="url(#arrow)"/>
 <line class="edge" x1="464" y1="60" x2="486" y2="60" marker-end="url(#arrow)"/>
 <line class="edge" x1="696" y1="60" x2="718" y2="60" marker-end="url(#arrow)"/>
@@ -177,6 +177,7 @@
 <tr><td>V28</td><td>Read the primary text of BSI TR-03183-2 v2.1: formats and required fields.</td><td>The SBOM has each required field, or the supply chain chapter names the gap.</td><td>3</td></tr>
 <tr><td>V29</td><td>Grype and Trivy on a build SBOM and on the repository SBOM, with the purls <code>pkg:rpm/gsi-hpc/…</code> and <code>pkg:github/…</code>.</td><td>The upstream components match OSV or GHSA entries.</td><td>3</td></tr>
 <tr><td>V30</td><td>Delete a version of a public organization package through the REST API, with a classic token with <code>delete:packages</code> and the package role admin. Read the limits of GitHub for the delete of a public version, for example a download count.</td><td>The delete works, and GitHub frees the blobs that no version uses. A limit goes into <a href="publish.html#gc">gc and retention</a>.</td><td>3</td></tr>
+<tr><td>V31</td><td>Mirror job on EL9: replace <code>KEYRING</code> with a key file without key B. Then publish a snapshot with RPMs of B, and a snapshot without them.</td><td>The job refuses the first snapshot and keeps the served tree. It serves the second one (<a href="signing.html#compromise">key compromise</a>).</td><td>3</td></tr>
 </tbody>
 </table>
 

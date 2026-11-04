@@ -3586,7 +3586,8 @@
           "enum": [
             "active",
             "retiring",
-            "removed"
+            "removed",
+            "revoked"
           ],
           "description": "Key state."
         },
@@ -4383,6 +4384,50 @@
         "next": {
           "type": "string",
           "description": "The command that the human runs next."
+        },
+        "signedSnapshots": {
+          "type": "array",
+          "description": "sign offboard of a revoked key: each snapshot in the registry with a file that the key signed, newest first.",
+          "items": {
+            "type": "object",
+            "required": [
+              "target",
+              "publish",
+              "digest",
+              "rpms",
+              "repomd",
+              "latest"
+            ],
+            "properties": {
+              "target": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "publish": {
+                "type": "string",
+                "description": "Publish id of the snapshot."
+              },
+              "digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "user": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string"
+              },
+              "rpms": {
+                "type": "integer",
+                "description": "RPMs in the snapshot that the key signed."
+              },
+              "repomd": {
+                "type": "boolean",
+                "description": "The key signed the repomd.xml.asc of the snapshot."
+              },
+              "latest": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       }
     }

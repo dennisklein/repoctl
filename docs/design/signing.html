@@ -15,7 +15,7 @@
   <li>A signer probe asks for the PIN at the start of a publish, not in the sign step.</li>
   <li>Publish verifies each target in its EL mock chroot, with the EL rpm and dnf and only the keys that the clients have.</li>
   <li>A normal publish never re-signs old RPMs. <code>repoctl repo resign</code> does it as its own publish.</li>
-  <li>Key states: active, retiring, removed. An expiring key is a key change, not a new expiry date.</li>
+  <li>Key states: active, retiring, removed, revoked. An expiring key is a key change, not a new expiry date.</li>
   <li>A release package cannot remove a key from the clients. Config management does it, and repoctl prints the commands.</li>
 </ul>
 
@@ -104,7 +104,7 @@
 <tr><td>Works on EL9 clients</td><td>yes</td><td>yes (F1, F2, F8)</td><td>yes (F11)</td><td>RPM: no (F3)</td><td>yes</td></tr>
 <tr><td>Works on EL10 clients</td><td>yes</td><td>yes (F2, F9 with 1 signature)</td><td>yes, but no key update (F12)</td><td>repomd: no (F9); RPM: all keys needed (F6)</td><td>yes</td></tr>
 <tr><td>Onboarding cost</td><td>low: <code>sops updatekeys</code></td><td>medium: new release package, deploy, then sign</td><td>high: erase the key on each client</td><td>–</td><td>low: ssh access</td></tr>
-<tr><td>Offboarding cost</td><td>highest: new key, re-sign all, new key on all clients</td><td>medium: re-sign the RPMs of the key, new release package, config management removes 1 key</td><td>medium: revoke, erase and import on all clients</td><td>–</td><td>lowest: remove ssh access, change the PIN</td></tr>
+<tr><td>Offboarding cost</td><td>highest: new key, re-sign all, new key on all clients</td><td>medium: re-sign the RPMs of the key, new release package, config management removes 1 key</td><td>medium: <span class="no-gl">revoke</span>, erase and import on all clients</td><td>–</td><td>lowest: remove ssh access, change the PIN</td></tr>
 <tr><td>Setup cost</td><td>low: sops and age keys</td><td>low: one YubiKey per admin</td><td>medium: offline primary, key ceremony</td><td>high: needs an rpm 6 signer</td><td>medium: sign host, tunnel</td></tr>
 <tr><td>Attribution (who signed)</td><td>no</td><td>yes</td><td>yes</td><td>yes</td><td>by the log of the sign host</td></tr>
 <tr><td>Failure modes</td><td>plain key in RAM on each laptop; a member who leaves keeps a copy; tmpfs left after a crash</td><td>a new signer before the deployment breaks dnf on clients; a forgotten key removal on clients</td><td>clients do not see new subkeys; repomd fails for new admins</td><td>EL10 rejects repomd; NOKEY fails RPMs</td><td>sign host down: no publish; host compromise: key misuse</td></tr>
@@ -302,7 +302,7 @@
 <tr><td>3 key format</td><td>OpenPGP v4 key, RSA 2048 or more, or Ed25519. No SHA-1 self-signature.</td><td><code>sign.key-format</code>, 9</td></tr>
 </tbody>
 </table>
-<p>After the gates, publish checks the signers of the base. An RPM of a removed key gives <code>sign.removed-signer</code> (exit 12). An RPM of an unknown key, or without a signature, gives <code>sign.unknown-signer</code> (exit 10) with the file names (<a href="#resign">re-sign rules</a>).</p>
+<p>After the gates, publish checks the signers of the base. An RPM of a removed or revoked key gives <code>sign.removed-signer</code> (exit 12). An RPM of an unknown key, or without a signature, gives <code>sign.unknown-signer</code> (exit 10) with the file names (<a href="#resign">re-sign rules</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: first publish</p>
 <p>Gate 2 does not apply when the registry has no snapshot of the target and the publish is not an import. No client uses such a target yet. The summary then says "first publish of el10: no clients yet; the signer must be in the key file of this release". A key that a publish adds can never sign that publish.</p>
@@ -365,7 +365,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 </ol>
 <aside class="callout rule">
 <p class="callout-title">Rule: client trust set</p>
-<p>Step 5 uses the key file that the clients have: the key file of the release in the deployment record of the signer, or the key file of a key file record. It does not use the key file of a release that this publish adds. For a first publish, it uses the key file of this publish.</p>
+<p>Step 5 uses the key file that the clients have: the key file of the release in the deployment record of the signer, or the key file of a key file record. It does not use the key file of a release that this publish adds. For a first publish, it uses the key file of this publish. The client trust set never holds a revoked key.</p>
 </aside>
 <p>A failure gives <code>verify.el-failed</code> (exit 10), and repoctl keeps the tree. <code>repoctl repo verify --el</code> runs the same check on demand. The default key set of <code>repo verify</code> is the client trust set (<a href="cli.html#cmd-repo-verify">repo verify</a>).</p>
 
@@ -376,6 +376,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <tr><td>a key in state active</td><td>keep</td><td>re-sign if ID is that key</td></tr>
 <tr><td>a key in state retiring</td><td>keep; the sign line of the summary shows the count; status and doctor give the resign hint (<code>sign.retiring</code>)</td><td>re-sign if ID is that key</td></tr>
 <tr><td>a key in state removed</td><td>refuse: <code>sign.removed-signer</code>, 12</td><td>re-sign if ID is that key</td></tr>
+<tr><td>a key in state revoked</td><td>refuse: <code>sign.removed-signer</code>, 12</td><td>re-sign if ID is that key (<a href="#compromise">key compromise</a>)</td></tr>
 <tr><td>an unknown key, or no signature</td><td>refuse: <code>sign.unknown-signer</code>, 10, with the file names</td><td>refuse</td></tr>
 </tbody>
 </table>
@@ -384,7 +385,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <p>repoctl re-signs an RPM only when both conditions are true. Its signature verifies with a key in <code>sign.keys</code>, at the time of the signature (<a href="#after-expiry">after the expiry</a>). Its sha256 is in the base snapshot, which has a valid <code>repomd.xml.asc</code>. RPMs of different admins stay side by side. A change of the human who publishes never re-signs old RPMs.</p>
 </aside>
 <p><code>repoctl repo resign --signer ID</code> gives a new signature to each RPM of the key ID. It signs with the key of the human who runs the command. It is a publish run of kind resign, with the full publish order and gates 1 to 3 (<a href="publish.html#per-kind">checks per kind</a>). The summary shows the count per target and per repository, debuginfo included, and the size of the new blobs. <code>--repo</code> splits the work. When no RPM carries the key, the command exits with 4. A new signature changes the sha256 of the file. Thus resign also writes new supply chain records for each build that it touches (<a href="supply-chain.html#layout">supply-chain.html#layout</a>).</p>
-<p><code>repo restore</code> also re-signs the RPMs of a removed key in the older snapshot (<a href="publish.html#restore">publish.html#restore</a>). Command: <a href="cli.html#cmd-repo-resign">repo resign</a>.</p>
+<p><code>repo restore</code> also re-signs the RPMs of a removed or revoked key in the older snapshot (<a href="publish.html#restore">publish.html#restore</a>). Command: <a href="cli.html#cmd-repo-resign">repo resign</a>.</p>
 <p>In the story, the publish of el9 keeps 170 RPMs: 120 of d.klein and 50 of the retiring key hpc-repo. It re-signs none.</p>
 
 <h2 id="release">Release package</h2>
@@ -425,9 +426,9 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <p>Thus re-sign the RPMs of a key before it expires. The advisory <code>sign.expiring</code> becomes required 30 days before the expiry date.</p>
 
 <h2 id="lifecycle">Key lifecycle</h2>
-<p><code>sign.keys[].state</code> has three values: active, retiring and removed. "Deployed" is not a state: it is an active key with a record in <code>keys/deployed.yaml</code>.</p>
+<p><code>sign.keys[].state</code> has four values: active, retiring, removed and revoked. "Deployed" is not a state: it is an active key with a record in <code>keys/deployed.yaml</code>.</p>
 <figure class="diagram">
-<svg viewBox="0 0 900 244" role="img" aria-labelledby="states-t">
+<svg viewBox="0 0 900 340" role="img" aria-labelledby="states-t">
 <title id="states-t">Key states and the commands that change them</title>
 <rect class="box" x="16" y="24" width="190" height="100" rx="8"/>
 <text class="t t-title" x="30" y="48">Added</text>
@@ -465,9 +466,17 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <text class="t-small t-accent" x="16" y="200">story: a.admin at 15:00</text>
 <text class="t-small t-accent" x="246" y="200">story: d.klein</text>
 <text class="t-small t-accent" x="476" y="200">story: hpc-repo</text>
-<text class="t-small t-muted" x="16" y="232">Then config management removes a removed key from the clients. repoctl sign offboard ID prints the commands.</text>
+<path class="edge-err" d="M16,222 L640,222 C676,222 676,262 702,262" marker-end="url(#arrow)"/>
+<text class="t-small t-mono" x="16" y="246">sign revoke ID: from active, retiring or removed, at once</text>
+<text class="t-small t-muted" x="16" y="264">compromise: the key leaves the key file; its files need re-sign</text>
+<rect class="box-err" x="706" y="220" width="178" height="88" rx="8"/>
+<text class="t t-title" x="720" y="244">Revoked</text>
+<text class="t-small" x="720" y="264">state: revoked</text>
+<text class="t-small" x="720" y="282">in the key file: no</text>
+<text class="t-small t-err" x="720" y="300">final; can sign: no</text>
+<text class="t-small t-muted" x="16" y="330">Then config management removes a removed or revoked key from the clients. repoctl sign offboard ID prints the commands.</text>
 </svg>
-<figcaption>Key states. The text under each box gives the commands that lead into that state, and the story key in it on 2026-11-03. <code>sign activate</code> takes a retiring key back to active.</figcaption>
+<figcaption>Key states. The text under each box gives the commands that lead into that state, and the story key in it on 2026-11-03. <code>sign activate</code> takes a retiring key back to active. <code>sign revoke</code> ends the trust in a compromised key at once.</figcaption>
 </figure>
 <table class="compact">
 <thead><tr><th>Command</th><th>Class</th><th>What it does</th></tr></thead>
@@ -478,7 +487,8 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <tr><td><a href="cli.html#cmd-sign-retire"><code>sign retire ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets state retiring, runs release write, makes one set commit. The key cannot sign any more. Refuses the last deployed signer (<code>sign.last-signer</code>, exit 12).</td></tr>
 <tr><td><a href="cli.html#cmd-sign-activate"><code>sign activate ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets a retiring key back to active after a typed key id, makes one set commit. The key signs again with its deployment record.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-remove"><code>sign remove ID</code></a></td><td><span class="tag local">local write</span></td><td>Refuses while latest of a target holds an RPM of the key (<code>sign.key-in-use</code>, exit 12, hint <code>repoctl repo resign --signer ID</code>). Then sets state removed, writes a key file without it, makes one set commit.</td></tr>
-<tr><td><a href="cli.html#cmd-sign-offboard"><code>sign offboard ID</code></a></td><td><span class="tag read">read</span></td><td>Prints the commands for the clients.</td></tr>
+<tr><td><a href="cli.html#cmd-sign-revoke"><code>sign revoke ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets state revoked after a typed key id, writes a key file without the key, makes one set commit. For a compromised key (<a href="#compromise">key compromise</a>).</td></tr>
+<tr><td><a href="cli.html#cmd-sign-offboard"><code>sign offboard ID</code></a></td><td><span class="tag read">read</span></td><td>Prints the commands for the clients. For a revoked key, also the snapshots in the registry with files of the key.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-ls"><code>sign ls</code></a></td><td><span class="tag read">read</span></td><td>Lists the keys with state, deployment record, expiry and the count of RPMs per target in latest.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-keyfile"><code>sign keyfile --checksum</code></a></td><td><span class="tag read">read</span></td><td>Prints the sha256 of the key file for the bootstrap.</td></tr>
 </tbody>
@@ -494,11 +504,13 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <tr><td>retiring</td><td>removed</td><td><code>sign remove ID</code></td><td><code>sign.key-in-use</code> (exit 12) while latest of a target holds an RPM of the key.</td></tr>
 <tr><td>active</td><td>removed</td><td>none</td><td><code>sign.wrong-state</code> (exit 1). Retire the key first.</td></tr>
 <tr><td>removed</td><td>active or retiring</td><td>none</td><td><code>sign.wrong-state</code> (exit 1). A removed key does not come back. Make a new key.</td></tr>
+<tr><td>active, retiring or removed</td><td>revoked</td><td><code>sign revoke ID</code></td><td>exit 6 without a terminal or with a wrong key id. No other refusal: revoke works also for the last deployed signer and while latest holds RPMs of the key.</td></tr>
+<tr><td>revoked</td><td>any</td><td>none</td><td><code>sign.wrong-state</code> (exit 1). A revoked key is final.</td></tr>
 </tbody>
 </table>
 <aside class="callout rule">
-<p class="callout-title">Rule: keep the entry of a removed key</p>
-<p>A removed key stays in <code>sign.keys</code>, and <code>keys/ID.asc</code> stays, while a snapshot in the registry holds a file that the key signed. <code>repo pull</code>, <code>repo restore</code> and <code>repo verify</code> need the key for these snapshots, and gc keeps some of them (<a href="publish.html#gc">publish.html#gc</a>). When <code>repoctl repo snapshots --all</code> lists no such snapshot, a human can delete the entry and the file in one set commit. Then the id is free again.</p>
+<p class="callout-title">Rule: keep the entry of a removed or revoked key</p>
+<p>A removed or revoked key stays in <code>sign.keys</code>, and <code>keys/ID.asc</code> stays, while a snapshot in the registry holds a file that the key signed. <code>repo pull</code>, <code>repo restore</code> and <code>repo verify</code> need the key for these snapshots, and gc keeps some of them (<a href="publish.html#gc">publish.html#gc</a>). When <code>repoctl repo snapshots --all</code> lists no such snapshot, a human can delete the entry and the file in one set commit. Then the id is free again.</p>
 </aside>
 <p>The result kinds are <code>SignerList</code> and <code>OnboardReport</code> (<a href="contract.html#kinds">contract.html#kinds</a>). The MCP read tools are <code>repoctl_sign_ls</code> and <code>repoctl_sign_onboard</code>. MCP has no tool for the other sign commands (<a href="agents.html#mcp-tools">agents.html#mcp-tools</a>). The Signing page of the web UI shows the same keys and onboarding steps (<a href="ui-publish.html#signing">ui-publish.html#signing</a>).</p>
 
@@ -610,7 +622,71 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
 <p>A rotation is an onboarding of the new key, then an offboarding of the old key. An expiring key uses the same rotation (<a href="#expiry">key expiry</a>). A move to a central signer (option E) also uses it: add the central key, then offboard the personal keys.</p>
 
 <h2 id="emergency">Emergency: a lost or a compromised key</h2>
-<p>Two failures do not fit the normal order of onboarding and offboarding. A lost key can leave a target without a deployed signer. A compromised key must lose the trust of the clients at once. Both use the <a href="#deployment-record">key file record</a>, because a release package needs a deployed signer and a publishable target.</p>
+<p>Two failures do not fit the normal order of onboarding and offboarding. A compromised key must lose the trust of the clients at once. A lost key can leave a target without a deployed signer. Both use a key file that config management installs without a release package, because a release package needs a deployed signer and a publishable target.</p>
+<h3 id="compromise">Key compromise</h3>
+<p>A key is compromised when another human can sign with it: a copied file key, a stolen card with a known PIN, or a host with the key in the hands of an attacker. A lost card that another human can find counts as compromised. The trust of the clients in the key must end at once. The normal offboarding order keeps that trust until step 5, so it does not apply.</p>
+<figure class="diagram">
+<svg viewBox="0 0 900 324" role="img" aria-labelledby="comp-t">
+<title id="comp-t">The order after a key compromise: trust ends first, the re-sign follows</title>
+<rect class="box" x="16" y="24" width="272" height="88" rx="8"/>
+<text class="t t-title" x="30" y="48">1 Stop the access</text>
+<text class="t-small" x="30" y="70">organization owner: remove from the team</text>
+<text class="t-small t-muted" x="30" y="90">delete the registry tokens of the key hosts</text>
+<rect class="box-err" x="314" y="24" width="272" height="88" rx="8"/>
+<text class="t t-title" x="328" y="48">2 sign revoke ID</text>
+<text class="t-small" x="328" y="70">state revoked, key file without the key</text>
+<text class="t-small t-muted" x="328" y="90">set commit, push</text>
+<rect class="box-accent" x="612" y="24" width="272" height="88" rx="8"/>
+<text class="t t-title t-on" x="626" y="48">3 Key file to all hosts, now</text>
+<text class="t-small t-on" x="626" y="70">HTTP server first, then each client</text>
+<text class="t-small t-on" x="626" y="90">pinned sum; erase the key; rm pubring</text>
+<line class="edge" x1="288" y1="68" x2="312" y2="68" marker-end="url(#arrow)"/>
+<line class="edge" x1="586" y1="68" x2="610" y2="68" marker-end="url(#arrow)"/>
+<path class="edge" d="M748,112 C748,134 152,128 152,148" marker-end="url(#arrow)"/>
+<rect class="box" x="16" y="150" width="272" height="88" rx="8"/>
+<text class="t t-title" x="30" y="174">4 Check the publishes</text>
+<text class="t-small" x="30" y="196">sign offboard ID lists the snapshots</text>
+<text class="t-small t-muted" x="30" y="216">an unknown publish: restore first</text>
+<rect class="box" x="314" y="150" width="272" height="88" rx="8"/>
+<text class="t t-title" x="328" y="174">5 repo resign --signer ID</text>
+<text class="t-small" x="328" y="196">by another deployed key, per target</text>
+<text class="t-small t-muted" x="328" y="216">the mirror job serves it again</text>
+<rect class="box-ok" x="612" y="150" width="272" height="88" rx="8"/>
+<text class="t t-title" x="626" y="174">6 Release package</text>
+<text class="t-small" x="626" y="196">at the next publish of each target</text>
+<text class="t-small t-muted" x="626" y="216">with the same key file</text>
+<line class="edge" x1="288" y1="194" x2="312" y2="194" marker-end="url(#arrow)"/>
+<line class="edge" x1="586" y1="194" x2="610" y2="194" marker-end="url(#arrow)"/>
+<rect class="box-warn" x="16" y="260" width="868" height="52" rx="8"/>
+<text class="t t-title" x="30" y="282">Accepted outage from step 3 to step 5</text>
+<text class="t-small" x="30" y="302">dnf on the clients refuses the metadata and the RPMs that the key signed. The mirror job keeps the served tree.</text>
+</svg>
+<figcaption>The order after a key compromise. Trust in the key ends in step 3, before the re-sign. The normal offboarding order ends it last.</figcaption>
+</figure>
+<ol class="steps">
+  <li>Stop the access. When the human leaves, an organization owner removes the human from the GitHub team. Delete the registry tokens of each host that held the key.</li>
+  <li>Run <code>repoctl sign revoke ID</code> and type the key id. The key gets state revoked, and the key file loses it in one set commit. Push the set commit.</li>
+  <li>Run <code>repoctl sign offboard ID</code>. It prints the client commands and the sha256 of the new key file. Config management installs that key file with the pinned sum, erases the key and deletes the dnf repository keyring: first on the HTTP server, then on each client. Do not wait for a release package. From now on, the mirror job serves no snapshot with a file of the key, and the clients refuse these files.</li>
+  <li>Check each snapshot that <code>sign offboard</code> lists. The team must know each publish: compare the publish id, the user and the host with the team channel. When a publish is not known, first run <code>repoctl repo restore REF</code> with the newest known snapshot.</li>
+  <li>A human with another active, deployed key runs <code>repoctl repo resign --signer ID</code> for each target. The new snapshot has no file of the revoked key. The mirror job serves it, and the clients work again.</li>
+  <li>Publish the release package with the new key file at the next publish of each target.</li>
+</ol>
+<p>When no other key is deployed, add the new key before step 3 (<code>repoctl sign add NEW</code>). Thus the key file of step 3 holds it. After step 3, record it with <code>repoctl sign deployed NEW --keyfile SHA256</code> (<a href="#recovery">recovery</a>). Then NEW does step 5.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: revoked key</p>
+<p>A revoked key never signs again, and it never comes back. It is not in the key file, and the client trust set of verify-el and <code>repo verify</code> never holds it. A normal publish refuses a base with a file that it signed (<code>sign.removed-signer</code>, exit 12). Only <code>repo resign</code> and <code>repo restore</code> replace these signatures. <code>repo pull</code> accepts them with the warning <code>sign.removed-signer</code>, so that a host can get the base of the re-sign.</p>
+</aside>
+<p>The output of <code>sign offboard</code> for a revoked key, in a variant where a.admin is revoked (not the story):</p>
+<pre class="term">$ repoctl sign offboard a.admin
+revoked  a.admin  C2F9 7713 05AB E4D6 18C3  9F2B 70DE A5C1 E93F 52A7
+Run now, on the HTTP server first, then on every client:
+  all:    install RPM-GPG-KEY-slurm with sha256 SUM (repoctl sign keyfile --checksum)
+  EL9:    rpm -e gpg-pubkey-e93f52a7
+  EL10:   rpmkeys --erase e93f52a7      # EL10.1 and later; else use the EL9 line
+  both:   rm -rf /var/cache/dnf/slurm*/pubring
+Snapshots in the registry with files of a.admin:
+  el9   p-20261105-1030-9b2   a.admin@hpc-a2   12 RPMs, repomd.xml.asc   latest
+Next: check each publish, then repoctl repo resign --signer a.admin --target el9</pre>
 <h3 id="recovery">Recovery without a deployed signer</h3>
 <p>A key is lost when its secret key is gone, for example a broken card or a lost disk. Its signatures stay valid, and the clients still trust it. Retire it: <code>sign retire</code> needs no secret key. When another active key is deployed for each target with a latest, the rest is a normal rotation (<a href="#offboarding">offboarding and rotation</a>).</p>
 <p>When the lost key is the last deployed signer of a target, <code>sign retire</code> refuses (<code>sign.last-signer</code>), and no key can sign a release package with a new key. Do these steps:</p>
@@ -651,7 +727,7 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
 </table>
 
 <h2 id="help">Help topics</h2>
-<p>These are the texts of <code>repoctl help signing</code> and <code>repoctl help team</code>. The list of all topics is in <a href="cli.html#topics">cli.html#topics</a>.</p>
+<p>These are the texts of <code>repoctl help signing</code>, <code>repoctl help emergency</code> and <code>repoctl help team</code>. The list of all topics is in <a href="cli.html#topics">cli.html#topics</a>.</p>
 <h3 id="help-signing">repoctl help signing</h3>
 <pre><code class="language-plaintext">SIGNING
 
@@ -660,6 +736,7 @@ the clients trust (sign.keys), each with a state:
   active    can sign after its deployment; clients trust it
   retiring  cannot sign; its RPMs stay; re-sign them, then remove it
   removed   no RPM in latest carries it; clients must not trust it
+  revoked   compromised; clients must stop to trust it at once; final
 A key is "deployed" when keys/deployed.yaml records that config
 management installed a release package that holds the key.
 
@@ -679,12 +756,36 @@ Set commits:    sign each commit that changes repoctl.yaml,
                 package (git config commit.gpgsign true). publish
                 refuses a change without a signature of an active
                 key, or of the key that the change adds.
+Compromise:     "repoctl sign revoke ID" ends the trust at once
+                (repoctl help emergency).
 
 A new expiry date does not reach the clients. Treat an expiring key
 as a key change, and re-sign its RPMs before it expires.
 
 publish signs only with an active, deployed key. It re-signs no old
 RPM; only "repoctl repo resign" does. "repoctl doctor" checks sign.*.</code></pre>
+<h3 id="help-emergency">repoctl help emergency</h3>
+<pre><code class="language-plaintext">EMERGENCY
+
+A key is compromised (another human can sign with it):
+  1. Remove the access: GitHub team, registry tokens of its hosts.
+  2. repoctl sign revoke ID          type the key id; push the commit
+  3. repoctl sign offboard ID        the commands for config management:
+     install the new key file (pinned sum), erase the key, rm pubring;
+     on the HTTP server first, then on every client. Do not wait.
+     Clients refuse the files of the key until step 5.
+  4. Check each listed publish. An unknown one: repoctl repo restore REF
+  5. repoctl repo resign --signer ID --target T   (another deployed key)
+  6. Publish the release package with the next publish.
+
+A key is lost (card broken, PIN and reset code blocked, disk lost):
+  repoctl sign retire ID, then the normal rotation (help signing).
+  The last deployed signer is lost:
+    repoctl sign add NEW --fingerprint FPR; push
+    repoctl sign keyfile --checksum; config management installs it
+    repoctl sign deployed NEW --keyfile SHA256 --target T; push
+
+Keep two deployed keys for each target.</code></pre>
 <h3 id="help-team">repoctl help team</h3>
 <pre><code class="language-plaintext">TEAM
 
