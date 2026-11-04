@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 90 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 91 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -320,6 +320,7 @@
 <tr><td><code>mock.unavailable</code></td><td>9</td><td>mock is not installed, or the user is not in the group <code>mock</code>.</td><td>Install mock (<code>install-tool</code>).</td></tr>
 <tr><td><code>node.blocked</code></td><td>3</td><td>A dependency failed. The node did not run.</td><td>Repair the failed dependency.</td></tr>
 <tr><td><code>node.failed</code></td><td>3</td><td>The node failed in a step.</td><td><code>repoctl logs RUN NODE</code>, or the skill triage-build.</td></tr>
+<tr><td><code>nvr.older</code></td><td>12</td><td>A new NVR is not newer than the newest NVR of its source package name in the base or in <code>removed[]</code>. Clients never install it.</td><td>Raise <code>Epoch</code> or the version (<a href="publish.html#restore">Restore and fix forward</a>).</td></tr>
 <tr><td><code>nvr.removed</code></td><td>12</td><td>A prune or a restore removed this NVR, and the new build has other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
 <tr><td><code>nvr.reused</code></td><td>12</td><td>latest holds this NVR with other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
 <tr><td><code>prune.not-retired</code></td><td>1</td><td><code>repo prune --package NAME --all</code>: NAME is not retired.</td><td>Retire it first (<a href="lifecycle.html#retire">Retire</a>).</td></tr>

@@ -338,7 +338,7 @@ note: lingering is off. The timer runs only while you are logged in.
 <h2 id="gate">Publish gate</h2>
 <p>The gate runs in the check step of publish (<a href="publish.html#checks">checks before the first signature</a>). It runs for each target of the publish, with these rules:</p>
 <ol class="steps">
-  <li>Make the result tree of the target: the published repo of latest, plus the nodes that the publish takes (<a href="publish.html#takes">what a publish takes</a>). A new NVR is the newest NVR of its name.</li>
+  <li>Make the result tree of the target: the published repo of latest, plus the nodes that the publish takes (<a href="publish.html#takes">what a publish takes</a>). A new NVR is the newest NVR of its name, because publish refuses an older one (<code>nvr.older</code>).</li>
   <li>Run <code>dnf repoclosure --newest</code> on the result tree plus the upstream repos of the target. The result is a list of broken requirements: an RPM and a requirement.</li>
   <li>For each broken requirement, find its closure: the dir that built the RPM, plus the dir whose newest published build provided the requirement and whose new build does not provide it.</li>
   <li>A required advisory blocks the target when its closure contains a dir of the publish on that target, and the human did not accept it.</li>
