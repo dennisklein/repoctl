@@ -307,7 +307,7 @@
 <p class="callout-title">Rule: first publish</p>
 <p>Gate 2 does not apply when the registry has no snapshot of the target and the publish is not an import. No client uses such a target yet. The summary then says "first publish of el10: no clients yet; the signer must be in the key file of this release". A key that a publish adds can never sign that publish.</p>
 </aside>
-<p>Gate 2 reads only the committed record. The record is in the pushed set commit (<a href="publish.html#checks">publish.html#checks</a>), so all admins see the same record.</p>
+<p>Gate 2 reads only the committed record. The record is in the pushed set commit (<a href="publish.html#checks">publish.html#checks</a>). Publish also stops when the remote branch has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit (<code>sign.trust-behind</code>, exit 13, <a href="security.html#remote-tip">security.html#remote-tip</a>). Thus each publish reads the newest record, and all admins see the same record.</p>
 <aside class="callout why">
 <p class="callout-title">Why a human confirms</p>
 <p>Config management gives no feedback to repoctl. A published release package does not prove that the clients have it. If a key signs before the clients have it, dnf on the clients cannot read the metadata. Thus a human checks the clients and confirms the deployment.</p>
@@ -638,7 +638,9 @@ Each admin works as an own user and/or on an own host. The state of
 a host is not shared. The registry and git are shared. Two admins
 coordinate in the team channel; repoctl does not lock between hosts.
 If latest moved, publish stops with state.behind (exit 13): run
-"repoctl repo pull".
+"repoctl repo pull". If another admin pushed a change of
+repoctl.yaml or keys/, publish stops with sign.trust-behind
+(exit 13): run "git pull --ff-only".
 
 Stand in for an admin who is away:
   1. git pull; repoctl checkout; repoctl repo pull

@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 99 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 100 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -360,6 +360,7 @@
 <tr><td><code>sign.removed-signer</code></td><td>12</td><td>A kept RPM has the signature of a removed key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
 <tr><td><code>sign.retiring</code></td><td>warning in doctor</td><td>RPMs in latest have the signature of a retiring key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
 <tr><td><code>sign.self-confirm</code></td><td>12</td><td><code>sign deployed</code>: the key of <code>sign.key</code> is the key of the record, and another key is active.</td><td>An admin with another active key confirms the deployment.</td></tr>
+<tr><td><code>sign.trust-behind</code></td><td>13</td><td>The tip of the remote branch has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit of the publish.</td><td><code>git pull --ff-only</code>, then publish again (<a href="security.html#remote-tip">Trust records on the remote branch</a>).</td></tr>
 <tr><td><code>sign.trust-change</code></td><td>6</td><td>The publish changes the trust set. The human must type the key id.</td><td>Use a terminal or the UI (<code>trust-change</code>).</td></tr>
 <tr><td><code>sign.trust-unverified</code></td><td>12</td><td>A commit since the set commit of the base changes a set input and has no valid signature of an allowed key, or a new deployment record names another key than the signer of its commit. The message names the commit.</td><td>Review the commit, then sign a review commit (<a href="security.html#review">Review commit</a>).</td></tr>
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files. In <code>repo pull</code>, when the set checkout does not hold the set commit of the snapshot: <code>git pull origin builder/SET</code>, then pull again.</td></tr>

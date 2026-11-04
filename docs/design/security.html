@@ -187,5 +187,13 @@ hint: review the change. run: git show 3c5d9e1
 hint: then sign a review commit. run: git commit --allow-empty -S4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E -m "Review set inputs of 3c5d9e1" --trailer "Trust-Reviewed: 3c5d9e1f…"
 $ echo $?
 12</pre>
+
+<h3 id="remote-tip">Trust records on the remote branch</h3>
+<p>Two admins can push to the builder branch at the same time. <code>lock.unpushed</code> checks only that the set commit is on the remote branch. Thus a publish from an older set commit could use old key states, for example after another admin pushed a retire.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: newest trust records</p>
+<p>After the fetch of step 1, publish compares <code>repoctl.yaml</code> and <code>keys/</code> of the set commit with the tip of the remote branch: <code>git diff --quiet SET origin/builder/SET -- repoctl.yaml keys/</code>. A difference stops the publish with <code>sign.trust-behind</code> (exit 13). The hint is <code>git pull --ff-only</code>, then publish again.</p>
+</aside>
+<p>Thus gates 1 and 2 and the trust block read the newest key states and deployment records. All admins see the same record. A change of <code>repoctl.yaml</code> outside <code>sign</code>, for example a new package, also stops the publish. This is on purpose: the rule stays one file comparison.</p>
 </body>
 </html>
