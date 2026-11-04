@@ -682,6 +682,7 @@
         "prune.not-retired",
         "publish.needs-confirmation",
         "publish.not-ready",
+        "publish.not-verified",
         "publish.nothing-to-publish",
         "publish.unattended-refused",
         "rebuild.in-tree",
@@ -2319,7 +2320,8 @@
                   "failed",
                   "canceled",
                   "skipped"
-                ]
+                ],
+                "description": "Result of this target. A partial publish has ok for the tagged targets and failed, canceled or skipped for the others."
               },
               "store": {
                 "type": "string"
@@ -2422,6 +2424,10 @@
                     }
                   }
                 }
+              },
+              "pushable": {
+                "type": "boolean",
+                "description": "The kept tree of this target passed verify and verify-el, and step 8 is not done. repo push completes it. The state file publishes/<publish>/state.json holds the same Run."
               }
             }
           }

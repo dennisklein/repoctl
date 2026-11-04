@@ -11,7 +11,7 @@
 <ul class="keypoints">
   <li>GHCR is the authority. The tag <code>latest</code> of each set and target says what is published. All other records are copies.</li>
   <li>Publish has one fixed order: check, sign, repodata, verify, verify-el, push, tag, cache. Only step 7 (tag) changes what other humans see.</li>
-  <li>A failed push or tag leaves the signed tree. <code>repoctl repo push</code> completes the publish.</li>
+  <li>A failed push or tag leaves the signed and verified tree. <code>repoctl repo push</code> completes the publish. repoctl never pushes a tree that did not pass verify and verify-el.</li>
   <li>A mirror job on the HTTP server pulls latest, verifies it with the keys of the clients and swaps the served tree. It uses only curl, jq, gpgv and rpmkeys.</li>
   <li>There is no lease between admins. Publish compares latest with its base in step 1 and again in step 7.</li>
   <li>Publish takes all staged nodes of the plan, per target. It adds files and never deletes them.</li>
@@ -87,7 +87,7 @@
 <tr><td>Client URL</td><td><code>&lt;repo.url&gt;/&lt;target.path&gt;/{slurm,slurm-source,slurm-debuginfo}/</code>, for example <code>https://repo.example.org/slurm-26.05/el9/slurm/</code>.</td><td>set (<code>repo.url</code>, <code>targets[].path</code>)</td></tr>
 <tr><td>Served tree</td><td>The directory on the HTTP server behind <code>repo.url</code>, for example <code>/srv/repos/slurm-repo/slurm-26.05/el9</code>. Only the mirror job writes it.</td><td>mirror job config</td></tr>
 <tr><td>Local copy</td><td><code>$XDG_DATA_HOME/repoctl/&lt;set&gt;/repo/&lt;target&gt;/</code>: the files of one snapshot. It is the build input (<code>mock --addrepo</code>) and the base of the next publish. Clients never read it.</td><td>repoctl</td></tr>
-<tr><td>New tree</td><td><code>publishes/p-…/tree/</code> in the data directory of the set, next to the local copy. Steps 2 to 5 write it with hard links.</td><td>repoctl</td></tr>
+<tr><td>New tree</td><td><code>publishes/p-…/tree/</code> in the data directory of the set, next to the local copy. Steps 2 to 5 write it with hard links. <code>publishes/p-…/state.json</code> records the base, the new manifest digest and the result of each step, per target (<a href="#complete">stop and complete</a>).</td><td>repoctl</td></tr>
 </tbody>
 </table>
 <p>No admin writes the served tree. Thus no publish can go to a path that no client reads, and two Unix users need no shared directory. The keys <code>store.oci</code>, <code>repo.url</code> and <code>targets[].path</code> are in <a href="config.html#set-config">the set config</a>. The XDG directories are in <a href="config.html#xdg">config.html#xdg</a>.</p>
@@ -172,11 +172,12 @@ KEEP_TREES=2</code></pre>
 <tr><td>same</td><td>continue</td><td>local: same</td><td>continue</td></tr>
 <tr><td>the registry has no snapshot of this target</td><td>continue (first publish)</td><td>not published</td><td>continue; gate 2 does not apply, except for an import (<a href="#first-publish">first publish</a>)</td></tr>
 <tr><td>latest is newer than the local copy, or there is no local copy</td><td>stop: <code>state.behind</code>, exit 13</td><td>local: behind</td><td>stop: <code>state.behind</code>, exit 13</td></tr>
-<tr><td>the local copy has a signed publish that is not in the registry</td><td>warn: <code>state.unpushed</code></td><td>local: unpushed</td><td>stop: <code>state.unpushed</code>, exit 13</td></tr>
+<tr><td>a pushable tree of this user is not tagged: latest is still its base</td><td>warn: <code>state.unpushed</code></td><td>local: unpushed</td><td>stop: <code>state.unpushed</code>, exit 13</td></tr>
+<tr><td>latest is the new snapshot of a pushable tree of this user: step 7 is done, step 8 is not</td><td>stop: <code>state.behind</code>, exit 13, hint <code>repoctl repo push p-…</code></td><td>local: behind, hint "publish p-… is in latest, the cache step did not run"</td><td>stop: <code>state.behind</code>, exit 13, hint <code>repoctl repo push p-…</code></td></tr>
 <tr><td>the registry is not reachable</td><td>warn: <code>registry.unreachable</code>, use the local copy</td><td>registry: unknown</td><td>stop: <code>registry.unreachable</code>, exit 13</td></tr>
 </tbody>
 </table>
-<p>The hint of <code>state.behind</code> is <code>run: repoctl repo pull</code>. The hint of <code>state.unpushed</code> is <code>run: repoctl repo push p-…</code>. Offline work is possible for plan and build, but not for publish. The full list of problem codes is in <a href="contract.html#problems">contract.html#problems</a>.</p>
+<p>The hint of <code>state.behind</code> is <code>run: repoctl repo pull</code>. The hint of <code>state.unpushed</code> is <code>run: repoctl repo push p-…</code>, or discard the tree with <code>repoctl clean --publish p-…</code>. A pushable tree is defined in <a href="#complete">stop and complete</a>. Offline work is possible for plan and build, but not for publish. The full list of problem codes is in <a href="contract.html#problems">contract.html#problems</a>.</p>
 <p>The snapshot lines of <code>repoctl status</code> just after the story publish of el9 (2026-11-03 14:13):</p>
 <pre class="term">$ repoctl status
 set      slurm-26.05  (builder/slurm-26.05 at 9a0c4e2, pushed)
@@ -243,7 +244,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <text class="t t-err" x="320" y="296" data-f="4">latest moved: snapshot.diverged, exit 13. p-…5e1 stays an unserved tag.</text>
 <text class="t t-mono" x="320" y="322" data-f="4">hint: run: repoctl repo pull, then plan and publish again</text>
 <text class="t" x="320" y="270" data-f="5">cache 0.2 s: the local copy is p-…5e1. The publish is a success.</text>
-<text class="t" x="320" y="296" data-f="5">A failed cache write is only a warning (hint: repoctl repo pull).</text>
+<text class="t" x="320" y="296" data-f="5">A failed cache write is only a warning (hint: repoctl repo push p-…).</text>
 <text class="t-small t-muted" x="320" y="322" data-f="5">status: el9 served: behind</text>
 <text class="t" x="320" y="270" data-f="6">Within 5 min the mirror job pulls p-…5e1 and verifies it with the client keys.</text>
 <text class="t" x="320" y="296" data-f="6">Then it swaps the served tree in one rename.</text>
@@ -260,20 +261,45 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <tr><td>1</td><td>check</td><td>All checks of <a href="#checks">the next section</a>, with the signer probe (<a href="signing.html#probe">signing.html#probe</a>).</td><td>exit 5, 9, 10, 12 or 13. Nothing written.</td></tr>
 <tr><td>2</td><td>sign</td><td>Copy the base to a new tree <code>publishes/p-…/tree/</code> with hard links. Add the new RPMs. Run <code>rpmsign --resign</code> on the new RPMs only.</td><td>exit 9 or 1 (<code>sign.failed</code>). Delete the new tree.</td></tr>
 <tr><td>3</td><td>repodata</td><td>Write the supply chain records of the new builds and the repository SBOM, with the sha256 of the signed files (<a href="supply-chain.html#flow">supply-chain.html#flow</a>). Run <code>createrepo_c --update</code>. Add the RepoManifest with the sha256 of each record (<code>modifyrepo_c --mdtype=repoctl</code>). Sign <code>repomd.xml</code> with one signature.</td><td>exit 1. Delete the new tree.</td></tr>
-<tr><td>4</td><td>verify</td><td>Check the checksums, one signature packet per <code>repomd.xml.asc</code>, and <code>rpmkeys --checksig</code> on the host with only the set keys. Check the sha256 of each record and of each record subject.</td><td>exit 10 (<code>verify.failed</code>, <code>records.mismatch</code>). Keep the tree for inspection.</td></tr>
-<tr><td>5</td><td>verify-el</td><td>Per target, the same checks inside the EL mock chroot with the client trust set (<a href="signing.html#verify-el">signing.html#verify-el</a>).</td><td>exit 10, <code>verify.el-failed</code>. Keep the tree.</td></tr>
-<tr><td>6</td><td>push</td><td>Upload the blobs that GHCR does not have. Upload the manifest with the tag <code>p-…</code>.</td><td>exit 13, <code>snapshot.push-failed</code> or <code>registry.denied</code>. Keep the tree.</td></tr>
-<tr><td>7</td><td>tag</td><td>Read latest. If it equals the base, move it to the new digest. Read it back.</td><td>exit 13, <code>snapshot.diverged</code> (latest moved) or <code>snapshot.push-failed</code> (the tag write failed).</td></tr>
-<tr><td>8</td><td>cache</td><td>Make the new tree the local copy. Write <code>snapshot.json</code>. Close the journal.</td><td>warning only, exit 0. Hint: <code>repoctl repo pull</code>.</td></tr>
+<tr><td>4</td><td>verify</td><td>Check the checksums, one signature packet per <code>repomd.xml.asc</code>, and <code>rpmkeys --checksig</code> on the host with only the set keys. Check the sha256 of each record and of each record subject.</td><td>exit 10 (<code>verify.failed</code>, <code>records.mismatch</code>). Keep the tree for inspection. The tree is not pushable.</td></tr>
+<tr><td>5</td><td>verify-el</td><td>Per target, the same checks inside the EL mock chroot with the client trust set (<a href="signing.html#verify-el">signing.html#verify-el</a>).</td><td>exit 10, <code>verify.el-failed</code>. Keep the tree for inspection. The tree is not pushable.</td></tr>
+<tr><td>6</td><td>push</td><td>Upload the blobs that GHCR does not have. Upload the manifest with the tag <code>p-…</code>.</td><td>exit 13, <code>snapshot.push-failed</code> or <code>registry.denied</code>. Keep the tree. It is pushable.</td></tr>
+<tr><td>7</td><td>tag</td><td>Read latest. If it equals the new digest, the tag is already there: continue with step 8. If it equals the base, move it to the new digest. Read it back. When the tag write gives no answer, read latest again: the new digest means that the write worked.</td><td>exit 13, <code>snapshot.diverged</code> (latest moved) or <code>snapshot.push-failed</code> (the tag write failed).</td></tr>
+<tr><td>8</td><td>cache</td><td>Make the new tree the local copy. Write <code>snapshot.json</code>. Close the journal.</td><td>warning only, exit 0. Hint: <code>repoctl repo push p-…</code>, which runs only step 8.</td></tr>
 </tbody>
 </table>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
 <p>Steps 1 to 5 change only files of the human who publishes. Step 7 is the only step that changes what other humans see. A publish is a success when step 7 is done.</p>
 </aside>
+<h3 id="several-targets">Several targets</h3>
+<p>One publish id covers all selected targets. repoctl runs steps 1 to 5 for each target, in the order of <code>targets[]</code> in <code>repoctl.yaml</code>, before it pushes a blob. A failure in steps 1 to 5 of one target stops the publish of all targets, and repoctl pushes nothing. Then repoctl runs steps 6 to 8 for one target after the other, in the same order. A failure in step 6 or 7 of one target does not stop the other targets.</p>
+<p>A publish that tags some targets and not all is a partial publish. It exits with 13, and the run state is failed. <code>Run.publish[TARGET].state</code> gives the result of each target: ok, failed, canceled or skipped. The tree of each failed target stays pushable. <code>repoctl repo push p-… --target ID</code> completes one target.</p>
+<aside class="callout why">
+<p class="callout-title">Why</p>
+<p>The human confirms one summary for all targets, so all targets pass the same checks before the first push. Steps 6 to 8 change only the OCI package of one target. Thus a failed push of el10 does not make the tag of el9 wrong.</p>
+</aside>
 <h3 id="complete">Stop and complete</h3>
-<p>Ctrl-C before step 6 stops the publish, and nothing shared changes (exit 130). A second Ctrl-C during step 6 or 7 stops repoctl at once. The signed tree stays.</p>
-<p><code>repoctl repo push p-…</code> completes the publish: it runs steps 6 to 8 with the same compare of latest. Without a publish id, it takes the newest signed publish that is not in the registry. If latest moved since the base of that publish, push refuses with <code>snapshot.diverged</code>. <code>repoctl clean --publish p-…</code> deletes the tree. Commands: <a href="cli.html#cmd-repo-push">repo push</a>, <a href="cli.html#cmd-clean">clean</a>.</p>
+<p>publish writes <code>publishes/p-…/state.json</code> next to the tree after each step. The file holds the publish run as a Run object (<a href="contract.html#kinds">contract.html#kinds</a>): per target, the base, the digest of the new manifest and the result of each step. A tree is pushable for a target when its state file records verify and verify-el ok for that target, and step 8 of that target is not done. Only a pushable tree whose base is still latest counts for <code>state.unpushed</code>.</p>
+<table class="compact">
+<thead><tr><th>Event</th><th>The tree</th><th>Exit</th></tr></thead>
+<tbody>
+<tr><td>A failure in step 2 or 3</td><td>deleted</td><td>1 or 9</td></tr>
+<tr><td>A failure in step 4 or 5</td><td>kept for inspection, not pushable</td><td>10</td></tr>
+<tr><td>Ctrl-C before step 6</td><td>deleted. Nothing shared changes.</td><td>130</td></tr>
+<tr><td>The first Ctrl-C in step 6 or 7</td><td>repoctl prints "push and tag run to the end" and does steps 6 to 8 of the current target. Then it stops. The trees of the other targets stay pushable.</td><td>130</td></tr>
+<tr><td>A second Ctrl-C in step 6 or 7</td><td>repoctl stops at once. The tree stays pushable.</td><td>130</td></tr>
+<tr><td>A failure in step 6 or 7, a crash or a lost answer of the registry</td><td>pushable</td><td>13</td></tr>
+<tr><td>A failure in step 8</td><td>pushable; the publish is a success</td><td>0</td></tr>
+</tbody>
+</table>
+<p><code>repoctl repo push p-…</code> completes the publish, for each target of the publish or for the target of <code>--target ID</code>:</p>
+<ol class="steps">
+  <li>The state file must record verify and verify-el ok for the target. Otherwise push refuses with <code>publish.not-verified</code> (exit 10).</li>
+  <li>The files of the tree must give the new manifest digest of the state file. Otherwise push refuses with <code>verify.failed</code> (exit 10).</li>
+  <li>push reads latest. If latest equals the new digest, step 7 is done: push runs only step 8 and records the success in the journal. If latest equals the base, push runs steps 6 to 8 with the compare of step 7. Otherwise push refuses with <code>snapshot.diverged</code> (exit 13).</li>
+</ol>
+<p>Without a publish id, push takes the newest pushable publish. <code>repoctl clean --publish p-…</code> deletes the tree and its state file. <code>repoctl status</code> names each kept tree that is not pushable, or whose base is not latest, with the hint <code>repoctl clean --publish p-…</code>. Commands: <a href="cli.html#cmd-repo-push">repo push</a>, <a href="cli.html#cmd-clean">clean</a>.</p>
 
 <h2 id="checks">Checks before the first signature</h2>
 <p>Step 1 runs all checks before repoctl signs a file. A check that fails stops the publish with its problem code.</p>

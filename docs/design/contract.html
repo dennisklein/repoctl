@@ -235,7 +235,7 @@
 </table>
 <p><code>ui</code>, <code>mock</code>, <code>mcp</code> and <code>completion</code> have no <code>--json</code>. <code>schema</code> prints a schema without an envelope.</p>
 <p>The <code>Next:</code> line of a command (<a href="cli.html#next">cli.html#next</a>) is the field <code>next</code>, a list of NextStep objects. A kind with one item holds it in the item: Status, Run and SignerList. A kind with one item per dir or per file holds it in <code>metadata.next</code>: Lock and File. Status also gives each line of <code>repoctl status</code>: <code>set.git.pushed</code>, <code>lockHolder</code>, <code>upstream</code> and <code>signing</code>. Each item of <code>Package.targets[]</code> gives the columns of <code>repoctl show</code> for one target: <code>nvr</code>, <code>dependsOn</code>, <code>usedBy</code>, <code>published</code>, <code>action</code> and <code>reasons</code>.</p>
-<p>A publish run is a Run with <code>kind: publish</code> and a <code>publishKind</code>. Per target, it adds the base, the new snapshot, the gate rows, the sign counts and the eight publish steps. A <code>--dry-run</code> publish gives the same Run with <code>state: planning</code>. <code>repoctl runs</code> lists Runs with empty <code>nodes</code>.</p>
+<p>A publish run is a Run with <code>kind: publish</code> and a <code>publishKind</code>. Per target, it adds the base, the new snapshot, the gate rows, the sign counts, the eight publish steps and <code>pushable</code>. The state file <code>publishes/p-…/state.json</code> of a kept tree holds the same Run (<a href="publish.html#complete">publish.html#complete</a>). A <code>--dry-run</code> publish gives the same Run with <code>state: planning</code>. <code>repoctl runs</code> lists Runs with empty <code>nodes</code>.</p>
 
 <h2 id="schemas">Schemas</h2>
 <p>The schemas use JSON Schema draft 2020-12. A test generates them from the Go types of <code>internal/api</code> and compares the result with the files in the repository. A second test validates every example file.</p>
@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 88 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 89 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -325,6 +325,7 @@
 <tr><td><code>prune.not-retired</code></td><td>1</td><td><code>repo prune --package NAME --all</code>: NAME is not retired.</td><td>Retire it first (<a href="lifecycle.html#retire">Retire</a>).</td></tr>
 <tr><td><code>publish.needs-confirmation</code></td><td>6</td><td>No terminal for the confirmation, or the human answers no.</td><td>Publish in a terminal or in the UI (<code>confirm</code>).</td></tr>
 <tr><td><code>publish.not-ready</code></td><td>12</td><td>A node of a selected target is not current or staged.</td><td>Build it, or publish the other targets.</td></tr>
+<tr><td><code>publish.not-verified</code></td><td>10</td><td><code>repo push</code>: the state file of the tree does not record verify and verify-el ok for the target.</td><td>Discard the tree: <code>repoctl clean --publish p-…</code>, then publish again.</td></tr>
 <tr><td><code>publish.nothing-to-publish</code></td><td>4</td><td>No node is staged, or prune finds nothing.</td><td>-</td></tr>
 <tr><td><code>publish.unattended-refused</code></td><td>6</td><td><code>--yes</code> without a terminal, and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is not 1.</td><td><a href="cli.html#safety">Shared-state safety</a></td></tr>
 <tr><td><code>rebuild.in-tree</code></td><td>1; warning for a glob</td><td><code>repoctl rebuild</code>: the package is in-tree. An empty commit does not change its commit.</td><td>Change a file below the path of the package, and commit it to the builder branch.</td></tr>
@@ -355,13 +356,13 @@
 <tr><td><code>sign.trust-change</code></td><td>6</td><td>The publish changes the trust set. The human must type the key id.</td><td>Use a terminal or the UI (<code>trust-change</code>).</td></tr>
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files.</td></tr>
 <tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
-<tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>)</td></tr>
+<tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
 <tr><td><code>snapshot.push-failed</code></td><td>13</td><td>An upload failed. The signed tree stays.</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>)</td></tr>
 <tr><td><code>source.mismatch</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>A source archive does not have the SHA-512 of its line in the sources file.</td><td>Find out why the archive changed. Then correct the archive or the line, and commit.</td></tr>
 <tr><td><code>source.unlisted</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>A Source line has a URL, and the sources file has no SHA512 line for its file.</td><td>Add the line, for example with <code>sha512sum --tag FILE</code>, and commit (<a href="build.html#sources">Sources</a>).</td></tr>
 <tr><td><code>source.unreachable</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>No source of the file answers, and the source cache does not have it.</td><td>Try again with network access.</td></tr>
-<tr><td><code>state.behind</code></td><td>13</td><td>latest is newer than the local copy.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>)</td></tr>
-<tr><td><code>state.unpushed</code></td><td>13; warning in plan, build</td><td>The local copy has a publish that the registry does not have.</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>)</td></tr>
+<tr><td><code>state.behind</code></td><td>13</td><td>latest is newer than the local copy.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>). When latest is the new snapshot of a pushable tree of this user: <code>repoctl repo push p-…</code>, which runs only the cache step.</td></tr>
+<tr><td><code>state.unpushed</code></td><td>13; warning in plan, build</td><td>This user has a pushable tree, and latest is still its base (<a href="publish.html#complete">pushable tree</a>).</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>), or discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
 <tr><td><code>upstream.no-match</code></td><td>warning</td><td>The tag filter matches no upstream tag.</td><td>Correct <code>upstream.tags</code>.</td></tr>
 <tr><td><code>upstream.rate-limited</code></td><td>warning</td><td>The GitHub API limit is reached.</td><td>Set <code>GH_TOKEN</code>.</td></tr>
 <tr><td><code>upstream.unreachable</code></td><td>1 in check; warning</td><td>An upstream does not answer. The other checks continue.</td><td>Try again later.</td></tr>

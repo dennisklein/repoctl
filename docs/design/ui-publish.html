@@ -243,7 +243,7 @@
   <li><b>Steps.</b> "Steps 1–5 ok (52 s) ▸", then "6 push failed after 31 s", then 7 tag and 8 cache "not run".</li>
   <li><b>State now.</b> latest p-…c21 · new snapshot p-…5e1 not tagged · signed tree kept · local copy same as latest.</li>
 </ul>
-<p>The page has no Signing card and no CLI toggle: the Recover box holds the commands. When step 7 fails with <code>snapshot.diverged</code> (latest moved), the state reads "The snapshot is in the registry. latest is unchanged.", and Recover gives <code>repoctl repo pull</code> and a new review. The publish run stays on Runs with the result failed.</p>
+<p>A publish of several targets has one State now line per target: tagged, pushable tree or not run. Recover then gives <code>repoctl repo push p-… --target ID</code> for each target that is not tagged (<a href="publish.html#several-targets">publish.html#several-targets</a>). The page has no Signing card and no CLI toggle: the Recover box holds the commands. When step 7 fails with <code>snapshot.diverged</code> (latest moved), the state reads "The snapshot is in the registry. latest is unchanged.", and Recover gives <code>repoctl repo pull</code> and a new review. The publish run stays on Runs with the result failed.</p>
 
 <h3 id="done">Done</h3>
 <figure class="shot"><a href="mockups/ui/publish-done.html"><img src="img/ui-publish-done.webp" alt="Result of the publish of el9: snapshot ref with copy, 208 RPMs, served behind, next items" loading="lazy"></a><figcaption>Result of the story publish: latest of el9 is p-…5e1. The served tree is behind until the mirror job runs.</figcaption></figure>
