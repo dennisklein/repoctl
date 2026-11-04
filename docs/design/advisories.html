@@ -106,6 +106,7 @@
 <tr><td><code>DIR@TARGET</code></td><td>Each code that depends on a target.</td><td><code>closure.broken/pmix@el9</code></td></tr>
 <tr><td><code>DIR</code></td><td><code>upstream.release</code>: an upstream release does not depend on a target.</td><td><code>upstream.release/slurm</code></td></tr>
 <tr><td>source package name</td><td>A retired package: it has no dir in repoctl.yaml (<a href="lifecycle.html#retire">retire</a>).</td><td><code>retired.published/NAME</code></td></tr>
+<tr><td>source package name<code>@TARGET</code></td><td><code>closure.broken</code> of a retired package (level warn).</td><td><code>closure.broken/NAME@el9</code></td></tr>
 <tr><td>key id</td><td><code>sign.expiring</code>: a signer key, not a package.</td><td><code>sign.expiring/KEYID</code></td></tr>
 </tbody>
 </table>
@@ -192,7 +193,7 @@
 <dl>
   <dt>pending</dt><dd>The check needs a build that did not end. Example: <code>soname.removed</code> for a node that is still in the run. Only the UI and <code>repoctl advisories</code> show this state, during a run.</dd>
   <dt>open</dt><dd>The check finds the problem now, and no dismissal matches.</dd>
-  <dt>dismissed</dt><dd>A dismissal in <code>.repoctl/advisories.yaml</code> has the same id and the same factsDigest. Only info and warn advisories can be dismissed.</dd>
+  <dt>dismissed</dt><dd>A dismissal in <code>.repoctl/advisories.yaml</code> has the same id and the same factsDigest. Only info and warn advisories can be dismissed. A dismissal never matches a required advisory. When an advisory with a dismissed id becomes required, for example the <code>closure.broken</code> of a retired package that a dir builds again, the dismissal is stale, and the advisory is open.</dd>
   <dt>gone</dt><dd>The check does not find the problem any more. repoctl does not keep gone advisories. The journal of the check records the event <code>advisory.gone</code>.</dd>
 </dl>
 <p>A run advisory (<code>soname.removed</code>, <code>abi.changed</code>) comes from a node build and lives in the record and the journal of its run. It has its own gone rule:</p>
@@ -231,7 +232,7 @@ dismissed:
   <li>Publish does not require that this file is committed, because the file does not change the output of a build. Publish never reads it: the gate uses only required advisories, and they cannot be dismissed.</li>
   <li>An invalid file gives the warning <code>advisories.invalid</code>: a YAML error, git conflict markers, an unknown <code>apiVersion</code> or a bad entry. repoctl then ignores the whole file, so no advisory is dismissed. dismiss and undismiss refuse to change an invalid file (exit 1, <code>advisories.invalid</code>).</li>
   <li>After a git conflict, keep the entries of both sides and remove the markers. Two entries with the same id are valid. repoctl uses the entry with the newest <code>at</code>, and the next dismiss or undismiss writes one entry per id.</li>
-  <li>An entry whose id is gone, or whose digest does not match, is stale. A <code>mock.drift</code> entry whose id this host does not find is not stale, because another host can still find it. <code>repoctl advisories ls --dismissed</code> marks it. <code>repoctl advisories undismiss --stale</code> removes all stale entries.</li>
+  <li>An entry whose id is gone, whose digest does not match, or whose advisory is required now, is stale. A <code>mock.drift</code> entry whose id this host does not find is not stale, because another host can still find it. <code>repoctl advisories ls --dismissed</code> marks it. <code>repoctl advisories undismiss --stale</code> removes all stale entries.</li>
   <li>A new set does not copy this file from the old set (<a href="lifecycle.html#new-set">new set</a>).</li>
 </ul>
 <p><code>repoctl advisories dismiss ID... --note TEXT</code> adds a dismissal for each open id. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, problem code <code>advisory.not-dismissable</code>, and the hint gives <code>repoctl publish --accept-advisory</code>. An id that is not open gives exit 1, <code>advisory.unknown</code>. dismiss and undismiss take no set lock, because a build can hold it for an hour. They take a short file lock, <code>$XDG_RUNTIME_DIR/repoctl/SET.advisories.lock</code>, for the read, the change and the rename of the file. They write only this file.</p>
