@@ -200,7 +200,7 @@
 <figure class="shot"><a href="mockups/ui/publish-accept.html"><img src="img/ui-publish-accept.webp" alt="Variant review of el9: soname.removed/ucx@el9 accepted with a reason, pill accepted, red edge kept, Continue on" loading="lazy"></a><figcaption>Variant, not the story publish: the human accepts soname.removed/ucx@el9 for this publish.</figcaption></figure>
 <aside class="callout note"><p class="callout-title">Variant</p><p>This screen uses a variant state. In the story, no advisory blocks the el9 publish. In the variant, run <code>r-20261102-1720-9b1</code> builds ucx alone, and ucx 1.22.1 removes libucp.so.0. The soname check gives <code>soname.removed/ucx@el9</code> (required): "libucp.so.0 removed; openmpi requires it". The closure is ucx and openmpi.</p></aside>
 <ul>
-  <li><b>Blocker.</b> The gate row comes right after the targets. It is the only red item of the page: "This publish changes ucx, and openmpi on el9 requires libucp.so.0." Continue is off.</li>
+  <li><b>Blocker.</b> The gate row comes right after the targets. It is the only red item of the page: "This publish changes ucx, and openmpi on el9 requires libucp.so.0." A second sentence names the effect on the clients: "Clients that have openmpi-5.0.11-1.el9 cannot update ucx until openmpi is rebuilt and published." Continue is off.</li>
   <li><b>Ways out.</b> Rebuild… (openmpi) is the primary of the row. The checkbox "Accept for this publish" opens a reason field (8 or more characters). The reason goes to the journal and to the snapshot annotation <code>io.repoctl.advisories.accepted</code>. The reason is public (<a href="security.html#public">security.html#public</a>).</li>
   <li><b>Accepted.</b> The pill reads <span class="tag warn">accepted</span>. The red edge of the row stays, so the exception stays visible. Rebuild…, Show closure and the agent button move into ⋯. The CLI toggle shows <code>repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 --reason "openmpi loads libucp only in mca_pml_ucx; our clusters use ob1"</code>. The footer says "Next: type the set name to confirm.", and Continue is on.</li>
   <li><b>Counts.</b> 14 new RPMs (ucx only), 170 kept, 184 after. 10 packages do not change.</li>
@@ -214,7 +214,7 @@
   <li>Target and store: el9 to <code>ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9</code> as p-20261103-1412-5e1, in quiet text.</li>
   <li>Sign 38 RPMs and 3 repomd.xml files with d.klein …41D8 0B6E.</li>
   <li>Keep 170 RPMs with their signatures. 50 of them carry the retiring key hpc-repo (quiet text).</li>
-  <li>Advisories: none accepted. In the variant: "soname.removed/ucx@el9 accepted" with the reason.</li>
+  <li>Advisories: none accepted. In the variant: "soname.removed/ucx@el9 accepted" with the reason, and "Clients that have openmpi cannot update ucx until openmpi is rebuilt and published."</li>
   <li>Trust change: none. Hosts see the new RPMs after the mirror job and the metadata expiry of the clients.</li>
 </ol>
 <p>The field "Type slurm-26.05 to confirm" comes next. A trust change puts one field per added key above it, for example "Type the key id a.admin" for the publish of slurm-release-26.05-3. Sign and publish is a solid danger button. It is off until each field matches. The dialog has no CLI line; the CLI toggle of the review holds the command. Cancel and Esc close the dialog.</p>
