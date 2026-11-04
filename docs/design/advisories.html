@@ -501,7 +501,7 @@ hint: or accept it for this publish. run: repoctl publish --target el9 --accept-
 <ul>
   <li><code>--accept-advisory</code> takes an id, not a code. One flag accepts one advisory. It does not accept a later advisory with the same code.</li>
   <li><code>--reason</code> is required with <code>--accept-advisory</code>, with at least 8 characters. One reason covers all ids of the call.</li>
-  <li>An id that does not block this publish is a usage error (exit 2). Thus a human cannot accept an advisory in advance.</li>
+  <li>Only the gate in step check knows if an id blocks. An id that does not block this publish stops the publish in step check with <code>advisory.not-blocking</code> (exit 12), before the first signature. The output has the envelope and the problem. Thus a human cannot accept an advisory in advance.</li>
   <li>The acceptance is valid for this publish only. repoctl writes the event <code>advisory.accepted</code> (id, factsDigest, reason, user, host) to the journal and the same list to the snapshot annotation <code>io.repoctl.advisories.accepted</code>.</li>
   <li><code>--yes</code> does not accept an advisory. An unattended publish with a blocking advisory fails with exit 12.</li>
   <li>An acceptance needs a human. Without a terminal, publish refuses <code>--accept-advisory</code> with <code>publish.unattended-refused</code> (exit 6), also when <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is 1. In the web UI, the confirm dialog is the step of the human (<a href="ui-publish.html#confirm">confirm</a>).</li>
