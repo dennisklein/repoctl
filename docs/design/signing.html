@@ -298,7 +298,7 @@
 <thead><tr><th>Gate</th><th>Passes when</th><th>Problem, exit</th></tr></thead>
 <tbody>
 <tr><td>1 active and valid</td><td>The signer key is in <code>sign.keys</code> with <code>state: active</code>. It is valid for at least <code>sign.checks.key_min_validity</code> (default 30 days).</td><td><code>sign.not-active</code>, <code>sign.key-expiring</code>, 12</td></tr>
-<tr><td>2 deployed</td><td>For each selected target: <code>keys/deployed.yaml</code> at the set commit of the publish has an entry for the signer. The release NVR of that entry is in the base snapshot, and its key file holds the fingerprint of the signer. Restore and prune keep each release NVR of a deployment record, so a later snapshot still holds it (<a href="publish.html#restore">publish.html#restore</a>).</td><td><code>sign.not-deployed</code>, 12. Hint: <code>repoctl sign onboard ID</code></td></tr>
+<tr><td>2 deployed</td><td>For each selected target: <code>keys/deployed.yaml</code> at the set commit of the publish has an entry for the signer. A release record passes when its release NVR is in the base snapshot and its key file holds the fingerprint of the signer. Restore and prune keep each release NVR of a deployment record, so a later snapshot still holds it (<a href="publish.html#restore">publish.html#restore</a>). A key file record passes when the key file at the set commit of the record has the sha256 of the record and holds the fingerprint.</td><td><code>sign.not-deployed</code>, 12. Hint: <code>repoctl sign onboard ID</code></td></tr>
 <tr><td>3 key format</td><td>OpenPGP v4 key, RSA 2048 or more, or Ed25519. No SHA-1 self-signature.</td><td><code>sign.key-format</code>, 9</td></tr>
 </tbody>
 </table>
@@ -319,6 +319,18 @@
 <p>repoctl signs the set commit of the record with the key of <code>sign.key</code>, and <code>confirmedBy</code> is the id of that key. The key must be active. It must not be the key of the record while another key is active: <code>sign.self-confirm</code>, exit 12. Publish checks the signature of each record (<a href="security.html#set-inputs">security.html#set-inputs</a>).</p>
 </aside>
 <p>The command needs a terminal or the UI dialog "Confirm deployment" (<a href="ui-publish.html#signing">ui-publish.html#signing</a>). It has no unattended mode and no MCP tool. Command: <a href="cli.html#cmd-sign-deployed">sign deployed</a>.</p>
+<p>A record has one of two forms per target. A release record names the release NVR. A key file record names the sha256 of a key file and the set commit of that key file: <code>repoctl sign deployed ID --keyfile SHA256 --target ID</code>. It records that config management installed this key file on all clients and on the HTTP server, outside a release package, as for the bootstrap of a client. repoctl checks that SHA256 is the sum that <code>repoctl sign keyfile --checksum</code> prints for the committed key file, that the key file holds the key and that the target has a latest.</p>
+<pre><code class="language-yaml"># a key file record for el10 (not the story)
+  - key: a.admin
+    fingerprint: C2F9771305ABE4D618C39F2B70DEA5C1E93F52A7
+    keyfile: {el10: {sha256: "SHA256", commit: 7e21d0a…}}
+    confirmedBy: d.klein
+    at: 2026-11-05T09:30:00Z
+    note: "puppet installed RPM-GPG-KEY-slurm of 7e21d0a on the el10 clients"</code></pre>
+<aside class="callout rule">
+<p class="callout-title">Rule: key file record</p>
+<p>Use a key file record when a key must sign before a release package with the key can be published: in an emergency (<a href="#emergency">emergency</a>), or when a failed node makes the target not publishable (<a href="publish.html#takes">publish.html#takes</a>). Publish the release package with the same key file at the next publish of the target. Doctor <code>sign.release</code> warns until then.</p>
+</aside>
 <pre><code class="language-yaml"># keys/deployed.yaml: the entry of the story, 2026-11-05 09:12 (el9 only)
 apiVersion: repoctl/v1alpha1
 kind: KeyDeployments
@@ -353,7 +365,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 </ol>
 <aside class="callout rule">
 <p class="callout-title">Rule: client trust set</p>
-<p>Step 5 uses the key file of the release that the clients have: the release in the deployment record of the signer. It does not use the key file of a release that this publish adds. For a first publish, it uses the key file of this publish.</p>
+<p>Step 5 uses the key file that the clients have: the key file of the release in the deployment record of the signer, or the key file of a key file record. It does not use the key file of a release that this publish adds. For a first publish, it uses the key file of this publish.</p>
 </aside>
 <p>A failure gives <code>verify.el-failed</code> (exit 10), and repoctl keeps the tree. <code>repoctl repo verify --el</code> runs the same check on demand. The default key set of <code>repo verify</code> is the client trust set (<a href="cli.html#cmd-repo-verify">repo verify</a>).</p>
 
@@ -462,7 +474,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <tbody>
 <tr><td><a href="cli.html#cmd-sign-add"><code>sign add ID --fingerprint FPR</code></a></td><td><span class="tag local">local write</span></td><td>Exports the public key from the local gpg or card (or reads <code>--file</code>) to <code>keys/ID.asc</code>. Checks the fingerprint and gate 3. Adds the entry with state active, runs release write and makes one set commit "Trust key ID FPR". It never pushes.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-onboard"><code>sign onboard ID</code></a></td><td><span class="tag read">read</span></td><td>Checks the five onboarding steps and prints the next command.</td></tr>
-<tr><td><a href="cli.html#cmd-sign-deployed"><code>sign deployed ID --release NVR</code></a></td><td><span class="tag shared">shared state</span></td><td>Writes the <a href="#deployment-record">deployment record</a> after a typed key id.</td></tr>
+<tr><td><a href="cli.html#cmd-sign-deployed"><code>sign deployed ID --release NVR</code></a></td><td><span class="tag shared">shared state</span></td><td>Writes the <a href="#deployment-record">deployment record</a> after a typed key id. <code>--keyfile SHA256</code> writes a key file record.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-retire"><code>sign retire ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets state retiring, runs release write, makes one set commit. The key cannot sign any more. Refuses the last deployed signer (<code>sign.last-signer</code>, exit 12).</td></tr>
 <tr><td><a href="cli.html#cmd-sign-activate"><code>sign activate ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets a retiring key back to active after a typed key id, makes one set commit. The key signs again with its deployment record.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-remove"><code>sign remove ID</code></a></td><td><span class="tag local">local write</span></td><td>Refuses while latest of a target holds an RPM of the key (<code>sign.key-in-use</code>, exit 12, hint <code>repoctl repo resign --signer ID</code>). Then sets state removed, writes a key file without it, makes one set commit.</td></tr>
@@ -530,6 +542,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 4 ✗ deployed on all clients                 no record
 5 ✗ GHCR write access                       a.admin is not in team slurm-repo-admins
 Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</pre>
+<p>A target that is not publishable does not stop a key change. In the story, el10 waits for the fix of slurm@el10. When a.admin must sign for el10 before that fix, config management installs the key file of 7e21d0a on the el10 clients, and d.klein records it with <code>repoctl sign deployed a.admin --keyfile SHA256 --target el10</code> (<a href="#deployment-record">key file record</a>).</p>
 <p>A new admin host follows the steps of <a href="#help-team">help team</a>. The registry rules for the team are in <a href="publish.html#registry">publish.html#registry</a>.</p>
 
 <h3 id="offboarding">Offboarding and rotation</h3>
@@ -596,6 +609,23 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
   both:   rm -rf /var/cache/dnf/slurm*/pubring</pre>
 <p>A rotation is an onboarding of the new key, then an offboarding of the old key. An expiring key uses the same rotation (<a href="#expiry">key expiry</a>). A move to a central signer (option E) also uses it: add the central key, then offboard the personal keys.</p>
 
+<h2 id="emergency">Emergency: a lost or a compromised key</h2>
+<p>Two failures do not fit the normal order of onboarding and offboarding. A lost key can leave a target without a deployed signer. A compromised key must lose the trust of the clients at once. Both use the <a href="#deployment-record">key file record</a>, because a release package needs a deployed signer and a publishable target.</p>
+<h3 id="recovery">Recovery without a deployed signer</h3>
+<p>A key is lost when its secret key is gone, for example a broken card or a lost disk. Its signatures stay valid, and the clients still trust it. Retire it: <code>sign retire</code> needs no secret key. When another active key is deployed for each target with a latest, the rest is a normal rotation (<a href="#offboarding">offboarding and rotation</a>).</p>
+<p>When the lost key is the last deployed signer of a target, <code>sign retire</code> refuses (<code>sign.last-signer</code>), and no key can sign a release package with a new key. Do these steps:</p>
+<ol class="steps">
+  <li>Make a new key and run <code>repoctl sign add NEW --fingerprint FPR</code>. Push the set commit.</li>
+  <li>Run <code>repoctl sign keyfile --checksum</code>. It prints the sha256 of the new key file.</li>
+  <li>Config management installs the key file with this pinned sum on all clients and on the HTTP server of each target, as for the bootstrap of a client.</li>
+  <li>For each target, run <code>repoctl sign deployed NEW --keyfile SHA256 --target ID</code>, and push the set commit. Now NEW passes gate 2.</li>
+  <li>Retire the lost key. Then re-sign its RPMs with NEW, remove it and publish the new release package (<a href="#offboarding">offboarding and rotation</a>).</li>
+</ol>
+<aside class="callout rule">
+<p class="callout-title">Rule: two deployed signers</p>
+<p>Keep two active keys or more with a deployment record for each target. Then a lost key is a normal rotation, and <code>sign.last-signer</code> never stops a retire.</p>
+</aside>
+
 <h2 id="doctor">Doctor checks</h2>
 <p><code>repoctl doctor</code> has these sign checks. The registry checks are in <a href="publish.html#registry">publish.html#registry</a>, and the doctor frame is <a href="terminal.html#doctor">terminal.html#doctor</a>.</p>
 <table class="compact">
@@ -638,6 +668,8 @@ Add a key:      repoctl sign add ID --fingerprint FPR
 See the steps:  repoctl sign onboard ID
 Undo a retire:  repoctl sign activate ID
 Confirm:        repoctl sign deployed ID --release NVR
+                or --keyfile SHA256, when config management
+                installed the key file without a release package
 Replace a key:  add and deploy the new key, then "repoctl sign retire
                 OLD", "repoctl repo resign --signer OLD", "repoctl
                 sign remove OLD", and publish the new release package.

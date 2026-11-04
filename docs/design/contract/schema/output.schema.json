@@ -4301,17 +4301,37 @@
     },
     "KeyDeployment": {
       "type": "object",
-      "description": "A record of keys/deployed.yaml for one target: a human confirmed that all clients of the target have the release NVR with the key.",
+      "description": "A record of keys/deployed.yaml for one target: a human confirmed that all clients of the target have the release NVR with the key (a release record), or the key file with this sha256 that config management installed without a release package (a key file record).",
       "required": [
-        "release",
         "confirmedBy",
         "at"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "release"
+          ]
+        },
+        {
+          "required": [
+            "keyfile",
+            "commit"
+          ]
+        }
       ],
       "additionalProperties": false,
       "properties": {
         "release": {
           "type": "string",
           "description": "NVR of the release package, e.g. slurm-release-26.05-2.el9."
+        },
+        "keyfile": {
+          "$ref": "#/$defs/Sha256",
+          "description": "Key file record: the sha256 of the key file that config management installed (repoctl sign keyfile --checksum)."
+        },
+        "commit": {
+          "$ref": "#/$defs/Commit",
+          "description": "Key file record: the set commit of that key file. Gate 2 reads the key file at this commit."
         },
         "confirmedBy": {
           "type": "string",
