@@ -648,6 +648,7 @@
         "cancel.foreign-run",
         "cancel.not-holder",
         "check.failed",
+        "check.incomplete",
         "check.never",
         "check.no-linger",
         "check.stale",
@@ -4035,6 +4036,10 @@
           "$ref": "#/$defs/Time",
           "description": "When a check first found these facts."
         },
+        "carriedFrom": {
+          "$ref": "#/$defs/Time",
+          "description": "Set when the last check failed for this code and target: the time of the last good result, which repoctl kept."
+        },
         "dismissal": {
           "type": "object",
           "properties": {
@@ -4570,6 +4575,33 @@
                 "off",
                 "unknown"
               ]
+            },
+            "results": {
+              "type": "array",
+              "description": "One entry per code and target in check.json. A narrowed check replaces only its entries.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "at",
+                  "ok"
+                ],
+                "properties": {
+                  "code": {
+                    "$ref": "#/$defs/AdvisoryCode"
+                  },
+                  "target": {
+                    "$ref": "#/$defs/TargetId",
+                    "description": "Absent for upstream.release, which has one result for all targets."
+                  },
+                  "at": {
+                    "$ref": "#/$defs/Time"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  }
+                }
+              }
             }
           }
         }
