@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 78 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 79 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -297,6 +297,7 @@
 <tr><td><code>config.unsupported</code></td><td>1</td><td>This release does not support the key or its value, for example a target that is not <code>x86_64</code>.</td><td>Remove the key, or change the value.</td></tr>
 <tr><td><code>dep.not-for-target</code></td><td>warning</td><td>Plan: only a package of another target provides a BuildRequires of the node.</td><td>Guard the BuildRequires with <code>%if</code>, or add the target.</td></tr>
 <tr><td><code>deprecated</code></td><td>warning</td><td>The input uses a deprecated name, for example <code>sign.gpg_name</code>.</td><td>Use the name in the message.</td></tr>
+<tr><td><code>git.busy</code></td><td>7</td><td>Another command holds the clone lock of an external package (<a href="lifecycle.html#clones">clones</a>). The message names the clone and the holder.</td><td>Try again, or set <code>--lock-wait</code>.</td></tr>
 <tr><td><code>git.fetch-failed</code></td><td>1</td><td><code>git fetch</code> failed.</td><td>Examine the remote and the credentials.</td></tr>
 <tr><td><code>git.mirror-unpushed</code></td><td>warning</td><td><code>clean --git</code> keeps a bare clone with commits that are not on the remote.</td><td>Push the commits.</td></tr>
 <tr><td><code>git.unreachable</code></td><td>1</td><td><code>git ls-remote</code> of an external package failed.</td><td>Make the project on the git server.</td></tr>

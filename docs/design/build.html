@@ -510,6 +510,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <dt>Set lock</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>: one writer per set at a time, for one user on one host. It records the holder: command, pid, host, user, start time and run id.</dd>
 </dl>
 <p>A command that writes the set or its build state takes the set lock: checkout, pin, rebuild, build (for the whole run), publish, repo pull and the repo commands that make a snapshot, sign add, retire, remove and deployed, release write, clean, mock update and mock clean. repo verify takes it shared. A read command takes no set lock and never waits. <code>repoctl check</code> takes none, so a check can run while a build runs. Each command block gives its lock (<a href="cli.html#commands">commands</a>).</p>
+<p>All sets share the bare clone of an external package. Each git step on the clone also takes its clone lock (<a href="lifecycle.html#clones">external package clones</a>).</p>
 <p>When another process holds the set lock, a command waits up to <code>--lock-wait</code> (default 0: no wait). While it waits, it prints the holder. When the time ends, it stops with exit 7 and the problem code <code>set.busy</code>.</p>
 <aside class="callout rule"><p class="callout-title">Rule: no build queue</p><p>A second build of the same user on the same host stops at once with exit 7 (<code>set.busy</code>). The message names the running run. This is true in the CLI, in the UI and in MCP.</p></aside>
 <pre class="term">$ repoctl build slurm
