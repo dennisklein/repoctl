@@ -860,7 +860,7 @@
         "staged",
         "skip"
       ],
-      "description": "build: no build of this commit for this target is in latest or staging. current: the commit is in latest. staged: built for this lock and not published; fromRun names the run. skip: not selected, or the target is not in the package."
+      "description": "build: no build of this commit for this target is in latest or staging. current: the commit is in latest. staged: built for this lock and not published, in a run from the lock; fromRun names the newest such run. skip: not selected, or the target is not in the package."
     },
     "PlanReasonCode": {
       "enum": [
@@ -1821,7 +1821,7 @@
         },
         "fromRun": {
           "$ref": "#/$defs/RunId",
-          "description": "action staged: the build run that made the node."
+          "description": "action staged: the newest build run from the lock that made the node and ended it ok. A run with from worktree never stages a node."
         },
         "checks": {
           "$ref": "#/$defs/NodeChecks"

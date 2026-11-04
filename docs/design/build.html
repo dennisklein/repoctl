@@ -164,7 +164,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <thead><tr><th>Plan action</th><th>When</th></tr></thead>
 <tbody>
 <tr><td><code>current</code></td><td>The commit of the node is in the RepoManifest of latest of its target, with the same source package name (<a href="model.html#manifest">match key</a>). Nothing to do.</td></tr>
-<tr><td><code>staged</code></td><td>An earlier run of this user on this host built the same commit for the same target, the node ended ok, and no publish took it. Each file of the <code>artifact.added</code> events of the node is in that staging with its size. The plan reuses that staging (<a href="#staging">staging</a>).</td></tr>
+<tr><td><code>staged</code></td><td>An earlier build run from the lock, of this user on this host, built the same commit for the same target, the node ended ok, and no publish took it. When two runs qualify, the newest run wins. Each file of the <code>artifact.added</code> events of the node is in that staging with its size. The plan reuses that staging (<a href="#staging">staging</a>).</td></tr>
 <tr><td><code>build</code></td><td>No build of this commit for this target exists. The node has one or more plan reasons.</td></tr>
 <tr><td><code>skip</code></td><td>The selectors or <code>--target</code> do not select the node, and no selected node needs it. A node of an unpinned package also gets skip, with the note "not pinned" (<a href="lifecycle.html#lock-states">lock states</a>).</td></tr>
 </tbody>
@@ -211,6 +211,8 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <p>A node that ends ok in a run is a <dfn>staged node</dfn> until a publish takes it. The next plan gives it the action staged and names its run (<code>fromRun</code>). A later build does not build it again. When a staged node is a dependency, mock gets it through the staged view. Thus a failed run keeps its good nodes.</p>
 <ul>
   <li>Only a node with the terminal state ok in the journal of its run is staged. This is also true for a canceled or an abandoned run.</li>
+  <li>A node of an unpinned run (<code>--from worktree</code>) is never staged. Its RPMs stay in the staging of that run for a test. The next plan from the lock builds the node, also when the human pins the same commit later.</li>
+  <li>When two runs have an ok build of one node (same commit and target), the newest run wins. Example: a forced build of a staged node. The newest run is <code>fromRun</code>, and publish takes its files. The older copies are not staged, and <code>repoctl clean</code> can delete them.</li>
   <li>Staging belongs to one user on one host. Another admin does not see it and builds the node again. A home directory that two hosts share does not change this: the plan stages only the nodes of runs whose <code>origin.host</code> is this host (<a href="contract.html#readers">runs of another host</a>).</li>
   <li>A new commit of the package ends the reuse. The plan action is then build.</li>
   <li>The repodata of a staging lists only the RPMs of ok nodes. When a node fails or is canceled after some of its RPMs are in the staging, repoctl removes them and updates the repodata.</li>
@@ -675,6 +677,7 @@ repoctl builds each node of one identity once.
 "repoctl plan" gives one action for each node:
   current   the commit is in latest of the target: nothing to do
   staged    built for this lock in a run of yours, not published yet
+            (a run --from worktree never stages a node)
   build     no build of this commit for this target. The reason says why:
               commit-changed  the package commit changed
               rebuild         "repoctl rebuild DIR" made an empty commit
