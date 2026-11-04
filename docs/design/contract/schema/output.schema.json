@@ -911,6 +911,7 @@
     "LockState": {
       "enum": [
         "in-sync",
+        "in-tree",
         "ahead",
         "behind",
         "diverged",
@@ -919,7 +920,7 @@
         "unpinned",
         "orphaned"
       ],
-      "description": "Package worktree HEAD against repoctl.lock. unpinned: the package is in repoctl.yaml and has no lock line. orphaned: the lock line has no package in repoctl.yaml."
+      "description": "Package worktree HEAD against repoctl.lock. in-tree: an in-tree package (path:) without a change under its path; it has no lock line, and its commit is the last set commit that changes its path. dirty also covers a change under an in-tree path. unpinned: the package is in repoctl.yaml and has no lock line. orphaned: the lock line has no package in repoctl.yaml."
     },
     "CheckStatus": {
       "enum": [
@@ -3140,7 +3141,6 @@
       "type": "object",
       "required": [
         "dir",
-        "branch",
         "state"
       ],
       "properties": {
@@ -3151,7 +3151,12 @@
           "type": "string"
         },
         "branch": {
-          "type": "string"
+          "type": "string",
+          "description": "A package with a branch: the branch of the lock line."
+        },
+        "path": {
+          "type": "string",
+          "description": "An in-tree package: its path in the set. commit is the last set commit that changes the path."
         },
         "commit": {
           "$ref": "#/$defs/Commit"
@@ -3166,7 +3171,19 @@
           "type": "boolean",
           "description": "pin: the lock line was written by this call."
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "branch"
+          ]
+        },
+        {
+          "required": [
+            "path"
+          ]
+        }
+      ]
     },
     "Version": {
       "type": "object",

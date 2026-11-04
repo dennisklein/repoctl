@@ -247,7 +247,7 @@ packages:
   <li>Only <code>pin</code>, <code>rebuild</code>, <code>init</code> and <code>migrate</code> write the lock, with an atomic write under a file lock.</li>
   <li>The lock is a separate file, like <code>go.sum</code>. A version bump changes one line in the lock and nothing in <code>repoctl.yaml</code>.</li>
   <li>An entry has <code>branch</code> and <code>commit</code>. An external package also has <code>url</code>.</li>
-  <li>An in-tree package has no lock line, and it is never unpinned. Its commit is the last set commit that changes its path.</li>
+  <li>An in-tree package has no lock line, and it is never unpinned. Its commit is the last set commit that changes its path. Its lock state is <code>in-tree</code>, or <code>dirty</code> when a file under its path has a change. A Lock result gives it with <code>path</code> and that commit.</li>
   <li>A dir that is two times in the file, for example after a git merge, gives <code>config.invalid</code> (exit 1). <a href="cli.html#cmd-pin">repoctl pin</a> gives the steps after a merge conflict.</li>
   <li>A missing lock file counts as an empty lock. <code>repoctl migrate</code> converts <code>packages.lock</code> once (<a href="cli.html#cmd-migrate">cli.html#cmd-migrate</a>).</li>
   <li>A package without a lock line is <code>unpinned</code>. A lock line without a package is <code>orphaned</code>. The lock states are in <a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>.</li>

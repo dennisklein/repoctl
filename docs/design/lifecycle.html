@@ -69,11 +69,12 @@
 <p>The plan actions and plan reasons are in <a href="build.html#actions">Build</a>. The RepoManifest in latest says which commit gives a published NVR (<a href="model.html#manifest">Core model</a>). A source package name is <dfn>retired</dfn> on a target when no dir in <code>repoctl.yaml</code> builds it for that target. Latest of the target still holds its RPMs.</p>
 
 <h2 id="lock-states">Lock states</h2>
-<p>For each package, repoctl compares the commit in <code>repoctl.lock</code> with the worktree. The contract enum <code>LockState</code> has eight values. <code>repoctl status</code> lists each package that is not <code>in-sync</code> and prints the hint of the first problem (<a href="terminal.html#status">terminal frame</a>).</p>
+<p>For each package, repoctl compares the commit in <code>repoctl.lock</code> with the worktree. The contract enum <code>LockState</code> has nine values. <code>repoctl status</code> lists each package that is not <code>in-sync</code> or <code>in-tree</code> and prints the hint of the first problem (<a href="terminal.html#status">terminal frame</a>).</p>
 <table class="compact">
 <thead><tr><th>State</th><th>Meaning</th><th>status hint (<code>run:</code>)</th></tr></thead>
 <tbody>
 <tr><td><code>in-sync</code></td><td>The worktree HEAD is the lock commit. No tracked file has a change.</td><td>none</td></tr>
+<tr><td><code>in-tree</code></td><td>An in-tree package (<code>path:</code>) with no change under its path. It has no lock line and no worktree. Its commit is the last set commit that changes its path.</td><td>none</td></tr>
 <tr><td><code>ahead</code></td><td>The worktree HEAD is a descendant of the lock commit. A commit is not pinned yet.</td><td><code>repoctl pin DIR</code></td></tr>
 <tr><td><code>behind</code></td><td>The worktree HEAD is an ancestor of the lock commit, for example after a colleague pinned a newer commit.</td><td><code>repoctl checkout DIR</code></td></tr>
 <tr><td><code>diverged</code></td><td>The worktree and the lock commit both have commits that the other does not have.</td><td>rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code></td></tr>
@@ -83,7 +84,7 @@
 <tr><td><code>orphaned</code></td><td>The package is in <code>repoctl.lock</code>. It is not in <code>repoctl.yaml</code>.</td><td><code>repoctl pin --orphans</code> (removes it)</td></tr>
 </tbody>
 </table>
-<p>"The lock is dirty": a selected package is not <code>in-sync</code>, or <code>repoctl.lock</code> has uncommitted changes. The file format is in <a href="config.html#lock">Configuration</a>.</p>
+<p>"The lock is dirty": a selected package is not <code>in-sync</code> or <code>in-tree</code>, or <code>repoctl.lock</code> has uncommitted changes. The file format is in <a href="config.html#lock">Configuration</a>.</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
 <ul>

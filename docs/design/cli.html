@@ -338,7 +338,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 <p><a href="terminal.html#streams">terminal.html#streams</a> shows the streams. The words for node states are in <a href="build.html#states">build.html#states</a>.</p>
 <h3 id="human">Human output</h3>
 <ul>
-  <li><strong>Exceptions plus a totals line.</strong> A result table shows the rows that differ from the normal state (in-sync, ok, current, same, up-to-date). The normal rows fold into one totals line with a count for each state. Example: <code>11 packages: 9 in-sync, 1 ahead, 1 in tree  (-v shows all)</code>. The count stays, so "all fine" and "nothing checked" do not look the same.</li>
+  <li><strong>Exceptions plus a totals line.</strong> A result table shows the rows that differ from the normal state (in-sync, in-tree, ok, current, same, up-to-date). The normal rows fold into one totals line with a count for each state. Example: <code>11 packages: 9 in-sync, 1 ahead, 1 in tree  (-v shows all)</code>. The count stays, so "all fine" and "nothing checked" do not look the same.</li>
   <li><strong><code>-v</code> shows all rows.</strong> Scripts do not parse the text. They use <code>--json</code>, which always has all rows.</li>
   <li>A column with the same value on every row moves into the header line. A list where all items pass folds to one line.</li>
   <li>A pure list (list, repo ls, runs, sign ls, repo snapshots) shows all rows, because it has no normal state to fold.</li>
@@ -522,6 +522,7 @@ repoctl pin --orphans</pre>
   <tr><td><code>diverged</code></td><td colspan="2">Stops: <code>lock.diverged</code>, exit 5. Hint: rebase <code>packages/DIR</code> on the lock commit.</td></tr>
   <tr><td><code>dirty</code></td><td colspan="2">Stops: <code>lock.dirty</code>, exit 5. Uncommitted changes are never pinned.</td></tr>
   <tr><td><code>missing</code></td><td colspan="2">Keeps the line. Warning <code>worktree.missing</code>, hint <code>repoctl checkout DIR</code>.</td></tr>
+  <tr><td><code>in-tree</code></td><td colspan="2">Has no lock line. pin writes nothing for it.</td></tr>
   <tr><td><code>orphaned</code></td><td>Removes the line.</td><td>Usage error (exit 2): DIR is not in <code>repoctl.yaml</code>.</td></tr>
   </tbody>
   </table>
