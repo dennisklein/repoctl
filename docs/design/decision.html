@@ -264,6 +264,41 @@
 </table>
 <p>sind and brig use the same pattern: a CLI and a local UI on one core. sind also has an MCP server. skyhook-io/radar shows the same idea for Kubernetes: one binary, a live graph UI and an MCP server. The core model explains how the surfaces share words, selectors and exit codes (<a href="model.html#surfaces">model.html#surfaces</a>).</p>
 
+<h3 id="code-layout">Go packages</h3>
+<p>The Go module <code>github.com/dennisklein/repoctl</code> has one command and these Go packages below <code>internal/</code>. Each Go package has one layer of the diagram above and one chapter that specifies it.</p>
+<table class="compact">
+<thead><tr><th>Go package</th><th>Layer</th><th>Content</th><th>Chapter</th></tr></thead>
+<tbody>
+<tr><td><code>cmd/repoctl</code></td><td>entry</td><td><code>main</code>: makes the command tree and calls <code>internal/cli</code>.</td><td><a href="cli.html">CLI reference</a></td></tr>
+<tr><td><code>internal/cli</code></td><td>surface</td><td>Commands, flags, help topics, terminal output. The exit codes are in <code>internal/cli/exit.go</code>.</td><td><a href="cli.html">CLI reference</a>, <a href="terminal.html">Terminal output</a></td></tr>
+<tr><td><code>internal/web</code></td><td>surface</td><td>The local web UI: server, pages, fragments, SSE, token launch.</td><td><a href="ui.html">Web UI</a>, <a href="ui-build.html">UI: overview, build, runs</a>, <a href="ui-publish.html">UI: packages, publish, signing</a></td></tr>
+<tr><td><code>internal/web/graphlayout</code></td><td>surface</td><td>The graph layout: a pure function with no I/O.</td><td><a href="ui-build.html#layout">Graph layout algorithm</a></td></tr>
+<tr><td><code>internal/mcp</code></td><td>surface</td><td>The MCP server: tools, resources, progress, safety policy.</td><td><a href="agents.html#mcp">Agents: MCP server</a></td></tr>
+<tr><td><code>internal/agent</code></td><td>surface</td><td>The UI agent: starts the agent command and reads its stream-json output.</td><td><a href="agents.html#ui-agent">Agents: the UI agent</a></td></tr>
+<tr><td><code>internal/skills</code></td><td>surface</td><td>The generic skills (<code>go:embed</code>), <code>skills install</code> and <code>skills ls</code>.</td><td><a href="agents.html#skills">Agents: where skills live</a></td></tr>
+<tr><td><code>internal/api</code></td><td>contract</td><td>The Go types of the output envelope, the kinds, the problem codes and the events. The schemas come from these types.</td><td><a href="contract.html">Machine contract</a></td></tr>
+<tr><td><code>internal/config</code></td><td>core</td><td>Config layers, set discovery, <code>repoctl.yaml</code>, user config, environment variables, XDG directories.</td><td><a href="config.html">Configuration</a></td></tr>
+<tr><td><code>internal/lock</code></td><td>core</td><td><code>repoctl.lock</code>, the lock states and the set lock.</td><td><a href="config.html#lock">Configuration: repoctl.lock</a>, <a href="lifecycle.html#lock-states">Lock states</a></td></tr>
+<tr><td><code>internal/workspace</code></td><td>core</td><td><code>init</code>, <code>migrate</code>, <code>checkout</code>, <code>pin</code>, <code>rebuild</code>, the package worktrees and the bare clones.</td><td><a href="lifecycle.html">Sets and packages</a>, <a href="config.html#external">external package repositories</a></td></tr>
+<tr><td><code>internal/graph</code></td><td>core</td><td>The SRPM cache and the graph per target.</td><td><a href="build.html#graph">Build: graph per target</a></td></tr>
+<tr><td><code>internal/plan</code></td><td>core</td><td>Plan actions and reasons, selection.</td><td><a href="build.html#plan">Build: plan</a></td></tr>
+<tr><td><code>internal/run</code></td><td>core</td><td>The executor: jobs, node states, staging, failures, cancel.</td><td><a href="build.html#run">Build: the run</a></td></tr>
+<tr><td><code>internal/journal</code></td><td>core</td><td>The journal writer and reader, the run files, the retention of runs.</td><td><a href="contract.html#journal">Machine contract: event journal</a></td></tr>
+<tr><td><code>internal/repo</code></td><td>core</td><td>The publish steps, the local copy, the RepoManifest, pull, push, restore, prune, gc.</td><td><a href="publish.html">Publish and snapshots</a></td></tr>
+<tr><td><code>internal/sign</code></td><td>core</td><td>Signer, signer probe, gates 1 to 3, trust block, key lifecycle, <code>release write</code>.</td><td><a href="signing.html">Signing and trust</a></td></tr>
+<tr><td><code>internal/records</code></td><td>core</td><td>Provenance and SBOM records and their verification.</td><td><a href="supply-chain.html">Supply chain records</a></td></tr>
+<tr><td><code>internal/advisory</code></td><td>core</td><td>The advisory checks, the soname check, dismissals, acceptances, the publish gate, the timer units.</td><td><a href="advisories.html">Advisories</a></td></tr>
+<tr><td><code>internal/upstream</code></td><td>adapter</td><td>The upstream queries to the GitHub API and to Fedora.</td><td><a href="cli.html#cmd-upstream">repoctl upstream</a></td></tr>
+<tr><td><code>internal/doctor</code></td><td>core</td><td>The checks of <code>repoctl doctor</code>: host, set, sign, registry and check.</td><td><a href="cli.html#cmd-doctor">repoctl doctor</a></td></tr>
+<tr><td><code>internal/tools/git</code>, <code>internal/tools/mock</code>, <code>internal/tools/rpm</code>, <code>internal/tools/gpg</code></td><td>adapter</td><td>The child processes: git; mock and the verify roots; rpmspec, rpmsign, rpmkeys and createrepo_c; gpg.</td><td><a href="build.html#mock">Build: mock roots</a>, <a href="signing.html#probe">Signing: signer probe</a></td></tr>
+<tr><td><code>internal/store</code></td><td>adapter</td><td>The OCI store with oras-go: manifests, blobs, tags.</td><td><a href="publish.html#format">Publish: snapshot format</a></td></tr>
+</tbody>
+</table>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p>An import goes down the diagram only: a surface imports the core, and the core imports the adapters. The core never imports a surface. A core Go package starts no child process and connects to no remote service: it calls an adapter. The core reaches each adapter through a Go interface, so that a test can put a stub in its place.</p>
+</aside>
+
 <h2 id="run">One build run</h2>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 338" role="img" aria-labelledby="run-t">
