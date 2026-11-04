@@ -12,7 +12,7 @@
   <li>Five generic skills ship with repoctl: <code>repoctl</code>, <code>package-updates</code>, <code>bump-package</code>, <code>triage-build</code> and <code>rebuild-check</code>. Package facts live in <code>repoctl.yaml</code>, not in a skill.</li>
   <li>A set can add skills for local policy. A set-local skill can never replace a generic skill.</li>
   <li>Each task has its own tool list. <code>allowed-tools</code> only grants, so <code>repoctl skills install --project</code> also writes a deny list.</li>
-  <li><code>repoctl mcp start</code> serves 26 tools for one set. <code>--tools read</code> limits the server to the 21 read tools. No tool changes shared state.</li>
+  <li><code>repoctl mcp start</code> serves 28 tools for one set. <code>--tools read</code> limits the server to the 23 read tools. No tool changes shared state.</li>
   <li>A step that only a person can take comes back as a problem with a <dfn>humanAction</dfn>. The agent stops and shows the command.</li>
   <li>The web UI has four advisory buttons. Each runs a local agent with a fixed skill, a fixed input and the read-only MCP server.</li>
   <li>The result shows in the agent panel. Proposed actions are normal buttons. Nothing runs until the person clicks. There is no chat.</li>
@@ -159,14 +159,14 @@ allowed-tools:
   - "mcp__repoctl__repoctl_show"
   - "mcp__repoctl__repoctl_doctor"
 ---</code></pre>
-<p>The frontmatter of <code>bump-package</code> grants the tools of mode apply. Mode draft has no frontmatter of its own. When the input has <code>--draft</code>, the skill text tells the agent to use only the tools of the draft list. In the web UI, repoctl enforces the draft list with <code>--allowedTools</code> and the read-only MCP server. The frontmatter of the <code>repoctl</code> skill grants the read commands of the CLI, <code>repoctl build</code>, the 21 read tools and <code>repoctl_build</code>. The full lists are in the next section.</p>
+<p>The frontmatter of <code>bump-package</code> grants the tools of mode apply. Mode draft has no frontmatter of its own. When the input has <code>--draft</code>, the skill text tells the agent to use only the tools of the draft list. In the web UI, repoctl enforces the draft list with <code>--allowedTools</code> and the read-only MCP server. The frontmatter of the <code>repoctl</code> skill grants the read commands of the CLI, <code>repoctl build</code>, the 23 read tools and <code>repoctl_build</code>. The full lists are in the next section.</p>
 
 <h2 id="tool-lists">Tool list per task</h2>
 <p>Each task has its own tool list. A terminal session runs with the permissions of the person, and the list of the skill grants its tools. A task of the web UI gets the list of its row and nothing else. Its MCP server runs with <code>--tools read</code>. repoctl passes the list with <code>--allowedTools</code> and denies Bash, Edit, Write and NotebookEdit. Thus the UI agent has no way around the MCP server.</p>
 <table class="compact">
 <thead><tr><th>Task</th><th>Skill and mode</th><th>MCP tools</th><th>Other tools</th></tr></thead>
 <tbody>
-<tr><td>terminal</td><td><code>repoctl</code></td><td>the 21 read tools, <code>repoctl_build</code></td><td>Bash: the read commands and <code>repoctl build</code></td></tr>
+<tr><td>terminal</td><td><code>repoctl</code></td><td>the 23 read tools, <code>repoctl_build</code></td><td>Bash: the read commands and <code>repoctl build</code></td></tr>
 <tr><td>terminal</td><td><code>package-updates</code></td><td><code>upstream</code>, <code>show</code></td><td>WebFetch, WebSearch, Agent</td></tr>
 <tr><td>UI: Summarize upstream release</td><td><code>package-updates</code></td><td><code>upstream</code>, <code>show</code></td><td>WebFetch</td></tr>
 <tr><td>terminal</td><td><code>bump-package</code> apply</td><td><code>status</code>, <code>show</code>, <code>upstream</code>, <code>pin</code>, <code>rebuild</code>, <code>plan</code>, <code>build</code>, <code>run_wait</code>, <code>repo_diff</code>, <code>advisory</code></td><td>Read, Edit, WebFetch, Skill, <code>git -C packages/</code></td></tr>
@@ -223,9 +223,9 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <svg viewBox="0 0 880 250" role="img" aria-labelledby="modes-t">
 <title id="modes-t">Tool modes of the MCP server and the commands that are not exposed</title>
 <rect class="zone" x="16" y="16" width="520" height="218" rx="8"/>
-<text class="t-title" x="32" y="40">repoctl mcp start (mode all: 26 tools)</text>
+<text class="t-title" x="32" y="40">repoctl mcp start (mode all: 28 tools)</text>
 <rect class="box-accent" x="32" y="56" width="488" height="64" rx="8"/>
-<text class="t-on t-title" x="48" y="80">--tools read: 21 read tools</text>
+<text class="t-on t-title" x="48" y="80">--tools read: 23 read tools</text>
 <text class="t-on" x="48" y="102">status, plan, runs, logs, repo, advisories, sign ls …</text>
 <rect class="box" x="32" y="132" width="236" height="86" rx="8"/>
 <text class="t-title" x="48" y="156">staging</text>
@@ -264,6 +264,8 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>repoctl_repo_ls</code></td><td>targets, run, kind, name, snapshot</td><td>RepoContents</td><td><span class="tag read">read</span></td><td>Local copy of latest, a snapshot or the staging of a run.</td></tr>
 <tr><td><code>repoctl_repo_diff</code></td><td>run, targets</td><td>RepoDiff</td><td><span class="tag read">read</span></td><td>Staging against the local copy of latest. Source for the publish summary.</td></tr>
 <tr><td><code>repoctl_repo_verify</code></td><td>targets, snapshot, served, run, el</td><td>DoctorReport</td><td><span class="tag read">read</span></td><td>Network. With <code>el</code>, an install test in the EL mock chroot.</td></tr>
+<tr><td><code>repoctl_repo_provenance</code></td><td>build*, snapshot</td><td>Provenance</td><td><span class="tag read">read</span></td><td>How a build was made; which builds used a buildroot package.</td></tr>
+<tr><td><code>repoctl_repo_sbom</code></td><td>targets, build, snapshot</td><td>Sbom</td><td><span class="tag read">read</span></td><td>Components and upstream versions, for example for a CVE.</td></tr>
 <tr><td><code>repoctl_snapshots</code></td><td>targets, limit</td><td>SnapshotList</td><td><span class="tag read">read</span></td><td>Network. Newest first, with publish id, digest, parent and signer.</td></tr>
 <tr><td><code>repoctl_advisories</code></td><td>targets, level, dismissed, refresh</td><td>AdvisoryList</td><td><span class="tag read">read</span></td><td>Network. <code>refresh</code> runs the check first.</td></tr>
 <tr><td><code>repoctl_advisory</code></td><td>id*</td><td>Advisory</td><td><span class="tag read">read</span></td><td>Facts, closure, suggested command, dismissal. "Is a rebuild necessary?" uses it.</td></tr>

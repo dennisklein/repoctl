@@ -180,7 +180,7 @@
 <p>Every admin host reads the same state. <code>repoctl repo pull</code> makes the local copy equal to <code>latest</code>, so a second admin plans from the same manifest. A lost host loses only its runs and its staging (<a href="#records">records</a>).</p>
 
 <h2 id="manifest">RepoManifest</h2>
-<p>Each target repo carries one RepoManifest. repoctl adds it to the repodata of the binary repository (<code>slurm/</code>) with <code>modifyrepo_c --mdtype=repoctl</code>. <code>repomd.xml</code> lists it with its checksum, and <code>repomd.xml.asc</code> signs it. Thus clients and admins can trust the manifest as much as the RPMs.</p>
+<p>Each target repo carries one RepoManifest. repoctl adds it to the repodata of the binary repository (<code>slurm/</code>) with <code>modifyrepo_c --mdtype=repoctl</code>. <code>repomd.xml</code> lists it with its checksum, and <code>repomd.xml.asc</code> signs it. Thus clients and admins can trust the manifest as much as the RPMs. The manifest also lists the sha256 of each supply chain record, so the same signature covers the records (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</p>
 <p>The manifest has one entry per build. An entry lists the source RPM, the binary RPMs and the debuginfo RPMs of one node build. Thus <code>slurm-source</code> and <code>slurm-debuginfo</code> need no manifest. A publish keeps the entries of its base and adds its own, so the entry of ucx 1.22.0-2 stays. This is the manifest of el9 after the story publish, shortened with …:</p>
 <pre><code class="language-json">{
   "apiVersion": "repoctl/v1alpha1",
@@ -203,11 +203,15 @@
       "mockConfig": "sha256:9a0c…",
       "macros": "sha256:12fe…",
       "buildroot": "sha256:77d1…",
-      "buildrootFile": "buildroot/ucx-1.22.1-1.el9.txt",
+      "buildrootFile": "buildroot/ucx-1.22.1-1.el9.json",
       "run": "r-20261102-1750-a3f",
       "built": "2026-11-02T17:54:13Z",
       "publish": "p-20261103-1412-5e1",
-      "signer": "4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E"
+      "signer": "4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E",
+      "records": {
+        "provenance": {"path": "records/ucx-1.22.1-1.el9/provenance.json", "sha256": "3f0a…"},
+        "sbom": {"path": "records/ucx-1.22.1-1.el9/sbom.cdx.json", "sha256": "c81e…"}
+      }
     },
     {
       "dir": "slurm",
@@ -219,7 +223,10 @@
     },
     "…"
   ],
-  "removed": []
+  "removed": [],
+  "records": {
+    "sbom": {"path": "records/repository.cdx.json", "sha256": "5b77…"}
+  }
 }</code></pre>
 <table class="compact">
 <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
@@ -228,9 +235,10 @@
 <tr><td><code>builds[]</code>: <code>dir</code>, <code>branch</code>, <code>url</code>, <code>commit</code></td><td>The package and the commit of the build. <code>url</code> is set only for an external package. An in-tree package has the builder branch and a set commit. plan matches an entry by branch or URL, commit and target, not by dir.</td></tr>
 <tr><td><code>reason</code></td><td>The plan reason: <code>commit-changed</code>, <code>new-package</code>, <code>new-target</code> or <code>rebuild: TEXT</code>. Imported entries have <code>adopted</code> or <code>adopted-unmapped</code> (<a href="lifecycle.html#adopted">lifecycle.html#adopted</a>).</td></tr>
 <tr><td><code>srpm</code>, <code>rpms</code>, <code>provides</code>, <code>requires</code></td><td>All RPMs of the build and their capabilities from the RPM headers. The soname and closure checks read them.</td></tr>
-<tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code>, <code>buildrootFile</code></td><td>Hashes of the mock config, the macro files and the buildroot. The buildroot file is the package list of the build root (mock <code>installed_pkgs.log</code>): the upstream versions that the build used.</td></tr>
+<tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code>, <code>buildrootFile</code></td><td>Hashes of the mock config, the macro files and the buildroot. The buildroot file is the buildroot lock of mock (<code>buildroot_lock.json</code>): each RPM of the build root with its version, license, <code>SIGMD5</code> and signer key, and the digest of the bootstrap image. <code>buildroot</code> is the sha256 of this file.</td></tr>
 <tr><td><code>run</code>, <code>built</code>, <code>publish</code>, <code>signer</code></td><td>The run, the build time, the publish that added the build and the full fingerprint of the signer.</td></tr>
 <tr><td><code>removed[]</code></td><td>NVRs that a prune or a restore removed: <code>nvr</code>, <code>sha256</code> of each RPM, <code>publish</code>, <code>reason</code> (<code>prune</code>, <code>restore</code>). Each snapshot copies the list from its base, so plan and publish know every NVR that clients can still have.</td></tr>
+<tr><td><code>builds[].records</code>, <code>records</code></td><td>Path and sha256 of the supply chain records: the provenance and the SBOM of each build, and the SBOM of the repository (<a href="supply-chain.html#layout">supply-chain.html#layout</a>). An adopted build has no provenance.</td></tr>
 </tbody>
 </table>
 
@@ -310,6 +318,7 @@
 <tr><td><code>latest</code> and its OCI manifest</td><td>GHCR</td><td>publish, repo push, restore, prune, resign</td><td>all commands, mirror job</td><td>authority</td></tr>
 <tr><td>RepoManifest</td><td>a file in the snapshot, listed in the signed <code>repomd.xml</code></td><td>publish</td><td>plan, build, publish</td><td>part of the snapshot</td></tr>
 <tr><td>Local copy and <code>snapshot.json</code></td><td><code>$XDG_DATA_HOME/repoctl/SET/repo/TARGET/</code></td><td>repo pull, publish (after the tag)</td><td>plan, build, repo ls, repo diff</td><td>cache of <code>latest</code></td></tr>
+<tr><td>Supply chain records</td><td>files in the snapshot (<code>slurm/records/</code>), with their sha256 in the RepoManifest</td><td>publish, repo push, restore, prune, resign</td><td>repo provenance, repo sbom, repo verify, mirror job, scanners</td><td>part of the snapshot</td></tr>
 <tr><td>Served tree</td><td>HTTP server</td><td>mirror job</td><td>clients, status</td><td>copy for dnf</td></tr>
 <tr><td><code>keys/deployed.yaml</code></td><td>builder branch (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
 <tr><td><code>.repoctl/advisories.yaml</code></td><td>builder branch (git)</td><td>advisories dismiss</td><td>check, plan, publish</td><td>team record</td></tr>
@@ -386,6 +395,7 @@
   <dt><a href="build.html#actions">plan action</a></dt><dd><code>build</code>, <code>current</code>, <code>staged</code> or <code>skip</code>.</dd>
   <dt><a href="build.html#actions">plan reason</a></dt><dd>Why a node builds: <code>commit-changed</code>, <code>rebuild</code>, <code>new-package</code>, <code>new-target</code> or <code>forced</code>.</dd>
   <dt><a href="contract.html#problems">problem code</a></dt><dd>The dotted id of a problem, for example <code>set.busy</code>, with its exit code and hint.</dd>
+  <dt><a href="supply-chain.html#provenance">provenance</a></dt><dd>The SLSA provenance record of one build: an in-toto Statement with the signed RPMs as subjects.</dd>
   <dt>publish id</dt><dd>The id of one publish and the tag of its snapshot: <code>p-YYYYMMDD-HHMM-xxx</code>; an import has <code>p-import-YYYYMMDD</code>.</dd>
   <dt><a href="publish.html#registry">registry</a></dt><dd>The OCI registry that holds the snapshots: GHCR.</dd>
   <dt><a href="signing.html#release">release package</a></dt><dd>The in-tree package with <code>role: release</code> that installs the key file and the <code>.repo</code> file on the clients.</dd>
@@ -393,6 +403,7 @@
   <dt>run</dt><dd>One execution of <code>repoctl build</code>, id <code>r-YYYYMMDD-HHMM-xxx</code>.</dd>
   <dt><a href="#words">run state</a></dt><dd>planning, running, ok, failed, canceled or abandoned.</dd>
   <dt><a href="#safety">safety class</a></dt><dd>read, staging, local write or shared state.</dd>
+  <dt><a href="supply-chain.html#sbom-record">SBOM</a></dt><dd>Software bill of materials: the components, versions, licenses and hashes of a build or a repository, in CycloneDX 1.6.</dd>
   <dt><a href="publish.html#mirror">served tree</a></dt><dd>The directory on the HTTP server that the clients read. Only the mirror job writes it.</dd>
   <dt><a href="#set">set (package set)</a></dt><dd>A group of packages that one <code>repoctl.yaml</code> describes.</dd>
   <dt><a href="#set">set directory</a></dt><dd>The git work tree of a builder branch, with the package worktrees below <code>packages/</code>.</dd>

@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Supply chain records</title>
+<meta name="description" content="The supply chain records of repoctl: SLSA provenance and a CycloneDX SBOM for each build, the repository SBOM, how the repository signature covers them, the records of the tool, and the options that the design does not use.">
+</head>
+<body>
+<h1>Supply chain records</h1>
+<p class="lede">This chapter specifies the supply chain records of repoctl. Each build gets one SLSA provenance record and one CycloneDX SBOM. Each repository gets one SBOM. The chapter gives the standards, the reasons, the content of each record, the files, the verification chain and the records of the repoctl tool. It ends with the options that the design does not use.</p>
+<ul class="keypoints">
+  <li>For each build, repoctl writes one SLSA provenance record (an in-toto Statement) and one CycloneDX 1.6 SBOM. Each target repository also has one SBOM.</li>
+  <li>No extra keys and no second trust system. The records are files in the snapshot. The RepoManifest lists their sha256, and the signed <code>repomd.xml</code> covers the RepoManifest.</li>
+  <li>The build captures the facts that only the build can see: the mock buildroot lock, the source archives and the run facts.</li>
+  <li>Publish writes the records in step 3, after the sign step. <code>rpmsign</code> changes the sha256 of each RPM file, and the records name the signed files.</li>
+  <li>The set builds have SLSA Build L1. L2 needs a hosted build platform, and each admin builds on an own host.</li>
+  <li>The repoctl tool has SLSA Build L2 from GitHub artifact attestations.</li>
+  <li>The design does not use cosign, keyless Sigstore, OCI referrers, in-toto layouts or hosted builds. The dnf clients do not use them.</li>
+</ul>
+
+<h2 id="question">Why records</h2>
+<p>repoctl signs each RPM and each <code>repomd.xml</code>. A signature tells a client two facts: the file did not change, and a trusted key signed it. A signature does not tell what is in the file, or how the file was made. Supply chain records give these facts in a standard form that other tools can read.</p>
+<p>A good record answers three questions:</p>
+<ol>
+  <li><b>What is in it?</b> The components, their versions, licenses and hashes. This is an SBOM (software bill of materials).</li>
+  <li><b>How was it made?</b> The source commit, the build platform, the parameters and the build dependencies. This is provenance.</li>
+  <li><b>Who says so, and can I trust it?</b> A signature over the record, and a way to find the record. This is the attestation envelope and its distribution.</li>
+</ol>
+<p>repoctl already knows most of these facts: the RepoManifest (<a href="model.html#manifest">model.html#manifest</a>) and the snapshot annotations (<a href="publish.html#format">publish.html#format</a>) hold them. The records give the same facts, and a few more, in formats that scanners and auditors read.</p>
+
+<h2 id="terms">The four standards</h2>
+<p>The four standards are not alternatives. Each standard is one layer. A full attestation uses one item from each layer.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 330" role="img" aria-labelledby="layers-t">
+<title id="layers-t">The four layers of an attestation, the standards in each layer and the choice of repoctl for each layer</title>
+<text class="t t-title" x="16" y="24">Layer</text>
+<text class="t t-title" x="236" y="24">Standards</text>
+<text class="t t-title" x="576" y="24">repoctl</text>
+<rect class="box" x="16" y="36" width="200" height="60" rx="8"/>
+<text class="t t-title" x="30" y="60">Predicate</text>
+<text class="t-small t-muted" x="30" y="80">the facts</text>
+<rect class="box-soft" x="236" y="36" width="320" height="60" rx="8"/>
+<text class="t-small" x="250" y="60">SLSA provenance v1 (how it was built)</text>
+<text class="t-small" x="250" y="80">SPDX 2.3, SPDX 3.0, CycloneDX 1.6 (what is in it)</text>
+<rect class="box-accent" x="576" y="36" width="308" height="60" rx="8"/>
+<text class="t t-title t-on" x="590" y="60">SLSA provenance v1 + CycloneDX 1.6</text>
+<text class="t-small t-on" x="590" y="80">one of each per build, from publish step 3</text>
+<rect class="box" x="16" y="108" width="200" height="60" rx="8"/>
+<text class="t t-title" x="30" y="132">Statement</text>
+<text class="t-small t-muted" x="30" y="152">facts + subject digests</text>
+<rect class="box-soft" x="236" y="108" width="320" height="60" rx="8"/>
+<text class="t-small" x="250" y="132">in-toto Statement v1: subject[] (name, sha256),</text>
+<text class="t-small" x="250" y="152">predicateType, predicate</text>
+<rect class="box-accent" x="576" y="108" width="308" height="60" rx="8"/>
+<text class="t t-title t-on" x="590" y="132">in-toto Statement v1</text>
+<text class="t-small t-on" x="590" y="152">subjects: sha256 of the signed RPM files</text>
+<rect class="box" x="16" y="180" width="200" height="60" rx="8"/>
+<text class="t t-title" x="30" y="204">Envelope</text>
+<text class="t-small t-muted" x="30" y="224">a signature over the statement</text>
+<rect class="box-soft" x="236" y="180" width="320" height="60" rx="8"/>
+<text class="t-small" x="250" y="204">DSSE, Sigstore bundle (cosign, Fulcio certificate,</text>
+<text class="t-small" x="250" y="224">Rekor log entry)</text>
+<rect class="box-muted" x="576" y="180" width="308" height="60" rx="8"/>
+<text class="t t-title" x="590" y="204">No envelope</text>
+<text class="t-small" x="590" y="224">repomd.xml.asc covers the record (OpenPGP)</text>
+<rect class="box" x="16" y="252" width="200" height="60" rx="8"/>
+<text class="t t-title" x="30" y="276">Distribution</text>
+<text class="t-small t-muted" x="30" y="296">where a reader finds it</text>
+<rect class="box-soft" x="236" y="252" width="320" height="60" rx="8"/>
+<text class="t-small" x="250" y="276">file next to the artifact, OCI referrers,</text>
+<text class="t-small" x="250" y="296">transparency log, attestation API</text>
+<rect class="box-accent" x="576" y="252" width="308" height="60" rx="8"/>
+<text class="t t-title t-on" x="590" y="276">Files in the snapshot</text>
+<text class="t-small t-on" x="590" y="296">the mirror job serves them next to the RPMs</text>
+</svg>
+<figcaption>The four layers of an attestation. The left and middle columns give the general model. The right column gives the choice of repoctl. Only the envelope layer is empty: the OpenPGP signature of the repository does its work.</figcaption>
+</figure>
+
+<h3 id="sbom">SBOM: SPDX and CycloneDX</h3>
+<p>An SBOM lists the components of a piece of software. Each component has a name, a version, a package URL (purl), hashes, a license and its relations to other components. Two formats are in common use:</p>
+<ul>
+  <li><b>SPDX</b> (Linux Foundation). SPDX 2.3 is ISO/IEC 5962:2021. SPDX 3.0 is a new model with profiles (software, build, security, licensing). Red Hat publishes one SPDX 2.3 SBOM for each RPM and for each product release.</li>
+  <li><b>CycloneDX</b> (OWASP). Version 1.6 is ECMA-424. Version 1.7 came in October 2025. CycloneDX also carries VEX (vulnerability exploitability) and a crypto bill of materials. Red Hat has CycloneDX 1.6 guidance for RPMs too.</li>
+</ul>
+<p>For an RPM, an SBOM gives the SRPM, the binary RPMs, the upstream source archives, the bundled libraries (<code>Provides: bundled(…)</code>) and the licenses. A vulnerability scanner can then match the upstream versions with a vulnerability database.</p>
+
+<h3 id="slsa">SLSA provenance</h3>
+<p>SLSA (Supply-chain Levels for Software Artifacts, OpenSSF) has tracks with levels. The build track has levels L0 to L3. Version 1.2 (November 2025) adds a source track. The build track asks for provenance: a record of the build platform, the build type, the parameters, the resolved dependencies and the run.</p>
+<table class="compact">
+<thead><tr><th>Level</th><th>Requirement</th><th>Protects against</th></tr></thead>
+<tbody>
+<tr><td>L0</td><td>Nothing.</td><td>Nothing.</td></tr>
+<tr><td>L1</td><td>Provenance exists and the consumer can get it. It can be incomplete and unsigned.</td><td>Mistakes, for example a build from a commit that is not on the remote.</td></tr>
+<tr><td>L2</td><td>A <em>hosted</em> build platform generates and signs the provenance. Hosted means "not on an individual's workstation".</td><td>Tampering after the build.</td></tr>
+<tr><td>L3</td><td>A hardened platform: builds are isolated, and user-defined build steps cannot read the signing key of the provenance.</td><td>Tampering during the build.</td></tr>
+</tbody>
+</table>
+<figure class="diagram">
+<svg viewBox="0 0 900 270" role="img" aria-labelledby="levels-t">
+<title id="levels-t">SLSA build levels. The set builds of repoctl have L1. The repoctl tool has L2 or L3 on GitHub Actions</title>
+<rect class="box-soft" x="16" y="166" width="200" height="60" rx="8"/>
+<text class="t t-title" x="30" y="190">L0</text>
+<text class="t-small t-muted" x="30" y="210">no provenance</text>
+<rect class="box" x="236" y="126" width="200" height="100" rx="8"/>
+<text class="t t-title" x="250" y="150">L1</text>
+<text class="t-small" x="250" y="170">provenance exists</text>
+<text class="t-small t-muted" x="250" y="190">can be unsigned</text>
+<rect class="box" x="476" y="86" width="200" height="140" rx="8"/>
+<text class="t t-title" x="490" y="110">L2</text>
+<text class="t-small" x="490" y="130">hosted platform signs</text>
+<text class="t-small t-muted" x="490" y="150">not a workstation</text>
+<rect class="box" x="696" y="46" width="188" height="180" rx="8"/>
+<text class="t t-title" x="710" y="70">L3</text>
+<text class="t-small" x="710" y="90">hardened platform</text>
+<text class="t-small t-muted" x="710" y="110">isolated, key out of reach</text>
+<line class="edge-muted" x1="456" y1="30" x2="456" y2="250" />
+<text class="t-small t-muted" x="462" y="30">hosted build platform starts here</text>
+<rect class="box-accent" x="236" y="236" width="200" height="28" rx="6"/>
+<text class="t-small t-on" x="250" y="254">set builds on admin hosts</text>
+<rect class="box-ok" x="476" y="236" width="408" height="28" rx="6"/>
+<text class="t-small" x="490" y="254">repoctl tool: GitHub Actions (L2), reusable workflow (L3)</text>
+</svg>
+<figcaption>SLSA build levels. The dashed line is the hosted platform requirement. The set builds stay on the left of it, because each admin builds and signs on an own host. The repoctl tool builds on GitHub Actions and is on the right.</figcaption>
+</figure>
+
+<h3 id="in-toto">in-toto attestations</h3>
+<p>in-toto (CNCF) gives the common frame. An in-toto <em>Statement</em> binds a <em>predicate</em> (the facts, for example SLSA provenance or an SBOM) to one or more <em>subjects</em> (artifacts, by name and digest). A DSSE envelope can sign the Statement. A bundle is a JSON Lines file with many envelopes. in-toto also has <em>layouts</em>: a signed policy that names the steps of a supply chain and the persons that can do each step.</p>
+
+<h3 id="sigstore">Sigstore and cosign</h3>
+<p>Sigstore (OpenSSF) signs artifacts and attestations. <code>cosign</code> is its client. It signs with a key pair, a KMS key or a hardware key (PIV, for example on a YubiKey). In keyless mode, Fulcio gives a short-lived certificate for an OIDC identity, for example a GitHub workflow or an e-mail address. Rekor is a public transparency log: each signature gets a log entry that anyone can audit. For OCI artifacts, cosign stores signatures and attestations in the registry next to the artifact, with the OCI referrers API or a tag scheme.</p>
+<aside class="callout note">
+<p class="callout-title">What the EL clients verify</p>
+<p>rpm and dnf on EL9 and EL10 verify OpenPGP signatures only: the RPM signature and <code>repomd.xml.asc</code> (<a href="signing.html#facts">signing facts</a>). They do not read SBOMs, provenance or Sigstore signatures. Thus no record changes what a client installs. The records are for people and tools that ask questions about the packages.</p>
+</aside>
+
+<h2 id="value">Threats and value</h2>
+<p>The table gives each threat or question, the control of the design and the part that the records do. The value of the records is in T3 to T5 and T8, not in tamper protection.</p>
+<table class="compact">
+<thead><tr><th>#</th><th>Threat or question</th><th>Control</th><th>Part of the records</th></tr></thead>
+<tbody>
+<tr><td>T1</td><td>An RPM changes after the publish (GHCR, mirror, HTTP server).</td><td>RPM signature, <code>repomd.xml.asc</code>, mirror job verify.</td><td>None. The OpenPGP signatures stop this.</td></tr>
+<tr><td>T2</td><td>The served tree is old or comes from another snapshot.</td><td><code>repoctl-snapshot.json</code>, status <code>served:</code>, the signed RepoManifest names the publish.</td><td>None.</td></tr>
+<tr><td>T3</td><td>"A CVE is out for UCX 1.22.0 (or for a library that slurm bundles). Which of our RPMs hold it?"</td><td>SBOM.</td><td>The upstream purl and version of each component. Grype or Trivy match them with OSV and GHSA.</td></tr>
+<tr><td>T4</td><td>"A buildroot package was bad (as the xz backdoor, CVE-2024-3094). Which of our builds used it?"</td><td>Provenance.</td><td>Each buildroot RPM with its signer key and digest, in a standard form.</td></tr>
+<tr><td>T5</td><td>"Show me how this RPM was built." An auditor, a user site, a security team.</td><td>Provenance and SBOM.</td><td>Standard formats, next to the RPMs, readable with curl and jq.</td></tr>
+<tr><td>T6</td><td>An admin host is compromised. It builds a bad RPM, and the admin signs it.</td><td>Personal keys, gates 1 to 3, the journal. The design has no two-person review.</td><td>None at L1. The host writes the record, so the host can forge it. Only a hosted build (L2) or an independent rebuild helps.</td></tr>
+<tr><td>T7</td><td>An admin key is stolen and signs outside repoctl.</td><td>Offboarding, re-sign (<a href="signing.html#offboarding">offboarding</a>).</td><td>None. A transparency log (Rekor) can show the use of a key (<a href="#not-used">not used</a>).</td></tr>
+<tr><td>T8</td><td>A customer or a regulation asks for an SBOM.</td><td>SBOM.</td><td>CycloneDX 1.6 (<a href="#regulation">regulation</a>).</td></tr>
+</tbody>
+</table>
+<aside class="callout why">
+<p class="callout-title">Why records, but no extra signatures</p>
+<p>T1, T2 and T7 are about trust in files. The OpenPGP chain covers T1 and T2, and the clients use only that chain. T3, T4, T5 and T8 are about knowledge. They need good data in a standard format. They do not need a second signature system.</p>
+</aside>
+
+<h2 id="choice">The choice</h2>
+<p>repoctl writes two predicates and no envelope. The table gives each option and the reason for the choice. The options that the design does not use are in <a href="#not-used">not used</a>.</p>
+<table class="compact">
+<thead><tr><th>Option</th><th>Used</th><th>Reason</th></tr></thead>
+<tbody>
+<tr><td><b>SLSA provenance (L1), file in the snapshot, covered by <code>repomd.xml.asc</code></b></td><td>yes</td><td>Answers T4 and T5. repoctl knows the facts. No extra key.</td></tr>
+<tr><td><b>CycloneDX 1.6 SBOM per build and per target</b></td><td>yes</td><td>Answers T3 and T8. All inputs are in the snapshot.</td></tr>
+<tr><td><b>GitHub artifact attestations for the repoctl tool</b></td><td>yes</td><td>L2 for a few lines of workflow. No key to keep.</td></tr>
+<tr><td>SPDX 2.3 or 3.0 SBOM in place of CycloneDX</td><td>no</td><td>See <a href="#format">format</a>.</td></tr>
+<tr><td>cosign signature on the OCI snapshot, keyless Sigstore, OCI referrers</td><td>no</td><td>A second trust system that the clients do not use. See <a href="#not-used">not used</a>.</td></tr>
+<tr><td>Hosted builds for SLSA L2 or L3</td><td>no</td><td>It reverses <a href="decision.html#choice">the core decision</a>.</td></tr>
+<tr><td>SBOM file inside each RPM</td><td>no</td><td>The SBOM holds the sha256 of the RPM, so it cannot be in the RPM.</td></tr>
+</tbody>
+</table>
+
+<h3 id="format">SBOM format: CycloneDX 1.6</h3>
+<p>repoctl writes one SBOM format. A second format doubles the tests and gives no new facts.</p>
+<table class="compact">
+<thead><tr><th>Criterion</th><th>SPDX 2.3</th><th>SPDX 3.0.1</th><th>CycloneDX 1.6</th><th>CycloneDX 1.7</th></tr></thead>
+<tbody>
+<tr><td>Standard</td><td>ISO/IEC 5962:2021</td><td>SPDX spec</td><td>ECMA-424 (1st ed.)</td><td>ECMA-424 (2nd ed.)</td></tr>
+<tr><td>Go library</td><td>spdx/tools-golang (2.1 to 2.3)</td><td>none in tools-golang</td><td>CycloneDX/cyclonedx-go</td><td>cyclonedx-go v0.11 and later</td></tr>
+<tr><td>BSI TR-03183-2 v2.1</td><td>no</td><td>yes</td><td>yes</td><td>yes</td></tr>
+<tr><td>Red Hat RPM guidance</td><td>yes (published SBOMs)</td><td>"may be added"</td><td>yes</td><td>–</td></tr>
+<tr><td>Scanners (Grype, Trivy) read it</td><td>yes</td><td>partly</td><td>yes</td><td>test</td></tr>
+</tbody>
+</table>
+<p>The choice is CycloneDX 1.6, JSON. It is the only format that the German BSI guideline accepts, that Red Hat describes for RPMs and that has a maintained Go library. repoctl moves to 1.7 when Grype and Trivy read 1.7. The BSI line comes from secondary sources; test V28 reads the primary text (<a href="delivery.html#verification">delivery.html#verification</a>).</p>
+
+<h2 id="design">Records</h2>
+<p>repoctl captures the facts during the build and writes the records during the publish. The records are files of the snapshot. The RepoManifest lists them. The repository signature covers them.</p>
+
+<h3 id="flow">Where the records come from</h3>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 300" role="img" aria-labelledby="flow-t">
+<title id="flow-t">Build captures the facts. Publish signs the RPMs first, then writes the records with the signed digests, then signs repomd.xml</title>
+<text class="t t-title" x="16" y="24">Build (staging class), then publish (shared state class)</text>
+<rect class="box" x="16" y="36" width="270" height="88" rx="8"/>
+<text class="t t-title" x="30" y="60">Node build in mock</text>
+<text class="t-small" x="30" y="80">--uniqueext root, rpmautospec</text>
+<text class="t-small t-accent" x="30" y="100">buildroot_lock plugin on</text>
+<rect class="box-soft" x="314" y="36" width="270" height="88" rx="8"/>
+<text class="t t-title" x="328" y="60">Record draft in the staging</text>
+<text class="t-small t-mono" x="328" y="80">buildroot_lock.json</text>
+<text class="t-small" x="328" y="100">source sha256, start, end, mock version</text>
+<rect class="box" x="612" y="36" width="272" height="88" rx="8"/>
+<text class="t t-title" x="626" y="60">2 sign</text>
+<text class="t-small" x="626" y="80">rpmsign --resign on the new RPMs</text>
+<text class="t-small t-warn" x="626" y="100">the sha256 of each file changes</text>
+<line class="edge" x1="286" y1="80" x2="312" y2="80" marker-end="url(#arrow)"/>
+<line class="edge" x1="584" y1="80" x2="610" y2="80" marker-end="url(#arrow)"/>
+<text class="t t-title" x="16" y="168">Publish, step 3 and later</text>
+<path class="edge" d="M748,124 L748,148 L151,148 L151,178" marker-end="url(#arrow)"/>
+<rect class="box-accent" x="16" y="180" width="270" height="100" rx="8"/>
+<text class="t t-title t-on" x="30" y="204">3 repodata: records</text>
+<text class="t-small t-on" x="30" y="224">provenance: subjects = signed sha256</text>
+<text class="t-small t-on" x="30" y="244">SBOM: hashes = signed sha256</text>
+<text class="t-small t-on" x="30" y="264">RepoManifest: sha256 of each record</text>
+<rect class="box" x="314" y="180" width="270" height="100" rx="8"/>
+<text class="t t-title" x="328" y="204">3 repodata: metadata</text>
+<text class="t-small" x="328" y="224">createrepo_c --update</text>
+<text class="t-small" x="328" y="244">modifyrepo_c --mdtype=repoctl</text>
+<text class="t-small" x="328" y="264">sign repomd.xml (one signature)</text>
+<rect class="box" x="612" y="180" width="272" height="100" rx="8"/>
+<text class="t t-title" x="626" y="204">4, 5 verify, 6, 7 push and tag</text>
+<text class="t-small" x="626" y="224">each record sha256 and subject</text>
+<text class="t-small" x="626" y="244">mirror job: the same check, jq</text>
+<text class="t-small t-muted" x="626" y="264">records are blobs like the RPMs</text>
+<line class="edge-accent" x1="286" y1="230" x2="312" y2="230" marker-end="url(#arrow-accent)"/>
+<line class="edge" x1="584" y1="230" x2="610" y2="230" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>The record flow. The build captures the facts that only the build can see. The publish writes the records after the sign step, because the subjects must be the files that clients download. Step 3 writes the records first, then the repodata (<a href="publish.html#order">publish order</a>).</figcaption>
+</figure>
+<aside class="callout rule">
+<p class="callout-title">Rule: records use the digests of the signed files</p>
+<p><code>rpmsign --resign</code> replaces the signature header of each new RPM. Thus the sha256 of the file changes, but the header digest (<code>SHA256HEADER</code>), the payload digest and <code>SIGMD5</code> stay. A client downloads and scans the signed file. Thus each subject and each SBOM hash is the sha256 of the signed file. repoctl writes the records in step 3, after step 2. <code>repoctl repo resign</code> writes new records with the new digests and keeps all other fields. Test V24 confirms the digest facts.</p>
+</aside>
+
+<h3 id="capture">Capture at build time</h3>
+<p>Some facts exist only during the build. The build step captures them.</p>
+<ul>
+  <li><b>Buildroot lock.</b> The mock plugin <code>buildroot_lock</code> is on for each job (<code>config_opts["plugin_conf"]["buildroot_lock_enable"] = True</code>). It writes <code>buildroot_lock.json</code> to the result directory. The file lists each RPM in the buildroot with name, epoch, version, release, arch, license, <code>SIGMD5</code>, the signer key id and the URL. It also gives the digest of the bootstrap image. The file is the <code>buildrootFile</code> of the RepoManifest, and <code>buildroot</code> is its sha256 (<a href="model.html#manifest">model.html#manifest</a>).</li>
+  <li><b>Source archives.</b> The SRPM holds each source archive and each patch. repoctl takes the sha256 of each file from the SRPM, and the URL of each <code>Source</code> line from the spec. It already parses the spec in the target chroot for the graph.</li>
+  <li><b>Run facts.</b> The start and the end of the node build, the mock version, the repoctl version, the user and the host. The journal has them (<code>node.state</code>).</li>
+  <li><b>Set dependencies.</b> Each buildroot RPM that comes from the set (from staging or from latest) gets the purl of the set. repoctl finds it by NEVRA in the staging or in the RepoManifest.</li>
+</ul>
+<p>The draft stays in the staging next to the RPMs (<a href="build.html#staging">build.html#staging</a>). It is not signed and not shared. The plugin ships with mock 5.7 and later; Fedora has mock 6. The facts are lost when the build ends, so a build without them cannot get its provenance later.</p>
+
+<h3 id="provenance">Provenance record</h3>
+<p>repoctl writes one in-toto Statement v1 with the predicate SLSA provenance v1 for each new build. The subjects are the SRPM, the binary RPMs and the debuginfo RPMs of the build. The build type is a section of this page, because SLSA asks for a documented build type. This is the record of ucx@el9 in the story publish, shortened with …; <a href="contract/examples/provenance.json">provenance.json</a> has the full record:</p>
+<pre><code class="language-json">{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {"name": "ucx-1.22.1-1.el9.src.rpm",        "digest": {"sha256": "e47d…"}},
+    {"name": "ucx-1.22.1-1.el9.x86_64.rpm",     "digest": {"sha256": "5c1e…"}},
+    {"name": "ucx-devel-1.22.1-1.el9.x86_64.rpm", "digest": {"sha256": "a90b…"}},
+    "…"
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://dennisklein.github.io/repoctl/design/supply-chain.html#build-type",
+      "externalParameters": {
+        "set": "slurm-26.05",
+        "target": "el9",
+        "dir": "ucx",
+        "source": "git+https://github.com/gsi-hpc/slurm-repo@refs/heads/ucx/slurm-26.05",
+        "commit": "4b1e9c2…",
+        "reason": "commit-changed",
+        "mockConfig": "rocky+epel-9-x86_64"
+      },
+      "internalParameters": {
+        "mockConfig": "sha256:9a0c…",
+        "macros": "sha256:12fe…",
+        "user": "dklein",
+        "host": "hpc-a1"
+      },
+      "resolvedDependencies": [
+        {"uri": "git+https://github.com/gsi-hpc/slurm-repo@refs/heads/ucx/slurm-26.05",
+         "digest": {"gitCommit": "4b1e9c2…"}},
+        {"name": "ucx-1.22.1.tar.gz",
+         "uri": "https://github.com/openucx/ucx/releases/download/v1.22.1/ucx-1.22.1.tar.gz",
+         "digest": {"sha256": "…"}},
+        {"uri": "pkg:rpm/rocky/gcc@11.5.0-5.el9_5?arch=x86_64",
+         "digest": {"md5": "…"}, "annotations": {"digest": "SIGMD5", "signer": "350d275d"}},
+        {"uri": "pkg:rpm/gsi-hpc/pmix-devel@6.1.0-1.el9?arch=x86_64&amp;distro=el9",
+         "digest": {"md5": "…"}, "annotations": {"digest": "SIGMD5", "from": "latest p-20260912-1403-c21"}},
+        "…"
+      ]
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://dennisklein.github.io/repoctl/design/supply-chain.html#builder",
+        "version": {"repoctl": "v0.4.0", "mock": "6.6"}
+      },
+      "metadata": {
+        "invocationId": "r-20261102-1750-a3f/ucx@el9",
+        "startedOn": "2026-11-02T17:50:08Z",
+        "finishedOn": "2026-11-02T17:54:13Z"
+      },
+      "byproducts": [
+        {"name": "buildroot/ucx-1.22.1-1.el9.json", "digest": {"sha256": "77d1…"}}
+      ]
+    }
+  }
+}</code></pre>
+<p id="build-type"><b>Build type <code>mock-rpm/v1</code>.</b> One node build: repoctl checks out <code>commit</code> of <code>source</code>, makes the SRPM and the RPMs with mock in the config <code>mockConfig</code> of <code>target</code>, with rpmautospec, and with the staging of the run and the local copy of latest as extra repositories. <code>externalParameters</code> are the values a person controls through the set. <code>internalParameters</code> are the values of the admin host. Two builds with equal <code>externalParameters</code> and equal <code>resolvedDependencies</code> are the same build.</p>
+<p id="builder"><b>Builder <code>admin-host</code>.</b> The builder is the repoctl process of one admin on one host. The admin is the trust boundary: the same person builds, signs and publishes. This is SLSA Build L1. The record is unsigned in itself (L1 allows it), and the repository signature covers it.</p>
+<p>The buildroot digests are <code>SIGMD5</code> values from the buildroot lock, marked as such. MD5 is weak, but the record uses it to identify a package, not to trust it. The rpm signature of each buildroot package (the <code>signer</code> annotation) gives the trust. When test V23 passes, each entry also gets the <code>SHA256HEADER</code> of the package.</p>
+
+<h3 id="sbom-record">SBOM record</h3>
+<p>repoctl writes one CycloneDX 1.6 SBOM for each build and one SBOM for the repository of each target. The build SBOM follows the Red Hat CycloneDX guidance for RPMs:</p>
+<ul>
+  <li><code>metadata.component</code> is the SRPM, with the purl <code>pkg:rpm/gsi-hpc/ucx@1.22.1-1.el9?arch=src&amp;distro=el9</code>.</li>
+  <li><code>pedigree.ancestors</code> gives the upstream: <code>pkg:github/openucx/ucx@v1.22.1</code>, with the URL and the sha256 of the source archive. A source without a known upstream type gets <code>pkg:generic</code> with <code>download_url</code> and <code>checksum</code>.</li>
+  <li><code>components[]</code> lists each binary and debuginfo RPM, with its purl (<code>?arch=x86_64&amp;distro=el9</code>), the sha256 of the signed file and the license from the RPM header.</li>
+  <li>Each <code>Provides: bundled(NAME) = VERSION</code> of an RPM gives a component of type library under that RPM.</li>
+  <li><code>dependencies[]</code> gives the requires that resolve to RPMs of the set. Requires on EL packages stay as properties, because the client resolves them from the EL repositories.</li>
+  <li>The supplier and the purl namespace (<code>gsi-hpc</code>) come from the owner in <code>store.oci</code>.</li>
+</ul>
+<p>The repository SBOM has the snapshot as its <code>metadata.component</code> (<code>pkg:oci/slurm-26.05-el9@sha256:9d07…?repository_url=ghcr.io/gsi-hpc/slurm-repo</code>). It lists the build SBOMs of all builds in the snapshot as components. A scanner then needs one URL per target.</p>
+<p>The License tag of a spec in EL9 style is not always an SPDX expression. repoctl copies an SPDX expression into <code>licenses[].expression</code>, and any other value into <code>licenses[].license.name</code>. The doctor check <code>sbom.license</code> lists the specs of the set without an SPDX expression. It is a warning, not a gate.</p>
+
+<h3 id="layout">Files and the RepoManifest</h3>
+<p>The records are files of the binary repository (<code>slurm/</code>), next to the buildroot files. dnf reads only the files that <code>repomd.xml</code> lists as repodata, so it ignores them. Each file is one blob in the snapshot, as each RPM (<a href="publish.html#format">snapshot format</a>).</p>
+<pre class="term">slurm/
+  Packages/u/ucx-1.22.1-1.el9.x86_64.rpm
+  repodata/repomd.xml, repomd.xml.asc, …-repoctl.json  (RepoManifest)
+  buildroot/ucx-1.22.1-1.el9.json                   (buildroot_lock.json)
+  records/ucx-1.22.1-1.el9/provenance.json
+  records/ucx-1.22.1-1.el9/sbom.cdx.json
+  records/repository.cdx.json                       (one per snapshot)</pre>
+<p>Each build entry of the RepoManifest has the field <code>records</code>. The manifest also has one top-level <code>records</code> field for the repository SBOM (<a href="model.html#manifest">model.html#manifest</a>):</p>
+<pre><code class="language-json">"records": {
+  "provenance": {"path": "records/ucx-1.22.1-1.el9/provenance.json", "sha256": "3f0a…"},
+  "sbom":       {"path": "records/ucx-1.22.1-1.el9/sbom.cdx.json",   "sha256": "c81e…"}
+}</code></pre>
+<table class="compact">
+<thead><tr><th>Event</th><th>Records</th></tr></thead>
+<tbody>
+<tr><td>publish</td><td>New records for each new build. The records of the base stay. A new repository SBOM.</td></tr>
+<tr><td>repo resign</td><td>New records for each re-signed build: new subject digests and SBOM hashes, the same build definition. A new repository SBOM.</td></tr>
+<tr><td>repo prune, repo restore</td><td>The records of a removed build go with the build. A new repository SBOM.</td></tr>
+<tr><td>import (<code>repo push --from</code>)</td><td>Each adopted build gets an SBOM from the RPM headers and the SRPM, and no provenance (<a href="lifecycle.html#adopted">lifecycle.html#adopted</a>). <code>repo provenance</code> gives <code>records.missing</code>.</td></tr>
+</tbody>
+</table>
+
+<h3 id="verify">Verification chain</h3>
+<p>A reader can trust a record as much as an RPM. The chain starts at the key file of the release package, the same key file that the clients have.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 220" role="img" aria-labelledby="verify-t">
+<title id="verify-t">The verification chain from the key file through repomd.xml.asc, repomd.xml and the RepoManifest to the records and the RPM files</title>
+<rect class="box-soft" x="16" y="36" width="130" height="76" rx="8"/>
+<text class="t t-title" x="28" y="60">Key file</text>
+<text class="t-small" x="28" y="80">release package</text>
+<text class="t-small t-muted" x="28" y="98">client trust set</text>
+<rect class="box" x="166" y="36" width="130" height="76" rx="8"/>
+<text class="t-mono" x="178" y="60">repomd.xml.asc</text>
+<text class="t-small" x="178" y="80">one signature</text>
+<text class="t-small t-muted" x="178" y="98">gpgv</text>
+<rect class="box" x="316" y="36" width="130" height="76" rx="8"/>
+<text class="t-mono" x="328" y="60">repomd.xml</text>
+<text class="t-small" x="328" y="80">sha256 of the</text>
+<text class="t-small" x="328" y="98">RepoManifest</text>
+<rect class="box" x="466" y="36" width="130" height="76" rx="8"/>
+<text class="t t-title" x="478" y="60">RepoManifest</text>
+<text class="t-small" x="478" y="80">sha256 of each</text>
+<text class="t-small" x="478" y="98">record</text>
+<rect class="box-accent" x="616" y="36" width="130" height="76" rx="8"/>
+<text class="t t-title t-on" x="628" y="60">Records</text>
+<text class="t-small t-on" x="628" y="80">sha256 of each</text>
+<text class="t-small t-on" x="628" y="98">RPM subject</text>
+<rect class="box" x="766" y="36" width="118" height="76" rx="8"/>
+<text class="t t-title" x="778" y="60">RPM files</text>
+<text class="t-small" x="778" y="80">signed by</text>
+<text class="t-small" x="778" y="98">the admin key</text>
+<line class="edge" x1="146" y1="74" x2="164" y2="74" marker-end="url(#arrow)"/>
+<line class="edge" x1="296" y1="74" x2="314" y2="74" marker-end="url(#arrow)"/>
+<line class="edge" x1="446" y1="74" x2="464" y2="74" marker-end="url(#arrow)"/>
+<line class="edge-accent" x1="596" y1="74" x2="614" y2="74" marker-end="url(#arrow-accent)"/>
+<line class="edge-accent" x1="746" y1="74" x2="764" y2="74" marker-end="url(#arrow-accent)"/>
+<path class="edge-muted" d="M16,136 L16,144 L596,144 L596,136"/>
+<text class="t-small t-muted" x="16" y="164">dnf on a client checks this part (repo_gpgcheck=1)</text>
+<path class="edge-ok" d="M16,180 L16,188 L884,188 L884,180"/>
+<text class="t-small" x="16" y="208">repoctl repo verify, publish steps 4 and 5, and the mirror job check the full chain</text>
+</svg>
+<figcaption>The verification chain. dnf checks the first links for the repodata. The accent links carry the same trust to the records. A reader with curl, gpgv, jq and sha256sum can check the full chain without repoctl.</figcaption>
+</figure>
+<p>Publish step 4 (verify) and step 5 (verify-el) check each record sha256 against the RepoManifest and each subject against its file. A failure gives <code>records.mismatch</code> (exit 10), and repoctl keeps the tree. The mirror job does the same check with jq and sha256sum after its gpgv check (<a href="publish.html#mirror">publish.html#mirror</a>). It never serves a tree with a bad record. On the story publish:</p>
+<pre class="term">$ repoctl repo verify --target el9
+✓ el9: 208 RPMs in 3 repositories, signers d.klein (158) hpc-repo (50), checksums ok, 3 repomd.xml.asc ok
+✓ el9 records: provenance and SBOM equal to the RepoManifest, subjects equal to the files
+! el9 records: 48 RPMs of p-import-20260828 have an SBOM and no provenance (adopted)</pre>
+<p>The records are not in a DSSE envelope. Thus <code>slsa-verifier</code> and <code>cosign verify-attestation</code> do not accept them (test V27). <code>repoctl repo verify</code> and the chain above are the verifier.</p>
+
+<h3 id="commands">Commands and contract</h3>
+<table class="compact">
+<thead><tr><th>Command</th><th>Class</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><a href="cli.html#cmd-repo-provenance"><code>repo provenance</code></a></td><td><span class="tag read">read</span></td><td>Shows the provenance of a build. <code>--raw</code> writes the stored file. Kind <code>Provenance</code>.</td></tr>
+<tr><td><a href="cli.html#cmd-repo-sbom"><code>repo sbom</code></a></td><td><span class="tag read">read</span></td><td>Shows the components of a target or a build. <code>--raw</code> writes the stored CycloneDX file, for Grype or Trivy. Kind <code>Sbom</code>.</td></tr>
+<tr><td><a href="cli.html#cmd-repo-verify"><code>repo verify</code></a></td><td><span class="tag read">read</span></td><td>Checks the records with the signatures and checksums.</td></tr>
+</tbody>
+</table>
+<p>The read commands have read-only MCP tools, <code>repoctl_repo_provenance</code> and <code>repoctl_repo_sbom</code> (<a href="agents.html#mcp-tools">agents.html#mcp-tools</a>). A skill can then answer T3 and T4 for an admin: "which builds used gcc 11.5.0-5?". The problem codes are <code>records.mismatch</code> (exit 10) and <code>records.missing</code> (<a href="contract.html#problems">contract.html#problems</a>). The stored files keep their own standard schemas; repoctl does not wrap them.</p>
+
+<h2 id="tool">Records for the repoctl tool</h2>
+<p>A GitHub Actions job builds the repoctl binary and the tool RPMs (<a href="decision.html#home">decision.html#home</a>). GitHub artifact attestations fit this case. The action <code>actions/attest-build-provenance</code> writes SLSA provenance v1 for each file, signs it with a short-lived Sigstore certificate of the workflow identity and stores it in the attestation store of the repository. This gives SLSA Build L2, and L3 when a reusable workflow does the build. No key to keep. Admins verify a download with <code>gh attestation verify</code>.</p>
+<pre><code class="language-yaml">permissions:
+  contents: write
+  id-token: write        # Sigstore certificate for the workflow
+  attestations: write    # GitHub attestation store
+steps:
+  # … build the binary and the RPMs into dist/ …
+  - uses: actions/attest-build-provenance@v4
+    with:
+      subject-path: dist/*</code></pre>
+<pre class="term">$ gh attestation verify repoctl-0.4.0-1.fc43.x86_64.rpm --repo dennisklein/repoctl
+✓ Verification succeeded!</pre>
+<p>The RPMs of the tool also have the OpenPGP signature of the Pages repo key for dnf. The attestation is an extra record for admins. It does not change the install.</p>
+
+<h2 id="not-used">Not used, and what changes the answer</h2>
+<table class="compact">
+<thead><tr><th>Option</th><th>Why not</th><th>Use it when</th></tr></thead>
+<tbody>
+<tr><td>cosign signature of the snapshot</td><td>Each admin needs a second key (a PIV key on the YubiKey) and its own lifecycle: onboarding, deployment record, offboarding. The mirror job needs cosign. The clients still use OpenPGP only.</td><td>A consumer pulls the snapshots from GHCR with a policy engine that needs cosign (for example Kyverno, Ratify).</td></tr>
+<tr><td>Keyless Sigstore and Rekor</td><td>It needs an OIDC sign-in in each publish. The public log shows the e-mail of each admin. It does not fit an offline YubiKey workflow.</td><td>The team wants a public audit log of each publish (T7).</td></tr>
+<tr><td>OCI referrers</td><td>The records are files in the snapshot. Referrers matter when a tool looks for cosign attestations. Referrer support of GHCR is not clear.</td><td>With a cosign signature or keyless Sigstore.</td></tr>
+<tr><td>Hosted builds (L2, L3)</td><td>The build and the signature stay with the admin (<a href="decision.html#choice">decision</a>, <a href="signing.html#choice">signing</a>). mock in CI needs privileged containers, and the signing key cannot be personal.</td><td>The team moves all builds to CI, for example for L3 or for two-person control.</td></tr>
+<tr><td>in-toto layouts</td><td>Gates 1 to 3, the advisories gate and the safety classes enforce who can do what.</td><td>Never, with this team model.</td></tr>
+<tr><td>Independent rebuild check</td><td>It needs old buildroot RPMs. Rocky keeps old packages in its vault, but the EL9 builds are not bit-for-bit reproducible.</td><td>A second admin must confirm the builds of the first admin (T6). The buildroot lock is the input (<code>mock --hermetic-build</code>).</td></tr>
+</tbody>
+</table>
+
+<h2 id="regulation">Regulation</h2>
+<p>The EU Cyber Resilience Act (Regulation 2024/2847) asks the manufacturer of a product with digital elements for an SBOM. This applies from 11 December 2027. The CRA names no format. The German guideline BSI TR-03183-2 gives the details: version 2.1 names CycloneDX 1.6 and later or SPDX 3.0.1 and later, with hashes, licenses and the dependencies of each shipped component.</p>
+<p>The slurm repositories serve the clusters of the operator. The CRA applies to products that a manufacturer places on the EU market. Thus the CRA probably does not apply. This is not a legal check: the GSI legal or IT security team must confirm it (<a href="delivery.html#open">open questions</a>). The records do not depend on the answer. CycloneDX 1.6 with hashes and licenses keeps the option open at no extra cost.</p>
+
+<h2 id="sources">Sources</h2>
+<ul>
+  <li>SLSA specification v1.2 (github.com/slsa-framework/slsa, <code>spec/</code>): <code>build-track-basics.md</code>, <code>build-requirements.md</code> (isolation strength, "hosted"), <code>distributing-provenance.md</code>, <code>build-provenance.md</code>. Announcement of v1.2, November 2025.</li>
+  <li>in-toto attestation framework (github.com/in-toto/attestation): Statement v1, DSSE envelope, bundle, vetted predicates.</li>
+  <li>mock (github.com/rpm-software-management/mock): <code>docs/Plugin-BuildrootLock.md</code>, <code>docs/buildroot-lock-schema-1.1.0.json</code>, <code>docs/feature-hermetic-builds.md</code>, release notes 5.7; the plugin directory <code>mock/py/mockbuild/plugins/</code> (no SBOM plugin).</li>
+  <li>Red Hat Product Security, security data guidelines: SBOM (SPDX 2.3 for RPMs, purl forms, CycloneDX 1.6 RPM guidance; redhatproductsecurity.github.io/security-data-guidelines/sbom).</li>
+  <li>CycloneDX: v1.7 release note (cyclonedx.org/news), ECMA-424. CycloneDX/cyclonedx-go README (supported spec versions). spdx/tools-golang README (SPDX 2.1 to 2.3).</li>
+  <li>GitHub docs: artifact attestations, <code>actions/attest-build-provenance</code>, <code>gh attestation verify</code>.</li>
+  <li>Sigstore: cosign docs (hardware tokens, keyless, attestations), cosign <code>specs/BUNDLE_SPEC.md</code> (referrers and tag fallback).</li>
+  <li>Regulation (EU) 2024/2847 (Cyber Resilience Act), Annex I Part II, Article 71. BSI TR-03183-2 v2.1.0: format line from secondary sources (FOSSA, Qualysec); test V28 reads the primary text.</li>
+</ul>
+</body>
+</html>
