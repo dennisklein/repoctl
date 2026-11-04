@@ -651,6 +651,7 @@
         "check.incomplete",
         "check.never",
         "check.no-linger",
+        "check.outdated",
         "check.stale",
         "check.timer-off",
         "check.timer-unit",
@@ -1281,6 +1282,10 @@
             },
             "stale": {
               "type": "boolean"
+            },
+            "outdated": {
+              "type": "boolean",
+              "description": "latest of a target differs from the digest that the check used."
             },
             "required": {
               "type": "integer"
@@ -4569,6 +4574,10 @@
             "stale": {
               "type": "boolean"
             },
+            "outdated": {
+              "type": "boolean",
+              "description": "latest of a target differs from the digest of its result (check.outdated)."
+            },
             "timer": {
               "enum": [
                 "active",
@@ -4599,6 +4608,10 @@
                   },
                   "ok": {
                     "type": "boolean"
+                  },
+                  "latest": {
+                    "$ref": "#/$defs/Digest",
+                    "description": "The digest of latest of the target that this result used."
                   }
                 }
               }

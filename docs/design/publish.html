@@ -318,7 +318,7 @@ hint: the mirror job on the HTTP server runs every 5 min</pre>
 <tr><td>5</td><td>verify-el</td><td>Per target, the same checks inside the EL mock chroot with the client trust set (<a href="signing.html#verify-el">signing.html#verify-el</a>).</td><td>exit 10, <code>verify.el-failed</code>. Keep the tree for inspection. The tree is not pushable.</td></tr>
 <tr><td>6</td><td>push</td><td>Upload the blobs that GHCR does not have. Upload the manifest with the tag <code>p-…</code>.</td><td>exit 13, <code>snapshot.push-failed</code> or <code>registry.denied</code>. Keep the tree. It is pushable.</td></tr>
 <tr><td>7</td><td>tag</td><td>Read latest. If it equals the new digest, the tag is already there: continue with step 8. If it equals the base, move it to the new digest. Read it back. When the tag write gives no answer, read latest again: the new digest means that the write worked.</td><td>exit 13, <code>snapshot.diverged</code> (latest moved) or <code>snapshot.push-failed</code> (the tag write failed).</td></tr>
-<tr><td>8</td><td>cache</td><td>Make the new tree the local copy. Write <code>snapshot.json</code>. Close the journal.</td><td>warning only, exit 0. Hint: <code>repoctl repo push p-…</code>, which runs only step 8.</td></tr>
+<tr><td>8</td><td>cache</td><td>Make the new tree the local copy. Write <code>snapshot.json</code>. Run the target codes of the advisory check on the new tree and update <code>check.json</code> (<a href="advisories.html#check">advisories.html#check</a>). Close the journal.</td><td>warning only, exit 0. Hint: <code>repoctl repo push p-…</code>, which runs only step 8.</td></tr>
 </tbody>
 </table>
 <aside class="callout rule">

@@ -250,10 +250,12 @@ Next: git add .repoctl/advisories.yaml &amp;&amp; git commit -m "chore: dismiss 
 <p>In the check, the closure of a <code>closure.broken</code> is the dir that built the RPM, plus each set dir with an older NVR in latest that provides the requirement. For example, an old ucx NVR that still provides <code>libucp.so.0</code> puts ucx into the closure of <code>closure.broken/openmpi@el9</code>.</p>
 <p>The check is read-only. It takes no set lock and can run while a build runs. It writes <code>check.json</code> in the state directory and a journal with <code>kind: check</code>. When one input fails, for example an upstream repo that is not reachable, the other checks still run. <code>check.json</code> records the failure (<code>upstream.unreachable</code>), and the exit code is 1. A failed or a narrowed check never loses an advisory:</p>
 <ul>
-  <li><code>check.json</code> holds one result per code and target: the time, ok or failed, and the advisories. <code>upstream.release</code> has one result for all targets.</li>
+  <li><code>check.json</code> holds one result per code and target: the time, ok or failed, the digest of latest that it used, and the advisories. <code>upstream.release</code> has one result for all targets.</li>
   <li>When a code fails on a target, repoctl keeps the advisories of that code and target from the last good result. Each one has <code>carriedFrom</code>, the time of that result. The CLI and the UI show "check failed: CODE; from the check of TIME". Thus <code>closure.broken/pmix@el9</code> stays in status, in Needs you and in the gate rows.</li>
   <li>A check writes no <code>advisory.gone</code> for a code and target that failed or did not run.</li>
   <li><code>--code</code> and <code>--target</code> run some codes and targets only. Their results replace only those entries in <code>check.json</code>. The other entries stay.</li>
+  <li>The publish step cache runs all codes except <code>upstream.release</code> on the new local copy of each published target, and replaces their results in <code>check.json</code>. It reads the same repodata as the gate. Thus after a publish, a fixed advisory is gone and an accepted break shows at once. When this fails, the publish gives a warning, and the old result stays.</li>
+  <li>When latest of a target differs from the digest of its result, for example after a publish by another admin, the result is outdated. status, the UI and doctor show <code>check.outdated</code> until the next check.</li>
   <li><code>advisories undismiss --stale</code> needs a complete result: each code ran ok on each target. Else it stops with <code>check.incomplete</code> (exit 1) and the hint <code>repoctl check</code>. Thus a failed input never removes a valid dismissal of the team.</li>
 </ul>
 <p>With <code>--check</code>, the exit code is 11 when an open advisory has the level of <code>--min-level</code> (default warn) or higher. <code>--quiet</code> prints nothing on success; the timer uses it.</p>
@@ -265,7 +267,7 @@ upstream.release/slurm     info      26.05.4 → 26.05.5
 upstream.release/openmpi   info      5.0.11 → 5.0.12
 4 open: 1 required, 3 info  ·  1 dismissed  ·  el9 and el10 checked in 38s  (-v shows all)
 hint: read the facts and the closure. run: repoctl advisories show closure.broken/pmix@el9</pre>
-<p><code>repoctl advisories</code> lists the last check result plus the advisories of each run that has staged nodes. The head line gives the age and the source of the last check. <code>--refresh</code> runs the check first. <code>repoctl advisories show ID</code> prints the level, the state, the facts, the closure, the suggested command and the dismissal. <code>repoctl status</code> has one advisories line. Its check line shows when the check is off, failed or old, and always with <code>-v</code>:</p>
+<p><code>repoctl advisories</code> lists the last check result plus the advisories of each run that has staged nodes. The head line gives the age and the source of the last check. <code>--refresh</code> runs the check first. <code>repoctl advisories show ID</code> prints the level, the state, the facts, the closure, the suggested command and the dismissal. <code>repoctl status</code> has one advisories line. Its check line shows when the check is off, failed, old or outdated, and always with <code>-v</code>:</p>
 <pre class="term">advisories  1 required (closure.broken/pmix@el9), 3 info
 check       last 8h ago (timer) · ok</pre>
 <p>Commands: <a href="cli.html#cmd-check">repoctl check</a>, <a href="cli.html#cmd-status">repoctl status</a>. Terminal frame: <a href="terminal.html#check">check</a>.</p>
@@ -376,6 +378,7 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
 <tr><td>The last check failed.</td><td><span class="tag warn">warn</span> <code>check.failed</code></td><td>"last check failed 5h ago: CODE"</td></tr>
 <tr><td>The last check is older than 36 hours.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"last check 3 days ago"</td></tr>
 <tr><td>The last check is older than latest of a target: a publish, restore, prune or resign came after it.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"check older than latest of el9: run repoctl check"</td></tr>
+<tr><td>latest of a target differs from the digest that the check used.</td><td><span class="tag warn">warn</span> <code>check.outdated</code></td><td>"latest of el9 changed after the check"</td></tr>
 <tr><td>No check ran.</td><td><span class="tag warn">warn</span> <code>check.never</code></td><td>"never checked: run repoctl check --install-timer"</td></tr>
 <tr><td>Lingering is off.</td><td><span class="tag info">info</span> <code>check.no-linger</code></td><td>nothing</td></tr>
 <tr><td>The template pair differs from the pair of this binary.</td><td><span class="tag warn">warn</span> <code>check.timer-unit</code></td><td>nothing</td></tr>
