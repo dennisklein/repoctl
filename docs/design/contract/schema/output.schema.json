@@ -864,9 +864,10 @@
         "rebuild",
         "new-package",
         "new-target",
-        "forced"
+        "forced",
+        "staging-missing"
       ],
-      "description": "Why a node has the action build. repoctl never adds a dependent by itself: advisories say that a rebuild can be necessary, and the human makes it with repoctl rebuild."
+      "description": "Why a node has the action build. staging-missing: an earlier run staged the node, but a file of its staging is gone or has another size; the node keeps its other reasons. repoctl never adds a dependent by itself: advisories say that a rebuild can be necessary, and the human makes it with repoctl rebuild."
     },
     "RunState": {
       "enum": [
@@ -1928,6 +1929,10 @@
         "text": {
           "type": "string",
           "description": "rebuild: the reason that the human gave to repoctl rebuild (--reason)."
+        },
+        "run": {
+          "$ref": "#/$defs/RunId",
+          "description": "staging-missing: the run whose staging is gone."
         }
       },
       "allOf": [

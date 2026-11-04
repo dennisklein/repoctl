@@ -181,7 +181,7 @@
 <tr><td>NodeState</td><td><code>waiting</code> <code>queued</code> <code>running</code> <code>ok</code> <code>failed</code> <code>blocked</code> <code>canceled</code> <code>current</code> <code>staged</code></td><td><a href="build.html#states">Node states</a>. waiting: a dependency is not done. queued: all dependencies are done, and the node waits for a free job slot. <code>counts</code> has one key per state.</td></tr>
 <tr><td>Step</td><td><code>srpm</code> <code>rpm</code> <code>stage</code></td><td><a href="build.html#run">The run</a></td></tr>
 <tr><td>PlanAction</td><td><code>build</code> <code>current</code> <code>staged</code> <code>skip</code></td><td><a href="build.html#actions">Plan actions</a></td></tr>
-<tr><td>PlanReasonCode</td><td><code>commit-changed</code> <code>rebuild</code> <code>new-package</code> <code>new-target</code> <code>forced</code></td><td><a href="build.html#plan">Plan</a></td></tr>
+<tr><td>PlanReasonCode</td><td><code>commit-changed</code> <code>rebuild</code> <code>new-package</code> <code>new-target</code> <code>forced</code> <code>staging-missing</code></td><td><a href="build.html#plan">Plan</a></td></tr>
 <tr><td>RunState</td><td><code>planning</code> <code>running</code> <code>ok</code> <code>failed</code> <code>canceled</code> <code>abandoned</code></td><td><a href="build.html#states">Run states</a>. Only a reader gives <code>abandoned</code>.</td></tr>
 <tr><td>Run kind; origin</td><td><code>build</code> <code>publish</code> <code>check</code>; <code>cli</code> <code>ui</code> <code>mcp</code> <code>ci</code></td><td>origin <code>ci</code> when <code>CI=true</code></td></tr>
 <tr><td>FailureClass</td><td><code>srpm</code> <code>builddep</code> <code>build</code> <code>stage</code> <code>mock</code> <code>host</code> <code>timeout</code> <code>canceled</code> <code>internal</code></td><td><a href="build.html#logs">Logs</a>. <code>host</code>: the host failed, not the package.</td></tr>
@@ -330,7 +330,7 @@
 <tr><td><code>registry.unreachable</code></td><td>13; warning in plan, build</td><td>The registry does not answer.</td><td>Plan and build use the local copy.</td></tr>
 <tr><td><code>run.not-finished</code></td><td>1</td><td>The run is still active.</td><td><code>repoctl runs RUN --follow</code></td></tr>
 <tr><td><code>run.not-found</code></td><td>1</td><td>No run has this id.</td><td><code>repoctl runs</code></td></tr>
-<tr><td><code>run.staging-missing</code></td><td>1</td><td>The staging repo of the run is not there.</td><td><code>repoctl build</code></td></tr>
+<tr><td><code>run.staging-missing</code></td><td>1 in publish; warning in plan, build</td><td>A file of a staged node is not in the staging of its run, or has another size or sha256. Plan and build then build the node again (reason <code>staging-missing</code>).</td><td><code>repoctl plan</code>, then <code>repoctl build</code></td></tr>
 <tr><td><code>run.unpinned</code></td><td>12</td><td>The run built worktree commits.</td><td>Pin, then build from the lock.</td></tr>
 <tr><td><code>set.busy</code></td><td>7</td><td>Another command of this user on this host holds the set lock. The problem names the run.</td><td><code>repoctl runs RUN --follow</code></td></tr>
 <tr><td><code>sign.card-absent</code></td><td>9</td><td>No card for <code>sign.key</code>.</td><td>Insert the card (<code>unlock</code>).</td></tr>

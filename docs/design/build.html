@@ -133,6 +133,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <text class="t-small t-on" x="792" y="69">commit-changed</text>
 <text class="t-small t-on" x="792" y="84">rebuild · new-package</text>
 <text class="t-small t-on" x="792" y="99">new-target · forced</text>
+<text class="t-small t-on" x="792" y="114">staging-missing</text>
 <path class="edge" d="M220,76 L266,76" marker-end="url(#arrow)"/>
 <text class="t-small" x="243" y="68" text-anchor="middle">yes</text>
 <path class="edge" d="M472,76 L518,76" marker-end="url(#arrow)"/>
@@ -162,7 +163,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <thead><tr><th>Plan action</th><th>When</th></tr></thead>
 <tbody>
 <tr><td><code>current</code></td><td>The commit of the node is in the RepoManifest of latest of its target, with the same source package name (<a href="model.html#manifest">match key</a>). Nothing to do.</td></tr>
-<tr><td><code>staged</code></td><td>An earlier run of this user on this host built the same commit for the same target, the node ended ok, and no publish took it. The plan reuses that staging (<a href="#staging">staging</a>).</td></tr>
+<tr><td><code>staged</code></td><td>An earlier run of this user on this host built the same commit for the same target, the node ended ok, and no publish took it. Each file of the <code>artifact.added</code> events of the node is in that staging with its size. The plan reuses that staging (<a href="#staging">staging</a>).</td></tr>
 <tr><td><code>build</code></td><td>No build of this commit for this target exists. The node has one or more plan reasons.</td></tr>
 <tr><td><code>skip</code></td><td>The selectors or <code>--target</code> do not select the node, and no selected node needs it. A node of an unpinned package also gets skip, with the note "not pinned" (<a href="lifecycle.html#lock-states">lock states</a>).</td></tr>
 </tbody>
@@ -175,6 +176,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <tr><td><code>new-package</code></td><td>The package is new in the set. latest has no entry for it.</td></tr>
 <tr><td><code>new-target</code></td><td>The target is new for the package.</td></tr>
 <tr><td><code>forced</code></td><td><code>--force</code> selected the node (<a href="#force">forced builds</a>).</td></tr>
+<tr><td><code>staging-missing</code></td><td>An earlier run staged the node, but a file of that staging is gone or has another size. The node keeps its other reasons, and the plan gives the warning <code>run.staging-missing</code>.</td></tr>
 </tbody>
 </table>
 <aside class="callout rule"><p class="callout-title">Rule</p><p>A change in a dependency, in the mock config, in a macro file or in an upstream repo is never a plan reason. It gives an advisory (<a href="advisories.html#codes">advisory codes</a>). The human decides, and <code>repoctl rebuild</code> makes the build.</p></aside>
@@ -211,7 +213,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <li>Staging belongs to one user on one host. Another admin does not see it and builds the node again.</li>
   <li>A new commit of the package ends the reuse. The plan action is then build.</li>
   <li>Each staged node keeps its record draft next to its RPMs: the buildroot lock of mock, the sha256 and URL of each source archive, and the run facts. Publish writes the supply chain records from it (<a href="supply-chain.html#capture">supply-chain.html#capture</a>).</li>
-  <li><code>repoctl clean</code> keeps a staging that holds staged nodes or a publishable target (<a href="cli.html#cmd-clean">repoctl clean</a>). A publish whose staging is gone stops with <code>run.staging-missing</code>.</li>
+  <li><code>repoctl clean</code> keeps a staging that holds staged nodes or a publishable target (<a href="cli.html#cmd-clean">repoctl clean</a>). A human can still delete a staging by hand. Thus the plan checks that each file of a staged node is there with its size. Else the node gets the action build with the reason <code>staging-missing</code>. Publish checks the sha256 of each file that it takes. A file that is gone or changed stops the publish with <code>run.staging-missing</code>, and the next plan builds the node again.</li>
 </ul>
 
 <h2 id="run">The run</h2>
@@ -639,6 +641,7 @@ repoctl builds each node of one identity once.
               new-target      the target is new for the package
               forced          --force (for tests; publish refuses an
                               NVR that is already published)
+              staging-missing the staging of a staged node is gone
   skip      not selected, and no selected node needs it
 
 repoctl does not rebuild dependents by itself. A change in a library can
