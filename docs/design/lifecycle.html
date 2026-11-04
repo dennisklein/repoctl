@@ -147,7 +147,8 @@
 <li>A branch that does not contain the old set name stays the same. init lists it as "shared branch". Example: <code>slurm-25.11</code> uses <code>pmix/slurm-26.05-v4</code>.</li>
 <li>The other keys stay the same: targets, repo, store, upstream, notes, roles. The human sets <code>repo.url</code> for the clients of the new set (help step 3).</li>
 <li>When the start directory is a fork of <code>SET</code> (its <code>repoctl.yaml</code> has the old set name), init changes the file in place without <code>--force</code>. Otherwise init also copies the files that <code>repoctl.yaml</code> names: the macro files and the release package path.</li>
-<li>init does not copy <code>repoctl.lock</code> or <code>.repoctl/advisories.yaml</code>. The new set has new branches and new advisories.</li>
+<li>init does not copy <code>repoctl.lock</code>, <code>.repoctl/advisories.yaml</code> or <code>keys/deployed.yaml</code>. The new set has new branches, new advisories and no clients yet, so its first publish needs no deployment record (<a href="signing.html#gates">gate 2</a>).</li>
+<li>init keeps the entries of <code>sign.keys</code> in state active and retiring, and copies their <code>keys/ID.asc</code> files. It drops the entries in state removed: the new set has no RPM of these keys.</li>
 <li>init does not create branches. <code>checkout --create</code> does that.</li>
 </ul>
 <p>init ends with a Next list. With <code>--from</code>, the list is <code>repoctl help new-set</code> from step 3. Without <code>--from</code>, the list is the steps of <code>repoctl help packages</code> for the first package (<a href="#help">help topics</a>).</p>

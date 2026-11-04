@@ -438,13 +438,15 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <text class="t-small" x="720" y="88">in the key file: no</text>
 <text class="t-small t-muted" x="720" y="108">kept to check old files</text>
 <line class="edge" x1="206" y1="74" x2="244" y2="74" marker-end="url(#arrow)"/>
-<line class="edge" x1="436" y1="74" x2="474" y2="74" marker-end="url(#arrow)"/>
+<line class="edge" x1="436" y1="64" x2="474" y2="64" marker-end="url(#arrow)"/>
+<line class="edge-muted" x1="474" y1="90" x2="438" y2="90" marker-end="url(#arrow-muted)"/>
 <line class="edge" x1="666" y1="74" x2="704" y2="74" marker-end="url(#arrow)"/>
 <text class="t-small t-mono" x="16" y="152">sign add ID</text>
 <text class="t-small t-muted" x="16" y="170">set commit, push</text>
 <text class="t-small t-mono" x="246" y="152">publish the release,</text>
 <text class="t-small t-mono" x="246" y="170">deploy, sign deployed ID</text>
 <text class="t-small t-mono" x="476" y="152">sign retire ID</text>
+<text class="t-small t-muted" x="476" y="170">back: sign activate ID</text>
 <text class="t-small t-mono" x="706" y="152">repo resign --signer ID,</text>
 <text class="t-small t-mono" x="706" y="170">sign remove ID,</text>
 <text class="t-small t-mono" x="706" y="188">publish the release</text>
@@ -453,7 +455,7 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <text class="t-small t-accent" x="476" y="200">story: hpc-repo</text>
 <text class="t-small t-muted" x="16" y="232">Then config management removes a removed key from the clients. repoctl sign offboard ID prints the commands.</text>
 </svg>
-<figcaption>Key states. The text under each box gives the commands that lead into that state, and the story key in it on 2026-11-03.</figcaption>
+<figcaption>Key states. The text under each box gives the commands that lead into that state, and the story key in it on 2026-11-03. <code>sign activate</code> takes a retiring key back to active.</figcaption>
 </figure>
 <table class="compact">
 <thead><tr><th>Command</th><th>Class</th><th>What it does</th></tr></thead>
@@ -461,7 +463,8 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 <tr><td><a href="cli.html#cmd-sign-add"><code>sign add ID --fingerprint FPR</code></a></td><td><span class="tag local">local write</span></td><td>Exports the public key from the local gpg or card (or reads <code>--file</code>) to <code>keys/ID.asc</code>. Checks the fingerprint and gate 3. Adds the entry with state active, runs release write and makes one set commit "Trust key ID FPR". It never pushes.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-onboard"><code>sign onboard ID</code></a></td><td><span class="tag read">read</span></td><td>Checks the five onboarding steps and prints the next command.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-deployed"><code>sign deployed ID --release NVR</code></a></td><td><span class="tag shared">shared state</span></td><td>Writes the <a href="#deployment-record">deployment record</a> after a typed key id.</td></tr>
-<tr><td><a href="cli.html#cmd-sign-retire"><code>sign retire ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets state retiring, runs release write, makes one set commit. The key cannot sign any more.</td></tr>
+<tr><td><a href="cli.html#cmd-sign-retire"><code>sign retire ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets state retiring, runs release write, makes one set commit. The key cannot sign any more. Refuses the last deployed signer (<code>sign.last-signer</code>, exit 12).</td></tr>
+<tr><td><a href="cli.html#cmd-sign-activate"><code>sign activate ID</code></a></td><td><span class="tag local">local write</span></td><td>Sets a retiring key back to active after a typed key id, makes one set commit. The key signs again with its deployment record.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-remove"><code>sign remove ID</code></a></td><td><span class="tag local">local write</span></td><td>Refuses while latest of a target holds an RPM of the key (<code>sign.key-in-use</code>, exit 12, hint <code>repoctl repo resign --signer ID</code>). Then sets state removed, writes a key file without it, makes one set commit.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-offboard"><code>sign offboard ID</code></a></td><td><span class="tag read">read</span></td><td>Prints the commands for the clients.</td></tr>
 <tr><td><a href="cli.html#cmd-sign-ls"><code>sign ls</code></a></td><td><span class="tag read">read</span></td><td>Lists the keys with state, deployment record, expiry and the count of RPMs per target in latest.</td></tr>
@@ -469,6 +472,22 @@ Type the set name to sign 2 RPMs and publish el9 of slurm-26.05: slurm-26.05</pr
 </tbody>
 </table>
 <p>Each command that makes a set commit signs it with the key of <code>sign.key</code>, and it refuses without the secret key (<code>sign.no-key</code>, exit 9). Publish checks these signatures (<a href="security.html#set-inputs">security.html#set-inputs</a>).</p>
+<p>Each change of a key state has one command. The table gives each pair of states and the refusals:</p>
+<table class="compact">
+<thead><tr><th>From</th><th>To</th><th>Command</th><th>Refusal</th></tr></thead>
+<tbody>
+<tr><td>no entry</td><td>active</td><td><code>sign add ID --fingerprint FPR</code></td><td><code>sign.key-exists</code> (exit 1): <code>sign.keys</code> has the id or the fingerprint, in any state.</td></tr>
+<tr><td>active</td><td>retiring</td><td><code>sign retire ID</code></td><td><code>sign.last-signer</code> (exit 12): for a target with a latest, no other active key has a deployment record.</td></tr>
+<tr><td>retiring</td><td>active</td><td><code>sign activate ID</code></td><td>exit 6 without a terminal or with a wrong key id.</td></tr>
+<tr><td>retiring</td><td>removed</td><td><code>sign remove ID</code></td><td><code>sign.key-in-use</code> (exit 12) while latest of a target holds an RPM of the key.</td></tr>
+<tr><td>active</td><td>removed</td><td>none</td><td><code>sign.wrong-state</code> (exit 1). Retire the key first.</td></tr>
+<tr><td>removed</td><td>active or retiring</td><td>none</td><td><code>sign.wrong-state</code> (exit 1). A removed key does not come back. Make a new key.</td></tr>
+</tbody>
+</table>
+<aside class="callout rule">
+<p class="callout-title">Rule: keep the entry of a removed key</p>
+<p>A removed key stays in <code>sign.keys</code>, and <code>keys/ID.asc</code> stays, while a snapshot in the registry holds a file that the key signed. <code>repo pull</code>, <code>repo restore</code> and <code>repo verify</code> need the key for these snapshots, and gc keeps some of them (<a href="publish.html#gc">publish.html#gc</a>). When <code>repoctl repo snapshots --all</code> lists no such snapshot, a human can delete the entry and the file in one set commit. Then the id is free again.</p>
+</aside>
 <p>The result kinds are <code>SignerList</code> and <code>OnboardReport</code> (<a href="contract.html#kinds">contract.html#kinds</a>). The MCP read tools are <code>repoctl_sign_ls</code> and <code>repoctl_sign_onboard</code>. MCP has no tool for the other sign commands (<a href="agents.html#mcp-tools">agents.html#mcp-tools</a>). The Signing page of the web UI shows the same keys and onboarding steps (<a href="ui-publish.html#signing">ui-publish.html#signing</a>).</p>
 
 <h3 id="onboarding">Onboarding</h3>
@@ -617,6 +636,7 @@ management installed a release package that holds the key.
 Add a key:      repoctl sign add ID --fingerprint FPR
                 (writes the key file of the release package, commits)
 See the steps:  repoctl sign onboard ID
+Undo a retire:  repoctl sign activate ID
 Confirm:        repoctl sign deployed ID --release NVR
 Replace a key:  add and deploy the new key, then "repoctl sign retire
                 OLD", "repoctl repo resign --signer OLD", "repoctl

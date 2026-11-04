@@ -221,7 +221,7 @@
 <tr><td><a href="contract/schema/output.schema.json#/$defs/SnapshotList">SnapshotList</a></td><td><code>repo snapshots</code>, <code>repo gc</code> (with <code>gc</code>: delete or keep)</td><td>1 per target</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Advisory">Advisory</a></td><td><code>advisories show</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/AdvisoryList">AdvisoryList</a></td><td><code>check</code>, <code>advisories ls</code>, <code>advisories dismiss</code>, <code>advisories undismiss</code></td><td>1</td></tr>
-<tr><td><a href="contract/schema/output.schema.json#/$defs/SignerList">SignerList</a></td><td><code>sign ls</code>, <code>sign add</code>, <code>sign retire</code>, <code>sign remove</code>, <code>sign deployed</code></td><td>1</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/SignerList">SignerList</a></td><td><code>sign ls</code>, <code>sign add</code>, <code>sign retire</code>, <code>sign activate</code>, <code>sign remove</code>, <code>sign deployed</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/OnboardReport">OnboardReport</a></td><td><code>sign onboard</code>, <code>sign offboard</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/DoctorReport">DoctorReport</a></td><td><code>doctor</code>, <code>repo verify</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Upstream">Upstream</a></td><td><code>upstream</code></td><td>1 per dir</td></tr>
@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 103 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 106 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -350,10 +350,12 @@
 <tr><td><code>sign.card-absent</code></td><td>9</td><td>No card for <code>sign.key</code>.</td><td>Insert the card (<code>unlock</code>).</td></tr>
 <tr><td><code>sign.expired-signer</code></td><td>warning</td><td>A kept RPM has a signature that its key made before the key expired. EL10 clients refuse the RPM.</td><td><code>repoctl repo resign --signer ID</code> (<a href="signing.html#after-expiry">After the expiry</a>)</td></tr>
 <tr><td><code>sign.failed</code></td><td>1</td><td><code>rpmsign</code> failed. repoctl deletes the new tree.</td><td>The message names the file.</td></tr>
+<tr><td><code>sign.key-exists</code></td><td>1</td><td><code>sign add</code>: <code>sign.keys</code> has the id or the fingerprint, in any state.</td><td>Use a new id for a new key (<a href="signing.html#lifecycle">Key lifecycle</a>).</td></tr>
 <tr><td><code>sign.key-expiring</code></td><td>12</td><td>Gate 1: the signer key expires within <code>sign.checks.key_min_validity</code>. The doctor check of the expiry is <code>sign.expiry</code>.</td><td>Add a new key, then retire this key (<a href="signing.html#expiry">Key expiry</a>).</td></tr>
 <tr><td><code>sign.key-format</code></td><td>9</td><td>Gate 3: the key format is not allowed.</td><td><a href="signing.html#gates">Gates</a></td></tr>
 <tr><td><code>sign.key-in-use</code></td><td>12</td><td><code>sign remove</code>: latest holds RPMs of the key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
 <tr><td><code>sign.keyfile-stale</code></td><td>5</td><td>The key file of the in-tree release package differs from <code>sign.keys</code>.</td><td><code>repoctl release write</code>, then commit.</td></tr>
+<tr><td><code>sign.last-signer</code></td><td>12</td><td><code>sign retire</code>: for a target with a latest, no other active key has a deployment record.</td><td>Deploy a second key first (<a href="signing.html#onboarding">Onboarding</a>).</td></tr>
 <tr><td><code>sign.locked</code></td><td>9</td><td>The card or the key is locked.</td><td><code>gpg --card-status</code> (<code>unlock</code>)</td></tr>
 <tr><td><code>sign.no-key</code></td><td>9; warning in build</td><td>The secret key of <code>sign.key</code> is not on this host.</td><td><code>repoctl doctor</code></td></tr>
 <tr><td><code>sign.no-pinentry</code></td><td>9</td><td>No pinentry works.</td><td>Install a pinentry.</td></tr>
@@ -366,6 +368,7 @@
 <tr><td><code>sign.trust-change</code></td><td>6</td><td>The publish changes the trust set. The human must type the key id.</td><td>Use a terminal or the UI (<code>trust-change</code>).</td></tr>
 <tr><td><code>sign.trust-unverified</code></td><td>12</td><td>A commit since the set commit of the base changes a set input and has no valid signature of an allowed key, or a new deployment record names another key than the signer of its commit. The message names the commit.</td><td>Review the commit, then sign a review commit (<a href="security.html#review">Review commit</a>).</td></tr>
 <tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files. In <code>repo pull</code>, when the set checkout does not hold the set commit of the snapshot: <code>git pull origin builder/SET</code>, then pull again.</td></tr>
+<tr><td><code>sign.wrong-state</code></td><td>1</td><td>A sign command does not allow the current state of the key, for example <code>sign remove</code> of an active key.</td><td>The message gives the allowed command (<a href="signing.html#lifecycle">Key lifecycle</a>).</td></tr>
 <tr><td><code>skills.guard</code></td><td>warning in doctor</td><td>A skill of repoctl is installed, or the plugin is on, and no guard hook covers the set directory. Or the deny list of a settings file differs from the list of the binary.</td><td><code>repoctl skills install</code> with the same scope (<a href="agents.html#guard">Guard hook</a>).</td></tr>
 <tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
 <tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
