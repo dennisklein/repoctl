@@ -90,7 +90,7 @@
 <ul>
 <li><code>LockEntry.commit</code> is required, except for state <code>unpinned</code>.</li>
 <li>plan shows an unpinned node with the note "not pinned" and the action <code>skip</code>. With <code>--from worktree</code>, the action is <code>build</code>.</li>
-<li><code>build --from lock</code> with a selected unpinned node stops with exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>.</li>
+<li><code>build --from lock</code> with a selected unpinned node stops with exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>. publish stops with the same code when a selected target has an unpinned package (<a href="publish.html#checks">checks before the first signature</a>).</li>
 <li><code>checkout</code> without <code>--create</code> makes the worktree of an unpinned package on its local branch at the tip of the remote branch (<a href="cli.html#local-branch">local branch</a>) and prints "not pinned: run repoctl pin DIR". This is how a human checks out the new package of a colleague.</li>
 <li><code>pin</code> without arguments removes orphaned entries and lists them (<a href="cli.html#cmd-pin">command block</a>). <code>pin DIR</code> for a dir that is not in <code>repoctl.yaml</code> is a usage error.</li>
 <li><code>pin</code> writes a line only for a worktree that is ahead, or for an unpinned package. It keeps the line of a <code>behind</code> or <code>missing</code> worktree and stops at a <code>diverged</code> or <code>dirty</code> one. Thus a pin after a <code>git pull</code> never takes back the newer pin of a colleague.</li>
