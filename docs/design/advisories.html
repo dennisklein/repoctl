@@ -335,7 +335,12 @@ check       last 8h ago (timer) · ok</pre>
 </svg>
 <figcaption>Each host checks the same shared inputs and keeps its own result. Only the dismissals go through git.</figcaption>
 </figure>
-<p><code>repoctl check --install-timer</code> writes the template pair when it is missing or differs from the pair of this binary, and starts one instance for the set. After a rewrite, it runs <code>systemctl --user daemon-reload</code>. The units call <code>/usr/bin/repoctl</code>, so the timer runs the new binary after an upgrade. The instance name is the escaped set directory (<code>systemd-escape --path</code>). <code>--remove-timer</code> stops and removes the instance of the set.</p>
+<p><code>repoctl check --install-timer</code> writes the template pair and starts one instance for the set. The instance name is the escaped set directory (<code>systemd-escape --path</code>). When a template file differs from the template of this repoctl version, for example after an upgrade, <code>--install-timer</code> writes it again, runs <code>systemctl --user daemon-reload</code> and prints "updated". The units call <code>/usr/bin/repoctl</code>, so the timer runs the new binary after an upgrade. <code>--remove-timer</code> stops and removes the instance of the set.</p>
+<ul>
+  <li>A set that you no longer work on: run <code>--remove-timer</code> in its directory.</li>
+  <li>A moved set directory leaves an instance with the old path. The doctor check <code>check.timer-orphan</code> (warning) finds each instance whose directory is gone or holds no set. Its fix is <code>systemctl --user disable --now repoctl-check@INSTANCE.timer</code>, then <code>--install-timer</code> in the new directory.</li>
+  <li>A user service does not have the environment of a login shell. The service reads the optional file <code>~/.config/repoctl/check.env</code>, for example with <code>GH_TOKEN=…</code> (mode 0600). The human writes it; repoctl never does. Without a token, repoctl tries <code>gh auth token</code>, then asks GitHub without a token (<code>upstream.rate-limited</code>).</li>
+</ul>
 <pre><code class="language-ini"># ~/.config/systemd/user/repoctl-check@.service
 [Unit]
 Description=repoctl check for the set in %I
@@ -343,6 +348,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
+EnvironmentFile=-%h/.config/repoctl/check.env
 ExecStart=/usr/bin/repoctl -C %I check --quiet
 Nice=10</code></pre>
 <pre><code class="language-ini"># ~/.config/systemd/user/repoctl-check@.timer
@@ -371,7 +377,7 @@ OnFailure=repoctl-check-alert@%i.service
 [Service]
 ExecStart=
 ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</code></pre>
-<p>repoctl runs on Fedora hosts only. On a workstation, lingering is optional, so the linger note is info, not a warning. The result is ready when the work day starts. The onboarding of an admin has the step <code>repoctl check --install-timer</code> (<a href="signing.html#onboarding">onboarding</a>). At offboarding, the other hosts do nothing. The admin who leaves runs <code>--remove-timer</code>, or the host goes away. A retired set needs no timer: each admin runs <code>--remove-timer</code> at the end of the set, and the health signals do not apply to a retired set (<a href="lifecycle.html#end-set">end of a set</a>).</p>
+<p>repoctl runs on Fedora hosts only. On a workstation, lingering is optional, so the linger note is info, not a warning. The result is ready when the work day starts. The onboarding of an admin has the step <code>repoctl check --install-timer</code> (<a href="signing.html#onboarding">onboarding</a>, <a href="signing.html#help-team">help team</a>). At offboarding, the other hosts do nothing. The admin who leaves runs <code>--remove-timer</code> on each of their hosts, or the host goes away (<a href="signing.html#offboarding">offboarding</a>). A retired set needs no timer: each admin runs <code>--remove-timer</code> at the end of the set, and the health signals do not apply to a retired set (<a href="lifecycle.html#end-set">end of a set</a>).</p>
 
 <h2 id="health">Health signals</h2>
 <table class="compact">
@@ -382,6 +388,7 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
 <tr><td>The last check is older than 36 hours.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"last check 3 days ago"</td></tr>
 <tr><td>The last check is older than latest of a target: a publish, restore, prune or resign came after it.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"check older than latest of el9: run repoctl check"</td></tr>
 <tr><td>latest of a target differs from the digest that the check used.</td><td><span class="tag warn">warn</span> <code>check.outdated</code></td><td>"latest of el9 changed after the check"</td></tr>
+<tr><td>A timer instance points to a directory that is gone or holds no set.</td><td><span class="tag warn">warn</span> <code>check.timer-orphan</code></td><td>nothing</td></tr>
 <tr><td>No check ran.</td><td><span class="tag warn">warn</span> <code>check.never</code></td><td>"never checked: run repoctl check --install-timer"</td></tr>
 <tr><td>Lingering is off.</td><td><span class="tag info">info</span> <code>check.no-linger</code></td><td>nothing</td></tr>
 <tr><td>The template pair differs from the pair of this binary.</td><td><span class="tag warn">warn</span> <code>check.timer-unit</code></td><td>nothing</td></tr>

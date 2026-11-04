@@ -330,7 +330,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 125 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 126 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -351,6 +351,7 @@
 <tr><td><code>check.outdated</code></td><td>warning</td><td>latest of a target differs from the digest that the last check used.</td><td><code>repoctl check</code></td></tr>
 <tr><td><code>check.stale</code></td><td>warning</td><td>The last check is older than 36 hours, or older than latest of a target.</td><td><code>repoctl check</code></td></tr>
 <tr><td><code>check.timer-off</code></td><td>warning</td><td>The timer of this set is not active.</td><td><code>repoctl check --install-timer</code></td></tr>
+<tr><td><code>check.timer-orphan</code></td><td>warning</td><td>A timer instance points to a set directory that is gone or holds no set.</td><td><code>systemctl --user disable --now repoctl-check@INSTANCE.timer</code></td></tr>
 <tr><td><code>check.timer-unit</code></td><td>warning</td><td>The installed timer units differ from the units of this binary.</td><td><code>repoctl check --install-timer</code></td></tr>
 <tr><td><code>config.invalid</code></td><td>1</td><td>A configuration file does not agree with its schema or with a rule.</td><td>Correct the file; <code>repoctl schema config</code>.</td></tr>
 <tr><td><code>config.unknown-key</code></td><td>1</td><td>A key is unknown, or the user config sets a key that changes the build.</td><td>Remove the key, or upgrade repoctl when a newer release knows it; <code>repoctl config show</code>.</td></tr>

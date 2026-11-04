@@ -728,6 +728,7 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
   <li><code>repoctl sign remove ID</code>. It refuses while latest of a target holds an RPM of that key. Then: state removed, a new key file without the key, set commit.</li>
   <li>Build and publish the new release package for each target. Config management rolls it out to the clients and to the keyring of each mirror line.</li>
   <li>Config management removes the key on each client. <code>repoctl sign offboard ID</code> prints the commands. Then a human records it per target: <code>repoctl sign removed ID --target T</code> (<a href="#removal-record">removal record</a>).</li>
+  <li>The admin who leaves runs <code>repoctl check --remove-timer</code> on each of their hosts (<a href="advisories.html#timer">check timer</a>). The timers of the other admins still run.</li>
 </ol>
 <p>An offboarding skips a retired target and a retired set. Their clients use another target or set, so their RPMs keep their signatures (<a href="lifecycle.html#end-set">end of a set</a>).</p>
 <aside class="callout rule">
