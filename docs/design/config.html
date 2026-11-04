@@ -461,6 +461,7 @@ sets:
   <li><b>Extra RPM repos</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. A change in these repos can change a build result. repoctl does not rebuild by itself. It shows the advisory <code>buildroot.drift</code>, and the human decides.</li>
   <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
   <li><b>One architecture per target.</b> The architecture of a target is the last part of its mock config name: <code>x86_64</code> in <code>rocky+epel-9-x86_64</code>. This release supports only <code>x86_64</code>. Another architecture, or a mock config name that does not end with one, gives <code>config.unsupported</code> (exit 1). The client path names the target, so it has no <code>$basearch</code>. A <code>noarch</code> package builds on each target, with the dist tag of that target.</li>
+  <li><b>Macro files.</b> repoctl gives <code>targets[].macros</code> to mock after the macros of the mock config. Thus a macro file can set <code>%dist</code>, for example <code>%dist .el9~testing</code> in a testing set (<a href="lifecycle.html#testing">lifecycle.html#testing</a>).</li>
 </ul>
 <p>Build a package for some targets only, and add or retire a target: <a href="lifecycle.html#some-targets">lifecycle.html#some-targets</a>, <a href="lifecycle.html#targets">lifecycle.html#targets</a>.</p>
 

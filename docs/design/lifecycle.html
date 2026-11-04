@@ -202,6 +202,64 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </tbody>
 </table>
 
+<h2 id="testing">Testing and production sets</h2>
+<p>A <dfn>testing set</dfn> builds changes for test clients before its production set gets them. Example: <code>slurm-25.11-testing</code> tests the changes for <code>slurm-25.11</code>. For repoctl, a testing set is a normal set. It has its own name, <code>repo.url</code>, OCI packages, builder branch and package branches. Only the steps below connect the two sets.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 210" role="img" aria-labelledby="testing-t">
+<title id="testing-t">A change goes from the testing set to the production set with a fast-forward merge; the testing build has the lower NVR</title>
+<text class="t-title" x="24" y="34">testing set: munge/slurm-25.11-testing</text>
+<rect class="box" x="24" y="48" width="160" height="44" rx="8"/>
+<text class="t-mono" x="36" y="68">commit A</text>
+<text class="t-small t-muted" x="36" y="84">1.el9~testing</text>
+<rect class="box-accent" x="216" y="48" width="160" height="44" rx="8"/>
+<text class="t-mono t-on" x="228" y="68">commit B</text>
+<text class="t-small t-on" x="228" y="84">2.el9~testing</text>
+<line class="edge" x1="184" y1="70" x2="214" y2="70" marker-end="url(#arrow)"/>
+<text class="t-title" x="24" y="134">production set: munge/slurm-25.11</text>
+<rect class="box" x="24" y="148" width="160" height="44" rx="8"/>
+<text class="t-mono" x="36" y="168">commit A</text>
+<text class="t-small t-muted" x="36" y="184">1.el9</text>
+<rect class="box-ok" x="408" y="148" width="160" height="44" rx="8"/>
+<text class="t-mono" x="420" y="168">commit B</text>
+<text class="t-small" x="420" y="184">2.el9</text>
+<line class="edge" x1="184" y1="170" x2="406" y2="170" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="295" y="162" text-anchor="middle">fast-forward</text>
+<path class="edge-accent" d="M376,70 C440,70 488,100 488,146" marker-end="url(#arrow-accent)"/>
+<text class="t-small" x="500" y="108">git merge --ff-only</text>
+<rect class="box-soft" x="616" y="48" width="268" height="144" rx="8"/>
+<text class="t-title" x="632" y="72">NVR order</text>
+<text class="t-mono" x="632" y="100">2.el9~testing &lt; 2.el9</text>
+<text class="t-small" x="632" y="128">The production build of a commit</text>
+<text class="t-small" x="632" y="148">is newer than its testing build.</text>
+<text class="t-small t-muted" x="632" y="176">A client that moves to production updates.</text>
+</svg>
+<figcaption>The production set builds the same commit as the testing set. The suffix <code>~testing</code> of the testing set gives the production build the higher NVR.</figcaption>
+</figure>
+<p>Start a testing set:</p>
+<ol class="steps">
+<li>Follow <a href="#help-new-set">help new-set</a> with <code>repoctl init --from builder/slurm-25.11 --name slurm-25.11-testing</code>. init renames each branch: <code>munge/slurm-25.11</code> becomes <code>munge/slurm-25.11-testing</code>.</li>
+<li>Give the set its own <code>repo.url</code>, for example <code>https://repo.example.org/slurm-25.11-testing</code>. Only the test clients install its release package.</li>
+<li>Before the first build, add a macro file for each target that adds <code>~testing</code> to <code>%dist</code>. Example: <code>rpm/dist-el9</code> with the line <code>%dist .el9~testing</code>, in <code>targets[].macros</code> of el9. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: each NVR ends with <code>.el9~testing</code>.</li>
+</ol>
+<p>Move a change from the testing set to the production set with git. Never copy RPMs between the sets.</p>
+<ol class="steps">
+<li>In the testing set: commit the change on the testing package branch, push, pin, build and publish. Test it on the test clients.</li>
+<li>In the production set: run <code>git -C packages/DIR merge --ff-only origin/TESTING-BRANCH</code>. When git refuses, the production branch has commits that the testing branch does not have. Merge the production branch into the testing branch, publish and test that in the testing set, then try again.</li>
+<li>Run <code>git -C packages/DIR push origin BRANCH</code> and <code>repoctl pin DIR</code>. Commit and push. Repository: the builder branch of the production set.</li>
+<li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>commit-changed</code>. Its release is the release of the testing build, without <code>~testing</code>.</li>
+<li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
+</ol>
+<aside class="callout rule">
+<p class="callout-title">Rule: NVRs of two sets</p>
+<ul>
+<li><code>nvr.reused</code> compares only with latest of the same set. Without the suffix, a testing build and a production build of the same commit have the same NVR and other bytes. A client that moves between the sets then keeps the build of the old set.</li>
+<li>rpm sorts <code>~</code> before the end of a string. Thus <code>2.el9~testing</code> is older than <code>2.el9</code>, and the production build of a commit is newer than its testing build. A client that moves from the testing set to the production set updates each package.</li>
+<li>To move a client from the production set to the testing set, config management swaps the release package and runs <code>dnf distro-sync</code>.</li>
+<li>An imported testing set keeps the NVRs of its adopted builds without the suffix. Only its new builds get the suffix.</li>
+</ul>
+</aside>
+
 <h2 id="changes">Package changes</h2>
 <p>Each case below gives the ordered steps. A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>builder branch</dfn> (the set directory). Each list ends with the plan result that the human must see. <code>repoctl help packages</code> prints the short form (<a href="#help-packages">text</a>).</p>
 <table class="compact">
