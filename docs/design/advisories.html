@@ -88,8 +88,9 @@
 <tr><td><code>id</code>, <code>code</code>, <code>subject</code>, <code>targets</code></td><td>What the advisory is about (<a href="#id">id and subject</a>).</td></tr>
 <tr><td><code>level</code></td><td>info, warn or required.</td></tr>
 <tr><td><code>state</code></td><td>pending, open or dismissed (<a href="#states">states</a>).</td></tr>
-<tr><td><code>title</code>, <code>facts</code></td><td>One line in plain words. The evidence, with fields for each code.</td></tr>
-<tr><td><code>factsDigest</code></td><td>The SHA-256 of the canonical JSON of the facts.</td></tr>
+<tr><td><code>title</code>, <code>facts</code></td><td>One line in plain words. The evidence, with a fixed shape for each code (<a href="#facts">facts</a>).</td></tr>
+<tr><td><code>factsDigest</code></td><td>The SHA-256 of the JCS form (RFC 8785) of the facts.</td></tr>
+<tr><td><code>hostFacts</code></td><td>Values of this host that explain the advisory. They are not in the digest.</td></tr>
 <tr><td><code>closure</code></td><td>Required level only: the dirs whose publish the advisory blocks.</td></tr>
 <tr><td><code>suggestion</code></td><td>A text and a command.</td></tr>
 <tr><td><code>source</code>, <code>seen</code></td><td>Where the check ran (plan, build, check or publish) and when.</td></tr>
@@ -133,6 +134,28 @@
   <li>An adopted manifest entry from the import has no buildroot file. <code>buildroot.drift</code>, <code>mock.drift</code> and <code>provider.changed</code> skip it. The next build of the node writes a buildroot (<a href="lifecycle.html#adopted">adopted entries</a>).</li>
 </ul>
 <p>In the story, the check of 2026-11-02 06:00 finds <code>closure.broken/pmix@el9</code> (required): pmix-6.1.0-1.el9 needs <code>libhwloc.so.15</code>, and EPEL 9 now has hwloc-libs 2.11.2, which gives only <code>libhwloc.so.16</code>. The closure is {pmix}. It also finds three info advisories: <code>buildroot.drift/munge@el9</code> (openssl-devel 3.0.7 → 3.2.2), <code>upstream.release/slurm</code> (26.05.5) and <code>upstream.release/openmpi</code> (5.0.12). <code>upstream.release/slurm-singularity-exec</code> is dismissed.</p>
+
+<h3 id="facts">Facts and factsDigest</h3>
+<p>Each code has one fixed facts shape. The facts hold only values of the inputs: NVRs, capabilities, versions, hashes and repo ids. They never hold a time, a host name, a user or a path. Each list has no duplicates and is sorted in byte order of the key that the table names. Thus the same inputs give the same facts on each host.</p>
+<table class="compact">
+<thead><tr><th>Code</th><th>Facts</th><th>Sort</th></tr></thead>
+<tbody>
+<tr><td><code>soname.removed</code></td><td><code>removed[]</code>: the sonames that the new build does not provide. <code>requiredBy[]</code>: <code>{nvra, requires}</code> of each kept set package that requires one of them.</td><td>removed by value; requiredBy by nvra, then requires</td></tr>
+<tr><td><code>closure.broken</code></td><td><code>broken[]</code>: <code>{nvra, requires, newest, newestRepo, newestProvides[]}</code>, one entry per broken requirement of the node. <code>newest</code> is the newest NVRA in the closure repos of the package that gave the requirement before, if one exists.</td><td>by nvra, then requires</td></tr>
+<tr><td><code>provider.changed</code></td><td><code>changes[]</code>: <code>{capability, recorded, provider}</code>: the provider NVRA in the recorded buildroot and the set dir that provides it now.</td><td>by capability</td></tr>
+<tr><td><code>abi.changed</code></td><td><code>libraries[]</code>: <code>{soname, old, new, status}</code>: the old and new NVRA and the exit status of <code>abidiff</code>.</td><td>by soname</td></tr>
+<tr><td><code>sign.expiring</code></td><td><code>{fingerprint, expires}</code>: the full fingerprint and the expiry date.</td><td>-</td></tr>
+<tr><td><code>buildroot.drift</code></td><td><code>drift[]</code>: <code>{package, recorded, available, repo}</code>.</td><td>by package</td></tr>
+<tr><td><code>mock.drift</code></td><td><code>{recorded}</code>: the hash of the mock config and the macros in the manifest entry. The hash of this host is <code>hostFacts.current</code>.</td><td>-</td></tr>
+<tr><td><code>upstream.release</code></td><td><code>{current, upstream, source, tag}</code>.</td><td>-</td></tr>
+<tr><td><code>retired.published</code></td><td><code>{nvrs[], rpms, sizeBytes}</code>.</td><td>nvrs by value</td></tr>
+</tbody>
+</table>
+<ul>
+  <li><code>factsDigest</code> is <code>sha256:</code> plus the hex SHA-256 of the JSON Canonicalization Scheme form (JCS, RFC 8785) of <code>facts</code>. No other field goes into the digest: not the id, level, state, title, closure, suggestion, source, seen, dismissal or <code>hostFacts</code>.</li>
+  <li>The facts shape of a code changes only with a new <code>apiVersion</code> (<a href="contract.html#versioning">versioning</a>). Thus two repoctl versions with the same <code>apiVersion</code> give the same digest for the same inputs.</li>
+  <li>The schema has one <code>$defs/Facts…</code> entry per code (<a href="contract/schema/output.schema.json">output.schema.json</a>).</li>
+</ul>
 
 <h2 id="states">States</h2>
 <figure class="diagram wide">
@@ -192,7 +215,7 @@
 apiVersion: repoctl/v1alpha1
 dismissed:
   - id: upstream.release/slurm-singularity-exec
-    facts: sha256:5be07c…                 # factsDigest at dismiss time
+    facts: sha256:802ef6…                 # factsDigest at dismiss time
     note: 3.2.1 only changes the docs
     by: d.klein@gsi.de                    # git config user.email
     at: 2026-10-21T09:14:52Z</code></pre>
@@ -205,7 +228,7 @@ dismissed:
 </ul>
 <p><code>repoctl advisories dismiss ID... --note TEXT</code> adds a dismissal for each open id. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, problem code <code>advisory.not-dismissable</code>, and the hint gives <code>repoctl publish --accept-advisory</code>. An id that is not open gives exit 1, <code>advisory.unknown</code>. dismiss and undismiss take no set lock and write only this file.</p>
 <pre class="term">$ repoctl advisories dismiss upstream.release/slurm-singularity-exec --note "3.2.1 only changes the docs"
-dismissed upstream.release/slurm-singularity-exec (facts sha256:5be07c…)
+dismissed upstream.release/slurm-singularity-exec (facts sha256:802ef6…)
 Next: git add .repoctl/advisories.yaml &amp;&amp; git commit -m "chore: dismiss upstream.release/slurm-singularity-exec" &amp;&amp; git push</pre>
 <p>After the commit and the push, the whole team sees the dismissal. It stays until the facts change. Command: <a href="cli.html#cmd-advisories">repoctl advisories</a>.</p>
 

@@ -3984,10 +3984,15 @@
         },
         "facts": {
           "type": "object",
-          "description": "Code-specific facts. factsDigest is the SHA-256 of their canonical JSON."
+          "description": "Code-specific facts with a fixed shape per code (allOf). Lists are sorted. factsDigest is the SHA-256 of their RFC 8785 (JCS) form."
         },
         "factsDigest": {
-          "$ref": "#/$defs/Digest"
+          "$ref": "#/$defs/Digest",
+          "description": "sha256: plus the hex SHA-256 of the JCS form (RFC 8785) of facts. No other field goes into it."
+        },
+        "hostFacts": {
+          "type": "object",
+          "description": "Values of this host that explain the advisory, for example the mock config hash of mock.drift. Not in factsDigest."
         },
         "closure": {
           "type": "array",
@@ -4039,6 +4044,474 @@
             }
           },
           "description": "The matching entry of .repoctl/advisories.yaml."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "soname.removed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsSonameRemoved"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "closure.broken"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsClosureBroken"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "provider.changed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsProviderChanged"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "abi.changed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsAbiChanged"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "sign.expiring"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsSignExpiring"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "buildroot.drift"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsBuildrootDrift"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "mock.drift"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsMockDrift"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "upstream.release"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsUpstreamRelease"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "retired.published"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsRetiredPublished"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "FactsSonameRemoved": {
+      "description": "Facts of soname.removed.",
+      "type": "object",
+      "required": [
+        "removed",
+        "requiredBy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "removed": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "The sonames that the new build no longer provides, sorted."
+        },
+        "requiredBy": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "nvra",
+              "requires"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nvra": {
+                "type": "string"
+              },
+              "requires": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "The newest NVRs of kept set packages that require a removed soname, sorted by nvra, then requires."
+        }
+      }
+    },
+    "FactsClosureBroken": {
+      "description": "Facts of closure.broken.",
+      "type": "object",
+      "required": [
+        "broken"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "broken": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "nvra",
+              "requires"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nvra": {
+                "type": "string"
+              },
+              "requires": {
+                "type": "string"
+              },
+              "newest": {
+                "type": "string",
+                "description": "The newest NVRA in the closure repos of the package that provided the requirement before, if one exists."
+              },
+              "newestRepo": {
+                "type": "string",
+                "description": "The repo id of newest."
+              },
+              "newestProvides": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "What newest provides instead, sorted."
+              }
+            }
+          },
+          "description": "One entry per broken requirement of the node, sorted by nvra, then requires."
+        }
+      }
+    },
+    "FactsProviderChanged": {
+      "description": "Facts of provider.changed.",
+      "type": "object",
+      "required": [
+        "changes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "capability",
+              "recorded",
+              "provider"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "capability": {
+                "type": "string"
+              },
+              "recorded": {
+                "type": "string",
+                "description": "NVRA of the provider in the recorded buildroot."
+              },
+              "provider": {
+                "$ref": "#/$defs/Dir",
+                "description": "The set dir that provides the capability now."
+              }
+            }
+          },
+          "description": "Sorted by capability."
+        }
+      }
+    },
+    "FactsAbiChanged": {
+      "description": "Facts of abi.changed.",
+      "type": "object",
+      "required": [
+        "libraries"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "libraries": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "soname",
+              "old",
+              "new",
+              "status"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "soname": {
+                "type": "string"
+              },
+              "old": {
+                "type": "string",
+                "description": "NVRA of the published build."
+              },
+              "new": {
+                "type": "string",
+                "description": "NVRA of the new build."
+              },
+              "status": {
+                "type": "integer",
+                "description": "The exit status of abidiff."
+              }
+            }
+          },
+          "description": "Sorted by soname."
+        }
+      }
+    },
+    "FactsSignExpiring": {
+      "description": "Facts of sign.expiring.",
+      "type": "object",
+      "required": [
+        "fingerprint",
+        "expires"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$"
+        },
+        "expires": {
+          "type": "string",
+          "format": "date",
+          "description": "The expiry date of the key, YYYY-MM-DD."
+        }
+      }
+    },
+    "FactsBuildrootDrift": {
+      "description": "Facts of buildroot.drift.",
+      "type": "object",
+      "required": [
+        "drift"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "drift": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "package",
+              "recorded",
+              "available",
+              "repo"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "package": {
+                "type": "string"
+              },
+              "recorded": {
+                "type": "string",
+                "description": "Version in the recorded buildroot."
+              },
+              "available": {
+                "type": "string",
+                "description": "Newest version in the closure repos."
+              },
+              "repo": {
+                "type": "string",
+                "description": "Repo id of available."
+              }
+            }
+          },
+          "description": "Sorted by package."
+        }
+      }
+    },
+    "FactsMockDrift": {
+      "description": "Facts of mock.drift. The hash of this host is in hostFacts.current.",
+      "type": "object",
+      "required": [
+        "recorded"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "recorded": {
+          "$ref": "#/$defs/Digest",
+          "description": "The hash of the mock config and the macros in the manifest entry of the node."
+        }
+      }
+    },
+    "FactsUpstreamRelease": {
+      "description": "Facts of upstream.release.",
+      "type": "object",
+      "required": [
+        "current",
+        "upstream",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "current": {
+          "type": "string"
+        },
+        "upstream": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "github",
+            "fedora"
+          ]
+        },
+        "tag": {
+          "type": "string",
+          "description": "The upstream tag, for source github."
+        }
+      }
+    },
+    "FactsRetiredPublished": {
+      "description": "Facts of retired.published.",
+      "type": "object",
+      "required": [
+        "nvrs",
+        "rpms",
+        "sizeBytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "nvrs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "The NVRs of the retired package in latest, sorted."
+        },
+        "rpms": {
+          "type": "integer"
+        },
+        "sizeBytes": {
+          "type": "integer"
         }
       }
     },
