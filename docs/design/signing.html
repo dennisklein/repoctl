@@ -830,9 +830,14 @@ Add a second admin host:
   3. repoctl doctor           a missing secret key is a warning here
   4. repoctl checkout         the worktrees of the lock
   5. repoctl repo pull        the local copy of latest from the registry
-  6. repoctl status           shows what differs from latest
-To publish, the new admin needs a key (repoctl help signing) and
-write access to the registry packages (repoctl doctor: registry.write).
+  6. repoctl mock update      the mock chroots and the verify roots
+  7. repoctl check --install-timer   the daily check of the set
+  8. repoctl status           shows what differs from latest
+To publish, the new admin needs:
+  - a key (repoctl help key) and sign.key in the user config
+    (repoctl config show)
+  - a registry login with write:packages (repoctl doctor:
+    registry.login, registry.write)
 Each admin works as an own user and/or on an own host. The state of
 a host is not shared. The registry and git are shared. Two admins
 coordinate in the team channel; repoctl does not lock between hosts.
@@ -852,7 +857,22 @@ Stand in for an admin who is away:
                             a deployment record (gate 2)
   5. repoctl publish --target TARGET
                             for a failed node that is not urgent, see
-                            "repoctl help urgent"</code></pre>
+                            "repoctl help urgent"
+
+Push each set commit (sign add, sign deployed, the lock after pin)
+and each commit of an external clone at once. A lost host loses
+each commit that is not pushed. "repoctl doctor" lists them
+(git.unpushed).
+
+Retire a host:
+  1. repoctl status           no unpushed publish; else "repoctl repo
+                              push", or "repoctl clean --publish ID"
+  2. repoctl doctor --only set   git.unpushed: push each commit
+  3. repoctl check --remove-timer
+  4. a file key on the host: delete it, or offboard it if it was the
+     only copy (repoctl help signing)
+  5. oras logout ghcr.io, and delete the token of the host
+  6. delete the set directory and ~/.local/share/repoctl/SET</code></pre>
 
 <h2 id="sources">Sources</h2>
 <ul>
