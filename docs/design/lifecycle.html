@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Sets and packages</title>
-<meta name="description" content="Package states, a new set from an old one, the ordered steps for each package change, and the help topics new-set and packages.">
+<meta name="description" content="Package states, a new set from an old one, the end of a set, the ordered steps for each package change, and the help topics new-set, end-set and packages.">
 </head>
 <body>
 <h1>Sets and packages</h1>
-<p class="lede">This chapter specifies the life of a package in a set and the start of a new set. It gives the package states, the ordered steps for each package change and the text of the help topics <code>new-set</code> and <code>packages</code>.</p>
+<p class="lede">This chapter specifies the life of a package in a set, the start of a new set and the end of a set. It gives the package states, the ordered steps for each package change and the text of the help topics <code>new-set</code>, <code>end-set</code> and <code>packages</code>.</p>
 <ul class="keypoints">
   <li>A package has a lock state (repoctl.yaml, repoctl.lock and the worktree) and a publish state (staging and latest of each target).</li>
   <li>Two lock states mark a gap between the files: <code>unpinned</code> (no lock entry) and <code>orphaned</code> (no repoctl.yaml entry).</li>
@@ -364,7 +364,49 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>The repo commands, the sign commands, status and doctor still act on the retired target. <code>repo prune</code>, <code>repo restore</code> and <code>repo resign --target ID</code> make new snapshots of it.</li>
 <li>A key offboarding skips a retired target: <code>repo resign</code> without <code>--target</code> does not select it, and <code>sign remove</code> does not count its latest for <code>sign.key-in-use</code>. Its RPMs keep their signatures. Thus move its clients away before the offboarding removes the key on the clients.</li>
 <li>To stop serving the target, first move its clients away (config management). Then remove the line of the target from the mirror job config. The next run of the job deletes the served tree of that line (<a href="publish.html#mirror">mirror job</a>).</li>
-<li>Keep the OCI package. repoctl has no command that deletes an OCI package.</li>
+<li>Keep the OCI package. repoctl has no command that deletes an OCI package (<a href="#end-set">End a set</a>).</li>
+</ol>
+
+<h2 id="end-set">End a set</h2>
+<p>A set ends when its clients move to a newer set, for example from slurm-25.11 to slurm-26.05. A set whose targets all have <code>state: retired</code> is a <dfn>retired set</dfn>. repoctl never deletes a set: its OCI packages, its builder branch and its package branches stay. They are the record of what the clients got. <code>repoctl help end-set</code> prints the short form (<a href="#help-end-set">text</a>).</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 200" role="img" aria-labelledby="end-set-t">
+<title id="end-set-t">End a set: move the clients, retire the targets, remove the mirror lines, clean each admin host; the records stay</title>
+<rect class="box" x="16" y="16" width="200" height="76" rx="8"/>
+<text class="t-title" x="28" y="40">1 Move the clients</text>
+<text class="t-small" x="28" y="60">config management</text>
+<text class="t-small t-muted" x="28" y="78">release of the next set</text>
+<rect class="box-accent" x="240" y="16" width="200" height="76" rx="8"/>
+<text class="t-title t-on" x="252" y="40">2 Retire the targets</text>
+<text class="t-small t-on" x="252" y="60">builder branch</text>
+<text class="t-small t-on" x="252" y="78">state: retired</text>
+<rect class="box" x="464" y="16" width="200" height="76" rx="8"/>
+<text class="t-title" x="476" y="40">3 Stop serving</text>
+<text class="t-small" x="476" y="60">HTTP server</text>
+<text class="t-small t-muted" x="476" y="78">remove the mirror lines</text>
+<rect class="box" x="688" y="16" width="196" height="76" rx="8"/>
+<text class="t-title" x="700" y="40">4 Clean each host</text>
+<text class="t-small" x="700" y="60">each admin host</text>
+<text class="t-small t-muted" x="700" y="78">--remove-timer, clean --set</text>
+<line class="edge" x1="216" y1="54" x2="238" y2="54" marker-end="url(#arrow)"/>
+<line class="edge" x1="440" y1="54" x2="462" y2="54" marker-end="url(#arrow)"/>
+<line class="edge" x1="664" y1="54" x2="686" y2="54" marker-end="url(#arrow)"/>
+<rect class="box-soft" x="16" y="120" width="868" height="64" rx="8"/>
+<text class="t-title" x="28" y="144">Stays: the OCI packages, the builder branch, the package branches</text>
+<text class="t-small t-muted" x="28" y="166">the repo commands and the sign commands still act on a retired set; a key offboarding skips it</text>
+</svg>
+<figcaption>The order of the steps. Each step names where it acts. The records of the set stay.</figcaption>
+</figure>
+<ol class="steps">
+<li>Start the next set first (<a href="#help-new-set">help new-set</a>). Move the clients: config management installs the release package of the next set and removes the release package of the old set. Its <code>.repo</code> file goes with it. Do the next steps only when no client uses the old set.</li>
+<li>Add <code>state: retired</code> to each entry of <code>targets</code>. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl status</code>. Expect: "set retired" and each target with its latest. plan gives the warning <code>set.retired</code> and no nodes. build and publish stop with <code>set.retired</code> (exit 12).</li>
+<li>The repo commands, the sign commands, status and doctor still act on the retired set. A key offboarding skips a retired set: no client uses it, and it cannot publish a new release package. Its RPMs keep their signatures (<a href="signing.html#offboarding">offboarding and rotation</a>).</li>
+<li>On the HTTP server, remove the lines of the set from the mirror job config. The next run of the job deletes the served trees of these lines (<a href="publish.html#mirror">mirror job</a>). The URL then gives 404. To keep a frozen served tree, keep the lines. latest of a retired set moves only with prune, restore or resign.</li>
+<li>On each admin host, run <code>repoctl check --remove-timer</code> in the set directory. A retired set needs no check timer, and the check health signals do not apply to it.</li>
+<li>On each admin host, remove the package worktrees and the set directory with <code>git worktree remove</code>. Then run <code>repoctl clean --set NAME</code>. It deletes the data and state directories of the set and removes the set from the web UI list (<a href="cli.html#cmd-clean">command block</a>). Remove <code>sets.NAME</code> from the user config by hand.</li>
+<li>Keep the builder branch and each package branch. They hold the history of the published NVRs, and another set can pin a package branch (shared branch, <a href="#init-from">init --from</a>). repoctl never deletes a branch.</li>
+<li>Keep the OCI packages public. repo gc never deletes latest, and repoctl has no command that deletes an OCI package. An organization owner can delete a package in its GitHub settings. Then no repoctl command can act on that target again.</li>
 </ol>
 
 <h3 id="mass-rebuild">Rebuild the set</h3>
@@ -435,7 +477,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p>plan reads an <code>adopted</code> entry as any other entry. When the pinned commit is in it, the node is <code>current</code>. An <code>adopted-unmapped</code> entry never makes a node current. It counts for the closure checks and for prune.</p>
 
 <h2 id="help">Help topics</h2>
-<p>repoctl prints these texts with <code>repoctl help new-set</code> and <code>repoctl help packages</code>. The list of all topics is in the <a href="cli.html#topics">CLI reference</a>.</p>
+<p>repoctl prints these texts with <code>repoctl help new-set</code>, <code>repoctl help end-set</code> and <code>repoctl help packages</code>. The list of all topics is in the <a href="cli.html#topics">CLI reference</a>.</p>
 
 <h3 id="help-new-set">repoctl help new-set</h3>
 <pre class="term">NEW SET
@@ -467,6 +509,27 @@ that gets the commit.
  15. repoctl check --install-timer
 
 repoctl status lists the steps that are still open.</pre>
+
+<h3 id="help-end-set">repoctl help end-set</h3>
+<pre class="term">END SET
+
+End set slurm-25.11 after its clients use a newer set. Each step names
+where it acts. The OCI packages and the branches stay.
+  1. Move the clients (config management): install the release
+     package of the next set, remove the release package of slurm-25.11.
+  2. Add "state: retired" to each target in repoctl.yaml.
+     git commit -am "feat!: retire set slurm-25.11"; git push   builder branch
+  3. repoctl status         expect: set retired
+     build and publish now stop with set.retired. The repo commands and
+     the sign commands still work. A key offboarding skips this set.
+  4. Remove the lines of slurm-25.11 from the mirror job config on the
+     HTTP server. The job deletes the served trees. Keep the lines to
+     keep a frozen tree.
+  5. On each admin host:
+     repoctl check --remove-timer
+     git worktree remove packages/DIR ...; git worktree remove SETDIR
+     repoctl clean --set slurm-25.11
+  6. Keep the builder branch, the package branches and the OCI packages.</pre>
 
 <h3 id="help-packages">repoctl help packages</h3>
 <pre class="term">PACKAGES

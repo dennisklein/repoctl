@@ -327,7 +327,7 @@ OnFailure=repoctl-check-alert@%i.service
 [Service]
 ExecStart=
 ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</code></pre>
-<p>repoctl runs on Fedora hosts only. On a workstation, lingering is optional, so the linger note is info, not a warning. The result is ready when the work day starts. The onboarding of an admin has the step <code>repoctl check --install-timer</code> (<a href="signing.html#onboarding">onboarding</a>). At offboarding, the other hosts do nothing. The admin who leaves runs <code>--remove-timer</code>, or the host goes away.</p>
+<p>repoctl runs on Fedora hosts only. On a workstation, lingering is optional, so the linger note is info, not a warning. The result is ready when the work day starts. The onboarding of an admin has the step <code>repoctl check --install-timer</code> (<a href="signing.html#onboarding">onboarding</a>). At offboarding, the other hosts do nothing. The admin who leaves runs <code>--remove-timer</code>, or the host goes away. A retired set needs no timer: each admin runs <code>--remove-timer</code> at the end of the set, and the health signals do not apply to a retired set (<a href="lifecycle.html#end-set">end of a set</a>).</p>
 
 <h2 id="health">Health signals</h2>
 <table class="compact">

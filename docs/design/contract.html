@@ -329,7 +329,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 115 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 116 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -404,6 +404,7 @@
 <tr><td><code>served.stale</code></td><td>warning</td><td>The served tree is behind latest for more than 15 minutes, or the mirror job wrote no heartbeat for 15 minutes.</td><td>Read the journal of the mirror job on the HTTP server (<a href="publish.html#freshness">Freshness</a>).</td></tr>
 <tr><td><code>set.busy</code></td><td>7</td><td>Another command of this user on this host holds the set lock. The problem names the run.</td><td><code>repoctl runs RUN --follow</code></td></tr>
 <tr><td><code>set.lock-lost</code></td><td>warning; the run ends canceled (130)</td><td>The lock file of the set lock was removed during the run, and another process now holds the set lock.</td><td>Turn on lingering: <code>loginctl enable-linger USER</code> (<a href="build.html#lock">Set lock</a>).</td></tr>
+<tr><td><code>set.retired</code></td><td>12; warning in plan</td><td>Each target of the set has <code>state: retired</code>. build and publish do nothing for a retired set.</td><td>Work in the next set (<a href="lifecycle.html#end-set">End a set</a>).</td></tr>
 <tr><td><code>sign.card-absent</code></td><td>9</td><td>No card for <code>sign.key</code>.</td><td>Insert the card (<code>unlock</code>).</td></tr>
 <tr><td><code>sign.expired-signer</code></td><td>warning</td><td>A kept RPM has a signature that its key made before the key expired. EL10 clients refuse the RPM.</td><td><code>repoctl repo resign --signer ID</code> (<a href="signing.html#after-expiry">After the expiry</a>)</td></tr>
 <tr><td><code>sign.failed</code></td><td>1</td><td><code>rpmsign</code> failed. repoctl deletes the new tree.</td><td>The message names the file.</td></tr>

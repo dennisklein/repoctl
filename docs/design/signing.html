@@ -724,6 +724,7 @@ Next: an admin with a deployed key builds and publishes slurm-release-26.05-3</p
   <li>Build and publish the new release package for each target. Config management rolls it out to the clients and to the keyring of each mirror line.</li>
   <li>Config management removes the key on each client. <code>repoctl sign offboard ID</code> prints the commands. Then a human records it per target: <code>repoctl sign removed ID --target T</code> (<a href="#removal-record">removal record</a>).</li>
 </ol>
+<p>An offboarding skips a retired target and a retired set. Their clients use another target or set, so their RPMs keep their signatures (<a href="lifecycle.html#end-set">end of a set</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: each set that trusts the key</p>
 <p>Each set has its own <code>sign.keys</code>, release package and mirror lines. Do steps 2 to 5 in each set whose <code>sign.keys</code> has the fingerprint. Do step 6 only after that: <code>rpm -e gpg-pubkey-…</code> removes the key for all repositories of a client, so a set that still has RPMs of the key breaks on that client. The doctor check <code>sign.cross-set</code> names each set that still has the key.</p>
@@ -846,7 +847,7 @@ Next: check each publish, then repoctl repo resign --signer a.admin --target el9
 <tr><td><code>sign.expiry</code></td><td>No key expires inside <code>key_expiry_warn</code> (180 days). Else a warning with the fix line.</td></tr>
 <tr><td><code>sign.algorithm</code></td><td>Each key meets gate 3: RSA 2048 or more, or Ed25519, and no SHA-1 self-signature.</td></tr>
 <tr><td><code>sign.deployed</code></td><td>The key of this human has a deployment record for each target, and the release of the record is in latest.</td></tr>
-<tr><td><code>sign.cross-set</code></td><td>Each other builder branch on <code>origin</code> (<code>builder/*</code> with a <code>repoctl.yaml</code>) has the same keys in <code>sign.keys</code>, with the same states. A difference is a warning that names each set and key, with the hint to do the onboarding or offboarding steps in that set. Without network, the check reads the last fetched branches.</td></tr>
+<tr><td><code>sign.cross-set</code></td><td>Each other builder branch on <code>origin</code> (<code>builder/*</code> with a <code>repoctl.yaml</code>, except a retired set: all its targets are retired, <a href="lifecycle.html#end-set">lifecycle.html#end-set</a>) has the same keys in <code>sign.keys</code>, with the same states. A difference is a warning that names each set and key, with the hint to do the onboarding or offboarding steps in that set. Without network, the check reads the last fetched branches.</td></tr>
 <tr><td><code>sign.keyfile</code></td><td>The key file of the in-tree release package equals <code>sign.keys</code> (states active and retiring).</td></tr>
 <tr><td><code>sign.release</code></td><td>The release package in latest has the same key file. It warns between a key change and the publish of the new release.</td></tr>
 <tr><td><code>release.url</code></td><td>The <code>baseurl</code> lines of each <code>.repo</code> file equal <code>repo.url</code> and <code>targets[].path</code>.</td></tr>
