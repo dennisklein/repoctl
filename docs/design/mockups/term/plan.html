@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>repoctl plan</title>
+<meta name="description" content="repoctl plan on 2026-11-02 17:49: 8 nodes to build, current nodes folded to one line per target.">
+<link rel="stylesheet" href="../assets/term.css">
+</head>
+<body>
+<main class="shot" id="shot">
+<figure class="win" aria-label="Terminal: repoctl plan">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="title"><b>repoctl plan</b> — dklein@hpc-a1: ~/src/slurm-repo</span></div>
+<pre class="scr"><span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl plan
+<span class="d">plan</span>  slurm-26.05  <span class="d">from</span> repoctl.lock  <span class="d">base</span> latest p-20260912-1403-c21 <span class="d">(local copy same)</span>
+
+PACKAGE                 TARGETS   ACTION  REASON
+ucx                     el9 el10  build   commit-changed 907c60d → 4b1e9c2
+slurm                   el9 el10  build   rebuild "ucx 1.22.1"
+                                          ! slurm@el10 needs rocm-smi-devel; only rocm-smi@el9 provides it
+openmpi                 el9 el10  build   rebuild "ucx 1.22.1"
+slurm-singularity-exec  el9 el10  build   rebuild "ucx 1.22.1"
+el9   7 current: munge rocm-smi slurm-release pmix pmix_v5 pmix_v4 prrte
+el10  6 current: munge slurm-release pmix pmix_v5 pmix_v4 prrte
+21 nodes: 8 build, 13 current  (-v shows all)
+
+<span class="d">note:</span> closure.broken/pmix@el9 is open. This plan does not change pmix, so the advisory does not block a publish.
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> <span class="cur"> </span></pre>
+</figure>
+</main>
+</body>
+</html>

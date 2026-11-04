@@ -1,0 +1,1184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CLI reference</title>
+<meta name="description" content="The repoctl command line: command tree with safety classes, global flags, selectors, output rules, exit codes, one block for each command, the shared-state safety rules, help topics, completion, migration and error messages.">
+</head>
+<body>
+<h1>CLI reference</h1>
+<p class="lede">This chapter specifies the <code>repoctl</code> command line. It gives the command tree, the global flags, the selectors, the output rules, the exit codes and one block for each command. It also gives the shared-state safety rules, the help topics, shell completion, the migration from the bash scripts and the error message style.</p>
+<ul class="keypoints">
+  <li>The CLI, the web UI and the MCP server use one core. The words, the selectors and the exit codes of this chapter apply to all three.</li>
+  <li>47 command blocks in eight groups. Each command has one safety class: read, staging, local write or shared state.</li>
+  <li>Results go to stdout. Progress, notes, warnings, hints and errors go to stderr.</li>
+  <li>Human output shows the exceptions and a totals line. <code>-v</code> shows all rows. Scripts use <code>--json</code>.</li>
+  <li>The exit codes 0 to 13 and 130 are a contract. repoctl can add a code, but it never renumbers a code.</li>
+  <li>A shared-state command has a dry run, a summary, a typed confirmation, the set lock, a journal and no MCP tool.</li>
+  <li>A failed command ends with one error line and 0 to 3 hints. The normal path ends with one <code>Next:</code> line.</li>
+</ul>
+
+<h2 id="principles">Principles</h2>
+<ul>
+  <li><strong>Same words everywhere.</strong> A command name, a flag, a column header and a JSON field use the same word of the model (<a href="model.html#glossary">model.html#glossary</a>).</li>
+  <li><strong>Results on stdout.</strong> Everything else goes to stderr (go-clikit convention). A script can read stdout of every command, also while a live tree is on the terminal.</li>
+  <li><strong>A strict command line.</strong> repoctl uses <code>cobratree.Strict</code>. An unknown flag, a bad value, the wrong number of arguments and a selector that selects no node are usage errors (exit 2). repoctl does nothing before it rejects a usage error.</li>
+  <li><strong>The exit status is a contract.</strong> A script branches on it (<a href="#exit">exit codes</a>).</li>
+  <li><strong>Only a person changes shared state.</strong> A shared-state command shows a summary and asks for the set name. The MCP server has no tool for it (<a href="#safety">safety rules</a>).</li>
+  <li><strong>Deterministic by default.</strong> A build uses the commits in <code>repoctl.lock</code>. A node builds only when its commit is not in latest (<a href="build.html#plan">build.html#plan</a>).</li>
+  <li><strong>Every change of the build state is a commit.</strong> <code>repoctl rebuild</code> makes an empty commit. repoctl never pushes a git commit; the <code>Next:</code> line gives the push command.</li>
+  <li><strong>Calm output.</strong> Exceptions first, a count for each fold, colour only for a state that needs action (<a href="terminal.html#calm">terminal.html#calm</a>).</li>
+  <li><strong>Same conventions as sind.</strong> <code>--progress</code>, <code>--progress-log</code>, <code>-v</code> as a count, <code>mcp start</code>, exit 130 for an interrupt and the doctor marks ✓ ! ✗.</li>
+</ul>
+<h3 id="choices">Choices and reasons</h3>
+<table class="compact">
+<thead><tr><th>Choice</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>--progress-log FILE</code></td><td>sind uses this name for the same go-clikit setting. A user of both tools learns one name.</td></tr>
+<tr><td>Keep going is the default; <code>build --fail-fast</code> stops early</td><td>el9 and el10 are independent. In the story run, slurm@el10 fails and the el9 nodes complete.</td></tr>
+<tr><td><code>runs [RUN] --follow</code></td><td>One command for the list and the detail. <code>--follow</code> attaches a terminal to a run that the UI or MCP started.</td></tr>
+<tr><td><code>logs [RUN] [NODE]</code></td><td>A run id has a fixed pattern (<code>r-…</code>), so both arguments can be optional.</td></tr>
+<tr><td><code>cancel</code></td><td>A run that the UI or MCP started has no terminal for Ctrl-C.</td></tr>
+<tr><td><code>schema [NAME]</code></td><td>Agents need the schema of each <code>--json</code> result, not only of <code>repoctl.yaml</code>.</td></tr>
+<tr><td><code>repo verify</code></td><td>Publish verifies before it pushes. An audit of a snapshot or of the served tree needs the same checks.</td></tr>
+<tr><td><code>config show</code></td><td>Five configuration layers need a command that shows which layer gave a value.</td></tr>
+</tbody>
+</table>
+
+<h2 id="tree">Command tree</h2>
+<p>The help shows the commands in eight groups, in the order of a work day. The tag gives the safety class; <a href="#safety">safety rules</a> gives the rules of each class.</p>
+<table class="compact">
+<thead><tr><th>Group</th><th>Command</th><th>Class</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td>Workspace</td><td><a href="#cmd-init"><code>init</code></a></td><td><span class="tag local">local write</span></td><td>Starter <code>repoctl.yaml</code>; <code>--from</code> forks a set</td></tr>
+<tr><td></td><td><a href="#cmd-migrate"><code>migrate</code></a></td><td><span class="tag local">local write</span></td><td>Convert <code>packages.lock</code> and <code>scripts/</code></td></tr>
+<tr><td></td><td><a href="#cmd-status"><code>status</code></a></td><td><span class="tag read">read</span></td><td>Set, latest, local copy, served tree, run, advisories</td></tr>
+<tr><td></td><td><a href="#cmd-list"><code>list</code></a></td><td><span class="tag read">read</span></td><td>Packages with version, commit, targets, dependencies</td></tr>
+<tr><td></td><td><a href="#cmd-show"><code>show</code></a></td><td><span class="tag read">read</span></td><td>One package, per target</td></tr>
+<tr><td></td><td><a href="#cmd-checkout"><code>checkout</code></a></td><td><span class="tag local">local write</span></td><td>Worktrees at the lock commits; <code>--create</code> makes branches</td></tr>
+<tr><td></td><td><a href="#cmd-pin"><code>pin</code></a></td><td><span class="tag local">local write</span></td><td>Worktree commits into <code>repoctl.lock</code></td></tr>
+<tr><td></td><td><a href="#cmd-rebuild"><code>rebuild</code></a></td><td><span class="tag local">local write</span></td><td>Empty rebuild commit, pinned</td></tr>
+<tr><td>Build</td><td><a href="#cmd-graph"><code>graph</code></a></td><td><span class="tag read">read</span></td><td>Dependency graph of each target</td></tr>
+<tr><td></td><td><a href="#cmd-plan"><code>plan</code></a></td><td><span class="tag read">read</span></td><td>Plan action and reason of each node</td></tr>
+<tr><td></td><td><a href="#cmd-build"><code>build</code></a></td><td><span class="tag staging">staging</span></td><td>Build into the staging of a new run</td></tr>
+<tr><td></td><td><a href="#cmd-runs"><code>runs</code></a></td><td><span class="tag read">read</span></td><td>List runs, show or follow one</td></tr>
+<tr><td></td><td><a href="#cmd-logs"><code>logs</code></a></td><td><span class="tag read">read</span></td><td>Log of one node</td></tr>
+<tr><td></td><td><a href="#cmd-cancel"><code>cancel</code></a></td><td><span class="tag staging">staging</span></td><td>Stop a running run</td></tr>
+<tr><td>Repository</td><td><a href="#cmd-publish"><code>publish</code></a></td><td><span class="tag shared">shared state</span></td><td>Sign, push a snapshot, move latest</td></tr>
+<tr><td></td><td><a href="#cmd-repo-ls"><code>repo ls</code></a></td><td><span class="tag read">read</span></td><td>RPMs of a repository</td></tr>
+<tr><td></td><td><a href="#cmd-repo-diff"><code>repo diff</code></a></td><td><span class="tag read">read</span></td><td>Staging against latest, or two snapshots</td></tr>
+<tr><td></td><td><a href="#cmd-repo-verify"><code>repo verify</code></a></td><td><span class="tag read">read</span></td><td>Signatures, checksums, repodata</td></tr>
+<tr><td></td><td><a href="#cmd-repo-pull"><code>repo pull</code></a></td><td><span class="tag local">local write</span></td><td>Local copy equal to a snapshot</td></tr>
+<tr><td></td><td><a href="#cmd-repo-push"><code>repo push</code></a></td><td><span class="tag shared">shared state</span></td><td>Complete a publish; push an import</td></tr>
+<tr><td></td><td><a href="#cmd-repo-snapshots"><code>repo snapshots</code></a></td><td><span class="tag read">read</span></td><td>Snapshot chain of a target</td></tr>
+<tr><td></td><td><a href="#cmd-repo-restore"><code>repo restore</code></a></td><td><span class="tag shared">shared state</span></td><td>New snapshot with older files</td></tr>
+<tr><td></td><td><a href="#cmd-repo-prune"><code>repo prune</code></a></td><td><span class="tag shared">shared state</span></td><td>Remove NVRs in a new snapshot</td></tr>
+<tr><td></td><td><a href="#cmd-repo-gc"><code>repo gc</code></a></td><td><span class="tag shared">shared state</span></td><td>Delete old snapshots in GHCR</td></tr>
+<tr><td></td><td><a href="#cmd-repo-resign"><code>repo resign</code></a></td><td><span class="tag shared">shared state</span></td><td>New signatures for the RPMs of one key</td></tr>
+<tr><td>Sign</td><td><a href="#cmd-sign-ls"><code>sign ls</code></a></td><td><span class="tag read">read</span></td><td>Keys, state, record, expiry, RPM count</td></tr>
+<tr><td></td><td><a href="#cmd-sign-onboard"><code>sign onboard</code></a></td><td><span class="tag read">read</span></td><td>Onboarding steps of a key</td></tr>
+<tr><td></td><td><a href="#cmd-sign-offboard"><code>sign offboard</code></a></td><td><span class="tag read">read</span></td><td>Steps to remove a key</td></tr>
+<tr><td></td><td><a href="#cmd-sign-add"><code>sign add</code></a></td><td><span class="tag local">local write</span></td><td>Trust a new key</td></tr>
+<tr><td></td><td><a href="#cmd-sign-retire"><code>sign retire</code></a></td><td><span class="tag local">local write</span></td><td>Stop a key from signing</td></tr>
+<tr><td></td><td><a href="#cmd-sign-remove"><code>sign remove</code></a></td><td><span class="tag local">local write</span></td><td>Remove an unused key</td></tr>
+<tr><td></td><td><a href="#cmd-sign-deployed"><code>sign deployed</code></a></td><td><span class="tag shared">shared state</span></td><td>Record that the clients have a release</td></tr>
+<tr><td></td><td><a href="#cmd-sign-keyfile"><code>sign keyfile</code></a></td><td><span class="tag read">read</span></td><td>Key file or its checksum</td></tr>
+<tr><td></td><td><a href="#cmd-release-write"><code>release write</code></a></td><td><span class="tag local">local write</span></td><td>Key file and <code>.repo</code> file of the release package</td></tr>
+<tr><td>Check</td><td><a href="#cmd-check"><code>check</code></a></td><td><span class="tag read">read</span></td><td>Advisories that need no build; daily timer</td></tr>
+<tr><td></td><td><a href="#cmd-advisories"><code>advisories ls|show</code></a></td><td><span class="tag read">read</span></td><td>List or show advisories</td></tr>
+<tr><td></td><td><a href="#cmd-advisories"><code>advisories dismiss|undismiss</code></a></td><td><span class="tag local">local write</span></td><td>Change <code>.repoctl/advisories.yaml</code></td></tr>
+<tr><td>Upstream</td><td><a href="#cmd-upstream"><code>upstream</code></a></td><td><span class="tag read">read</span></td><td>Version against the upstream release</td></tr>
+<tr><td>Agent and UI</td><td><a href="#cmd-ui"><code>ui</code></a></td><td><span class="tag read">read</span></td><td>Local web UI</td></tr>
+<tr><td></td><td><a href="#cmd-mcp"><code>mcp start|tools</code></a></td><td><span class="tag read">read</span></td><td>MCP server on stdio; tool definitions</td></tr>
+<tr><td></td><td><a href="#cmd-skills"><code>skills ls|show|path</code></a></td><td><span class="tag read">read</span></td><td>Agent skills</td></tr>
+<tr><td></td><td><a href="#cmd-skills"><code>skills install</code></a></td><td><span class="tag local">local write</span></td><td>Install the generic skills</td></tr>
+<tr><td>Admin</td><td><a href="#cmd-doctor"><code>doctor</code></a></td><td><span class="tag read">read</span></td><td>Host checks for build, sign, registry</td></tr>
+<tr><td></td><td><a href="#cmd-clean"><code>clean</code></a></td><td><span class="tag staging">staging</span></td><td>Delete staging, old logs, caches</td></tr>
+<tr><td></td><td><a href="#cmd-mock"><code>mock update|shell|clean</code></a></td><td><span class="tag staging">staging</span></td><td>Mock chroots of a target</td></tr>
+<tr><td></td><td><a href="#cmd-config"><code>config show|paths</code></a></td><td><span class="tag read">read</span></td><td>Effective values; paths</td></tr>
+<tr><td></td><td><a href="#cmd-schema"><code>schema</code></a></td><td><span class="tag read">read</span></td><td>JSON Schema</td></tr>
+<tr><td></td><td><a href="#cmd-version"><code>version</code></a></td><td><span class="tag read">read</span></td><td>Version and build info</td></tr>
+<tr><td></td><td><a href="#cmd-completion"><code>completion</code></a></td><td><span class="tag read">read</span></td><td>Shell completion script</td></tr>
+</tbody>
+</table>
+<p>These commands work without a set: <code>version</code>, <code>completion</code>, <code>help</code>, <code>schema</code>, <code>skills ls|show|path</code>, <code>mcp tools</code>, <code>init</code>, <code>migrate</code>, <code>ui</code> and <code>repo ls --path DIR</code>. Without a set, <code>config paths</code> shows only the user paths, and <code>doctor</code> only the host checks. Set discovery: <a href="config.html#discovery">config.html#discovery</a>.</p>
+
+<h2 id="help">repoctl --help</h2>
+<pre class="term">$ repoctl --help
+repoctl builds signed RPM repositories from a package set.
+
+A package set is a git directory with repoctl.yaml and repoctl.lock.
+repoctl gets the build order from the spec files and builds each new
+commit in mock into a staging repository. Only a person publishes. A
+publish signs the packages, pushes a snapshot to the registry and moves
+the tag "latest". The snapshot in the registry is the truth.
+
+Usage:
+  repoctl [command]
+
+Workspace commands:
+  init          Write a starter repoctl.yaml, or fork a new set from another
+  migrate       Convert packages.lock and scripts/ to repoctl.yaml and repoctl.lock
+  status        Show the set, "latest", the run, the advisories and the packages
+  list          List the packages of the set
+  show          Show one package for each of its targets
+  checkout      Create or update the package worktrees from repoctl.lock
+  pin           Write the commits of the worktrees into repoctl.lock
+  rebuild       Add a rebuild commit to package branches and pin it
+
+Build commands:
+  graph         Show the dependency graph of each target
+  plan          Show what a build does, and why
+  build         Build packages into the staging repository of a new run
+  runs          List the runs, or show one run
+  logs          Show the build log of a node
+  cancel        Stop a running build
+
+Repository commands:
+  publish       Sign the staged nodes and make them the new "latest"
+  repo          List, compare, verify, pull, push, restore and prune snapshots
+
+Sign commands:
+  sign          Show and change the trusted keys and their deployment record
+  release       Write the key file of the release package
+
+Check commands:
+  check         Compute the advisories that need no build
+  advisories    List, show and dismiss advisories
+
+Upstream commands:
+  upstream      Compare package versions with upstream releases
+
+Agent and UI commands:
+  ui            Open the web UI in your browser
+  mcp           Run the MCP server for LLM agents
+  skills        List and install the agent skills
+
+Admin commands:
+  doctor        Check this host for build, sign and registry prerequisites
+  clean         Delete staging repositories, old logs and cache entries
+  mock          Update, clean or enter the mock chroot of a target
+  config        Show the effective configuration and the paths
+  schema        Print a JSON Schema
+  version       Print the version
+  completion    Write a shell completion script
+
+Additional help topics:
+  repoctl help config       Configuration files, layers and precedence
+  repoctl help selectors    How to name packages, targets and nodes
+  repoctl help graph        How to read the graph output
+  repoctl help build-state  How repoctl decides what to build, and when to rebuild
+  repoctl help advisories   Advisories, dismissals and the publish gate
+  repoctl help signing      Keys, gates, deployment record and re-sign
+  repoctl help team         A new admin or a new host
+  repoctl help new-set      Start a new set from the previous set
+  repoctl help packages     Add, remove, rename and retire a package
+  repoctl help xdg          Where repoctl keeps its files
+  repoctl help environment  The REPOCTL_* variables and others
+  repoctl help exit-codes   The exit status of each kind of failure
+  repoctl help safety       Rules for shared state, signing and agents
+
+Flags:
+  -C, --dir string            start in this directory (default: REPOCTL_DIR, else .)
+      --config string         user config file (default: REPOCTL_CONFIG, else
+                              ~/.config/repoctl/config.yaml)
+      --target strings        use only these target ids; repeat or separate with
+                              commas (default: REPOCTL_TARGET, else all)
+      --json                  write the result as JSON (default: REPOCTL_JSON)
+      --progress string       progress display: auto, tree, counter, plain, none
+                              (default: REPOCTL_PROGRESS, else auto)
+      --progress-log string   append the progress events as JSONL to this file
+                              (default: REPOCTL_PROGRESS_LOG)
+  -q, --quiet                 write no notes and no summary, only errors
+  -v, --verbose count         show all rows and log more: -v info, -vv debug,
+                              -vvv every command that repoctl runs
+                              (default: REPOCTL_VERBOSE, else 0)
+      --no-color              draw without colour (default: NO_COLOR)
+  -h, --help                  help for repoctl
+      --version               print the version
+
+Use "repoctl [command] --help" for more information about a command.</pre>
+<h3 id="help-command">Help of one command</h3>
+<p>The help of a command has these parts in this order: description, Usage, Examples, Flags, Global Flags, Exit status and the related topics. The help of <code>build</code> shows the form; the Global Flags block is cut here.</p>
+<pre class="term">$ repoctl build --help
+Build packages into the staging repository of a new run.
+
+repoctl reads repoctl.lock, makes the graph of each target and builds
+each node whose commit is not in latest or in a staging. A node starts
+when its dependencies are done. The published repository does not
+change. Run "repoctl publish" to sign and publish the result.
+
+Usage:
+  repoctl build [SELECTOR...] [flags]
+
+Examples:
+  # Build what changed, on all targets
+  repoctl build
+
+  # Try the commits of the worktrees before you pin them
+  repoctl build ucx --from worktree
+
+Flags:
+      --fail-fast            start no new node after the first failure
+      --force                build the selected nodes, also when they are current
+                             (for tests; publish refuses a reused NVR)
+      --from string          take the package commits from: lock, worktree
+                             (default lock)
+  -j, --jobs int             build at most this many nodes at the same time
+                             (default: REPOCTL_JOBS, else jobs in the user config,
+                             else 2)
+      --lock-wait duration   wait this long for the set lock
+                             (default: REPOCTL_LOCK_WAIT, else 0: do not wait)
+      --rdeps                also select the dependents (only with --force)
+      --with-deps            also select the dependencies (only with --force)
+
+Exit status:
+  0 every node is ok, current or staged   3 a node failed or is blocked
+  5 a worktree is not in-sync with the lock   7 the set is busy
+  9 a host check failed   13 latest moved   130 interrupted or canceled
+
+See also: repoctl help selectors, repoctl help build-state.</pre>
+
+<h2 id="global">Global flags</h2>
+<p>Global flags are valid before or after the command name. A flag that a command cannot use is a usage error, for example <code>repoctl version --target el9</code>.</p>
+<table class="compact">
+<thead><tr><th>Flag</th><th>Default</th><th>Variable</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>-C</code>, <code>--dir</code></td><td><code>.</code></td><td><code>REPOCTL_DIR</code></td><td>Start the set discovery in this directory, as <code>git -C</code> does.</td></tr>
+<tr><td><code>--config</code></td><td><code>~/.config/repoctl/config.yaml</code></td><td><code>REPOCTL_CONFIG</code></td><td>User config file. An empty value reads no user config.</td></tr>
+<tr><td><code>--target</code></td><td>all</td><td><code>REPOCTL_TARGET</code></td><td>Use only these target ids or globs. An id that matches no target is a usage error. version, schema, skills, mcp, completion, config and init reject the flag.</td></tr>
+<tr><td><code>--json</code></td><td>false</td><td><code>REPOCTL_JSON=1</code></td><td>Write the result as one JSON document (<a href="#json">JSON output</a>).</td></tr>
+<tr><td><code>--progress</code></td><td>auto</td><td><code>REPOCTL_PROGRESS</code></td><td><code>auto</code>: the tree when stderr is a terminal, else plain lines. <code>tree</code> and <code>counter</code> need a terminal, else exit 2. <code>plain</code>: one line for each change, for CI. <code>none</code>.</td></tr>
+<tr><td><code>--progress-log</code></td><td>none</td><td><code>REPOCTL_PROGRESS_LOG</code></td><td>Also append the go-clikit JSONL events to this file. build and publish always write their journal.</td></tr>
+<tr><td><code>-q</code>, <code>--quiet</code></td><td>false</td><td><code>REPOCTL_QUIET=1</code></td><td>No notes, warnings, summary line or <code>Next:</code>. Errors, hints and stdout stay.</td></tr>
+<tr><td><code>-v</code>, <code>--verbose</code></td><td>0</td><td><code>REPOCTL_VERBOSE=N</code></td><td>Show all rows. <code>-v</code> info, <code>-vv</code> debug, <code>-vvv</code> each child command (git, mock, rpmsign) with its arguments, never with its environment.</td></tr>
+<tr><td><code>--no-color</code></td><td>false</td><td><code>NO_COLOR</code></td><td>No colour, bold or dim.</td></tr>
+</tbody>
+</table>
+<p>Flags of more than one command:</p>
+<ul>
+  <li><code>-j</code>, <code>--jobs</code>: build, checkout, upstream.</li>
+  <li><code>--lock-wait D</code>: each command that takes the set lock.</li>
+  <li><code>--run RUN</code>: publish, graph, repo ls, repo diff, repo verify.</li>
+  <li><code>--dry-run</code>: each shared-state command, clean, migrate, rebuild.</li>
+  <li><code>--yes</code>, <code>-y</code>: each shared-state command except sign deployed, and clean.</li>
+  <li><code>--check</code>: plan, check, upstream, repo diff. A finding gives exit 11.</li>
+</ul>
+<p>A <code>REPOCTL_*</code> variable stands in for a flag that the command line does not give. <a href="config.html#env">config.html#env</a> lists all variables and their rules.</p>
+
+<h2 id="selectors">Selectors</h2>
+<p>A selector names nodes. A node is one package built for one target, written <code>DIR@TARGET</code> (<a href="model.html#nodes">model.html#nodes</a>). build, plan, graph, list, show, logs and repo diff take node selectors. checkout, pin, rebuild and upstream act on packages and take only the package part; <code>slurm@el9</code> there is a usage error.</p>
+<pre><code class="language-plaintext">(* EBNF, ISO 14977 *)
+selectors       = [ selector , { separator , selector } ] ;
+separator       = "," | white-space ;           (* several args are a union too *)
+selector        = [ "!" ] , ( node-selector | target-selector | here ) ;
+node-selector   = pkg-pattern , [ "@" , target-pattern ] ;
+target-selector = "@" , target-pattern ;
+here            = "." ;                         (* the package of the current directory *)
+pkg-pattern     = glob ;                        (* matched against packages[].dir *)
+target-pattern  = glob ;                        (* matched against targets[].id *)
+glob            = gchar , { gchar } ;
+gchar           = letter | digit | "-" | "_" | "+" | "." | "*" | "?" | class ;
+class           = "[" , [ "!" | "^" ] , cchar , { cchar } , "]" ;
+cchar           = letter | digit | "-" | "_" | "+" | "." ;
+(* "*" and "?" never match "@". A glob uses the Go path.Match rules. *)</code></pre>
+<h3 id="evaluation">Evaluation</h3>
+<ol>
+  <li>Start with all nodes of the set. <code>packages[].targets</code> limits them, so rocm-smi has no el10 node.</li>
+  <li>Remove the nodes of the targets that <code>--target</code> does not name.</li>
+  <li>Without a positive selector, select all remaining nodes. Else select the union of the positive selectors.</li>
+  <li>Remove the nodes of each <code>!</code> selector. The order of the selectors has no effect.</li>
+  <li>Each positive selector must select at least one node, else exit 2. The error gives the cause: unknown package (with "did you mean"), unknown target, not built for this target, or removed by <code>--target</code>.</li>
+  <li><code>.</code> is the package whose worktree holds the current directory. Outside a worktree, it is a usage error.</li>
+</ol>
+<p>Quote globs and <code>!</code>. Else the shell expands <code>pmix*</code>, and bash reads <code>!</code> as history.</p>
+<table class="compact">
+<thead><tr><th>Selector</th><th>Nodes (story set)</th></tr></thead>
+<tbody>
+<tr><td>(none)</td><td>all 21 nodes: 11 on el9, 10 on el10</td></tr>
+<tr><td><code>slurm</code></td><td>slurm@el9, slurm@el10</td></tr>
+<tr><td><code>@el10</code></td><td>the 10 nodes on el10</td></tr>
+<tr><td><code>'pmix*'</code></td><td>pmix, pmix_v5 and pmix_v4 on el9 and el10 (6 nodes)</td></tr>
+<tr><td><code>'pmix*@el9' '!pmix_v4'</code></td><td>pmix@el9, pmix_v5@el9</td></tr>
+<tr><td><code>--target el9 slurm,ucx</code></td><td>slurm@el9, ucx@el9</td></tr>
+<tr><td><code>rocm-smi@el10</code></td><td>usage error: rocm-smi is not built for el10</td></tr>
+</tbody>
+</table>
+<h3 id="expansion">Dependency expansion</h3>
+<p>For build, plan and graph, the selected nodes are the roots. A dependency is always a node of the same target. The plan action of a node comes from its own commit, not from its dependencies (<a href="build.html#actions">build.html#actions</a>).</p>
+<ul>
+  <li><strong>Needed dependencies.</strong> A node that builds needs the RPMs of its dependencies. A dependency with the action build builds first in the same run. A current dependency comes from the local copy of latest, a staged one from its staging.</li>
+  <li><strong>No rebuild of dependents.</strong> A change in ucx never selects slurm. The soname check and <code>closure.broken</code> say when a rebuild is necessary; then a person runs <code>repoctl rebuild</code>.</li>
+  <li><code>--with-deps</code> adds the transitive dependencies to the selection, <code>--rdeps</code> the transitive dependents. In build, they matter only with <code>--force</code>.</li>
+  <li>Nodes that are not selected and not needed get the action skip. The JSON result always has them.</li>
+</ul>
+<table class="compact">
+<thead><tr><th>Command (story at 17:49)</th><th>build</th><th>current</th><th>skip</th></tr></thead>
+<tbody>
+<tr><td><code>repoctl build</code></td><td>8: ucx, slurm, openmpi, slurm-singularity-exec on el9 and el10</td><td>13</td><td>0</td></tr>
+<tr><td><code>repoctl build ucx</code></td><td>2: ucx@el9, ucx@el10</td><td>0</td><td>19</td></tr>
+<tr><td><code>repoctl build slurm</code></td><td>4: slurm and the needed ucx, on both targets</td><td>9</td><td>8</td></tr>
+<tr><td><code>repoctl build @el10</code></td><td>4: the four build nodes of el10</td><td>6</td><td>11</td></tr>
+<tr><td><code>repoctl build munge@el9 --force</code></td><td>1: munge@el9 (reason forced)</td><td>0</td><td>20</td></tr>
+</tbody>
+</table>
+<p>A run of a subset is partial. Publish takes the plan, not one run: a target is publishable when each of its nodes is current or staged (<a href="publish.html#takes">publish.html#takes</a>). <code>repoctl help selectors</code> prints the examples and rules of this section.</p>
+
+<h2 id="output">Output rules</h2>
+<h3 id="streams">Streams</h3>
+<ul>
+  <li><strong>stdout</strong> holds the result only: a table, a key-value block or one JSON document.</li>
+  <li><strong>stderr</strong> holds, in order: progress, <code>note:</code> and <code>warning:</code> lines, log lines, the summary line, the error line, 0 to 3 <code>hint:</code> lines and <code>Next:</code>. A confirmation question also goes to stderr.</li>
+  <li>Progress never changes stdout. A command that ends in less than one second draws no progress and no summary line.</li>
+  <li>repoctl never writes a token or a passphrase into a log, a journal or a result.</li>
+</ul>
+<p><a href="terminal.html#streams">terminal.html#streams</a> shows the streams. The words for node states are in <a href="build.html#states">build.html#states</a>.</p>
+<h3 id="human">Human output</h3>
+<ul>
+  <li><strong>Exceptions plus a totals line.</strong> A result table shows the rows that differ from the normal state (in-sync, ok, current, same, up-to-date). The normal rows fold into one totals line with a count for each state. Example: <code>11 packages: 9 in-sync, 1 ahead, 1 in tree  (-v shows all)</code>. The count stays, so "all fine" and "nothing checked" do not look the same.</li>
+  <li><strong><code>-v</code> shows all rows.</strong> Scripts do not parse the text. They use <code>--json</code>, which always has all rows.</li>
+  <li>A column with the same value on every row moves into the header line. A list where all items pass folds to one line.</li>
+  <li>A pure list (list, repo ls, runs, sign ls, repo snapshots) shows all rows, because it has no normal state to fold.</li>
+</ul>
+<h3 id="json">JSON output</h3>
+<p>With <code>--json</code>, a command writes exactly one JSON document to stdout: the envelope with <code>apiVersion</code>, <code>kind</code>, <code>metadata</code>, <code>items</code>, <code>warnings</code> and <code>errors</code> (<a href="contract.html#envelope">contract.html#envelope</a>). Each command block names its kind (<a href="contract.html#kinds">contract.html#kinds</a>). A failed command also writes an envelope. <code>items</code> holds the partial result. <code>errors</code> holds each problem with its code, hint and exit code, and <code>humanAction</code> where a person must act.</p>
+<p>A usage error writes no envelope. <code>--json</code> does not change the progress; in CI, use <code>--progress plain</code> or <code>none</code>.</p>
+<h3 id="colour">Colour and layout</h3>
+<p>Colour shows only on a terminal, and never with <code>NO_COLOR</code>, <code>--no-color</code> or <code>TERM=dumb</code>. Tables have no colour: a table shows a state with a word or a mark. Without a UTF-8 locale, repoctl writes the ASCII marks, for example <code>#</code> build, <code>o</code> queued and <code>/</code> blocked. All lines fit in 120 columns. <a href="terminal.html#marks">terminal.html#marks</a> gives the marks and colours; <a href="terminal.html#layout">terminal.html#layout</a> gives the layout of ids, digests and durations.</p>
+<h3 id="next">Hint and Next lines</h3>
+<ul>
+  <li><code>hint: WHAT TO DO. run: CMD</code> tells what to do about a finding in this output: an error or a warning. A failed command ends with 0 to 3 hints and has no <code>Next:</code> line.</li>
+  <li><code>Next: CMD</code> gives the one next step of the normal path. status computes it from the state and writes it as its last line. pin, rebuild, a successful build and publish write it at the end. init, migrate, sign add, sign deployed and a prune dry run also end with it.</li>
+  <li>When the step needs more than one command, the commands follow on indented lines. init and migrate write a numbered list.</li>
+  <li>With <code>--json</code>, the field <code>next</code> of the result holds the step.</li>
+</ul>
+
+<h2 id="exit">Exit codes</h2>
+<p>repoctl attaches a code with <code>cobratree.Coded</code> where it knows the cause. <code>main</code> reads it with <code>cobratree.Status</code>; a usage error gives 2, every other error 1. The constants are in <code>internal/cli/exit.go</code>. A failed command has the problem code in <code>errors[].code</code> and the exit code in <code>errors[].exitCode</code>. <a href="contract.html#problems">contract.html#problems</a> gives each problem code with its exit code and hint.</p>
+<table class="compact">
+<thead><tr><th>Code</th><th>Name</th><th>Meaning</th><th>Problem codes</th></tr></thead>
+<tbody>
+<tr><td>0</td><td><code>ExitOK</code></td><td>Success. Warnings do not change the exit status.</td><td></td></tr>
+<tr><td>1</td><td><code>ExitFailed</code></td><td>The command ran and failed: git or a tool failed, a file or a <code>REPOCTL_*</code> value is invalid, or repoctl found no set.</td><td><code>config.invalid</code>, <code>config.unknown-key</code>, <code>config.unsupported</code>, <code>git.fetch-failed</code>, <code>git.unreachable</code>, <code>branch.exists-remote</code>, <code>branch.start-missing</code>, <code>graph.cycle</code>, <code>run.not-found</code>, <code>run.not-finished</code>, <code>run.staging-missing</code>, <code>cancel.foreign-run</code>, <code>advisory.unknown</code>, <code>advisory.not-dismissable</code>, <code>prune.not-retired</code>, <code>sign.failed</code>, <code>upstream.unreachable</code> (check)</td></tr>
+<tr><td>2</td><td><code>ExitUsage</code></td><td>repoctl rejected the command line before it acted. Causes: unknown flag or command, bad value, a selector without nodes, <code>--progress tree</code> without a terminal, <code>--accept-advisory</code> for an id that does not block. No envelope.</td><td></td></tr>
+<tr><td>3</td><td><code>ExitBuildFailed</code></td><td>A node failed, or a failed node blocks it. The staging and the logs stay.</td><td><code>node.failed</code>, <code>node.blocked</code></td></tr>
+<tr><td>4</td><td><code>ExitNothingToPublish</code></td><td>Nothing to do: no node is staged, or prune, gc or resign finds nothing.</td><td><code>publish.nothing-to-publish</code></td></tr>
+<tr><td>5</td><td><code>ExitLockDirty</code></td><td>A worktree is not in-sync with <code>repoctl.lock</code>, or a set input is not committed or not pushed. A lock that does not agree with <code>repoctl.yaml</code> and a stale key file also give 5.</td><td><code>lock.dirty</code>, <code>lock.unpushed</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code>, <code>sign.keyfile-stale</code></td></tr>
+<tr><td>6</td><td><code>ExitNeedsConfirmation</code></td><td>The command needs a person: no terminal, a wrong answer, or a trust change without the typed key id. Without a terminal, <code>--yes</code> also needs <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code>.</td><td><code>publish.needs-confirmation</code>, <code>publish.unattended-refused</code>, <code>sign.trust-change</code></td></tr>
+<tr><td>7</td><td><code>ExitBusy</code></td><td>Another process holds the set lock, and <code>--lock-wait</code> ended. There is no build queue.</td><td><code>set.busy</code></td></tr>
+<tr><td>8</td><td><code>ExitDoctorWarning</code></td><td>Only with <code>doctor --strict</code>: a check gave a warning, none failed.</td><td></td></tr>
+<tr><td>9</td><td><code>ExitHostNotReady</code></td><td>A required host check failed, in doctor or in the preflight of build, publish, check or mock.</td><td><code>host.not-ready</code>, <code>mock.unavailable</code>, <code>mock.config-missing</code>, <code>sign.no-key</code>, <code>sign.card-absent</code>, <code>sign.no-pinentry</code>, <code>sign.locked</code>, <code>sign.key-format</code></td></tr>
+<tr><td>10</td><td><code>ExitVerifyFailed</code></td><td>A signature, a checksum or the repodata is wrong, also in the EL chroot, or an RPM has an unknown signer. repoctl pushes nothing.</td><td><code>verify.failed</code>, <code>verify.el-failed</code>, <code>sign.unknown-signer</code></td></tr>
+<tr><td>11</td><td><code>ExitDifferences</code></td><td>Only with <code>--check</code>: plan, check, upstream or repo diff found something.</td><td></td></tr>
+<tr><td>12</td><td><code>ExitNotPublishable</code></td><td>A rule refuses the publish of a target. Causes: a node that is not current or staged, an unpinned run, a reused or removed NVR, a blocking required advisory, a failed signing gate. Restore, resign, prune, sign remove and sign deployed also use it.</td><td><code>publish.not-ready</code>, <code>run.unpinned</code>, <code>nvr.reused</code>, <code>nvr.removed</code>, <code>advisory.open</code>, <code>sign.not-active</code>, <code>sign.key-expiring</code>, <code>sign.not-deployed</code>, <code>sign.removed-signer</code>, <code>sign.key-in-use</code></td></tr>
+<tr><td>13</td><td><code>ExitStateConflict</code></td><td>The registry state stops the command: latest moved, the tag moved during the publish, or a signed publish is not pushed. A failed push, no access and no network also give 13.</td><td><code>state.behind</code>, <code>state.unpushed</code>, <code>snapshot.diverged</code>, <code>snapshot.push-failed</code>, <code>registry.denied</code>, <code>registry.unreachable</code></td></tr>
+<tr><td>130</td><td><code>ExitInterrupted</code></td><td>SIGINT, SIGTERM or <code>repoctl cancel</code>. repoctl stopped its children and kept the staging (<a href="build.html#cancel">build.html#cancel</a>).</td><td></td></tr>
+</tbody>
+</table>
+<p>Exceptions: <code>mock shell</code> exits with the status of the shell or of its command. <code>ui</code> and <code>mcp start</code> exit 0 on SIGINT or SIGTERM, because a signal is the normal way to stop a server.</p>
+
+<h2 id="commands">Commands</h2>
+<p>Each block gives the synopsis, what the command does and the flags that need an explanation. Four facts follow: the set lock (<a href="build.html#lock">build.html#lock</a>), the files that the command writes, the kind of the <code>--json</code> result and the exit codes. Paths use the XDG defaults (<a href="config.html#xdg">config.html#xdg</a>). The examples use the story: set slurm-26.05 on hpc-a1, run r-20261102-1750-a3f and publish p-20261103-1412-5e1.</p>
+
+<h3 id="group-workspace">Workspace commands</h3>
+
+<section class="cmd" id="cmd-init">
+  <h4><code>repoctl init</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl init [--name NAME] [--repo NAME] [--add-target ID=MOCKCFG]... [--force]
+repoctl init --from SET --name NAME [--force]</pre>
+  <p>Write a starter <code>repoctl.yaml</code> and an empty <code>repoctl.lock</code> in the start directory (<a href="config.html#set-config">config.html#set-config</a>). init creates no branch and no worktree. Without <code>--from</code>, the default target is <code>el9=rocky+epel-9-x86_64</code>, and <code>--repo</code> defaults to the first part of the set name.</p>
+  <p>With <code>--from SET</code>, init forks a set directory or a builder branch. It replaces the old set name in each branch name and keeps the other keys. init lists a branch without the old set name as "shared branch". It does not copy <code>repoctl.lock</code> or <code>.repoctl/advisories.yaml</code> (<a href="lifecycle.html#init-from">lifecycle.html#init-from</a>).</p>
+  <p>init ends with a <code>Next:</code> list. With <code>--from</code>, it is <code>repoctl help new-set</code> from step 3. Without <code>--from</code>, it is the steps of <code>repoctl help packages</code> for the first package (<a href="lifecycle.html#help">lifecycle.html#help</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none (no set yet)</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>repoctl.lock</code>; with <code>--from</code> also the macro files and the release package</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1 the file exists (without <code>--force</code>) or no git work tree; 2</dd></dl>
+  <pre class="term">$ repoctl init --from builder/slurm-26.05 --name slurm-26.11
+wrote repoctl.yaml   set slurm-26.11, 10 branches renamed (slurm-26.05 → slurm-26.11), 0 shared branches
+note: repoctl.lock and .repoctl/advisories.yaml are not copied
+Next: steps 3 to 14 of "repoctl help new-set":
+   3. set repo.url in repoctl.yaml; edit the release package: Version 26.11; repoctl release write
+   4. git commit -am "feat: start set slurm-26.11"            builder branch
+   5. repoctl checkout --create --from-set builder/slurm-26.05
+   …
+  14. repoctl check --install-timer</pre>
+</section>
+
+<section class="cmd" id="cmd-migrate">
+  <h4><code>repoctl migrate</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl migrate [--name NAME] [--dry-run] [--force]</pre>
+  <p>Convert a builder branch of the bash scripts to a set. migrate reads <code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code>, the build lines of <code>scripts/build</code> and the tables <code>REPO_MAP</code> and <code>DEFAULT_FILTERS</code> of the package-info skill. It writes <code>repoctl.yaml</code>, <code>repoctl.lock</code> and <code>rpm/macros</code>, deletes no old file, and reports each difference between the hand order of <code>scripts/build</code> and the graph. migrate does not import the published RPMs; an agent does that with the import runbook (<a href="../runbooks/import.html">../runbooks/import.html</a>). <code>--dry-run</code> prints the files and writes nothing.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none (no set yet)</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>repoctl.lock</code>, <code>rpm/macros</code></dd><dt>Output</dt><dd>kind <code>File</code>; the findings are in <code>warnings</code></dd><dt>Exit</dt><dd>0; 1 no <code>packages.lock</code>, or the files exist (without <code>--force</code>); 2</dd></dl>
+  <pre class="term">$ repoctl migrate
+wrote repoctl.yaml   set slurm-26.05, repo slurm, 1 target (el9), 11 packages, 1 key (hpc-repo)
+wrote repoctl.lock   10 pinned packages from packages.lock
+wrote rpm/macros     from scripts/macros
+warning: upstream notes are not migrated: pmix_v4, rocm-smi
+hint: add notes: to these entries by hand. run: $EDITOR repoctl.yaml
+Next: check the files, then:
+  1. add the el10 target, store.oci, repo.url and the release package
+  2. git rm -r packages.lock scripts .claude/skills/package-info .claude/skills/list-package-updates
+  3. update CLAUDE.md: it still tells agents to run ./scripts/build
+  4. repoctl doctor; repoctl plan
+  5. import the published repo: https://dennisklein.github.io/repoctl/runbooks/import.html</pre>
+</section>
+
+<section class="cmd" id="cmd-status">
+  <h4><code>repoctl status</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl status</pre>
+  <p>Show the set and latest of each target, with the state of the local copy and of the served tree. Also show the active or last run, the advisories, the upstream updates, the signing state and the packages that need attention. status runs no mock. It reads the digest of latest with one HEAD request per target and <code>repoctl-snapshot.json</code> of the served tree (<a href="publish.html#freshness">publish.html#freshness</a>). Without network, it shows <code>registry: unknown</code>.</p>
+  <p>Only lines with a finding show; <code>-v</code> adds the store, the mock configs, the check, the staging and all package rows. The upstream line counts the open <code>upstream.release</code> advisories. For a target without a snapshot, status lists the open setup steps (<a href="lifecycle.html#setup">lifecycle.html#setup</a>). Hints act on the findings, and the last line is the <code>Next:</code> step.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none; status shows the holder of the set lock</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Status</code></dd><dt>Exit</dt><dd>0; 1. A dirty lock or a local copy that is behind is a finding, not a failure.</dd></dl>
+  <pre class="term">$ repoctl status                         # 2026-11-02 17:41, after the ucx commit
+set         slurm-26.05  ~/src/slurm-repo  (builder/slurm-26.05 at 5d81c3e, pushed)
+published   el9 el10  p-20260912-1403-c21  2026-09-12 14:03  local same, served same
+last run    r-20260912-1251-e19  2026-09-12 12:51  ok, published in p-20260912-1403-c21
+advisories  1 required (closure.broken/pmix@el9), 3 info
+upstream    2 updates (slurm 26.05.5, openmpi 5.0.12)
+signing     hpc-repo is retiring: 50 RPMs in latest of el9 carry it
+DIR  LOCK     WORKTREE  STATE
+ucx  907c60d  4b1e9c2   ahead 1 ("Bump to 1.22.1")
+11 packages: 9 in-sync, 1 ahead, 1 in tree  (-v shows all)
+hint: read the facts and the closure. run: repoctl advisories show closure.broken/pmix@el9
+hint: re-sign the RPMs of the retiring key. run: repoctl repo resign --signer hpc-repo --target el9
+Next: repoctl pin ucx</pre>
+</section>
+
+<section class="cmd" id="cmd-list">
+  <h4><code>repoctl list</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl list [SELECTOR...] [--buildrequires] [--provides]
+repoctl ls ...</pre>
+  <p>List the packages: version, commit, branch, targets and the dependencies in the set. This replaces <code>scripts/list</code>. The versions and dependencies come from the SRPM of each node, cached by commit and target. A cold cache resolves the SRPMs in mock and shows progress. <code>--buildrequires</code> and <code>--provides</code> add the BuildRequires and the binary RPM names per target.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache entries in <code>~/.cache/repoctl/srpm/</code></dd><dt>Output</dt><dd>kind <code>Package</code>, one item per package</dd><dt>Exit</dt><dd>0; 1; 2</dd></dl>
+  <pre class="term">$ repoctl list
+DIR                     VERSION  COMMIT   BRANCH                  TARGETS   DEPENDS ON
+munge                   0.5.18   3a244fd  munge/slurm-26.05       el9 el10  -
+ucx                     1.22.1   4b1e9c2  ucx/slurm-26.05         el9 el10  -
+rocm-smi                7.14.0   cae3663  slurm-26.05 (external)  el9       -
+…
+slurm                   26.05.4  d42f66a  slurm/slurm-26.05       el9 el10  munge ucx rocm-smi(el9) pmix pmix_v5 pmix_v4
+openmpi                 5.0.11   65a37e5  openmpi/slurm-26.05     el9 el10  ucx pmix prrte
+slurm-release           26.05    -        in tree                 el9 el10  -</pre>
+</section>
+
+<section class="cmd" id="cmd-show">
+  <h4><code>repoctl show</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl show SELECTOR</pre>
+  <p>Show one package: source, lock state, spec, upstream config and notes. For each target, show the NVR, the dependencies, the dependents, the published build and the plan action. The selector must select one package; <code>slurm@el9</code> shows one target. The skills read this view with <code>--json</code>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache entries</dd><dt>Output</dt><dd>kind <code>Package</code> (one item with <code>targets[]</code>)</dd><dt>Exit</dt><dd>0; 1; 2 the selector selects more than one package</dd></dl>
+  <pre class="term">$ repoctl show slurm                     # 2026-11-02 17:49
+package    slurm · branch slurm/slurm-26.05 (origin) · lock d42f66a, worktree in-sync
+upstream   github SchedMD/slurm · tags ^slurm- · fedora slurm
+published  slurm-26.05.4-1 (commit 65bc535) in p-20260912-1403-c21
+TARGET  NVR                   USED BY                 ACTION
+el9     slurm-26.05.4-2.el9   slurm-singularity-exec  build  rebuild "ucx 1.22.1"
+el10    slurm-26.05.4-2.el10  slurm-singularity-exec  build  rebuild "ucx 1.22.1"
+warning: slurm@el10 needs rocm-smi-devel; only rocm-smi@el9 provides it (dep.not-for-target)</pre>
+</section>
+
+<section class="cmd" id="cmd-checkout">
+  <h4><code>repoctl checkout</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl checkout [DIR...] [--fetch] [--force] [-j N]
+repoctl checkout [DIR...] --create (--from-set SET | --from REF | --from fedora[:BRANCH] | --orphan)</pre>
+  <p>Create the worktrees <code>packages/DIR</code>, or move them to the lock commits, with a detached HEAD. repoctl fetches a missing commit from <code>defaults.git.remote</code>. An external package gets its worktree from a bare clone in <code>~/.local/share/repoctl/git/</code> (<a href="lifecycle.html#clones">lifecycle.html#clones</a>). repoctl adds each worktree path to <code>.git/info/exclude</code>. A worktree that is ahead of the lock or dirty stays and gets a row with the hint <code>repoctl pin DIR</code>. <code>--force</code> moves it, and its changes are lost.</p>
+  <p><code>--create</code> makes the branch of a new package from exactly one start point (<a href="lifecycle.html#checkout-create">lifecycle.html#checkout-create</a>). A branch that exists on the remote stops it with <code>branch.exists-remote</code>. The output names the start point of each branch and ends with one push command for all new branches.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>worktrees, <code>.git/worktrees/</code>, <code>.git/info/exclude</code>, external clones; never pushes</dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0; 1 a fetch failed, <code>branch.exists-remote</code>, <code>branch.start-missing</code>, <code>git.unreachable</code>; 2 <code>--create</code> without one start point; 7</dd></dl>
+  <pre class="term">$ repoctl checkout                       # A. Admin on hpc-a2, after a pull of the set commit 9a0c4e2
+11 packages: 4 moved (ucx slurm openmpi slurm-singularity-exec), 6 in-sync, 1 in tree  (-v shows all)</pre>
+</section>
+
+<section class="cmd" id="cmd-pin">
+  <h4><code>repoctl pin</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl pin [DIR...] [--fetch]</pre>
+  <p>Write the HEAD commit of each selected worktree into <code>repoctl.lock</code>. Without arguments, pin takes all packages and removes orphaned entries. It warns when a commit is not on its remote branch; <code>--fetch</code> fetches first, so that the check is current. pin does not commit and does not push. After a git conflict in <code>repoctl.lock</code>, keep both lines and run <code>repoctl pin</code>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.lock</code> (atomic)</dd><dt>Output</dt><dd>kind <code>Lock</code> (previous, commit, changed)</dd><dt>Exit</dt><dd>0; 1; 2 a dir that is not in <code>repoctl.yaml</code>; 5 a worktree is dirty: uncommitted changes are never pinned; 7</dd></dl>
+  <pre class="term">$ repoctl pin                            # 2026-11-02 17:46, after the rebuild
+ucx  907c60d → 4b1e9c2  ucx/slurm-26.05  "Bump to 1.22.1"
+warning: ucx 4b1e9c2 is not on origin/ucx/slurm-26.05
+hint: push the package branch before you publish. run: git -C packages/ucx push origin ucx/slurm-26.05
+Next: git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</pre>
+</section>
+
+<section class="cmd" id="cmd-rebuild">
+  <h4><code>repoctl rebuild</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl rebuild DIR... --reason TEXT [--dry-run]</pre>
+  <p>Add an empty commit <code>Rebuild: TEXT</code> to the branch of each package and pin it (<a href="build.html#rebuild">build.html#rebuild</a>). rpmautospec counts commits, so the release goes up by one. The reason needs 8 characters or more. The worktree must be in-sync, and the lock commit must be the tip of the local branch. The rebuild applies to all targets of the package. <code>--dry-run</code> shows the new NVRs.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>one commit per package branch; <code>repoctl.lock</code></dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0; 1; 2 no reason, or a reason that is too short; 5 the worktree is not in-sync; 7</dd></dl>
+  <pre class="term">$ repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"
+slurm                   65bc535 → d42f66a  26.05.4-1 → 26.05.4-2
+openmpi                 e2670a4 → 65a37e5  5.0.11-1 → 5.0.11-2
+slurm-singularity-exec  5c9a123 → 093012d  3.2.0-1 → 3.2.0-2
+Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmpi, slurm-singularity-exec)
+      git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push
+      repoctl build</pre>
+</section>
+
+<h3 id="group-build">Build commands</h3>
+
+<section class="cmd" id="cmd-graph">
+  <h4><code>repoctl graph</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl graph [SELECTOR...] [--with-deps] [--rdeps] [--run RUN] [--format text|matrix|dot|json]</pre>
+  <p>Show the dependency graph of each target (<a href="build.html#graph">build.html#graph</a>). The text form is a lane graph with the layer and the dependencies of each node; <code>repoctl help graph</code> explains it. <code>--format matrix</code> gives one row per package and one column per target, <code>dot</code> gives Graphviz input. <code>--run RUN</code> shows the node states of a run in place of the plan actions. <code>-v</code> adds the requires that no package of the set provides.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>SRPM cache entries</dd><dt>Output</dt><dd>kind <code>Graph</code>, one item per target</dd><dt>Exit</dt><dd>0; 1 a cycle (<code>graph.cycle</code>); 2</dd></dl>
+  <pre class="term">$ repoctl graph --format matrix
+PACKAGE                 VERSION  EL9  EL10  NEEDS
+munge                   0.5.18   ≡    ≡     -
+ucx                     1.22.1   ◆    ◆     -
+rocm-smi                7.14.0   ≡    ·     -
+…
+slurm                   26.05.4  ◆    ◆     munge ucx rocm-smi(el9) pmix pmix_v5 pmix_v4
+openmpi                 5.0.11   ◆    ◆     ucx pmix prrte
+slurm-singularity-exec  3.2.0    ◆    ◆     slurm
+21 nodes: ◆ 8 build, ≡ 13 current; rocm-smi is not built for el10
+$ repoctl graph --target el9 --format dot | dot -Tsvg &gt; el9.svg</pre>
+</section>
+
+<section class="cmd" id="cmd-plan">
+  <h4><code>repoctl plan</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl plan [SELECTOR...] [--with-deps] [--rdeps] [--force] [--from lock|worktree] [--check]</pre>
+  <p>Show what <code>repoctl build</code> with the same arguments does, and why. Each node gets one plan action, and a build node gets its plan reasons (<a href="build.html#plan">build.html#plan</a>). The base is the manifest in the local copy of latest. plan builds nothing. Rows of a package with the same action and reason on all targets merge; current nodes fold into one line per target. <code>--check</code> gives exit 11 when a node has the action build.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Reads</dt><dd>the digest of latest; without network, a warning and the local copy</dd><dt>Output</dt><dd>kind <code>Plan</code></dd><dt>Exit</dt><dd>0; 1; 2; 11 with <code>--check</code>; 13 <code>state.behind</code></dd></dl>
+  <pre class="term">$ repoctl plan                           # 2026-11-02 17:49
+plan  slurm-26.05  from repoctl.lock  base latest p-20260912-1403-c21 (local copy same)
+PACKAGE                 TARGETS   ACTION  REASON
+ucx                     el9 el10  build   commit-changed 907c60d → 4b1e9c2
+slurm                   el9 el10  build   rebuild "ucx 1.22.1"
+                                          ! slurm@el10 needs rocm-smi-devel; only rocm-smi@el9 provides it
+openmpi                 el9 el10  build   rebuild "ucx 1.22.1"
+slurm-singularity-exec  el9 el10  build   rebuild "ucx 1.22.1"
+el9   7 current: munge rocm-smi slurm-release pmix pmix_v5 pmix_v4 prrte
+el10  6 current: munge slurm-release pmix pmix_v5 pmix_v4 prrte
+21 nodes: 8 build, 13 current  (-v shows all)
+note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the advisory does not block a publish.</pre>
+</section>
+
+<section class="cmd" id="cmd-build">
+  <h4><code>repoctl build</code> <span class="tag staging">staging</span></h4>
+  <pre class="synopsis">repoctl build [SELECTOR...] [-j N] [--from lock|worktree] [--force] [--with-deps] [--rdeps] [--fail-fast]</pre>
+  <p>Make a plan, start a new run and build each node with the action build in mock (<a href="build.html#run">build.html#run</a>). A node starts when each dependency is ok, current or staged. After each node, repoctl runs the soname check (<a href="build.html#soname">build.html#soname</a>); after the last node, <code>createrepo_c</code> on the staging of each target. The staging is not signed, and the published repository does not change.</p>
+  <p>A failed node blocks its dependents; the other nodes continue. <code>--fail-fast</code> starts no new node and cancels the running nodes. A second build on this host stops with exit 7 and names the running run. Ctrl-C and <code>repoctl cancel</code> stop a run as <a href="build.html#cancel">build.html#cancel</a> says.</p>
+  <table class="compact">
+  <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
+  <tbody>
+  <tr><td><code>-j</code>, <code>--jobs</code></td><td>Nodes in mock at the same time. Default <code>jobs</code> of the user config, else 2. Each mock build uses all CPUs.</td></tr>
+  <tr><td><code>--from worktree</code></td><td>Build the HEAD commit of each worktree. The run is unpinned, and its nodes are never publishable. Uncommitted changes never build.</td></tr>
+  <tr><td><code>--force</code></td><td>Build current nodes too (reason forced), for tests. Publish refuses a reused NVR (<a href="build.html#force">build.html#force</a>).</td></tr>
+  </tbody>
+  </table>
+  <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run</dd><dt>Preflight</dt><dd>mock, the group mock, the mock configs, the rpmautospec plugin, free disk; no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
+  <pre class="term">$ repoctl build
+note: run r-20261102-1750-a3f: 8 to build, 13 current, 3 at a time
+✓ plan  4.2s    8 build, 13 current
+✗ el10  41m03s  2 ok, 1 failed, 1 blocked
+  ✗ slurm@el10                   rocm-smi-devel is needed
+  ⊘ slurm-singularity-exec@el10  blocked: it needs slurm@el10
+✓ el9   25m17s  4 ok
+✗ slurm@el10 failed in step rpm after 1m48s (commit d42f66a)
+  root.log  No matching package to install: 'rocm-smi-devel'
+  root.log  error: Failed build dependencies: rocm-smi-devel is needed by slurm-26.05.4-2.el10.x86_64
+staging  ~/.local/share/repoctl/slurm-26.05/staging/r-20261102-1750-a3f (el9 complete)
+repoctl: ✗ build: failed in 41m07s: 6 ok, 1 failed, 1 blocked, 13 current
+repoctl: error: slurm@el10: Failed build dependencies: rocm-smi-devel is needed
+hint: read the log. run: repoctl logs slurm@el10
+hint: rocm-smi builds for el9 only: guard its BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or build it for el10
+hint: el9 is publishable now. run: repoctl publish --target el9</pre>
+</section>
+
+<section class="cmd" id="cmd-runs">
+  <h4><code>repoctl runs</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl runs [RUN] [--limit N] [--state STATE] [--kind build|publish] [--follow]</pre>
+  <p>Without RUN, list the runs of the set on this host, newest first (default limit 20). Build runs have ids <code>r-…</code>, publish runs <code>p-…</code>. With RUN, show the nodes of one run; <code>latest</code> names the newest run. <code>--follow</code> tails the journal of a running run, draws the same tree as build and ends with the run. A run whose process stopped without a result is abandoned.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0; 1 <code>run.not-found</code>; with <code>--follow</code>: the exit code of the run</dd></dl>
+  <pre class="term">$ repoctl runs --kind build              # 2026-11-02 18:01
+RUN                  STATE    STARTED           TIME    BUILDS          PUBLISHED IN
+r-20261102-1750-a3f  running  2026-11-02 17:50  11m02s  2/8 · 1 failed  -
+r-20260912-1251-e19  ok       2026-09-12 12:51  1h12m   21              p-20260912-1403-c21
+r-20260911-1630-77f  failed   2026-09-11 16:30  24m10s  3 · 1 failed    -</pre>
+</section>
+
+<section class="cmd" id="cmd-logs">
+  <h4><code>repoctl logs</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl logs [RUN] [NODE] [--file repoctl|root|build|state] [--step srpm|rpm|stage] [--follow]</pre>
+  <p>Show the log of one node in one run (<a href="build.html#logs">build.html#logs</a>). A first argument that matches the run id pattern is RUN, else NODE. The default run is the newest run with the node; without NODE, logs shows the first failed node. For a failed node on a terminal, logs shows an excerpt from 5 lines above the first error to the end. <code>-v</code> and a pipe give the whole log.</p>
+  <table class="compact">
+  <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
+  <tbody>
+  <tr><td><code>--file</code></td><td><code>repoctl</code> (default): the node log of repoctl with the mock output. <code>root</code>, <code>build</code>, <code>state</code>: one mock log.</td></tr>
+  <tr><td><code>--step</code></td><td>Only the lines of this step.</td></tr>
+  <tr><td><code>--follow</code>, <code>-f</code></td><td>Wait for new lines until the node ends.</td></tr>
+  </tbody>
+  </table>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>the log on stdout, escaped; the header on stderr, so <code>logs … &gt; FILE</code> holds only the log; kind <code>NodeLog</code></dd><dt>Exit</dt><dd>0; 1 no such run, node or file</dd></dl>
+  <pre class="term">$ repoctl logs slurm@el10
+slurm@el10 failed in rpm after 1m48s  run r-20261102-1750-a3f  commit d42f66a
+log  ~/.local/state/repoctl/slurm-26.05/logs/r-20261102-1750-a3f/slurm@el10.log
+     lines 378–396 of 396, from 5 lines above the first error  (-v shows all)
+ 383 ▌ No matching package to install: 'rocm-smi-devel'
+ …
+ 388 ▌ error: Failed build dependencies: rocm-smi-devel is needed by slurm-26.05.4-2.el10.x86_64
+ …
+errors: 383, 385, 388
+hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre>
+  <p>The full excerpt is in <a href="terminal.html#logs">terminal.html#logs</a>.</p>
+</section>
+
+<section class="cmd" id="cmd-cancel">
+  <h4><code>repoctl cancel</code> <span class="tag staging">staging</span></h4>
+  <pre class="synopsis">repoctl cancel [RUN] [--wait]</pre>
+  <p>Stop a running build run of this user on this host; the default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock. That process stops its mock children, marks the open nodes canceled, keeps the staging and exits 130. cancel cannot stop a publish run after its push step starts (<a href="publish.html#order">publish.html#order</a>). <code>--wait</code> waits for the end of the run.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none; cancel signals the holder</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0; 1 no running run, or <code>cancel.foreign-run</code> (another host or user)</dd></dl>
+</section>
+
+<h3 id="group-repository">Repository commands</h3>
+<p>The repository commands take the global <code>--target</code>; the default is all targets. The publish runs (publish, repo push, repo restore, repo prune <code>--apply</code>, repo gc <code>--apply</code>, repo resign) follow the <a href="#safety">shared-state safety rules</a>.</p>
+
+<section class="cmd" id="cmd-publish">
+  <h4><code>repoctl publish</code> <span class="tag shared">shared state</span></h4>
+  <pre class="synopsis">repoctl publish [--target ID]... [--run RUN] [--dry-run] [--yes]
+                [--accept-advisory ID]... [--reason TEXT]</pre>
+  <p>Publish the plan, per target (<a href="publish.html#takes">publish.html#takes</a>). For each selected target, publish takes every node with the plan action staged. A target is publishable when each of its nodes is current or staged. Publish adds RPMs and never deletes.</p>
+  <p>The steps are fixed: check, sign, repodata, verify, verify-el, push, tag, cache (<a href="publish.html#order">publish.html#order</a>). All checks run before the first signature (<a href="publish.html#checks">publish.html#checks</a>). They check the set inputs, freshness, plan and NVRs, the advisory gate (<a href="advisories.html#gate">advisories.html#gate</a>), the signing gates 1 to 3 and the signer probe (<a href="signing.html#gates">signing.html#gates</a>). Only the tag step changes what other people see. After a failed push or tag, <code>repoctl repo push</code> completes the publish.</p>
+  <p>publish writes the summary to stdout (<a href="publish.html#summary">publish.html#summary</a>), then asks for the set name. gpg-agent asks for the PIN; repoctl suspends the progress display for it.</p>
+  <table class="compact">
+  <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
+  <tbody>
+  <tr><td><code>--run RUN</code></td><td>Take only the staged nodes of this build run.</td></tr>
+  <tr><td><code>--dry-run</code></td><td>Show the summary and run the checks. Sign nothing, write nothing.</td></tr>
+  <tr><td><code>--yes</code>, <code>-y</code></td><td>Do not ask on a terminal. It accepts no advisory and confirms no trust change.</td></tr>
+  <tr><td><code>--accept-advisory ID</code></td><td>Accept a required advisory that blocks this publish (<a href="advisories.html#accept">advisories.html#accept</a>). Repeat it for each id. An id that does not block is a usage error, so nobody accepts in advance.</td></tr>
+  <tr><td><code>--reason TEXT</code></td><td>Required with <code>--accept-advisory</code>, 8 characters or more. It goes into the journal and the snapshot annotations.</td></tr>
+  </tbody>
+  </table>
+  <dl class="facts"><dt>Lock</dt><dd>set lock; publish compares latest with the base in the check step and before the tag moves (<a href="publish.html#admins">publish.html#admins</a>)</dd><dt>Preflight</dt><dd>rpmsign, createrepo_c, gpg, the secret key of <code>sign.key</code>, the signer probe (<a href="signing.html#probe">signing.html#probe</a>), free space</dd><dt>Writes</dt><dd>a new tree in <code>~/.local/share/repoctl/SET/publishes/ID/</code>; GHCR blobs, manifest and tags; the local copy; the journal</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>kind: publish</code></dd><dt>Exit</dt><dd>0; 1; 4; 5; 6; 7; 9; 10 (nothing pushed); 12; 13; 130 (before the push: nothing changed)</dd></dl>
+  <pre class="term">$ repoctl publish --target el10
+repoctl: error: el10 is not publishable: slurm@el10 failed, slurm-singularity-exec@el10 is blocked
+hint: read the log. run: repoctl logs slurm@el10
+hint: fix slurm.spec, commit and push it. run: repoctl pin slurm
+$ echo $?
+12</pre>
+  <p>The publish of el9 at 14:12 is in <a href="terminal.html#publish">terminal.html#publish</a>. In a variant of the story, <code>soname.removed/ucx@el9</code> blocks el9, and the person accepts it for one publish:</p>
+  <pre class="term">$ repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 \
+    --reason "openmpi loads libucp only in mca_pml_ucx; our clusters use ob1"</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-ls">
+  <h4><code>repoctl repo ls</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl repo ls [--run RUN | --path DIR] [--repo binary|source|debuginfo] [--name GLOB]</pre>
+  <p>List the RPMs of a repository: name, epoch:version-release.arch, size and summary. This replaces <code>scripts/rpmlist</code>. The default is the binary repository in the local copy of each target. <code>--run</code> lists a staging; <code>--path</code> lists any rpm-md directory, also outside a set. repoctl reads the repodata itself and needs no dnf.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>RepoContents</code></dd><dt>Exit</dt><dd>0; 1 no repository there; 2</dd></dl>
+  <pre class="term">$ repoctl repo ls --target el9 --name 'slurm-slurmd*'
+el9 / slurm  latest p-20261103-1412-5e1 (local copy)
+NAME            VERSION                 SIZE     SUMMARY
+slurm-slurmd    0:26.05.4-1.el9.x86_64  1.1 MiB  Slurm compute node daemon
+slurm-slurmd    0:26.05.4-2.el9.x86_64  1.1 MiB  Slurm compute node daemon
+slurm-slurmdbd  0:26.05.4-1.el9.x86_64  1.3 MiB  Slurm database daemon
+slurm-slurmdbd  0:26.05.4-2.el9.x86_64  1.3 MiB  Slurm database daemon
+4 RPMs</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-diff">
+  <h4><code>repoctl repo diff</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl repo diff [SELECTOR...] [--run RUN | --from REF --to REF] [--rpms] [--check]</pre>
+  <p>Compare the staging of a run (default: the newest finished run) with the local copy of latest, or two snapshots, per target. Rows are source packages; <code>--rpms</code> shows each binary RPM. Marks: <code>+</code> added, <code>~</code> new version, <code>-</code> removed (only between snapshots). REF is <code>latest</code>, a publish id or a digest. <code>--check</code> gives exit 11 on a difference.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>RepoDiff</code></dd><dt>Exit</dt><dd>0; 1; 2; 11 with <code>--check</code></dd></dl>
+  <pre class="term">$ repoctl repo diff --target el9          # 2026-11-03 14:05
+el9  latest p-20260912-1403-c21 → staging r-20261102-1750-a3f
+~ ucx                     1.22.0-2  → 1.22.1-1   14 RPMs
+~ slurm                   26.05.4-1 → 26.05.4-2  17 RPMs
+~ openmpi                 5.0.11-1  → 5.0.11-2    6 RPMs
+~ slurm-singularity-exec  3.2.0-1   → 3.2.0-2     1 RPM
+38 new RPMs · 7 packages unchanged · old versions stay</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-verify">
+  <h4><code>repoctl repo verify</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl repo verify [--snapshot REF | --run RUN | --path DIR | --served] [--el] [--key FPR]...</pre>
+  <p>Check the RPM signatures, the repodata checksums, exactly one signature in each <code>repomd.xml.asc</code>, and the key file against its checksum. The default is the local copy. <code>--snapshot</code> checks a registry snapshot, <code>--served</code> the served tree over HTTP. <code>--el</code> adds the check in the verify root with the client rpm and dnf (<a href="signing.html#verify-el">signing.html#verify-el</a>). The default keys are the client trust set; <code>--key</code> gives other keys. A staging has no signatures, so only the checksums apply.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock (shared)</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>one line per repository, in the doctor form; kind <code>DoctorReport</code></dd><dt>Exit</dt><dd>0; 1; 10; 13</dd></dl>
+  <pre class="term">$ repoctl repo verify --el --target el9
+✓ el9: 208 RPMs in 3 repositories, signers d.klein (158) hpc-repo (50), checksums ok, 3 repomd.xml.asc ok
+✓ el9 verify root (rpm 4.16, dnf 4.14): key file of slurm-release-26.05-2, checksig ok, makecache ok</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-pull">
+  <h4><code>repoctl repo pull</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl repo pull [REF]</pre>
+  <p>Make the local copy equal to a snapshot: <code>latest</code> (default), a publish id or a digest. pull downloads the missing blobs, checks their sha256, and verifies each RPM and <code>repomd.xml.asc</code> against <code>sign.keys</code> before it swaps the local copy. Use it when status shows <code>local behind</code> or a command stops with <code>state.behind</code>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>~/.local/share/repoctl/SET/repo/TARGET/</code> and <code>snapshot.json</code></dd><dt>Output</dt><dd>kind <code>Snapshot</code></dd><dt>Exit</dt><dd>0; 1; 7; 10 (nothing written); 13</dd></dl>
+  <pre class="term">$ repoctl repo pull                      # A. Admin on hpc-a2, after the publish of 14:12
+el9   p-20261103-1412-5e1  sha256:9d07…  54 blobs new (412 MiB), 170 known, verified
+el10  p-20260912-1403-c21  same as the local copy</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-push">
+  <h4><code>repoctl repo push</code> <span class="tag shared">shared state</span></h4>
+  <pre class="synopsis">repoctl repo push [PUBLISH] [--dry-run] [--yes]
+repoctl repo push --from DIR --manifest FILE --target ID [--dry-run] [--yes]</pre>
+  <p>Complete a publish that stopped in the push or tag step; the default is the newest signed publish that is not in the registry. push runs the steps push, tag and cache. When latest moved since the base of that publish, it stops with <code>snapshot.diverged</code>.</p>
+  <p>With <code>--from DIR</code>, push makes the first snapshot of a target from a signed tree, for the import runbook (<a href="../runbooks/import.html#push">../runbooks/import.html#push</a>). The registry must have no snapshot of that target. push keeps the RPM signatures, adds the manifest from FILE, signs the new <code>repomd.xml</code>, runs verify and verify-el, and pushes <code>p-import-YYYYMMDD</code>. Gate 2 applies: first record the old key with <code>repoctl sign deployed</code> (<a href="../runbooks/import.html#record-key">../runbooks/import.html#record-key</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>GHCR blobs, manifest and tags; the local copy; the journal</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>publishKind</code> publish or import</dd><dt>Exit</dt><dd>0; 1; 6; 7; 10; 12 gate 2; 13</dd></dl>
+</section>
+
+<section class="cmd" id="cmd-repo-snapshots">
+  <h4><code>repoctl repo snapshots</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl repo snapshots [--limit N] [--all]</pre>
+  <p>List the snapshots of each target, newest first, along the parent chain of latest (<a href="publish.html#format">publish.html#format</a>). <code>--all</code> adds tags that are not on the chain, for example a publish that diverged.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>SnapshotList</code></dd><dt>Exit</dt><dd>0; 1; 13</dd></dl>
+  <pre class="term">$ repoctl repo snapshots --target el9
+el9  ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9
+  PUBLISH              KIND     DIGEST        CREATED           SIGNER    RPMS  NEW
+* p-20261103-1412-5e1  publish  sha256:9d07…  2026-11-03 14:13  d.klein    208   38
+  p-20260912-1403-c21  publish  sha256:4be1…  2026-09-12 14:05  d.klein    170  120
+  p-20260902-1010-4a7  publish  sha256:04dc…  2026-09-02 10:11  hpc-repo    50    2
+  p-import-20260828    import   sha256:3fee…  2026-08-28 15:30  hpc-repo    48   48
+* = latest</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-restore">
+  <h4><code>repoctl repo restore</code> <span class="tag shared">shared state</span></h4>
+  <pre class="synopsis">repoctl repo restore REF [--dry-run] [--yes]</pre>
+  <p>Make a new snapshot with the files of the older snapshot REF, and move latest to it. latest moves forward to a new digest, never back. Restore is a publish run with all eight steps and gates 1 and 2; RPMs of a removed key get a new signature. The summary lists each NVR that leaves the repo and says that clients keep it, because dnf does not downgrade. These NVRs go into <code>removed[]</code>. To take back a bad build, fix forward with a new commit or a rebuild (<a href="publish.html#restore">publish.html#restore</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>as publish</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>publishKind: restore</code></dd><dt>Exit</dt><dd>as publish</dd></dl>
+</section>
+
+<section class="cmd" id="cmd-repo-prune">
+  <h4><code>repoctl repo prune</code> <span class="tag shared">shared state</span></h4>
+  <pre class="synopsis">repoctl repo prune [--repo binary|source|debuginfo] [--package NAME [--all]]
+                   [--keep-last N] [--older-than D] [--nvr NVR]... [--apply]</pre>
+  <p>Remove NVRs in a new snapshot. The dry run is the default; <code>--apply</code> starts a publish run of kind prune, and the removed NVRs go into <code>removed[]</code>. prune never removes the newest NVR of a kept package, and repoclosure must pass after the prune (<a href="publish.html#retention">publish.html#retention</a>). The selectors combine. <code>--package NAME --all</code> removes every NVR of a retired package; NAME must be retired, else <code>prune.not-retired</code> (<a href="lifecycle.html#prune-retired">lifecycle.html#prune-retired</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock with <code>--apply</code></dd><dt>Writes</dt><dd>with <code>--apply</code>: as publish</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>publishKind: prune</code></dd><dt>Exit</dt><dd>0; 1; 4 nothing to prune; 6; 7; 12 a safety rule refuses; 13</dd></dl>
+</section>
+
+<section class="cmd" id="cmd-repo-gc">
+  <h4><code>repoctl repo gc</code> <span class="tag shared">shared state</span></h4>
+  <pre class="synopsis">repoctl repo gc [--keep N] [--keep-days D] [--apply]</pre>
+  <p>Delete old snapshots in GHCR with the GitHub API; GitHub then frees the unused blobs. The dry run is the default; <code>--apply</code> acts. gc never deletes latest, the newest N snapshots of the chain (default 10) or the snapshots younger than D (default 90d). It keeps the newest snapshot that holds each entry of <code>removed[]</code> (<a href="publish.html#gc">publish.html#gc</a>). gc needs the token scope <code>delete:packages</code> and never runs unattended.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock with <code>--apply</code></dd><dt>Writes</dt><dd>deletes package versions in GHCR; the journal</dd><dt>Output</dt><dd>kind <code>SnapshotList</code>, with the action delete or keep</dd><dt>Exit</dt><dd>0; 4 nothing to delete; 6; 7; 13 <code>registry.denied</code></dd></dl>
+  <pre class="term">$ repoctl repo gc
+nothing to delete: el9 has 4 snapshots, el10 has 1 (keep 10, keep 90 days)
+$ echo $?
+4</pre>
+</section>
+
+<section class="cmd" id="cmd-repo-resign">
+  <h4><code>repoctl repo resign</code> <span class="tag shared">shared state</span></h4>
+  <pre class="synopsis">repoctl repo resign --signer ID [--repo binary|source|debuginfo] [--dry-run] [--yes]</pre>
+  <p>Give a new signature, with the key of the person, to each RPM that the key ID signed. It is a publish run of kind resign, used to retire a key (<a href="signing.html#resign">signing.html#resign</a>). The summary shows the count per target and repository and the size of the new blobs; <code>--repo</code> splits the work. A normal publish never re-signs old RPMs.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>as publish</dd><dt>Output</dt><dd>kind <code>Run</code>, <code>publishKind: resign</code></dd><dt>Exit</dt><dd>as publish; 4 no RPM carries the key</dd></dl>
+</section>
+
+<h3 id="group-sign">Sign commands</h3>
+<p>The sign commands change <code>sign.keys</code>, the release package and <code>keys/deployed.yaml</code>. Key states, the deployment record, onboarding and offboarding are in <a href="signing.html#lifecycle">signing.html#lifecycle</a>. A command that changes the set makes one set commit and never pushes.</p>
+
+<section class="cmd" id="cmd-sign-ls">
+  <h4><code>repoctl sign ls</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl sign ls</pre>
+  <p>List the keys with key state, deployment record, expiry and the number of RPMs in latest that each key signed, per target. The Signing page of the UI shows the same table (<a href="ui-publish.html#signing">ui-publish.html#signing</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1; 13</dd></dl>
+  <pre class="term">$ repoctl sign ls --target el9            # 2026-11-03 15:00
+ID        FINGERPRINT  STATE     DEPLOYED (release, by, date)                EXPIRES     RPMS
+d.klein   …41D8 0B6E   active    slurm-release-26.05-2, d.klein, 2026-09-10  2029-11-01   158
+hpc-repo  …7C3A 19F2   retiring  slurm-release-26.05-1, d.klein, 2026-08-28  2030-01-20    50
+a.admin   …E93F 52A7   active    no record                                   2028-03-01     0</pre>
+</section>
+
+<section class="cmd" id="cmd-sign-onboard">
+  <h4><code>repoctl sign onboard</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl sign onboard ID</pre>
+  <p>Check the five onboarding steps of a key and print the next command (<a href="signing.html#onboarding">signing.html#onboarding</a>). The steps: active in <code>sign.keys</code>, in the key file, a published release with the key, a deployment record, write access to GHCR. It changes nothing.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>OnboardReport</code></dd><dt>Exit</dt><dd>0; 1; 13</dd></dl>
+</section>
+
+<section class="cmd" id="cmd-sign-offboard">
+  <h4><code>repoctl sign offboard</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl sign offboard ID</pre>
+  <p>Print the steps that remove a key: sign retire, repo resign, sign remove, the new release package, and the client commands for config management (<a href="signing.html#offboarding">signing.html#offboarding</a>). It changes nothing.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>OnboardReport</code></dd><dt>Exit</dt><dd>0; 1</dd></dl>
+</section>
+
+<section class="cmd" id="cmd-sign-add">
+  <h4><code>repoctl sign add</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl sign add ID --fingerprint FPR [--from-gpg | --file FILE]</pre>
+  <p>Export the public key from the local gpg or card (default), or read FILE, to <code>keys/ID.asc</code>. Compare it with the full fingerprint FPR and check gate 3, the key format (<a href="signing.html#gates">signing.html#gates</a>). Add the entry with state active, run release write and make one set commit <code>Trust key ID FPR</code>. A new key cannot sign the publish that adds it.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>keys/ID.asc</code>, the key file and the <code>.repo</code> file; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1; 5 the set has uncommitted changes; 7; 9 <code>sign.key-format</code></dd></dl>
+  <pre class="term">$ repoctl sign add a.admin --fingerprint C2F9771305ABE4D618C39F2B70DEA5C1E93F52A7    # hpc-a2, 14:40
+wrote keys/a.admin.asc                          A. Admin &lt;a.admin@gsi.de&gt; · expires 2028-03-01
+wrote packages/slurm-release/RPM-GPG-KEY-slurm  3 keys: a.admin, d.klein, hpc-repo
+committed 7e21d0a "Trust key a.admin C2F9…52A7"
+Next: git push origin builder/slurm-26.05</pre>
+</section>
+
+<section class="cmd" id="cmd-sign-retire">
+  <h4><code>repoctl sign retire</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl sign retire ID</pre>
+  <p>Set the key state to retiring. A retiring key cannot sign; its RPMs stay, and clients still trust it. retire runs release write and makes one set commit. The <code>Next:</code> line gives <code>repoctl repo resign --signer ID</code>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> file; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1; 5; 7</dd></dl>
+</section>
+
+<section class="cmd" id="cmd-sign-remove">
+  <h4><code>repoctl sign remove</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl sign remove ID</pre>
+  <p>Set the key state to removed and write a key file without the key. remove refuses while latest of a target holds an RPM that the key signed (<code>sign.key-in-use</code>). Then build and publish the new release package; config management removes the key on the clients.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, the key file, the <code>.repo</code> file; one set commit</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1; 5; 7; 12 <code>sign.key-in-use</code></dd></dl>
+</section>
+
+<section class="cmd" id="cmd-sign-deployed">
+  <h4><code>repoctl sign deployed</code> <span class="tag shared">shared state</span></h4>
+  <pre class="synopsis">repoctl sign deployed ID --release NVR [--target ID]... [--path DIR] [--note TEXT]</pre>
+  <p>Record that config management installed the release NVR on all clients. Config management gives no feedback, so a person confirms it. repoctl checks that the release is in latest of each selected target and that its key file holds the key. For an import, <code>--path DIR</code> names the signed tree in place of latest (<a href="../runbooks/import.html#record-key">../runbooks/import.html#record-key</a>). Then repoctl asks for the key id, writes <code>keys/deployed.yaml</code> and makes a set commit; the person pushes it. Gate 2 reads only this record (<a href="signing.html#deployment-record">signing.html#deployment-record</a>).</p>
+  <p>sign deployed needs a terminal or the UI dialog. It has no unattended mode and no MCP tool. <code>--note</code> says how the person checked the clients.</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>keys/deployed.yaml</code>; one set commit; the journal</dd><dt>Output</dt><dd>kind <code>SignerList</code></dd><dt>Exit</dt><dd>0; 1; 6 no terminal, or a wrong key id; 7; 12 the release is not there, or its key file does not hold the key</dd></dl>
+  <pre class="term">$ repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9 \
+    --note "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters"     # 2026-11-05 09:12
+release  slurm-release-26.05-3.el9 in latest of el9 · key file holds a.admin C2F9…52A7
+Type the key id to confirm that all clients have this release: a.admin
+committed keys/deployed.yaml "Deployed a.admin on el9 with slurm-release-26.05-3"
+Next: git push origin builder/slurm-26.05</pre>
+</section>
+
+<section class="cmd" id="cmd-sign-keyfile">
+  <h4><code>repoctl sign keyfile</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl sign keyfile [--checksum]</pre>
+  <p>Print the key file of the release package, or with <code>--checksum</code> its sha256 in the form of <code>sha256sum</code>. Config management installs the key file on a new client with this pinned sum (<a href="signing.html#chain">signing.html#chain</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1; 5 <code>sign.keyfile-stale</code></dd></dl>
+</section>
+
+<section class="cmd" id="cmd-release-write">
+  <h4><code>repoctl release write</code> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl release write</pre>
+  <p>Write the key file from <code>sign.keys</code> (active and retiring keys, sorted by id) and the baseurl lines of the <code>.repo</code> file from <code>repo.url</code> (<a href="signing.html#release">signing.html#release</a>). It does not commit. sign add, retire and remove call it. Run it by hand after a change of <code>repo.url</code> and in a new set (step 3 of <code>help new-set</code>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>the key file and the <code>.repo</code> file of the release package</dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1; 7</dd></dl>
+</section>
+
+<h3 id="group-check">Check commands</h3>
+
+<section class="cmd" id="cmd-check">
+  <h4><code>repoctl check</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl check [--code CODE]... [--check] [--min-level info|warn|required] [--quiet]
+repoctl check --install-timer | --remove-timer</pre>
+  <p>Compute all advisories that need no build, for each target (<a href="advisories.html#check">advisories.html#check</a>). The inputs are the manifest and repodata of latest, the upstream repos, the release feeds and the mock config of this host. The check takes no set lock and can run during a build. <code>--check</code> gives exit 11 for an open advisory at <code>--min-level</code> (default warn) or higher. <code>--install-timer</code> writes and starts the user systemd timer of the set (<a href="advisories.html#timer">advisories.html#timer</a>); the timer runs <code>check --quiet</code>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd><code>check.json</code> in the state directory; a journal with <code>kind: check</code>; the timer units</dd><dt>Output</dt><dd>kind <code>AdvisoryList</code></dd><dt>Exit</dt><dd>0; 1 a check failed (the others still run); 9; 11 with <code>--check</code>; 13</dd></dl>
+  <pre class="term">$ repoctl check                          # 2026-11-03
+ADVISORY                   LEVEL     FACTS
+closure.broken/pmix@el9    required  pmix-6.1.0-1.el9 needs libhwloc.so.15; EPEL 9 hwloc-libs 2.11.2 gives only .so.16
+buildroot.drift/munge@el9  info      openssl-devel 3.0.7 → 3.2.2
+upstream.release/slurm     info      26.05.4 → 26.05.5
+upstream.release/openmpi   info      5.0.11 → 5.0.12
+4 open: 1 required, 3 info  ·  1 dismissed  ·  el9 and el10 checked in 38s  (-v shows all)
+hint: read the facts and the closure. run: repoctl advisories show closure.broken/pmix@el9</pre>
+</section>
+
+<section class="cmd" id="cmd-advisories">
+  <h4><code>repoctl advisories</code> <span class="tag read">read</span> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl advisories [ls] [--level L] [--dismissed] [--refresh]
+repoctl advisories show ID
+repoctl advisories dismiss ID... --note TEXT
+repoctl advisories undismiss ID... | --stale</pre>
+  <p>ls and show are read; dismiss and undismiss are local write. An advisory id is <code>CODE/SUBJECT</code> on all surfaces (<a href="advisories.html#id">advisories.html#id</a>). ls lists the last check result and the advisories of the newest unpublished run; <code>--dismissed</code> adds the dismissed entries, <code>--refresh</code> runs check first. show prints the level, state, facts, closure, the suggested command and the dismissal.</p>
+  <p>dismiss writes one entry per id to <code>.repoctl/advisories.yaml</code> with a note of 8 characters or more (<a href="advisories.html#dismissals">advisories.html#dismissals</a>). dismiss accepts only info and warn advisories; a required one needs <code>publish --accept-advisory</code>. repoctl does not commit the file. <code>undismiss --stale</code> removes the entries whose id is gone or whose facts changed.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>dismiss, undismiss: <code>.repoctl/advisories.yaml</code></dd><dt>Output</dt><dd>kind <code>AdvisoryList</code>; show: <code>Advisory</code></dd><dt>Exit</dt><dd>0; 1 <code>advisory.unknown</code>, <code>advisory.not-dismissable</code></dd></dl>
+  <pre class="term">$ repoctl advisories show closure.broken/pmix@el9
+closure.broken/pmix@el9  required · open · check 2026-11-03 06:00 (timer)
+facts     pmix-6.1.0-1.el9 requires libhwloc.so.15()(64bit)
+          EPEL 9 has hwloc-libs 2.11.2, which provides only libhwloc.so.16
+closure   pmix: a publish of el9 that changes pmix is blocked
+suggests  rebuild pmix against hwloc 2.11, or change its spec
+          repoctl rebuild pmix --reason "hwloc 2.11: libhwloc.so.16"</pre>
+</section>
+
+<h3 id="group-upstream">Upstream commands</h3>
+
+<section class="cmd" id="cmd-upstream">
+  <h4><code>repoctl upstream</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl upstream [DIR...] [--check] [--releases] [--refresh] [-j N]</pre>
+  <p>Compare the version of each package at its lock commit with the newest upstream release. The sources come from <code>packages[].upstream</code>: GitHub releases or tags, a tag filter, and Fedora rawhide. repoctl drops pre-releases and vendor tags. The answers stay in the cache for one hour; <code>--refresh</code> ignores it.</p>
+  <p><code>--releases</code> lists each newer release with its date and URL. <code>--check</code> gives exit 11 for an update. The package-updates skill calls <code>repoctl upstream --releases --json</code> (<a href="agents.html#skill-list">agents.html#skill-list</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Network</dt><dd>GitHub API with <code>GH_TOKEN</code>, <code>GITHUB_TOKEN</code> or <code>gh auth token</code>, else anonymous (<code>upstream.rate-limited</code>); src.fedoraproject.org</dd><dt>Writes</dt><dd><code>~/.cache/repoctl/upstream/</code></dd><dt>Output</dt><dd>kind <code>Upstream</code>; status up-to-date, update-available, ahead, frozen or unknown</dd><dt>Exit</dt><dd>0 (also with updates); 1 all queries failed; 11 with <code>--check</code></dd></dl>
+  <pre class="term">$ repoctl upstream
+PACKAGE                 CURRENT  LATEST   RELEASED    FEDORA   STATUS            NOTE
+slurm                   26.05.4  26.05.5  2026-10-29  26.05.4  update-available
+openmpi                 5.0.11   5.0.12   2026-10-21  5.0.11   update-available
+slurm-singularity-exec  3.2.0    3.2.1    2026-10-14  -        update-available  dismissed: 3.2.1 only changes the docs
+pmix_v4                 4.2.9    4.2.9    2024-02-01  -        frozen            Upstream 4.x is frozen at 4.2.9.
+11 packages: 3 updates (1 dismissed), 1 frozen, 6 up-to-date, 1 without upstream  (-v shows all)
+hint: read the release notes. run: repoctl upstream slurm openmpi --releases</pre>
+</section>
+
+<h3 id="group-agent">Agent and UI commands</h3>
+
+<section class="cmd" id="cmd-ui">
+  <h4><code>repoctl ui</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl ui [--no-browser] [--listen ADDR] [--stop]</pre>
+  <p>Start the local web UI for the local user and open it in the browser (<a href="ui.html#principles">ui.html#principles</a>). repoctl keeps one server per user. When it runs, ui adds the set of the start directory, opens the browser and exits 0. The server runs in the foreground until Ctrl-C and runs each command as a child, as the CLI does. There is no remote access.</p>
+  <p><code>--listen</code> accepts only a loopback address (default <code>127.0.0.1:0</code>, also <code>REPOCTL_UI_LISTEN</code>). <code>--stop</code> stops the server.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none; each child takes the lock of its command</dd><dt>Writes</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/ui.json</code> and the private control socket <code>ui.sock</code></dd><dt>Output</dt><dd>one launch URL <code>http://127.0.0.1:PORT/-/auth?t=TOKEN</code>; the token is for one use within 60 s (<a href="ui.html#auth">ui.html#auth</a>); no <code>--json</code></dd><dt>Exit</dt><dd>0 (also on a signal); 1 cannot listen; 2</dd></dl>
+  <pre class="term">$ repoctl ui
+http://127.0.0.1:43817/-/auth?t=q7Hc2Lw9xT4mR8vNk3pZ
+note: opened in the browser. The server is for dklein on this host only. Ctrl-C stops it.</pre>
+</section>
+
+<section class="cmd" id="cmd-mcp">
+  <h4><code>repoctl mcp</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl mcp start [--tools read|all|NAME,...]
+repoctl mcp tools [--tools read|all|NAME,...]</pre>
+  <p>mcp start runs the MCP server on stdio (<a href="agents.html#mcp">agents.html#mcp</a>). Each tool runs one repoctl command with <code>--json</code> and returns stdout, stderr and the exit code; progress notifications come from the journal. Tool names are <code>repoctl_COMMAND[_SUB]</code>. <code>--tools read</code> lists only the read tools, and other calls fail with <code>mcp.tool-not-allowed</code>; the UI agent uses it. mcp tools prints the tool definitions. No shared-state command has a tool (<a href="agents.html#not-exposed">agents.html#not-exposed</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none; each call takes the lock of its command</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>the MCP protocol; mcp tools: the form of <a href="contract/schema/mcp-tools.json">mcp-tools.json</a></dd><dt>Exit</dt><dd>0 on EOF or a signal; 2</dd></dl>
+  <pre class="term">$ claude mcp add repoctl -- repoctl mcp start</pre>
+</section>
+
+<section class="cmd" id="cmd-skills">
+  <h4><code>repoctl skills</code> <span class="tag read">read</span> <span class="tag local">local write</span></h4>
+  <pre class="synopsis">repoctl skills ls | show NAME | path
+repoctl skills install [--user | --project] [NAME...]</pre>
+  <p>ls, show and path are read; install is local write. The generic skills ship in the binary: repoctl, package-updates, bump-package, triage-build and rebuild-check (<a href="agents.html#skill-list">agents.html#skill-list</a>). A set-local skill can add a skill but never shadow a generic one. install writes to <code>~/.claude/skills/</code> (<code>--user</code>, default) or to <code>SET/.claude/skills/</code> (<code>--project</code>, with <code>.git/info/exclude</code> and the deny list in <code>.claude/settings.json</code>, <a href="agents.html#deny">agents.html#deny</a>). It refuses a file that a person changed.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>install only: skill directories, <code>.git/info/exclude</code>, <code>.claude/settings.json</code></dd><dt>Output</dt><dd>kind <code>Skill</code></dd><dt>Exit</dt><dd>0; 1; 2</dd></dl>
+</section>
+
+<h3 id="group-admin">Admin commands</h3>
+
+<section class="cmd" id="cmd-doctor">
+  <h4><code>repoctl doctor</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl doctor [--strict] [--only host|set|sign|registry|check]</pre>
+  <p>Check this host for build, sign and registry. This replaces <code>scripts/setup</code>, except the dnf install. Each check is ok, warning or failed; passed checks are dim, and each warning or failure has its fix under it. Required for build: git, mock, the group mock, the mock configs, rpmautospec, rpmspec, createrepo_c, the XDG directories and a valid <code>repoctl.yaml</code>. Required for publish: also rpmsign, gpg, the secret key, gates 1 and 3. A missing secret key is a warning, so a host that only builds gets exit 0.</p>
+  <p>The sign checks include <code>sign.key</code>, <code>sign.keyfile</code>, <code>sign.release</code>, <code>sign.retiring</code> (a retiring key still signs RPMs in latest), <code>sign.deployed</code> and <code>sign.verify-el</code>; <a href="signing.html#doctor">signing.html#doctor</a> has the full list. The registry checks are in <a href="publish.html#registry">publish.html#registry</a>, the check health in <a href="advisories.html#health">advisories.html#health</a>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>stdout: the checks with ✓ ! ✗; kind <code>DoctorReport</code></dd><dt>Exit</dt><dd>0 (warnings too); 8 warnings with <code>--strict</code>; 9 a required check failed</dd></dl>
+  <pre class="term">$ repoctl doctor
+✓ repoctl 0.4.0 (3f9a1c2), go1.26.8, Fedora 44
+…
+! sign.retiring: 50 RPMs in latest of el9 carry the retiring key hpc-repo
+    fix: re-sign them with an active key. run: repoctl repo resign --signer hpc-repo --target el9
+…
+17 checks: 14 ok, 3 warnings</pre>
+  <p>The full output is in <a href="terminal.html#doctor">terminal.html#doctor</a>.</p>
+</section>
+
+<section class="cmd" id="cmd-clean">
+  <h4><code>repoctl clean</code> <span class="tag staging">staging</span></h4>
+  <pre class="synopsis">repoctl clean [--staging] [--logs] [--cache] [--git] [--publish ID] [--all] [--older-than D] [--dry-run] [--yes]</pre>
+  <p>Delete files that repoctl can make again. Without a flag, clean takes <code>--staging</code>. It never deletes the local copy, the worktrees, <code>repoctl.lock</code>, the staging of the newest or a running run, or a staging with staged nodes (<a href="build.html#staging">build.html#staging</a>). A publish whose staging is gone stops with <code>run.staging-missing</code>.</p>
+  <table class="compact">
+  <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
+  <tbody>
+  <tr><td><code>--logs</code></td><td>Journals and logs of finished runs, except the newest <code>state.keep_runs</code> runs (default 50) and the publish runs.</td></tr>
+  <tr><td><code>--cache</code></td><td>SRPM cache, upstream cache and mock work directories of all sets, unused for 30d.</td></tr>
+  <tr><td><code>--git</code></td><td>Bare clones without a worktree and without unpushed commits (else <code>git.mirror-unpushed</code>).</td></tr>
+  <tr><td><code>--publish ID</code></td><td>The signed tree of a publish that stopped, in place of <code>repo push</code>.</td></tr>
+  <tr><td><code>--all</code></td><td>All of the above with <code>--older-than 0</code>. It asks <code>[y/N]</code> on a terminal; without one, it needs <code>--yes</code>, else exit 6.</td></tr>
+  </tbody>
+  </table>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>deletes under the data, state and cache directories</dd><dt>Output</dt><dd>kind <code>Clean</code></dd><dt>Exit</dt><dd>0; 1; 6; 7</dd></dl>
+  <pre class="term">$ repoctl clean --dry-run                # 2026-11-03, after the publish
+delete  staging r-20260912-1251-e19   published in p-20260912-1403-c21
+delete  staging r-20260911-1630-77f   failed, no staged node
+keep    staging r-20261102-1750-a3f   newest run; staged el10 nodes: ucx, openmpi
+would free 7.0 GiB</pre>
+</section>
+
+<section class="cmd" id="cmd-mock">
+  <h4><code>repoctl mock</code> <span class="tag staging">staging</span></h4>
+  <pre class="synopsis">repoctl mock update | clean
+repoctl mock shell TARGET [-- COMMAND...]</pre>
+  <p>Run mock with the config, macros and plugins of each selected target, as a build does (<a href="build.html#mock">build.html#mock</a>). update runs <code>mock --update</code> and updates the verify roots. clean runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots that repoctl made. shell opens <code>mock --shell</code> in a root of one target, with its own <code>--uniqueext</code>.</p>
+  <dl class="facts"><dt>Lock</dt><dd>update and clean: set lock; shell: none</dd><dt>Writes</dt><dd>mock roots and verify roots</dd><dt>Output</dt><dd>one line per target; no <code>--json</code></dd><dt>Exit</dt><dd>0; 1; 7; 9; shell: the status of the shell</dd></dl>
+  <pre class="term">$ repoctl mock shell el10 -- rpm -q --whatprovides rocm-smi-devel
+no package provides rocm-smi-devel</pre>
+</section>
+
+<section class="cmd" id="cmd-config">
+  <h4><code>repoctl config</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl config show | paths</pre>
+  <p>show prints each setting with its effective value and the layer that gave it (<a href="config.html#layers">config.html#layers</a>). paths prints the files and directories of this set and user, with sizes (<a href="config.html#xdg">config.html#xdg</a>). Neither changes a file.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Config</code> or <code>Path</code></dd><dt>Exit</dt><dd>0; 1 the config is invalid</dd></dl>
+  <pre class="term">$ repoctl config show
+KEY           VALUE        SOURCE
+jobs          3            user config ~/.config/repoctl/config.yaml
+sign.key      d.klein      user config ~/.config/repoctl/config.yaml
+sign.backend  gpg          default
+ui.listen     127.0.0.1:0  default</pre>
+</section>
+
+<section class="cmd" id="cmd-schema">
+  <h4><code>repoctl schema</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl schema [NAME] [--list]</pre>
+  <p>Print a JSON Schema (draft 2020-12) without an envelope. NAME is <code>config</code> (default), <code>lock</code>, <code>user-config</code>, <code>manifest</code>, <code>output</code>, <code>events</code> or one kind. <code>--list</code> lists the names (<a href="contract.html#schemas">contract.html#schemas</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>the schema</dd><dt>Exit</dt><dd>0; 2 unknown name</dd></dl>
+</section>
+
+<section class="cmd" id="cmd-version">
+  <h4><code>repoctl version</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl version</pre>
+  <p>Print the version and the commit of the build. <code>repoctl --version</code> prints the same line.</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Version</code></dd><dt>Exit</dt><dd>0</dd></dl>
+  <pre class="term">$ repoctl version
+repoctl 0.4.0 (3f9a1c2)</pre>
+</section>
+
+<section class="cmd" id="cmd-completion">
+  <h4><code>repoctl completion</code> <span class="tag read">read</span></h4>
+  <pre class="synopsis">repoctl completion bash|zsh|fish|powershell</pre>
+  <p>Write the completion script to stdout. The RPM installs it for bash, zsh and fish (<a href="#completion">shell completion</a>).</p>
+  <dl class="facts"><dt>Lock</dt><dd>none</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>the script; no <code>--json</code></dd><dt>Exit</dt><dd>0; 2</dd></dl>
+</section>
+
+<h2 id="safety">Shared-state safety rules</h2>
+<p>Each command has one safety class (<a href="model.html#safety">model.html#safety</a>), and the class decides the rules.</p>
+<table class="compact">
+<thead><tr><th>Class</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td><span class="tag read">read</span></td><td>No question, no set lock (repo verify takes it shared). It writes a cache file or <code>check.json</code> at most. MCP: the read tools.</td></tr>
+<tr><td><span class="tag staging">staging</span></td><td>No question, except <code>clean --all</code>. It takes the set lock and writes only the staging, the logs and the journal of this user.</td></tr>
+<tr><td><span class="tag local">local write</span></td><td>It changes worktrees, branches or set files on this host and never pushes. It takes the set lock, except init, migrate and advisories. MCP: checkout, pin and rebuild only.</td></tr>
+<tr><td><span class="tag shared">shared state</span></td><td>It changes what other people see or trust: publish, repo push, repo restore, repo prune <code>--apply</code>, repo gc <code>--apply</code>, repo resign, sign deployed. The rules below apply.</td></tr>
+</tbody>
+</table>
+<h3 id="shared-rules">Rules for shared state</h3>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>A shared-state command has a dry run, a summary, a typed confirmation, the set lock, a journal and no MCP tool.</p></aside>
+<ol>
+  <li><strong>Dry run.</strong> <code>--dry-run</code> shows the summary and runs the checks; it signs, writes and pushes nothing. For repo prune and repo gc, the dry run is the default, and <code>--apply</code> acts.</li>
+  <li><strong>Summary first.</strong> The summary goes to stdout before the question (<a href="publish.html#summary">publish.html#summary</a>).</li>
+  <li><strong>Typed confirmation.</strong> The person types the set name (<code>slurm-26.05</code>), not <code>y</code>. For a trust change, the person first types each added key id, then the set name (<a href="signing.html#trust-block">signing.html#trust-block</a>). sign deployed asks for the key id.</li>
+  <li><strong>Default answer no.</strong> Another text, an empty line or EOF is no, and the command stops with exit 6.</li>
+  <li><strong>No terminal, exit 6.</strong> A terminal means that stdin and stderr are terminals. The question goes to stderr; the answer comes from stdin.</li>
+  <li><strong><code>--yes</code></strong> skips the question on a terminal. Without a terminal, it works only with <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code>. <code>--yes</code> never accepts an advisory (a blocking advisory gives exit 12) and never confirms a trust change (exit 6, <code>sign.trust-change</code>).</li>
+  <li><strong><code>REPOCTL_ALLOW_UNATTENDED_PUBLISH=1</code></strong> allows publish, repo push, repo restore, repo prune and repo resign without a person. It never allows repo gc, sign deployed or a trust change. repoctl reads it only from the process environment, never from a config file. ui and mcp start remove it from the environment of each child. The journal and the snapshot annotations record <code>unattended: true</code>.</li>
+  <li><strong>Set lock and journal.</strong> The command holds the set lock for its whole run and writes a journal (<a href="contract.html#journal">contract.html#journal</a>).</li>
+  <li><strong>No MCP tool.</strong> The command is in <code>notExposed</code> and in the deny list of the skills (<a href="agents.html#deny">agents.html#deny</a>). MCP never signs.</li>
+  <li><strong>humanAction.</strong> A skill that reaches such a step stops and gives the person the command (<a href="agents.html#human-action">agents.html#human-action</a>). The values are publish, repo-push, restore, prune, gc, resign, sign-deployed, trust-change and accept-advisory.</li>
+  <li><strong>The UI</strong> has the same two steps, the summary and the typed set name (<a href="ui-publish.html#confirm">ui-publish.html#confirm</a>). It never passes <code>--yes</code> to a child without that confirmation.</li>
+</ol>
+<h3 id="confirmation">Confirmation</h3>
+<table class="compact">
+<thead><tr><th>Terminal</th><th><code>--yes</code></th><th>Unattended variable</th><th>Result</th><th>Exit</th></tr></thead>
+<tbody>
+<tr><td>yes</td><td>no</td><td>any</td><td>Summary, then <code>Type the set name to sign 38 RPMs and publish el9 of slurm-26.05:</code>. Only the exact name continues.</td><td>0; 6 on another answer</td></tr>
+<tr><td>yes</td><td>yes</td><td>any</td><td>Summary, no question, act.</td><td>0; 6 trust change; 12 blocking advisory</td></tr>
+<tr><td>no</td><td>no</td><td>any</td><td>Summary, then refuse (<code>publish.needs-confirmation</code>).</td><td>6</td></tr>
+<tr><td>no</td><td>yes</td><td>not 1</td><td>Refuse (<code>publish.unattended-refused</code>).</td><td>6</td></tr>
+<tr><td>no</td><td>yes</td><td>1</td><td>Act and record <code>unattended: true</code>. Not for repo gc, sign deployed or a trust change.</td><td>0; 6 for those</td></tr>
+</tbody>
+</table>
+
+<h2 id="topics">Help topics</h2>
+<p>repoctl registers the topics with <code>cobratree.Topics</code>. <code>repoctl help TOPIC</code> prints the text, and completion offers the names. An unknown topic is a usage error. Each text lives in the chapter that owns its facts.</p>
+<table class="compact">
+<thead><tr><th>Topic</th><th>Summary</th><th>Text</th></tr></thead>
+<tbody>
+<tr><td><code>config</code></td><td>Configuration files, layers and precedence</td><td><a href="config.html#layers">config.html#layers</a></td></tr>
+<tr><td><code>selectors</code></td><td>How to name packages, targets and nodes</td><td><a href="#selectors">Selectors</a></td></tr>
+<tr><td><code>graph</code></td><td>How to read the graph output</td><td>below</td></tr>
+<tr><td><code>build-state</code></td><td>How repoctl decides what to build, and when to rebuild</td><td><a href="build.html#help">build.html#help</a></td></tr>
+<tr><td><code>advisories</code></td><td>Advisories, dismissals, the publish gate and the recovery path</td><td><a href="advisories.html#recovery">advisories.html#recovery</a></td></tr>
+<tr><td><code>signing</code></td><td>Keys, gates, deployment record and re-sign</td><td><a href="signing.html#help-signing">signing.html#help-signing</a></td></tr>
+<tr><td><code>team</code></td><td>A new admin or a new host</td><td><a href="signing.html#help-team">signing.html#help-team</a></td></tr>
+<tr><td><code>new-set</code></td><td>Start a new set from the previous set</td><td><a href="lifecycle.html#help-new-set">lifecycle.html#help-new-set</a></td></tr>
+<tr><td><code>packages</code></td><td>Add, remove, rename and retire a package</td><td><a href="lifecycle.html#help-packages">lifecycle.html#help-packages</a></td></tr>
+<tr><td><code>xdg</code></td><td>Where repoctl keeps its files</td><td><a href="config.html#xdg">config.html#xdg</a></td></tr>
+<tr><td><code>environment</code></td><td>The <code>REPOCTL_*</code> variables and others</td><td><a href="config.html#env">config.html#env</a></td></tr>
+<tr><td><code>exit-codes</code></td><td>The exit status of each kind of failure</td><td><a href="#exit">Exit codes</a></td></tr>
+<tr><td><code>safety</code></td><td>Rules for shared state, signing and agents</td><td><a href="#safety">Shared-state safety rules</a></td></tr>
+</tbody>
+</table>
+<p>The topics environment, exit-codes and safety print their tables as plain text. The text of <code>repoctl help graph</code>:</p>
+<pre class="term">GRAPH
+
+"repoctl graph" draws one lane graph for each target, as "git log --graph".
+  header     target, mock config, nodes, edges, layers, action counts
+  ◆ ≡ ● –    the node glyph: the plan action (build, current, staged, skip)
+  │ ├ └ ┼    lanes: a line goes down from a dependency to each node that needs it
+  L0 L1 ...  the layer: an L0 node needs no node of the set
+  ← A B      the node needs A and B on the same target
+Each row names its dependencies, so the graph is clear without the lanes.
+
+  --format matrix   one row for each package, one column for each target
+  --format dot      Graphviz input, for example: | dot -Tsvg &gt; el9.svg
+  --run RUN         the node states of that run in place of the actions
+  -v                also the requires that no package of the set provides</pre>
+
+<h2 id="completion">Shell completion</h2>
+<p>repoctl uses cobra dynamic completion. A completion function reads only <code>repoctl.yaml</code>, <code>repoctl.lock</code>, the state directory and the runtime directory. It runs no git, mock or rpmspec, makes no network call, writes no file and stops after 200 ms. Candidates have a description where the shell shows one (zsh, fish). Outside a set, selector completion gives nothing.</p>
+<table class="compact">
+<thead><tr><th>Where</th><th>Candidates</th></tr></thead>
+<tbody>
+<tr><td>selectors</td><td>package dirs with version and lock state; after <code>DIR@</code> the targets of the package; after <code>@</code> all target ids</td></tr>
+<tr><td>packages (checkout, pin, rebuild, upstream)</td><td>package dirs; pin offers the packages that are ahead first</td></tr>
+<tr><td><code>--target</code>, <code>mock shell TARGET</code></td><td>target ids with the mock config</td></tr>
+<tr><td><code>--run</code>, <code>runs</code>, <code>logs</code>, <code>cancel</code></td><td>run ids, newest first, and <code>latest</code>; cancel offers only running runs; <code>logs RUN NODE</code> the nodes, failed first</td></tr>
+<tr><td>advisory ids, <code>--accept-advisory</code></td><td>ids of the last check; <code>--accept-advisory</code> only the blocking ids</td></tr>
+<tr><td><code>repo restore|pull REF</code>, <code>repo diff --from|--to</code></td><td><code>latest</code> and the publish ids of the local snapshot list</td></tr>
+<tr><td>key ids (sign, <code>repo resign --signer</code>)</td><td>ids of <code>sign.keys</code> by state; retire offers active keys</td></tr>
+<tr><td>enum flags, <code>schema</code>, <code>help</code>, <code>skills</code></td><td>the enum values, schema names, topics, skill names</td></tr>
+<tr><td><code>-C</code>, <code>--config</code>, <code>--progress-log</code>, <code>--path</code></td><td>files and directories (shell default)</td></tr>
+</tbody>
+</table>
+
+<h2 id="migration">Migration from today's scripts</h2>
+<p>The table maps each script of the bash era (builder branch <code>builder/slurm-26.05</code>) to repoctl. The import of the published repositories is a runbook for an agent, not a command (<a href="../runbooks/import.html">../runbooks/import.html</a>).</p>
+<table class="compact">
+<thead><tr><th>Today</th><th>repoctl</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>./scripts/setup</code></td><td><code>dnf install repoctl</code>; <code>repoctl doctor</code></td><td>The RPM requires the tools. repoctl runs on Fedora.</td></tr>
+<tr><td><code>./scripts/checkout</code></td><td><code>repoctl checkout</code></td><td>The same worktrees. <code>REMOTE=…</code> becomes <code>defaults.git.remote</code>.</td></tr>
+<tr><td><code>./scripts/pin [dir…]</code></td><td><code>repoctl pin [DIR…]</code></td><td>The same "push it" warning.</td></tr>
+<tr><td><code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code></td><td><code>repoctl.lock</code>, <code>repoctl.yaml</code>, <code>rpm/macros</code></td><td><code>repoctl migrate</code> converts them once.</td></tr>
+<tr><td><code>./scripts/build</code></td><td><code>repoctl build</code>, then <code>repoctl publish</code></td><td>The order comes from the graph. Only nodes with a new commit build. Signing moves to publish.</td></tr>
+<tr><td>build lines commented out</td><td><code>repoctl build slurm</code></td><td>Selectors.</td></tr>
+<tr><td><code>./scripts/list</code></td><td><code>repoctl list</code>, <code>repoctl graph</code></td><td></td></tr>
+<tr><td><code>./scripts/rpmlist DIR</code></td><td><code>repoctl repo ls</code> (or <code>--path DIR</code>)</td><td>No python3-dnf needed. <code>--json</code> for scripts.</td></tr>
+<tr><td><code>./scripts/clean</code></td><td><code>repoctl clean --all</code>, <code>repoctl mock clean</code></td><td>The local copy and staged nodes stay.</td></tr>
+<tr><td><code>./scripts/update</code></td><td><code>repoctl mock update</code></td><td></td></tr>
+<tr><td><code>result/el9/slurm*</code></td><td>the el9 snapshot in GHCR; the local copy (<code>repoctl repo pull</code>)</td><td>GHCR is the authority; the mirror job serves the clients (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
+<tr><td>copy of <code>result/</code> to the web server</td><td><code>repoctl publish</code></td><td>The mirror job pulls latest.</td></tr>
+<tr><td><code>build/el9/PKG/*.log</code></td><td><code>repoctl logs NODE --file root|build</code></td><td></td></tr>
+<tr><td><code>mock -r … --shell</code></td><td><code>repoctl mock shell el9</code></td><td>The same macros and plugins as a build.</td></tr>
+<tr><td><code>gpg --list-secret-keys</code></td><td><code>repoctl doctor</code>, <code>repoctl sign ls</code></td><td><code>sign.key</code> names the key of the person.</td></tr>
+<tr><td>new package: <code>git worktree add --orphan</code> and an edit of <code>scripts/build</code></td><td><code>repoctl checkout --create DIR --from fedora</code>; commit; push; <code>repoctl pin DIR</code></td><td><code>repoctl help packages</code> has the steps.</td></tr>
+<tr><td>skill <code>/package-info</code>, <code>get-package-info</code></td><td><code>repoctl upstream DIR --json</code></td><td><code>REPO_MAP</code> becomes <code>packages[].upstream</code>.</td></tr>
+<tr><td>skill <code>/list-package-updates</code></td><td>skill package-updates</td><td>It calls <code>repoctl upstream --releases --json</code>.</td></tr>
+<tr><td>the bash-era repositories</td><td>the import runbook</td><td>No import command in the CLI or the UI.</td></tr>
+</tbody>
+</table>
+
+<h2 id="errors">Error message style guide</h2>
+<h3 id="error-form">Form</h3>
+<pre><code class="language-plaintext">repoctl: ✗ build: failed in 41m07s: 6 ok, 1 failed, 1 blocked, 13 current    (summary line, if a display ran)
+repoctl: error: OBJECT: WHAT HAPPENED
+hint: WHAT TO DO. run: CMD                                                     (0 to 3 lines)</code></pre>
+<ul>
+  <li>The error line starts with <code>repoctl: error: </code>. It names the exact object (node, run, file, flag), then the cause. It has no full stop at the end.</li>
+  <li>Each hint is one instruction in the imperative, about a finding in this output. The command to copy comes last, after <code>run: </code>. A hint never says "maybe" or "try". Static help goes to <code>repoctl help TOPIC</code>.</li>
+  <li>Use the words of the model: <code>slurm@el10</code>, not "the slurm build for EL10".</li>
+  <li>Name the source of a bad value: the flag, the variable (<code>REPOCTL_JOBS="four"</code>) or the file and key (<code>repoctl.yaml: packages[3].targets</code>).</li>
+  <li>For a bad flag value, use the go-clikit form: <code>invalid --progress value "fancy": want auto, tree, counter, plain or none</code>.</li>
+  <li>Quote at most one line of another program, escaped. Point to the log for the rest.</li>
+  <li>Do not write "please", "sorry", "successfully", "simply" or "just", and no exclamation marks. Show a Go stack trace only with <code>-vvv</code>.</li>
+  <li>With <code>--json</code>, the same text is in <code>errors[].message</code> and <code>errors[].hint</code>, with a stable <code>errors[].code</code> (<a href="contract.html#problems">contract.html#problems</a>).</li>
+  <li>A failed command ends with hints, the normal path with <code>Next:</code> (<a href="#next">hint and Next lines</a>).</li>
+</ul>
+<h3 id="error-examples">Examples</h3>
+<p>The failed build (exit 3) is in the <a href="#cmd-build">build</a> block; the refused publish (exit 12) is in the <a href="#cmd-publish">publish</a> block.</p>
+<p>The lock is dirty (exit 5), at 17:45 before the pin:</p>
+<pre class="term">$ repoctl build
+repoctl: error: ucx: worktree 4b1e9c2 is ahead of repoctl.lock (907c60d)
+hint: record the new commit. run: repoctl pin ucx
+hint: to try it without a pin (not publishable). run: repoctl build --from worktree</pre>
+<p>Publish without a person (exit 6):</p>
+<pre class="term">$ repoctl publish --target el9 --yes &lt; /dev/null
+repoctl: error: publish: stdin is not a terminal, and REPOCTL_ALLOW_UNATTENDED_PUBLISH is not set
+hint: run the command in a terminal and type the set name when asked
+hint: for a dedicated publish job only, set REPOCTL_ALLOW_UNATTENDED_PUBLISH=1 in its environment</pre>
+<p>A wrong set name (exit 6):</p>
+<pre class="term">Type the set name to sign 38 RPMs and publish el9 of slurm-26.05: slurm
+repoctl: error: publish: "slurm" is not the set name; nothing is signed or pushed
+hint: run the command again and type: slurm-26.05</pre>
+<p>The set is busy (exit 7), during the story run:</p>
+<pre class="term">$ repoctl build slurm
+repoctl: error: set slurm-26.05 is busy: repoctl build holds the set lock (run r-20261102-1750-a3f, pid 48213 on hpc-a1)
+hint: watch that run. run: repoctl runs latest --follow
+hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
+<p>A selector that selects no node (exit 2):</p>
+<pre class="term">$ repoctl build rocm-smi@el10
+repoctl: error: selector "rocm-smi@el10" selects no node: rocm-smi is not built for el10 (targets: [el9])
+hint: build it on its own target. run: repoctl build rocm-smi@el9</pre>
+<p>latest moved (exit 13): A. Admin on hpc-a2 after the publish of 14:12, before a pull:</p>
+<pre class="term">$ repoctl plan --target el9
+repoctl: error: el9: latest is p-20261103-1412-5e1 (d.klein@hpc-a1), the local copy has p-20260912-1403-c21
+hint: update the local copy. run: repoctl repo pull</pre>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>repoctl build --progress plain</title>
+<meta name="description" content="Plain progress lines of run r-20261102-1750-a3f: a line on each count change and a keep-alive line each 60 s.">
+<link rel="stylesheet" href="../assets/term.css">
+</head>
+<body>
+<main class="shot" id="shot">
+<figure class="win" aria-label="Terminal: repoctl build --progress plain">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="title"><b>repoctl build --progress plain</b> — dklein@hpc-a1: ~/src/slurm-repo</span></div>
+<pre class="scr"><span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl build --progress plain &gt; build-result.txt
+<span class="d">note:</span> run r-20261102-1750-a3f: 8 to build, 13 current, 3 at a time
+<span class="d">[0:04] </span>✓ build › plan: done in 4.2s: 8 build, 13 current
+<span class="d">[0:04] </span><span class="run">▸</span> build › el9: start: 1 running, 3 waiting
+<span class="d">[0:04] </span><span class="run">▸</span> build › el10: start: 1 running, 3 waiting
+<span class="d">[1:04] </span><span class="d">·</span> build: 0/8 ok, 2 running, 6 waiting
+<span class="d">[2:04] </span><span class="d">·</span> build: 0/8 ok, 2 running, 6 waiting
+<span class="d">[3:04] </span><span class="d">·</span> build: 0/8 ok, 2 running, 6 waiting
+<span class="d">[4:09] </span><span class="d">·</span> build › el9: 1/4 ok, 2 running, 1 waiting<span class="cut">4 keep-alive lines, one each 60 s</span><span class="d">[8:48] </span><span class="d">·</span> build › el10: 1/4 ok, 1 running, 1 queued, 1 waiting
+<span class="d">[10:36</span>] <span class="err">✗</span> build › el10 › slurm@el10: <span class="err">failed</span> after 1m48s: rocm-smi-devel is needed
+<span class="d">[10:36</span>] <span class="d">·</span> build › el10: 1/4 ok, 1 running, 1 failed, 1 blocked<span class="cut">11 keep-alive lines, one each 60 s</span><span class="d">[21:49</span>] <span class="d">·</span> build › el9: 2/4 ok, 2 running
+<span class="d">[22:51</span>] <span class="d">·</span> build › el9: 3/4 ok, 1 running<span class="cut">2 keep-alive lines</span><span class="d">[25:21</span>] ✓ build › el9: done in 25m17s: 4 ok<span class="cut">15 keep-alive lines</span><span class="d">[41:07</span>] <span class="err">✗</span> build › el10: <span class="err">failed</span> in 41m03s: 2 ok, 1 failed, 1 blocked
+repoctl: <span class="err">✗</span> build: <span class="err">failed</span> in 41m07s: 6 ok, 1 failed, 1 blocked, 13 current
+repoctl: <span class="err">error:</span> slurm@el10: Failed build dependencies: rocm-smi-devel is needed
+<span class="d">hint:</span> read the log. run: <span class="b">repoctl logs slurm@el10</span>
+<span class="d">hint:</span> rocm-smi builds for el9 only: guard its BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or build it for el10
+<span class="d">hint:</span> el9 is publishable now. run: <span class="b">repoctl publish --target el9</span>
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> echo $?
+3
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> <span class="cur"> </span></pre>
+</figure>
+</main>
+</body>
+</html>

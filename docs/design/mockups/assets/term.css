@@ -1,0 +1,109 @@
+/* repoctl terminal frames (mockups/term/*.html).
+   One window per terminal: a title bar with the command, then the screen.
+   Colour has one meaning each: err = failed or blocks the task,
+   warn = act on it, run = work under way (live displays only).
+   Everything else is the default colour, dim (secondary text) or faint. */
+@import url("fonts/fonts.css");
+
+:root{
+  color-scheme:light;
+  --page:#f2eeea;
+  --t-bg:#fffdfb;
+  --t-fg:#231d18;
+  --t-dim:#6b6158;       /* labels, durations, paths, ids in parentheses */
+  --t-faint:#857a6f;     /* quiet rows: doctor checks that pass */
+  --t-lane:#a99d91;      /* graph lanes, log gutter */
+  --t-err:#b3302a;
+  --t-warn:#8a5e00;
+  --t-run:#a44e1a;
+  --t-err-bg:#fbe9e6;
+  --bar-1:#f1ede9; --bar-2:#e8e2dc; --bar-line:#d9d0c7;
+  --win-line:#d9d0c7; --title:#5d534a; --title-cmd:#231d18; --dot:#cfc6bd;
+  --cut-line:#cfc6bd; --cut-text:#6b6158;
+  --shadow:0 1px 2px rgba(35,29,24,.06),0 10px 28px rgba(35,29,24,.10);
+  --mono:'IBM Plex Mono','DejaVu Sans Mono',ui-monospace,Menlo,Consolas,monospace;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --page:#15120f;
+    --t-bg:#1b1713;
+    --t-fg:#ebe3da;
+    --t-dim:#a3988c;
+    --t-faint:#8a7f74;
+    --t-lane:#6f655b;
+    --t-err:#ff7a6e;
+    --t-warn:#e6b84a;
+    --t-run:#f0a36d;
+    --t-err-bg:#3a1a17;
+    --bar-1:#2b2520; --bar-2:#231e1a; --bar-line:#120f0c;
+    --win-line:#3a322b; --title:#bfb4a9; --title-cmd:#ebe3da; --dot:#4a4037;
+    --cut-line:#4a4037; --cut-text:#a3988c;
+    --shadow:0 2px 6px rgba(0,0,0,.35),0 12px 32px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#15120f;
+  --t-bg:#1b1713;
+  --t-fg:#ebe3da;
+  --t-dim:#a3988c;
+  --t-faint:#8a7f74;
+  --t-lane:#6f655b;
+  --t-err:#ff7a6e;
+  --t-warn:#e6b84a;
+  --t-run:#f0a36d;
+  --t-err-bg:#3a1a17;
+  --bar-1:#2b2520; --bar-2:#231e1a; --bar-line:#120f0c;
+  --win-line:#3a322b; --title:#bfb4a9; --title-cmd:#ebe3da; --dot:#4a4037;
+  --cut-line:#4a4037; --cut-text:#a3988c;
+  --shadow:0 2px 6px rgba(0,0,0,.35),0 12px 32px rgba(0,0,0,.45);
+}
+
+*{box-sizing:border-box}
+html{background:var(--page)}
+body{margin:0;background:var(--page);color:var(--t-fg);font-family:var(--sans)}
+
+/* the area that a screenshot captures */
+.shot{display:inline-flex;flex-direction:column;gap:20px;padding:24px;max-width:100%}
+
+.win{margin:0;max-width:100%;border:1px solid var(--win-line);border-radius:10px;
+  overflow:hidden;background:var(--t-bg);box-shadow:var(--shadow)}
+.bar{position:relative;display:flex;align-items:center;height:34px;padding:0 12px;
+  background:linear-gradient(var(--bar-1),var(--bar-2));border-bottom:1px solid var(--bar-line)}
+.dots{display:flex;gap:7px;flex:none}
+.dots i{display:block;width:11px;height:11px;border-radius:50%;background:var(--dot)}
+.title{flex:1;min-width:0;padding:0 64px 0 12px;text-align:center;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;font:400 12.5px/34px var(--sans);color:var(--title)}
+.title b{font:500 12.5px/34px var(--mono);color:var(--title-cmd)}
+
+/* the screen: 120 columns */
+.scr{margin:0;padding:12px 16px 14px;width:calc(120ch + 32px);max-width:100%;overflow-x:auto;
+  font:13px/18px var(--mono);color:var(--t-fg);background:var(--t-bg);
+  white-space:pre;tab-size:8;font-variant-ligatures:none;font-kerning:none}
+
+/* SGR-like classes */
+.b{font-weight:600}
+.d{color:var(--t-dim)}
+.f{color:var(--t-faint)}
+.ln{color:var(--t-lane)}
+.err{color:var(--t-err)}
+.warn{color:var(--t-warn)}
+.run{color:var(--t-run)}
+.p{color:var(--t-dim)}                      /* shell prompt */
+.cur{display:inline-block;width:1ch;background:var(--t-fg);color:var(--t-bg)}
+.x{display:inline-block;vertical-align:top;width:calc(100% + 32px);margin:0 -16px;padding:0 16px;
+  background:var(--t-err-bg)}               /* an error line in a log excerpt */
+
+/* box drawing: the fallback font fills 1.164 em; scale it to the 18 px row */
+.bx{display:inline-block;transform:scaleY(1.2);transform-origin:50% 62%}
+
+/* a line that is not terminal output: a cut in an excerpt */
+.cut{display:block;margin:3px 0;border-top:1px dashed var(--cut-line);border-bottom:1px dashed var(--cut-line);
+  font:italic 11.5px/17px var(--sans);color:var(--cut-text);text-align:center;white-space:normal}
+
+@media (max-width:600px){
+  .shot{padding:16px;display:flex}
+  .title{padding-right:12px}
+}

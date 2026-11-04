@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>repoctl status</title>
+<meta name="description" content="repoctl status after the publish of el9 on 2026-11-03: open items only, with a totals line.">
+<link rel="stylesheet" href="../assets/term.css">
+</head>
+<body>
+<main class="shot" id="shot">
+<figure class="win" aria-label="Terminal: repoctl status">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="title"><b>repoctl status</b> — dklein@hpc-a1: ~/src/slurm-repo</span></div>
+<pre class="scr"><span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl status
+<span class="d">set         </span><span class="b">slurm-26.05</span>  ~/src/slurm-repo  <span class="d">(builder/slurm-26.05 at 9a0c4e2, pushed)</span>
+<span class="d">published   </span>el9   p-20261103-1412-5e1  2026-11-03 14:12  local same, served <span class="warn">behind</span>
+<span class="d">            </span>el10  p-20260912-1403-c21  2026-09-12 14:03  local same, served same
+<span class="d">last run    </span>r-20261102-1750-a3f  2026-11-02 17:50  <span class="err">failed</span> (slurm@el10), el10 is not publishable
+<span class="d">advisories  </span><span class="err">1 required</span> (closure.broken/pmix@el9), 3 info
+<span class="d">upstream    </span>2 updates (slurm 26.05.5, openmpi 5.0.12)
+<span class="d">signing     </span>hpc-repo is <span class="warn">retiring</span>: 50 RPMs in latest of el9 carry it
+11 packages: 10 in-sync, 1 in tree  <span class="d">(-v shows all)</span>
+
+<span class="d">hint:</span> read the facts and the closure. run: <span class="b">repoctl advisories show closure.broken/pmix@el9</span>
+<span class="d">hint:</span> re-sign the RPMs of the retiring key. run: <span class="b">repoctl repo resign --signer hpc-repo --target el9</span>
+<span class="b">Next:</span> repoctl logs r-20261102-1750-a3f slurm@el10
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> <span class="cur"> </span></pre>
+</figure>
+</main>
+</body>
+</html>

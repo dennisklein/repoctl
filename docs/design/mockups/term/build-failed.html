@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>repoctl build (failed run)</title>
+<meta name="description" content="The end of run r-20261102-1750-a3f: step lines, the failed node with its log lines, one summary line, one error line and three hints.">
+<link rel="stylesheet" href="../assets/term.css">
+</head>
+<body>
+<main class="shot" id="shot">
+<figure class="win" aria-label="Terminal: repoctl build">
+<div class="bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="title"><b>repoctl build</b> — dklein@hpc-a1: ~/src/slurm-repo</span></div>
+<pre class="scr"><span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> repoctl build
+<span class="d">note:</span> run r-20261102-1750-a3f: 8 to build, 13 current, 3 at a time
+✓ <span class="b">plan</span>  <span class="d">4.2s  </span>  8 build, 13 current
+<span class="err">✗</span> <span class="b">el10</span>  <span class="d">41m03s</span>  2 ok, <span class="err">1 failed</span>, <span class="warn">1 blocked</span>
+  <span class="err">✗</span> slurm@el10                   rocm-smi-devel is needed
+  <span class="warn">⊘</span> slurm-singularity-exec@el10  blocked: it needs slurm@el10
+✓ <span class="b">el9 </span>  <span class="d">25m17s</span>  4 ok
+
+<span class="err">✗</span> <span class="b">slurm@el10</span> failed in step rpm after 1m48s <span class="d">(commit d42f66a)</span>
+  <span class="d">root.log</span>  No matching package to install: 'rocm-smi-devel'
+  <span class="d">root.log</span>  error: Failed build dependencies: rocm-smi-devel is needed by slurm-26.05.4-2.el10.x86_64
+
+<span class="d">staging</span>  ~/.local/share/repoctl/slurm-26.05/staging/r-20261102-1750-a3f <span class="d">(el9 complete)</span>
+repoctl: <span class="err">✗</span> build: <span class="err">failed</span> in 41m07s: 6 ok, 1 failed, 1 blocked, 13 current
+repoctl: <span class="err">error:</span> slurm@el10: Failed build dependencies: rocm-smi-devel is needed
+<span class="d">hint:</span> read the log. run: <span class="b">repoctl logs slurm@el10</span>
+<span class="d">hint:</span> rocm-smi builds for el9 only: guard its BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or build it for el10
+<span class="d">hint:</span> el9 is publishable now. run: <span class="b">repoctl publish --target el9</span>
+<span class="p">dklein@hpc-a1:~/src/slurm-repo$</span> <span class="cur"> </span></pre>
+</figure>
+</main>
+</body>
+</html>

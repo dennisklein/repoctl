@@ -1,0 +1,522 @@
+/* repoctl.css: tokens, base elements and shared components of the repoctl web UI.
+   Every page links it first, then shell.css, then one area stylesheet.
+   Area stylesheets never restyle the classes of this file; they add page classes only.
+   Colours come only from the tokens below. Copper primary on warm grey, light and dark. */
+@import url('fonts/fonts.css');
+
+/* ---------- tokens: light ---------- */
+:root,[data-theme="light"]{
+  --c-primary:#a7521d; --c-primary-strong:#8f4314; --c-primary-soft:#f6e3d6; --c-on-primary:#fff;
+  --c-bg:#faf8f6; --c-surface:#fff; --c-surface-2:#f2eeea; --c-surface-3:#e8e2dc;
+  --c-border:#ddd5cd; --c-border-strong:#c4b8ac; --c-border-control:#a3907e;
+  --c-text:#231d18; --c-text-2:#5d534a; --c-text-3:#74695e;
+  --c-focus:#c4682c; --c-scrim:rgba(20,15,10,.45);
+  /* node and run states; staged uses the ok colours */
+  --s-queued:#71685f;   --s-queued-bg:#efebe7;
+  --s-waiting:#71685f;  --s-waiting-bg:#f5f2ef;
+  --s-running:#a7521d;  --s-running-bg:#fbe9dc;
+  --s-ok:#2d7747;       --s-ok-bg:#e1f1e6;
+  --s-current:#596989;  --s-current-bg:#e6eaf2;
+  --s-failed:#c0362c;   --s-failed-bg:#fbe3e0;
+  --s-blocked:#906300;  --s-blocked-bg:#fbf0d4;
+  --s-canceled:#71685f; --s-canceled-bg:#efebe7;
+  --s-skip:#7c6f63;     --s-skip-bg:transparent;
+  --shadow-1:0 1px 2px rgba(35,29,24,.06),0 1px 1px rgba(35,29,24,.04);
+  --shadow-2:0 6px 24px rgba(35,29,24,.12);
+  color-scheme:light;
+}
+/* log and terminal surfaces are dark in both themes */
+:root{
+  --log-bg:#17130f; --log-fg:#e9e1d8; --log-ln:#6f645a; --log-dim:#8d8278; --log-rule:#2c251f;
+  --log-err:#ff8a7e; --log-warn:#e6b84a; --log-ok:#7fd39a; --log-accent:#f0a36d; --log-info:#9fb0d4;
+  --log-err-bg:rgba(255,122,110,.13); --log-warn-bg:rgba(230,184,74,.10);
+  --log-hit:#6b4a1e; --log-hit-cur:#c97a33; --log-target:rgba(224,138,79,.18); --log-fresh:rgba(224,138,79,.22);
+  --font-sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+  --r-sm:4px; --r-md:6px; --r-lg:10px;
+  --topbar-h:52px; --sidebar-w:232px; --gap-card:20px; --drawer-w:480px;
+}
+/* ---------- tokens: dark (system setting, or data-theme="dark") ---------- */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --c-primary:#e08a4f; --c-primary-strong:#f0a36d; --c-primary-soft:#3a2516; --c-on-primary:#1a120c;
+    --c-bg:#15120f; --c-surface:#1c1814; --c-surface-2:#241f1a; --c-surface-3:#2e2721;
+    --c-border:#352d26; --c-border-strong:#4a4037; --c-border-control:#736355;
+    --c-text:#efe9e3; --c-text-2:#bfb4a9; --c-text-3:#9a8f84;
+    --c-focus:#f0a36d; --c-scrim:rgba(0,0,0,.6);
+    --s-queued:#9b9086;   --s-queued-bg:#2a241f;
+    --s-waiting:#9b9086;  --s-waiting-bg:#221d19;
+    --s-running:#f0a36d;  --s-running-bg:#3a2516;
+    --s-ok:#6cc58a;       --s-ok-bg:#16301f;
+    --s-current:#9fb0d4;  --s-current-bg:#1f2635;
+    --s-failed:#ff7a6e;   --s-failed-bg:#3a1a17;
+    --s-blocked:#e6b84a;  --s-blocked-bg:#352a10;
+    --s-canceled:#9b9086; --s-canceled-bg:#2a241f;
+    --s-skip:#8c8075;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+[data-theme="dark"]{
+  --c-primary:#e08a4f; --c-primary-strong:#f0a36d; --c-primary-soft:#3a2516; --c-on-primary:#1a120c;
+  --c-bg:#15120f; --c-surface:#1c1814; --c-surface-2:#241f1a; --c-surface-3:#2e2721;
+  --c-border:#352d26; --c-border-strong:#4a4037; --c-border-control:#736355;
+  --c-text:#efe9e3; --c-text-2:#bfb4a9; --c-text-3:#9a8f84;
+  --c-focus:#f0a36d; --c-scrim:rgba(0,0,0,.6);
+  --s-queued:#9b9086;   --s-queued-bg:#2a241f;
+  --s-waiting:#9b9086;  --s-waiting-bg:#221d19;
+  --s-running:#f0a36d;  --s-running-bg:#3a2516;
+  --s-ok:#6cc58a;       --s-ok-bg:#16301f;
+  --s-current:#9fb0d4;  --s-current-bg:#1f2635;
+  --s-failed:#ff7a6e;   --s-failed-bg:#3a1a17;
+  --s-blocked:#e6b84a;  --s-blocked-bg:#352a10;
+  --s-canceled:#9b9086; --s-canceled-bg:#2a241f;
+  --s-skip:#8c8075;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 8px 28px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+/* an element with data-theme (not the root) is a theme sample, for example on the component sheet */
+[data-theme]:not(:root){background:var(--c-bg);color:var(--c-text)}
+
+/* ---------- base elements ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--c-bg);color:var(--c-text);font:14px/1.5 var(--font-sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--c-primary);text-decoration:none}
+a:hover{text-decoration:underline}
+code,kbd,pre,samp,.mono{font-family:var(--font-mono);font-size:.92em}
+pre{margin:0}
+h1,h2,h3{line-height:1.25;margin:0 0 .5em;font-weight:600}
+h1{font-size:22px}h2{font-size:15px}h3{font-size:14px}
+p{margin:0 0 .6em}
+:focus-visible{outline:2px solid var(--c-focus);outline-offset:2px}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+img,svg{max-width:100%}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* small text helpers */
+.muted{color:var(--c-text-3)}
+.small{font-size:12.5px}
+.nowrap{white-space:nowrap}
+.grow{flex:1;min-width:0}
+.sep{color:var(--c-border-strong);margin:0 2px}
+.dot{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:currentColor}
+.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap-card)}
+
+/* a code (problem code, rule, exit code) after the sentence it explains: small and muted */
+.code-sub{font:12px var(--font-mono);color:var(--c-text-3)}
+/* short id (a3f, c21, 9a0c4e2) as link text; the full id goes in title and in the copy action */
+.id{font-family:var(--font-mono);font-size:.92em}
+.id[title]:hover{text-decoration:underline dotted;text-underline-offset:3px}
+.tag{display:inline-block;padding:1px 6px;border-radius:var(--r-sm);background:var(--c-surface-3);color:var(--c-text-2);font:500 11.5px var(--font-mono);white-space:nowrap}
+
+kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border:1px solid var(--c-border-strong);border-bottom-width:2px;
+  border-radius:4px;background:var(--c-surface);color:var(--c-text-2);font:500 11px var(--font-mono)}
+
+/* ---------- page head ---------- */
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 4px;font-size:12.5px;color:var(--c-text-3)}
+.crumbs a{color:var(--c-text-2)}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px 16px;margin-bottom:18px}
+.page-head>:first-child{flex:1 1 320px;min-width:0}
+.page-head h1{margin:0;line-height:1.3}
+.page-head .sub{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;margin-top:2px;font-size:13px;color:var(--c-text-2)}
+.page-head .sub .muted{font-size:12.5px}
+.page-head .actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:2px}
+
+/* ---------- cards ---------- */
+.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-lg);min-width:0}
+.card-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:12px 16px}
+.card-head h2{margin:0;font-size:15px}
+.card-head .right{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12.5px;color:var(--c-text-3)}
+.card-head+*{border-top:1px solid var(--c-border)}
+.card-body{padding:16px}
+.card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--c-border);font-size:12.5px;color:var(--c-text-2)}
+.card-foot .right{margin-left:auto;display:flex;gap:8px}
+
+/* rows: the list of a card. Primary text, a second line, the actions on the right. */
+.rows{list-style:none;margin:0;padding:0}
+.rows>li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 16px;align-items:center;padding:12px 16px;border-top:1px solid var(--c-border)}
+.rows>li:first-child{border-top:0}
+.rows .t{font-size:14px;min-width:0}
+.rows .s{grid-column:1;font-size:13px;color:var(--c-text-2);min-width:0}
+.rows .acts{grid-column:2;grid-row:1/span 2;display:flex;align-items:center;gap:6px}
+.rows.mini>li{padding:9px 16px}
+.rows.mini .t{font-size:13.5px}
+.rows.mini .s{font-size:12.5px;color:var(--c-text-3)}
+
+/* numbers in a sentence, not in tiles */
+.statline{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;color:var(--c-text-2)}
+.statline b{color:var(--c-text);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* key and value */
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 16px;margin:0;font-size:13px}
+.kv dt{color:var(--c-text-3)}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--r-md);border:1px solid var(--c-border-strong);
+  background:var(--c-surface);color:var(--c-text);font:500 13px var(--font-sans);white-space:nowrap;cursor:pointer;text-decoration:none}
+.btn:hover{background:var(--c-surface-2);text-decoration:none}
+.btn svg{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.btn-sm{height:26px;padding:0 9px;font-size:12.5px}
+.btn-lg{height:36px;padding:0 16px;font-size:14px}
+/* one filled button per page, for the real next step */
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-primary)}
+.btn-primary:hover{background:var(--c-primary-strong);border-color:var(--c-primary-strong)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--c-text-2)}
+.btn-ghost:hover{background:var(--c-surface-2);border-color:var(--c-border)}
+/* the agent button: a quiet secondary with the spark mark, at most one per row */
+.btn-agent{background:transparent;color:var(--c-text-2)}
+.btn-agent::before{content:"\2726";color:var(--c-primary);font-size:.95em;line-height:1}
+.btn-agent:hover{color:var(--c-text)}
+.btn-agent[aria-pressed="true"]{background:var(--c-surface);border-color:var(--c-primary);color:var(--c-text)}
+/* destructive confirm in a dialog; .solid only for the final step of a shared-state action */
+.btn-danger{border-color:var(--s-failed);color:var(--s-failed)}
+.btn-danger:hover{background:var(--s-failed-bg)}
+.btn-danger.solid{background:var(--s-failed);border-color:var(--s-failed);color:var(--c-on-primary)}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.btn[aria-disabled="true"]{pointer-events:none}
+.icon-btn{display:inline-grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border-radius:var(--r-md);border:1px solid transparent;
+  background:transparent;color:var(--c-text-2);font:600 13px var(--font-mono);cursor:pointer;text-decoration:none}
+.icon-btn:hover{background:var(--c-surface-2);border-color:var(--c-border);text-decoration:none}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7}
+.copy{display:inline-grid;place-items:center;flex:none;width:22px;height:22px;padding:0;border:0;border-radius:var(--r-sm);background:transparent;color:var(--c-text-3);cursor:pointer;vertical-align:middle}
+.copy:hover{background:var(--c-surface-2);color:var(--c-text)}
+.copy svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8}
+.copy.done{color:var(--s-ok)}
+
+/* ---------- menus and popovers (details elements: they work without script) ---------- */
+.more,.help,.cli-toggle{position:relative;display:inline-block}
+.more>summary,.help>summary,.cli-toggle>summary{list-style:none;cursor:pointer}
+.more>summary::-webkit-details-marker,.help>summary::-webkit-details-marker,.cli-toggle>summary::-webkit-details-marker{display:none}
+/* row actions: one visible button, the others in the "more" menu */
+.more>summary.btn{width:32px;padding:0;font-size:16px;letter-spacing:.05em;color:var(--c-text-3)}
+.more>summary.btn-sm{width:28px}
+.more[open]>summary{background:var(--c-surface-2);border-color:var(--c-border)}
+.more-pop{position:absolute;right:0;top:calc(100% + 4px);z-index:40;display:grid;min-width:240px;max-width:min(340px,calc(100vw - 32px));padding:4px;
+  background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-md);box-shadow:var(--shadow-2);text-align:left}
+.more-pop>a,.more-pop>button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 10px;border:0;border-radius:var(--r-sm);
+  background:none;color:var(--c-text);font:13px/1.35 var(--font-sans);text-align:left;cursor:pointer;height:auto;justify-content:flex-start}
+.more-pop>a:hover,.more-pop>button:hover{background:var(--c-surface-2);text-decoration:none}
+.more-pop>.btn-agent{flex-direction:row;gap:6px;color:var(--c-text)}
+.more-pop .code-sub{display:block;max-width:300px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more-pop>button[aria-disabled="true"]{color:var(--c-text-3);cursor:not-allowed}
+.more-pop .note{padding:0 10px 6px;font-size:12px;color:var(--c-text-3)}
+.more-pop hr{border:0;border-top:1px solid var(--c-border);margin:4px 2px}
+/* "?" help: text that a person reads once, in a small popover */
+.help>summary{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--c-border-strong);
+  color:var(--c-text-3);font:600 11px/1 var(--font-sans);vertical-align:1px}
+.help>summary:hover,.help[open]>summary{color:var(--c-text);border-color:var(--c-text-3)}
+.help-pop{position:absolute;right:-8px;top:calc(100% + 6px);z-index:40;width:min(320px,calc(100vw - 32px));margin:0;padding:10px 12px;
+  background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-md);box-shadow:var(--shadow-2);
+  font:12.5px/1.55 var(--font-sans);color:var(--c-text-2);text-align:left;white-space:normal}
+.help.up .help-pop{top:auto;bottom:calc(100% + 6px)}
+.more.up .more-pop,.cli-toggle.up .cli-pop{top:auto;bottom:calc(100% + 6px)}
+.help.left .help-pop{right:auto;left:-8px}
+/* one CLI toggle in the page head holds the CLI commands of the page */
+.cli-toggle[open]>summary{background:var(--c-surface-2);border-color:var(--c-border)}
+.cli-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:40;width:max-content;max-width:min(600px,calc(100vw - 32px));padding:10px 12px;
+  background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r-md);box-shadow:var(--shadow-2);
+  font:12.5px/1.7 var(--font-mono);color:var(--c-text);white-space:pre-wrap;overflow-wrap:anywhere}
+.cli-pop .c{color:var(--c-text-3)}
+.cli-pop .copy{vertical-align:-5px}
+
+/* ---------- folds ---------- */
+/* a disclosure with a one-line summary that stays visible */
+details.fold{border-top:1px solid var(--c-border)}
+.card>details.fold:first-child{border-top:0}
+details.fold>summary{display:flex;align-items:center;gap:10px;min-width:0;padding:11px 16px;list-style:none;cursor:pointer;font-size:13.5px;color:var(--c-text-2)}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before,.rest::before{content:"";flex:none;border:4px solid transparent;border-left:6px solid var(--c-text-3);transition:transform .15s}
+details.fold[open]>summary::before,details[open]>.rest::before{transform:rotate(90deg) translateX(2px)}
+details.fold>summary b{color:var(--c-text);font-weight:600;white-space:nowrap}
+details.fold>summary .sum{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-3)}
+details.fold>summary .right{margin-left:auto;display:flex;align-items:center;gap:10px;flex:none}
+details.fold>summary:hover{color:var(--c-text)}
+.fold-body{padding:0 16px 14px 32px;font-size:13px;color:var(--c-text-2)}
+/* one row that stands for many rows in their normal state; it always carries the count */
+.rest{display:flex;align-items:center;gap:8px;padding:10px 16px;list-style:none;cursor:pointer;font-size:13px;color:var(--c-text-3)}
+.rest::-webkit-details-marker{display:none}
+.rest b{flex:none;color:var(--c-text-2);font-weight:500;white-space:nowrap}
+.rest:hover{color:var(--c-text-2)}
+details>.rest{border-top:1px solid var(--c-border)}
+details[open]>.rest{border-bottom:1px solid var(--c-border)}
+.rest-body{padding:10px 16px 12px 32px;font-size:13px;color:var(--c-text-2)}
+
+/* ---------- state ---------- */
+/* quiet state: a small dot and a word, no fill. For every normal state. */
+.qs{display:inline-flex;align-items:center;gap:6px;color:var(--c-text-3);font-size:12.5px;white-space:nowrap}
+.qs::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.75}
+.qs.ok{color:var(--s-ok)}
+.qs.cur{color:var(--c-text-3)}
+.qs.run{color:var(--s-running)}
+.qs.warn{color:var(--s-blocked)}
+.qs.bad{color:var(--s-failed)}
+.qs.none::before{display:none}
+/* pill: only for a state that needs a look: failed, blocked, required, running, accepted, retiring, behind, not ready */
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font:500 11.5px var(--font-sans);white-space:nowrap;
+  color:var(--c-text-2);background:var(--c-surface-3)}
+.pill::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-queued{color:var(--s-queued);background:var(--s-queued-bg)}
+.st-waiting{color:var(--s-waiting);background:var(--s-waiting-bg)}
+.st-running{color:var(--s-running);background:var(--s-running-bg)}
+.st-ok,.st-staged{color:var(--s-ok);background:var(--s-ok-bg)}
+.st-current{color:var(--s-current);background:var(--s-current-bg)}
+.st-failed{color:var(--s-failed);background:var(--s-failed-bg)}
+.st-blocked{color:var(--s-blocked);background:var(--s-blocked-bg)}
+.st-canceled{color:var(--s-canceled);background:var(--s-canceled-bg)}
+.st-skip{color:var(--s-skip);background:var(--s-skip-bg);border:1px dashed var(--s-skip)}
+.pill.st-running::before{animation:pulse 1.2s ease-in-out infinite}
+/* plan action build: an outline in the primary colour, not a run state */
+.pill.act-build{color:var(--c-primary-strong);background:transparent;border:1px solid var(--c-primary)}
+.pill.act-build::before{width:6px;height:6px;border-radius:1px;transform:rotate(45deg)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* node chip: <a class="node-chip st-failed"><b>slurm</b>@el10</a>. The square has the state colour, the text stays in text colours. */
+.node-chip{display:inline-flex;align-items:center;gap:0;height:24px;padding:0 8px 0 6px;border-radius:var(--r-md);border:1px solid var(--c-border);
+  background:var(--c-surface);font:12.5px var(--font-mono);color:var(--c-text-2);white-space:nowrap;vertical-align:middle}
+a.node-chip:hover{text-decoration:none;border-color:var(--c-border-strong)}
+.node-chip::before{content:"";flex:none;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--chip,var(--c-text-3))}
+.node-chip b{font-weight:600;color:var(--c-text)}
+.node-chip[class*="st-"]{background:var(--c-surface);color:var(--c-text-2)}
+.node-chip.st-queued{--chip:var(--s-queued)}.node-chip.st-waiting{--chip:var(--s-waiting)}.node-chip.st-running{--chip:var(--s-running)}
+.node-chip.st-ok,.node-chip.st-staged{--chip:var(--s-ok)}.node-chip.st-current{--chip:var(--s-current)}.node-chip.st-failed{--chip:var(--s-failed)}
+.node-chip.st-blocked{--chip:var(--s-blocked)}.node-chip.st-canceled{--chip:var(--s-canceled)}.node-chip.st-skip{--chip:var(--s-skip);border-style:dashed}
+.node-chip.st-skip{border-color:var(--c-border-strong)}
+.node-chip.st-running::before{animation:pulse 1.2s ease-in-out infinite}
+.node-chip.st-failed{border-color:color-mix(in srgb,var(--s-failed) 45%,var(--c-border))}
+
+/* target: long form in headers, short form (only b) in tables */
+.target{display:inline-flex;align-items:center;height:20px;border:1px solid var(--c-border-strong);border-radius:var(--r-sm);overflow:hidden;font:500 11.5px var(--font-mono);white-space:nowrap;vertical-align:middle}
+.target b{display:grid;place-items:center;height:100%;padding:0 6px;background:var(--c-surface-3);color:var(--c-text);font-weight:600}
+.target span{padding:0 6px;color:var(--c-text-3)}
+
+/* NVR: name-version-release.dist.arch; the version is bold, dist and arch are muted. Never cut an NVR. */
+.nvr{font:12.5px var(--font-mono);white-space:nowrap}
+.nvr .n,.nvr .v{color:var(--c-text)}.nvr .v{font-weight:600}.nvr .r{color:var(--c-text-2)}.nvr .d{color:var(--c-text-3)}
+/* EVR as rpm prints it, with an arrow between two versions */
+.evr{font:12.5px var(--font-mono);white-space:nowrap;color:var(--c-text-2)}
+.evr b{color:var(--c-text);font-weight:600}
+.arrow{color:var(--c-text-3)}
+
+/* hash with copy: 7 characters for commits, 12 for digests; the full value in title and copy */
+.hashc{display:inline-flex;align-items:center;gap:2px;font:12.5px var(--font-mono);color:var(--c-text-2)}
+/* key fingerprint, with the short tail marked */
+.fpr{font:12.5px var(--font-mono);letter-spacing:.02em;overflow-wrap:anywhere}
+.fpr b{color:var(--c-text);font-weight:600}
+
+/* command line with copy: every dialog shows the CLI command of its action */
+.cmd{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 6px 6px 10px;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:var(--r-md);
+  font:12.5px var(--font-mono);color:var(--c-text)}
+.cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:inherit}
+.cmd code::before{content:"$ ";color:var(--c-text-3)}
+
+/* ---------- run progress ---------- */
+/* segments in a fixed order: ok, current, failed, blocked, canceled, running, waiting */
+.progress{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden;background:var(--c-surface-3)}
+.progress.lg{height:10px;border-radius:4px}
+.progress>i{display:block;height:100%;min-width:4px}
+.progress .p-ok{background:var(--s-ok)}.progress .p-current{background:var(--s-current)}.progress .p-failed{background:var(--s-failed)}
+.progress .p-blocked{background:var(--s-blocked)}.progress .p-canceled{background:var(--s-canceled)}
+.progress .p-waiting{background:color-mix(in srgb,var(--s-waiting) 45%,var(--c-surface-3))}
+.progress .p-running{background:repeating-linear-gradient(-45deg,var(--s-running) 0 6px,color-mix(in srgb,var(--s-running) 70%,var(--c-surface)) 6px 12px);
+  background-size:17px 17px;animation:stripes 1s linear infinite}
+.progress .p-todo{background:transparent}
+@keyframes stripes{to{background-position:17px 0}}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--c-text-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px}
+/* sparkline of run durations: one bar per run, newest right, one linear scale from 0 */
+.spark{display:block;overflow:visible}
+.spark rect{rx:1.5}
+.spark .ok{fill:var(--s-ok)}.spark .failed{fill:var(--s-failed)}.spark .running{fill:var(--s-running)}.spark .canceled{fill:var(--s-canceled)}
+.spark .base{stroke:var(--c-border);stroke-width:1}
+/* node strip: one square per node of a run, always next to a text summary */
+.strip{display:inline-flex;flex-wrap:wrap;gap:2px;max-width:176px}
+.strip i{width:8px;height:8px;border-radius:2px;background:var(--s-current)}
+.strip i.ok{background:var(--s-ok)}.strip i.running{background:var(--s-running)}.strip i.failed{background:var(--s-failed)}.strip i.blocked{background:var(--s-blocked)}
+.strip i.waiting{background:transparent;box-shadow:inset 0 0 0 1.5px var(--s-waiting)}
+
+/* ---------- banners, toasts, empty states ---------- */
+/* one sentence of what, one of what to do */
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--c-border);background:var(--c-surface-2);font-size:13.5px}
+.banner b{font-weight:600}
+.banner .ic{flex:none;width:18px;height:18px;margin-top:1px;stroke:currentColor;fill:none;stroke-width:1.8;color:var(--c-text-3)}
+.banner .grow{flex:1;min-width:0}
+.banner>.acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:none}
+.banner.info{border-color:color-mix(in srgb,var(--s-current) 55%,var(--c-border));background:var(--s-current-bg)}
+.banner.info .ic{color:var(--s-current)}
+.banner.warn{border-color:var(--s-blocked);background:var(--s-blocked-bg)}
+.banner.warn .ic{color:var(--s-blocked)}
+.banner.err{border-color:var(--s-failed);background:var(--s-failed-bg)}
+.banner.err .ic{color:var(--s-failed)}
+/* narrow main: the actions go under the text, so the sentence keeps the width */
+@container main (max-width:560px){
+  .banner{flex-wrap:wrap}
+  .banner>.grow{flex:1 1 calc(100% - 28px)}
+  .banner>.acts,.banner>.btn{margin-left:28px}
+}
+
+.toasts{position:fixed;right:16px;bottom:16px;z-index:70;display:grid;gap:8px;width:min(380px,calc(100vw - 32px))}
+.toast{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:start;padding:10px 12px;background:var(--c-surface);
+  border:1px solid var(--c-border);border-left:4px solid var(--c-border-strong);border-radius:var(--r-md);box-shadow:var(--shadow-2);font-size:13px}
+.toast>.dot{margin-top:6px;color:var(--c-text-3)}
+.toast b{font-weight:600}
+.toast .acts{grid-column:2/-1;display:flex;gap:12px;font-size:12.5px}
+.toast .x{border:0;background:none;color:var(--c-text-3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px}
+.toast.ok{border-left-color:var(--s-ok)}.toast.ok>.dot{color:var(--s-ok)}
+.toast.err{border-left-color:var(--s-failed)}.toast.err>.dot{color:var(--s-failed)}
+.toast.info{border-left-color:var(--s-running)}.toast.info>.dot{color:var(--s-running)}
+
+/* says what the thing is and how to make the first one */
+.empty{display:grid;justify-items:center;gap:8px;padding:28px 16px;text-align:center;color:var(--c-text-2)}
+.empty>svg{width:36px;height:36px;stroke:var(--c-text-3);fill:none;stroke-width:1.4}
+.empty h3{margin:4px 0 0;color:var(--c-text)}
+.empty p{margin:0;max-width:44ch;font-size:13px}
+
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto;min-width:0}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{padding:8px 16px;text-align:left;font-weight:500;font-size:12.5px;color:var(--c-text-3);border-bottom:1px solid var(--c-border);white-space:nowrap}
+.table td{padding:9px 16px;border-bottom:1px solid var(--c-border);vertical-align:middle}
+.table tr:last-child td{border-bottom:0}
+.table tbody tr:hover td{background:var(--c-surface-2)}
+.table .num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- forms ---------- */
+.input,.select{height:32px;min-width:0;padding:0 10px;border:1px solid var(--c-border-control);border-radius:var(--r-md);background:var(--c-surface);color:var(--c-text);font:13.5px var(--font-sans)}
+.input.mono{font-family:var(--font-mono);font-size:13px}
+.input::placeholder{color:var(--c-text-3)}
+textarea.input{display:block;width:100%;height:auto;padding:8px 10px;line-height:1.5;resize:vertical}
+.select{padding-right:28px;appearance:none;background:var(--c-surface) no-repeat right 10px center/10px 6px
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2374695e'/%3E%3C/svg%3E")}
+.input:focus-visible,.select:focus-visible{outline:2px solid var(--c-focus);outline-offset:1px}
+.check{width:16px;height:16px;margin:0;accent-color:var(--c-primary)}
+label.field{display:grid;gap:4px;font-size:13px;color:var(--c-text-2)}
+label.field .input{width:100%}
+.search{display:inline-flex;align-items:center;gap:6px;height:32px;min-width:0;padding:0 10px;border:1px solid var(--c-border-control);border-radius:var(--r-md);background:var(--c-surface);color:var(--c-text-3)}
+.search svg{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--c-text);font:13px var(--font-sans)}
+.search:focus-within{outline:2px solid var(--c-focus);outline-offset:1px}
+/* segmented control: views of one page (graph, matrix) or a filter */
+.seg{display:inline-flex;border:1px solid var(--c-border-strong);border-radius:var(--r-md);overflow:hidden;background:var(--c-surface)}
+.seg>a,.seg>button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-right:1px solid var(--c-border);background:transparent;
+  color:var(--c-text-2);font:500 13px var(--font-sans);white-space:nowrap;cursor:pointer}
+.seg>:last-child{border-right:0}
+.seg>a:hover,.seg>button:hover{background:var(--c-surface-2);text-decoration:none}
+.seg>[aria-current],.seg>[aria-pressed="true"],.seg>[aria-selected="true"]{background:var(--c-primary-soft);color:var(--c-primary-strong)}
+.seg .n{color:var(--c-text-3);font-weight:400;font-variant-numeric:tabular-nums}
+/* tabs: one per target or per file */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--c-border);overflow-x:auto;scrollbar-width:thin}
+.tab{display:inline-flex;align-items:center;gap:6px;padding:8px 12px 7px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--c-text-2);font-weight:500;white-space:nowrap}
+.tab:hover{text-decoration:none;color:var(--c-text)}
+.tab[aria-current],.tab[aria-selected="true"]{color:var(--c-text);border-bottom-color:var(--c-primary)}
+.tab .n{font:400 12px var(--font-sans);color:var(--c-text-3)}
+/* chip: a filter or a picked value */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--c-border);border-radius:999px;background:var(--c-surface);
+  color:var(--c-text-2);font:500 12.5px var(--font-sans);white-space:nowrap}
+a.chip:hover{text-decoration:none;background:var(--c-surface-2)}
+.chip.on,.chip[aria-pressed="true"]{border-color:var(--c-primary);background:var(--c-primary-soft);color:var(--c-primary-strong)}
+.chip .n{color:var(--c-text-3);font-variant-numeric:tabular-nums}
+.chip button{border:0;background:none;padding:0;color:var(--c-text-3);cursor:pointer;font-size:14px;line-height:1}
+
+/* ---------- dialogs and drawers ---------- */
+/* native <dialog> with showModal(): focus trap, Esc and backdrop come from the browser.
+   The safe button is left, the action right. The body scrolls, so the title and the buttons stay on screen. */
+.dlg{width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 48px);padding:0;border:1px solid var(--c-border);border-radius:var(--r-lg);
+  background:var(--c-surface);color:var(--c-text);box-shadow:var(--shadow-2);overflow:hidden}
+.dlg[open]{display:flex;flex-direction:column}
+.dlg.wide{width:min(760px,calc(100vw - 32px))}
+.dlg::backdrop{background:var(--c-scrim)}
+.dlg>header{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--c-border);flex:none}
+.dlg>header h2{margin:0;font-size:16px}
+.dlg>header .step-n{margin-left:auto;font-size:12px;color:var(--c-text-3)}
+.dlg>.body{display:grid;gap:14px;padding:16px;overflow-y:auto;min-height:0;font-size:13.5px}
+.dlg>.body>*{margin:0}
+.dlg>footer{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--c-border);background:var(--c-surface-2);flex:none}
+.dlg>footer .left{margin-right:auto;font-size:12.5px;color:var(--c-text-3)}
+/* a mockup shows an open modal without script: .scrim behind a .dlg.static */
+.scrim{position:fixed;inset:0;z-index:80;background:var(--c-scrim)}
+.dlg.static{position:fixed;inset:0;z-index:81;margin:auto;height:max-content}
+html:has(.scrim),html:has(dialog:modal){overflow:hidden}
+/* drawer: a side panel on the right, under the top bar; the page stays usable */
+.drawer{position:fixed;top:var(--topbar-h);right:0;bottom:0;z-index:35;display:flex;flex-direction:column;width:min(var(--drawer-w),100vw);
+  background:var(--c-surface);border-left:1px solid var(--c-border);box-shadow:var(--shadow-2)}
+[data-drawer="wide"]{--drawer-w:600px}
+.dr-head{display:grid;gap:6px;padding:14px 16px 12px;border-bottom:1px solid var(--c-border);flex:none}
+.dr-title{display:flex;align-items:center;gap:8px;min-width:0}
+.dr-title h2{margin:0;font-size:16px;min-width:0}
+.dr-title .icon-btn{margin-left:auto}
+.dr-body{flex:1;overflow-y:auto;min-height:0}
+.dr-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--c-border);font-size:12.5px;color:var(--c-text-2);flex:none}
+
+@media (max-width:760px){.drawer{top:0;z-index:60}}
+/* in place: a floating part (dialog, drawer, popover, toast stack) drawn in the page flow, for the component sheet */
+.inplace{position:static!important;inset:auto;z-index:auto;margin:0;width:auto;max-width:100%;max-height:none;box-shadow:var(--shadow-1)}
+.dlg.inplace{display:flex;flex-direction:column}
+.drawer.inplace{height:auto;border:1px solid var(--c-border);border-radius:var(--r-lg);overflow:hidden}
+.toasts.inplace{box-shadow:none}
+.toasts.inplace .toast{box-shadow:var(--shadow-1)}
+
+/* ---------- log blocks (dark in both themes) ---------- */
+.log{margin:0;padding:12px 14px;border-radius:var(--r-md);background:var(--log-bg);color:var(--log-fg);font:12.5px/1.55 var(--font-mono);overflow:auto;white-space:pre}
+.log .ln{display:inline-block;width:4ch;margin-right:12px;text-align:right;color:var(--log-ln);user-select:none}
+.log .p{color:var(--log-accent)}.log .err{color:var(--log-err)}.log .warn{color:var(--log-warn)}.log .ok{color:var(--log-ok)}.log .dim{color:var(--log-dim)}.log .info{color:var(--log-info)}
+.log .hl{display:inline-block;min-width:calc(100% + 28px);margin:0 -14px;padding:0 14px;background:var(--log-err-bg);box-shadow:inset 3px 0 0 var(--log-err)}
+
+/* ---------- agent drawer: any page can open it (body data-drawer="wide") ---------- */
+.agent-drawer .dr-title>svg{width:18px;height:18px;fill:var(--c-primary);stroke:none;flex:none}
+.agent-drawer .dr-line{margin:0;font-size:12.5px;color:var(--c-text-3)}
+.agent-drawer .dr-line code{font-size:12px;color:var(--c-text-2)}
+.agent-drawer .dr-body>section{padding:14px 16px;border-bottom:1px solid var(--c-border)}
+.agent-drawer h3{margin:0 0 8px;font-size:13px}
+.agent-drawer .verdict .v{margin:0 0 4px;font-size:15px;line-height:1.45;max-width:62ch}
+.agent-drawer .verdict p{margin:0;font-size:13.5px;color:var(--c-text-2);max-width:68ch}
+.agent-drawer .fixes{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.agent-drawer .fixes>li{display:grid;gap:4px}
+.agent-drawer .fx-h{font-size:13.5px}
+.agent-drawer .fixes .s{margin:0;font-size:13px;color:var(--c-text-2);max-width:68ch}
+.agent-drawer .proof{display:flex;gap:6px;align-items:baseline;margin:2px 0 0;font-size:13px;color:var(--c-text-2)}
+.agent-drawer .proof .ok{color:var(--s-ok);font-weight:600}
+.agent-drawer .fx-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
+.agent-drawer .fx-acts .why{font-size:12px;color:var(--c-text-3)}
+.agent-drawer details.fold>summary .sum{font:12px var(--font-mono)}
+.agent-drawer .fold-body{padding:0 16px 14px}
+.agent-drawer details.fold:last-child{border-bottom:1px solid var(--c-border)}
+.agent-drawer .kv{grid-template-columns:64px minmax(0,1fr);font-size:12.5px}
+.agent-drawer .dr-foot{justify-content:space-between}
+.agent-drawer .lnk{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;color:var(--c-primary);font:500 13px var(--font-sans);cursor:pointer}
+.agent-drawer .lnk:hover{text-decoration:underline}
+.agent-drawer .lnk svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+/* while the agent runs: the tool calls and the text stream */
+.tools{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:12.5px}
+.tools li{display:flex;align-items:center;gap:8px}
+.ti{display:inline-grid;place-items:center;flex:none;width:16px;height:16px;border-radius:50%;font-size:10px;font-weight:700}
+.ti.ok{background:var(--s-ok-bg);color:var(--s-ok)}
+.ti.run{border:2px solid color-mix(in srgb,var(--s-running) 30%,transparent);border-top-color:var(--s-running);animation:spin 1s linear infinite}
+.stream .caret{display:inline-block;width:7px;height:15px;margin-left:2px;vertical-align:-2px;background:var(--c-primary);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+/* evidence lines: each one links into a log or a file */
+.evlist{display:grid;gap:2px;padding:8px 0;border-radius:var(--r-md);background:var(--log-bg);font:12px/1.5 var(--font-mono);overflow-x:auto}
+.ev{display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px;padding:2px 12px;color:var(--log-fg);white-space:pre}
+.ev:hover{background:#2a231d;text-decoration:none}
+.ev .ln{color:var(--log-accent);text-decoration:underline;text-underline-offset:2px}
+.ev .err{color:var(--log-err)}.ev .warn{color:var(--log-warn)}.ev .dim{color:var(--log-dim)}
+.log.diff{margin:0;font-size:12px}
+.log.diff .hunk{color:var(--log-info)}
+
+/* the advisories card on a page without an agent: the deterministic hint stays */
+.agent-hint{font-size:12.5px;color:var(--c-text-3)}
+
+/* ---------- motion and forced colours ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media (forced-colors:active){
+  .pill,.qs,.node-chip{border:1px solid CanvasText}
+  .pill::before,.qs::before,.node-chip::before{background:CanvasText}
+}

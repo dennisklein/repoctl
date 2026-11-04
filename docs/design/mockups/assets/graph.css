@@ -1,0 +1,334 @@
+/* graph.css: build graph (DAG, matrix, union view), node drawer, Plan and the Rebuild dialog.
+   Link it after repoctl.css and shell.css, and load graph.js on the graph pages. It adds classes for these pages
+   only and never restyles the shell or the base components. Colours come from the tokens in repoctl.css. */
+
+/* ---------- toolbar: target tabs, filter, find, view ---------- */
+.gtool{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:12px}
+.gtool .tabs{border-bottom:0;overflow:visible}
+.gtool .sp{flex:1}
+.gtool .search{width:180px}
+.tool-label{font-size:12px;color:var(--c-text-3)}
+/* a dot after a target tab: that target has a running or failed node */
+.tab .sd{width:7px;height:7px;border-radius:50%}
+.sd.failed{background:var(--s-failed)}.sd.running{background:var(--s-running)}
+body[data-drawer] .gtool .tool-label{display:none}
+@container main (max-width:860px){.gtool .tool-label{display:none}.gtool .search{width:140px}}
+
+/* ---------- one-line notes above the canvas ---------- */
+.banners{display:grid;gap:8px;margin-bottom:12px}
+.gban{align-items:center;margin-bottom:12px}
+.banners .gban{margin-bottom:0}
+.gban .code-sub{margin-left:8px}
+.gban .acts{display:flex;align-items:center;gap:6px;flex:none}
+.stale:empty{display:none}
+/* "Why": a short explanation behind a toggle in a banner */
+.gwhy{position:relative;flex:none}
+.gwhy>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:var(--c-primary-strong)}
+.gwhy>summary::-webkit-details-marker{display:none}
+.gwhy>summary::after{content:"";border:4px solid transparent;border-left:5px solid currentColor;transition:transform .15s}
+.gwhy[open]>summary::after{transform:rotate(90deg) translateX(2px)}
+.gwhy-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:40;width:min(380px,calc(100vw - 32px));padding:10px 12px;background:var(--c-surface);
+  border:1px solid var(--c-border);border-radius:var(--r-md);box-shadow:var(--shadow-2);font-size:12.5px;line-height:1.55;color:var(--c-text-2)}
+.gwhy-pop p{margin:0 0 6px}.gwhy-pop p:last-child{margin:0}
+/* narrow main: the toggle goes under the text (repoctl.css), the text opens under the banner at its full width */
+@container main (max-width:560px){
+  .gban{position:relative}
+  .gban>.gwhy{position:static;margin-left:28px}
+  .gban .gwhy-pop{left:0;right:0;width:auto}
+}
+/* a quiet info line that folds its fix */
+.gnote{border:1px solid var(--c-border);border-radius:var(--r-md);background:var(--c-surface)}
+.gnote>summary{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:8px 12px;list-style:none;cursor:pointer;font-size:13px;color:var(--c-text-2)}
+.gnote>summary::-webkit-details-marker{display:none}
+.gnote>summary svg{width:15px;height:15px;flex:none;fill:none;stroke:var(--c-text-3);stroke-width:1.5}
+.gnote>summary::after{content:"";margin-left:auto;border:4px solid transparent;border-left:6px solid var(--c-text-3);transition:transform .15s}
+.gnote[open]>summary::after{transform:rotate(90deg)}
+.gnote>summary b{color:var(--c-text);font-weight:600}
+.gnote-body{padding:0 12px 10px 35px;font-size:13px;color:var(--c-text-2)}
+.gnote-body p{margin:0 0 6px}.gnote-body ol{margin:0 0 6px;padding-left:18px}
+
+/* ---------- canvas ---------- */
+.canvas{position:relative;border:1px solid var(--c-border);border-radius:var(--r-lg);background:var(--c-surface)}
+.canvas-scroll{overflow:auto;padding:4px 0 56px;border-radius:var(--r-lg)}
+/* The graph scales down to fit, to 86 % at most; below that the canvas scrolls. Zoom sets an explicit width. */
+.canvas svg.graph{display:block;width:100%;max-width:var(--gw,1140px);min-width:calc(var(--gw,1140px) * .86);height:auto;margin:0 auto}
+/* With a drawer open the canvas is narrow: the graph scales down to 60 %, so all levels stay in view next to the drawer at 1440 px. */
+body[data-drawer] .canvas svg.graph{min-width:calc(var(--gw,1140px) * .6)}
+.lane{fill:var(--c-surface-2)}
+.lane-label{fill:var(--c-text-3);font:600 10.5px var(--font-sans);letter-spacing:.08em}
+.lane-sub{fill:var(--c-text-3);font:400 10.5px var(--font-sans)}
+
+/* edges: solid = dependency done, dashed = pending, red dashed = dependency failed or blocked, dotted = some targets only */
+.edge .ln{fill:none;stroke:var(--c-border-strong);stroke-width:1.5}
+.edge .ah{fill:var(--c-border-strong)}
+.edge[data-src-state="running"] .ln,.edge[data-src-state="waiting"] .ln,.edge[data-src-state="queued"] .ln{stroke-dasharray:5 4}
+.edge[data-src-state="failed"] .ln,.edge[data-src-state="blocked"] .ln{stroke:var(--s-failed);stroke-dasharray:5 4}
+.edge[data-src-state="failed"] .ah,.edge[data-src-state="blocked"] .ah{fill:var(--s-failed)}
+.edge[data-only] .ln{stroke-dasharray:1.5 4;stroke-linecap:round;stroke-width:2}
+.graph.has-sel .edge,.graph.has-filter .edge{opacity:.16}
+.graph.has-sel .edge.is-down,.graph.has-sel .edge.is-up{opacity:1}
+.edge.is-down .ln{stroke:var(--c-primary);stroke-width:2.5}
+.edge.is-down .ah{fill:var(--c-primary)}
+.edge.is-up .ln{stroke:var(--c-text-2);stroke-width:2.5}
+.edge.is-up .ah{fill:var(--c-text-2)}
+
+/* node cards: HTML inside a foreignObject with 4 px slack for the focus ring.
+   The state is the left edge and one word; only failed and blocked carry a pill. */
+.gnode{transition:opacity .15s}
+.graph.has-sel .gnode.is-dim,.graph.has-filter .gnode.is-dim{opacity:.32}
+.nd{--st:var(--c-border-strong);display:flex;flex-direction:column;justify-content:space-between;height:calc(100% - 8px);margin:4px;padding:6px 10px 7px 11px;
+  border:1px solid var(--c-border);border-left:4px solid var(--st);border-radius:8px;background:var(--c-surface);color:var(--c-text);font:13px/1.3 var(--font-sans);cursor:pointer;overflow:hidden}
+.nd:hover{border-color:var(--c-border-strong);border-left-color:var(--st);text-decoration:none}
+.nd:focus-visible{outline:2px solid var(--c-focus);outline-offset:1px}
+.nd-r1,.nd-r2{display:flex;align-items:center;gap:6px;min-width:0}
+.nd-dir{min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nd-ver{margin-left:auto;padding-left:4px;font:12px var(--font-mono);color:var(--c-text-3);white-space:nowrap}
+.nd-chg{flex:none;font-size:12px;font-weight:700;color:var(--c-primary)}
+.nd-step{font:12px var(--font-mono);color:var(--c-text-2);white-space:nowrap}
+.nd-hint{font-size:12px;color:var(--c-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nd .pill{height:18px;padding:0 7px;font-size:11px}
+.nd .qs{font-size:12px}
+.nd.n-queued{--st:var(--s-queued)}.nd.n-waiting{--st:var(--s-waiting)}.nd.n-running{--st:var(--s-running)}
+.nd.n-ok,.nd.n-staged{--st:var(--s-ok)}.nd.n-current{--st:var(--s-current)}.nd.n-failed{--st:var(--s-failed)}
+.nd.n-blocked{--st:var(--s-blocked)}.nd.n-canceled{--st:var(--s-canceled)}
+.nd.n-skip{--st:var(--s-skip);border-style:dashed;border-left-style:solid;background:transparent}
+.nd.n-failed{border-color:color-mix(in srgb,var(--s-failed) 45%,var(--c-border));background:var(--s-failed-bg)}
+.nd.n-blocked{border-color:color-mix(in srgb,var(--s-blocked) 40%,var(--c-border));background:var(--s-blocked-bg)}
+/* a union card holds two targets: only the left bar shows the worse state, the lines show each one */
+.nd.nd-all{border-color:var(--c-border);border-left-color:var(--st);background:var(--c-surface)}
+.nd.nd-all:hover{border-color:var(--c-border-strong);border-left-color:var(--st)}
+.gnode.is-sel .nd{outline:2px solid var(--c-primary);outline-offset:1px}
+.gnode.is-down .nd{box-shadow:0 0 0 1px var(--c-primary)}
+.gnode.is-up .nd{box-shadow:0 0 0 1px var(--c-text-2)}
+/* union view (target all): one state line per target */
+.nd-tg{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px}
+.nd-tg .tid{flex:none;width:30px;font:500 11px var(--font-mono);color:var(--c-text-3)}
+.nd-tg .na{font-size:12px;color:var(--c-text-3)}
+/* advisory mark: a small icon with a tooltip; info is quiet, only a required advisory is red */
+.adv-mark{display:inline-flex;align-items:center;gap:2px;flex:none;font:600 10.5px var(--font-sans);color:var(--c-text-3);white-space:nowrap}
+.nd-r1 .adv-mark{margin-left:auto}
+.nd-r1 .adv-mark+.nd-ver{margin-left:4px}
+.adv-mark svg{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.adv-mark.warn{color:var(--s-blocked)}
+.adv-mark.required{color:var(--s-failed)}
+
+/* legend behind "?" (bottom left) and zoom (bottom right) */
+.gkey{position:absolute;left:12px;bottom:12px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--c-text-3)}
+.glegend{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:5px}
+.glegend li{display:flex;align-items:center;gap:8px}
+.glegend .ek{flex:none;display:inline-block;width:22px;border-top:1.5px solid var(--c-border-strong)}
+.glegend .ek.pend{border-top-style:dashed}
+.glegend .ek.bad{border-top:1.5px dashed var(--s-failed)}
+.glegend .ek.only{border-top:2px dotted var(--c-border-strong)}
+.glegend .ek.dn{border-top:2.5px solid var(--c-primary)}
+.glegend .ek.upk{border-top:2.5px solid var(--c-text-2)}
+.glegend .nd-chg{width:22px;text-align:center}
+.glegend .adv-mark{width:22px;justify-content:center}
+.glegend .bar{flex:none;width:22px;height:12px;border:1px solid var(--c-border);border-left:4px solid var(--s-running);border-radius:3px}
+.gkey .help-pop p{margin:0}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;align-items:center;overflow:hidden;border:1px solid var(--c-border-strong);border-radius:var(--r-md);background:var(--c-surface)}
+.zoom button{height:30px;min-width:32px;padding:0 8px;border:0;border-right:1px solid var(--c-border);background:transparent;color:var(--c-text-2);font:500 13px var(--font-sans);cursor:pointer}
+.zoom button:last-child{border-right:0}
+.zoom button:hover{background:var(--c-surface-2)}
+.zoom .zl{min-width:52px;font:12px var(--font-mono)}
+/* the selection line above the canvas: the same facts as the colours, in words */
+.selchip{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:6px 8px 6px 14px;border-bottom:1px solid var(--c-border);border-radius:var(--r-lg) var(--r-lg) 0 0;
+  background:var(--c-surface-2);font-size:12.5px;color:var(--c-text-2)}
+.selchip .sp{flex:1}
+.selchip .k{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.selchip .k i{display:inline-block;width:14px;border-top:2.5px solid var(--c-primary)}
+.selchip .k i.up{border-top-color:var(--c-text-2)}
+
+/* the graph as a list: the text equivalent of the SVG. Visually hidden on a desktop, the view on a phone. */
+.glist{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.glist h3{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--c-text-3)}
+.glist .gl-lvl{display:grid;gap:6px}
+.glist .nd{height:auto;margin:0;gap:4px;white-space:normal}
+.glist .needs{font-size:12px;color:var(--c-text-3)}
+@media (max-width:760px){
+  .gtool .search,.gtool .tool-label{display:none}
+  .gtool .sp{display:none}
+  .canvas{display:none}
+  .glist{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:normal;display:grid;gap:14px}
+}
+
+/* ---------- node drawer (inside .drawer of repoctl.css) ---------- */
+body[data-drawer="node"]{--drawer-w:460px}
+.dr-sub{margin:0;font-size:12.5px;color:var(--c-text-3)}
+.dr-actions{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--c-border)}
+/* the menu next to the drawer actions opens to the right, so it stays inside the drawer */
+.dr-actions .more-pop{left:0;right:auto}
+.dr-sec{padding:14px 16px;border-bottom:1px solid var(--c-border)}
+.dr-sec:last-child{border-bottom:0}
+.dr-sec h3{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:13px}
+.dr-sec h3 .r{margin-left:auto;font-size:12px;font-weight:400;color:var(--c-text-3)}
+.dr-sec .kv{font-size:12.5px}
+.dr-sec .rows.dr-rows>li{padding:8px 0}
+.dr-rows .t{font-size:13px}
+.dr-rows .acts{grid-column:1;grid-row:auto;margin-top:6px}
+.dr-more{margin:10px 0 0}
+/* build steps of one node */
+.nsteps{list-style:none;margin:0;padding:0;display:grid}
+.nsteps li{position:relative;display:grid;grid-template-columns:18px 44px minmax(0,1fr) auto;gap:8px;align-items:start;padding:6px 0}
+.nsteps li>*{min-width:0}
+.nsteps li::before{content:"";position:absolute;left:8px;top:24px;bottom:-6px;width:2px;background:var(--c-border)}
+.nsteps li:last-child::before{display:none}
+.nsteps .sdot{display:grid;place-items:center;width:18px;height:18px;margin-top:1px;border:2px solid var(--c-border-strong);border-radius:50%;background:var(--c-surface);font-size:10px;line-height:1}
+.nsteps .done .sdot{border-color:var(--s-ok);background:var(--s-ok-bg);color:var(--s-ok)}
+.nsteps .fail .sdot{border-color:var(--s-failed);background:var(--s-failed-bg);color:var(--s-failed)}
+.nsteps .run .sdot{border-color:var(--s-running);background:var(--s-running-bg)}
+.nsteps .run .sdot::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--s-running);animation:pulse 1.2s infinite}
+.nsteps .sname{font:600 13px var(--font-mono)}
+.nsteps .sdesc{font-size:12.5px;color:var(--c-text-2)}
+.nsteps .stime{font:12.5px var(--font-mono);text-align:right}
+.nsteps .run .stime{color:var(--s-running);font-weight:600}
+.nsteps .pend{color:var(--c-text-3)}
+.minilog{margin:6px 0 0;padding:6px 10px;font-size:11.5px;line-height:1.5;white-space:pre;overflow:hidden;text-overflow:clip;border-radius:var(--r-sm)}
+/* why this node builds */
+.reason{padding:9px 12px;border-radius:var(--r-md);background:var(--c-surface-2);box-shadow:inset 3px 0 0 var(--c-primary);font-size:13px}
+.reason .code-sub{margin-left:6px}
+.depgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.depgrid{grid-template-columns:minmax(0,1fr)}}
+.dlbl{margin:0 0 6px;font-size:12px;color:var(--c-text-3)}
+.deplist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.deplist li{display:flex;align-items:center;gap:6px;font-size:12.5px}
+.deplist .qs,.deplist .pill{margin-left:auto}
+.dnote{margin:10px 0 0;font-size:12px;color:var(--c-text-3)}
+.dnote .mono{overflow-wrap:anywhere}
+
+/* ---------- matrix view ---------- */
+.mx td,.mx th{vertical-align:middle}
+.mx th.tcol{min-width:250px}
+.mx tr.level td{padding:6px 16px;background:var(--c-surface-2);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--c-text-3)}
+.mx tr.level td span{margin-left:8px;font-weight:400;text-transform:none;letter-spacing:0}
+.mx .pkg{font-weight:600}
+.mx .pkc{white-space:nowrap}
+.mx .ver{font:12.5px var(--font-mono);color:var(--c-text-2)}
+.mx .deps{font-size:12px;color:var(--c-text-3)}
+.cell{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0;color:inherit}
+a.cell:hover{text-decoration:none}
+a.cell:hover .nvr .n{text-decoration:underline}
+.cell .stp{font:12px var(--font-mono);color:var(--s-running)}
+.cell .why{font-size:12px;color:var(--c-text-3);white-space:nowrap}
+.cell.na{font-size:12.5px;color:var(--c-text-3)}
+.nvr.q .n,.nvr.q .v{color:var(--c-text-3);font-weight:400}
+.nvr.q .r,.nvr.q .d{color:var(--c-text-3)}
+.mx td.c-failed{box-shadow:inset 3px 0 0 var(--s-failed)}
+.mx td.c-blocked{box-shadow:inset 3px 0 0 var(--s-blocked)}
+.mx td.c-running{box-shadow:inset 3px 0 0 var(--s-running)}
+.th-t{display:flex;flex-direction:column;gap:2px}
+.th-t .tm{font:400 11.5px var(--font-mono);color:var(--c-text-3)}
+.th-t .tc{font-weight:400;font-size:12px;color:var(--c-text-2);white-space:normal}
+/* phone: package and the target columns; Version and Needs are in the node drawer */
+@media (max-width:760px){
+  .mx th:nth-child(2),.mx th:nth-child(3),.mx td.ver,.mx td.deps{display:none}
+  .mx th.tcol{min-width:0}
+  .mx td,.mx th{padding-left:12px;padding-right:12px}
+}
+
+/* ---------- plan ---------- */
+.plan-form{margin-bottom:var(--gap-card)}
+.plan-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--gap-card)}
+/* the selection form: one row of fields */
+.ctl{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 22px;padding:14px 16px}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0;margin:0;padding:0;border:0}
+.fld .lbl,.fld>label{padding:0;font-size:12px;font-weight:500;color:var(--c-text-3)}
+.fld .opts{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;min-height:32px}
+.ck{display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap}
+.combo{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:220px;min-height:32px;padding:3px 8px;border:1px solid var(--c-border-control);border-radius:var(--r-md);background:var(--c-surface)}
+.combo .tag{height:22px;display:inline-flex;align-items:center;font-family:var(--font-sans)}
+.combo .ph{margin-left:4px;font-size:13px;color:var(--c-text-3)}
+.ctl .input.num{width:64px}
+/* Options: force, fail-fast and jobs behind a fold with a summary */
+.optf>summary{display:flex;flex-direction:column;gap:5px;list-style:none;cursor:pointer}
+.optf>summary::-webkit-details-marker{display:none}
+.optf .optsum{display:inline-flex;align-items:center;gap:8px;height:32px;font-size:13px;color:var(--c-text-2)}
+.optf .optsum::before{content:"";border:4px solid transparent;border-left:6px solid var(--c-text-3);transition:transform .15s}
+.optf[open] .optsum::before{transform:rotate(90deg) translateX(2px)}
+.optf[open] .optsum{height:auto}
+/* the start line under the form: counts, a note, the one primary button */
+.startbox{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px;border-top:1px solid var(--c-border);background:var(--c-surface-2);border-radius:0 0 var(--r-lg) var(--r-lg)}
+.startbox .statline{flex:none;font-size:14px}
+.startbox .note{flex:1 1 260px;min-width:0;margin:0;font-size:12.5px;color:var(--c-text-2)}
+.startbox .acts{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+/* the plan table: one group per target, build rows first, current nodes folded */
+.pt2 td{vertical-align:top}
+.pt2 tbody tr:hover td{background:transparent}
+.pt2 tr.grp td{padding:7px 16px;background:var(--c-surface-2);font-weight:600}
+.pt2 .grp .gm{margin-left:8px;font:400 12px var(--font-mono);color:var(--c-text-3)}
+.pt2 .grp .gc{float:right;font-size:12px;font-weight:400;color:var(--c-text-2)}
+.pt2 tr.is-build td:first-child{box-shadow:inset 3px 0 0 var(--c-primary)}
+.pt2 tr.is-staged td:first-child{box-shadow:inset 3px 0 0 var(--s-ok)}
+.pt2 .lv{width:52px;font:12px var(--font-mono);color:var(--c-text-3)}
+.pt2 .nw,.pt2 th{white-space:nowrap}
+.pt2 .why{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+.pt2 .why .txt{font-size:13px;color:var(--c-text)}
+.pt2 .pnote{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-top:4px;font-size:12.5px;color:var(--c-text-3)}
+.pt2 .pnote .adv-mark{margin:0}
+.pt2 .pnote.warnx{color:var(--s-blocked)}
+.pt2 .pnote.warnx>svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
+.pt2 .pnote.warnx>span:not(.code-sub){flex:1 1 220px;min-width:0;color:var(--c-text)}
+.pt2 tr.cur .rest b{flex:none}
+.pt2 tr.cur td,.pt2 tr.na td{padding:0;border-bottom:1px solid var(--c-border)}
+.pt2 tr.cur .rest{padding:9px 16px}
+.pt2 tr.cur .rest-body{padding-top:8px}
+.pt2 tr.na td{padding:8px 16px;font-size:12.5px;color:var(--c-text-3)}
+.pt2 tr.na td:first-child{padding:0}
+.pt2 tbody tr:last-child td{border-bottom:0}
+/* on a phone a node row stacks: level, node and action on one line, the NVR and the reason below */
+@media (max-width:760px){
+  .pt2,.pt2 tbody,.pt2 tr,.pt2 td{display:block}
+  .pt2 thead{display:none}
+  .pt2 tr.is-build,.pt2 tr.is-staged{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--c-border)}
+  .pt2 tr.is-build{box-shadow:inset 3px 0 0 var(--c-primary)}
+  .pt2 tr.is-staged{box-shadow:inset 3px 0 0 var(--s-ok)}
+  .pt2 tr.is-build>td,.pt2 tr.is-staged>td,.pt2 tr.is-build>td:first-child,.pt2 tr.is-staged>td:first-child{padding:0;border:0;box-shadow:none}
+  .pt2 tr>td:nth-child(1){grid-area:1/1}
+  .pt2 tr>td:nth-child(2){grid-area:1/2}
+  .pt2 tr>td:nth-child(4){grid-area:1/3}
+  .pt2 tr>td:nth-child(3){grid-area:2/2/3/4;overflow-wrap:anywhere;white-space:normal}
+  .pt2 tr>td:nth-child(5){grid-area:3/2/4/4}
+  .pt2 .lv{width:auto}
+  .pt2 tr.na td:first-child{display:none}
+  .pt2 .grp .gc{float:none;display:block;margin-top:2px}
+}
+/* changes since latest and advisories side by side */
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gap-card);align-items:start}
+@container main (max-width:1000px){.two{grid-template-columns:minmax(0,1fr)}}
+.chgl{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:13px}
+.chgl li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.chgl .pk{min-width:168px;font-weight:600}
+@media (max-width:760px){.chgl .pk{flex-basis:100%}}
+.chg-foot{margin:10px 0 0}
+.diff{margin:0;padding:8px 0;overflow:auto;border:1px solid var(--c-border);border-radius:var(--r-md);background:var(--c-surface-2);font:12px/1.6 var(--font-mono);white-space:pre}
+.diff span{display:block;padding:0 12px}
+.diff .d-del{background:var(--s-failed-bg);color:var(--s-failed)}
+.diff .d-add{background:var(--s-ok-bg);color:var(--s-ok)}
+.diff .d-ctx{color:var(--c-text-3)}
+
+/* ---------- rebuild dialog (a .dlg.wide; in a mockup .dlg.static over .scrim) ---------- */
+.rb .from{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13px;color:var(--c-text-2)}
+.rb .pk{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.rb .lbl{margin:0 0 6px;font-size:12px;font-weight:500;color:var(--c-text-3)}
+.rb .hint{font-size:12px;color:var(--c-text-3)}
+.rb .preview td{font-size:12.5px;vertical-align:top}
+.rb .preview tbody tr:hover td{background:transparent}
+.rb .preview .msg{font:12px var(--font-mono);color:var(--c-text)}
+.rb .nvrs{font:12px/1.7 var(--font-mono);white-space:nowrap}
+.rb .nvrs .new{font-weight:600;color:var(--c-text)}
+.rb .rb-fold{border:1px solid var(--c-border);border-radius:var(--r-md)}
+.rb .rb-fold>summary{padding:8px 12px}
+.rb .rb-fold .fold-body{padding:0 12px 10px}
+.rb.dlg>.body{grid-template-columns:minmax(0,1fr)}
+.rb .chlog{margin:0;padding:8px 10px;overflow:auto;border:1px solid var(--c-border);border-radius:var(--r-md);background:var(--c-surface-2);font:12px/1.55 var(--font-mono);white-space:pre}
+.nsteps-inline{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0 0 4px;padding:0;list-style:none;counter-reset:st;font-size:13px}
+.nsteps-inline li{display:inline-flex;align-items:center;gap:6px;counter-increment:st}
+.nsteps-inline li::before{content:counter(st);display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--c-surface-3);font:600 11px var(--font-sans);color:var(--c-text-2)}
+@media (max-width:760px){
+  .rb .preview thead{display:none}
+  .rb .preview tr,.rb .preview td{display:block}
+  .rb .preview td{padding:4px 12px;border:0}
+  .rb .preview td:first-child{padding-top:10px}
+  .rb .preview td:last-child{padding-bottom:10px}
+  .rb .nvrs{white-space:normal;overflow-wrap:anywhere}
+}

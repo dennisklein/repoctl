@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Run e19 · slurm-26.05 · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../assets/repoctl.css">
+<link rel="stylesheet" href="../assets/shell.css">
+<link rel="stylesheet" href="../assets/run.css">
+</head>
+<body data-set="slurm-26.05" data-target="el9" hx-ext="sse" sse-connect="/s/slurm-26.05/-/events?page=run"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+<header class="topbar">
+  <a class="icon-btn nav-toggle" href="#nav" aria-controls="nav" aria-expanded="false" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></a>
+  <a class="brand" href="sets.html" aria-label="repoctl: all sets"><span class="brand-mark" aria-hidden="true">rc</span><span class="brand-name">repoctl</span><small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span>slurm-26.05<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="overview.html" aria-current="page"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span><b>slurm-26.05</b><span class="qs run">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-ok)" aria-hidden="true"></span><b>slurm-25.11</b><span class="qs ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-blocked)" aria-hidden="true"></span><b>slurm-25.11-testing</b><span class="qs warn">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="sets.html"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">To add a set, run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/s/slurm-26.05/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="run-detail.html" sse-swap="chip" hx-swap="outerHTML"
+     title="Run r-20261102-1750-a3f of slurm-26.05: 2 of 8 builds done, 1 failed (slurm@el10). Started 17:50 by d.klein.">
+    <span class="spin" aria-hidden="true"></span><span class="id">r-…a3f</span><span class="n">2/8<span class="w"> builds</span> <span class="sep">·</span> <span class="bad">1 failed</span><span class="el"> <span class="sep">·</span> 11m02s</span></span><span class="sr-only">: run in progress</span></a>
+  <span class="live" role="status" title="Live updates"><span class="dot" aria-hidden="true"></span><span class="t">offline</span></span>
+  <span class="who">d.klein@hpc-a1</span>
+  <button class="icon-btn" type="button" data-help aria-label="Keyboard shortcuts (?)">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+<nav class="sidebar" id="nav" aria-label="Navigation">
+  <div class="nav-label">Set <span class="set-name">slurm-26.05</span></div>
+  <a class="nav-item" href="overview.html" data-key="o"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+  <a class="nav-item" href="graph.html" data-key="g"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/></svg>Graph</a>
+  <a class="nav-item" href="plan.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M4 18h3"/></svg>Plan<span class="count">6 build</span></a>
+  <a class="nav-item" href="advisories.html" data-key="a"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>Advisories<span class="count attn">1 required</span></a>
+  <a class="nav-item" href="runs.html" data-key="r" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Runs<span class="count hot" sse-swap="nav-runs">1 running</span></a>
+  <a class="nav-item" href="packages.html" data-key="p"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>Packages</a>
+  <div class="nav-label">Repository</div>
+  <a class="nav-item" href="repository.html" data-key="b"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el9</a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el10</a>
+  <a class="nav-item" href="publish-review.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>Publish</a>
+  <a class="nav-item" href="signing.html" data-key="k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg>Signing</a>
+  <div class="nav-label">Host</div>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>Config and lock</a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Doctor</a>
+  <a class="nav-item" href="sets.html" data-key="s"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>All sets</a>
+  <div class="side-foot">repoctl v0.4.0</div>
+</nav>
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
+  <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
+
+<div class="crumbs"><a href="runs.html">Runs</a><span class="sep">/</span><span>Sep 12 12:51</span></div>
+<div class="page-head rd-head" id="run-header">
+  <div>
+    <div class="rd-title">
+      <h1>Run Sep 12 12:51</h1>
+      <span class="id" title="r-20260912-1251-e19">e19</span><button class="copy" type="button" data-copy="r-20260912-1251-e19" aria-label="Copy run id r-20260912-1251-e19" title="Copy r-20260912-1251-e19"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button>
+      <span class="qs ok">ok</span>
+    </div>
+    <div class="sub" id="run-meta">
+      <span>Started 2026-09-12 12:51 by d.klein from the CLI</span><span class="sep">·</span><code>repoctl build</code><span class="sep">·</span>
+      <details class="meta-more"><summary>Details</summary>
+        <dl class="kv">
+          <dt>Started</dt><dd><span class="mono">12:51:08</span>, by d.klein on hpc-a1</dd>
+          <dt>Ended</dt><dd><span class="mono">14:02:51</span>, exit 0</dd>
+          <dt>Jobs</dt><dd>3</dd>
+          <dt>Selection</dt><dd>all packages, from <code>repoctl.lock</code>; el10 is a new target</dd>
+          <dt>Logs</dt><dd><code>~/.local/state/repoctl/slurm-26.05/logs/r-20260912-1251-e19/</code></dd>
+        </dl>
+      </details>
+    </div>
+  </div>
+  <div class="actions">
+    <details class="cli-toggle"><summary class="btn btn-ghost" aria-label="CLI commands of this page">CLI</summary>
+      <div class="cli-pop"><span class="c"># this run and its nodes</span>
+repoctl -C ~/src/slurm-repo runs r-20260912-1251-e19
+<span class="c"># the snapshot that holds its RPMs</span>
+repoctl repo snapshots --target el9
+<span class="c"># remove staging repos of published runs</span>
+repoctl clean --staging --dry-run</div>
+    </details>
+    <details class="more"><summary class="btn btn-ghost" aria-label="More actions for run e19">⋯</summary>
+      <div class="more-pop" role="menu">
+        <a role="menuitem" href="#" hx-get="/s/slurm-26.05/runs/compare?a=r-20260912-1251-e19&amp;b=prev">Compare with the previous run <span class="code-sub">77f, Sep 11 16:30</span></a>
+        <button type="button" role="menuitem" data-copy="r-20260912-1251-e19">Copy run id <span class="code-sub">r-20260912-1251-e19</span></button>
+      </div></details>
+  </div>
+</div>
+
+<!-- When a run ends, this summary takes the place of the progress region. -->
+<section class="card done-card" id="run-summary" aria-labelledby="sum-t">
+  <div class="done-head">
+    <h2 id="sum-t">Finished 14:02</h2>
+    <p class="statline"><span><b>20</b> built</span><span><b>1h12m</b></span><span>el9, el10</span></p>
+  </div>
+  <div class="cta">
+    <span class="txt"><b>In latest as <a class="id" href="repository.html" title="p-20260912-1403-c21 · d.klein@hpc-a1 · 2026-09-12 14:03">c21</a>.</b> d.klein published the RPMs of this run for el9 and el10 at 14:03. There is nothing more to publish from this run.</span>
+    <a class="btn" href="repository.html">Open el9 repository</a>
+  </div>
+  <details class="fold" id="run-staging">
+    <summary><b>Staging</b><span class="sum">20 nodes · all are in latest c21 · 6.1 GiB on disk</span></summary>
+    <div class="fold-body">
+      <p class="fold-note">The staging repo of this run is <code>~/.local/share/repoctl/slurm-26.05/staging/r-20260912-1251-e19/</code>. Its RPMs are not signed; the signed copies are in snapshot c21. <code>repoctl clean --staging</code> can remove it.</p>
+      <ul class="diffl">
+        <li><span>el9</span><span>11 nodes, all in c21</span><span class="muted">120 RPMs signed by d.klein</span></li>
+        <li><span>el10</span><span>10 nodes, all in c21</span><span class="muted">first snapshot of el10</span></li>
+      </ul>
+    </div>
+  </details>
+  <details class="fold" id="run-checks">
+    <summary><b>Publish checks</b><span class="sum">all passed at 14:03 in publish c21</span></summary>
+    <div class="fold-body">
+      <ul class="passlist">
+        <li>The run is finished. No node failed, is blocked or was canceled.</li>
+        <li>Each node of el9 and el10 is current or staged.</li>
+        <li><code>repoctl.lock</code> is committed and pushed.</li>
+        <li>Each package has a new NVR.</li>
+        <li>The signer d.klein is active and deployed for el9. el10 had no clients yet.</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+<section class="card tree" id="run-tree" aria-labelledby="tree-t">
+  <div class="card-head"><h2 id="tree-t">Nodes</h2><span class="muted">20 built, all ok · 1 current</span>
+    <span class="right"><a href="graph.html">Graph view ›</a></span></div>
+  <details class="trest" id="done-el9">
+    <summary class="rest"><span class="g">├─ </span><b>el9 · 10 built · 1 current</b> <span class="names">munge, ucx, rocm-smi, pmix, pmix_v5, pmix_v4, prrte, slurm, openmpi, slurm-singularity-exec</span><span class="r">all ok</span></summary>
+    <div class="trest-body">
+      <div class="trow head" aria-hidden="true"><span>Node</span><span>State</span><span>Step</span><span></span><span class="r">Time</span><span></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">munge@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 14s · rpm 1m44s · stage 12s</div><div class="c-tl"></div><span class="dur">2m10s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">ucx@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 21s · rpm 3m31s · stage 13s</div><div class="c-tl"></div><span class="dur">4m05s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">rocm-smi@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 19s · rpm 5m59s · stage 12s</div><div class="c-tl"></div><span class="dur">6m30s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">pmix@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 18s · rpm 4m42s · stage 12s</div><div class="c-tl"></div><span class="dur">5m12s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">pmix_v5@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 17s · rpm 4m19s · stage 12s</div><div class="c-tl"></div><span class="dur">4m48s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">pmix_v4@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 17s · rpm 4m01s · stage 12s</div><div class="c-tl"></div><span class="dur">4m30s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">prrte@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 16s · rpm 3m30s · stage 12s</div><div class="c-tl"></div><span class="dur">3m58s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">slurm@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 41s · rpm 16m46s · stage 13s</div><div class="c-tl"></div><span class="dur">17m40s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">openmpi@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 33s · rpm 20m27s · stage 12s</div><div class="c-tl"></div><span class="dur">21m12s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">slurm-singularity-exec@el9</a></div><span class="qs ok">ok</span><div class="det">srpm 13s · rpm 38s · stage 11s</div><div class="c-tl"></div><span class="dur">1m02s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">│  · </span><a class="name" href="#">slurm-release@el9</a></div><span class="qs cur">current</span><div class="det">in p-20260902-1010-4a7, not built</div><div class="c-tl"></div><span class="dur">–</span><span class="lnk"></span></div>
+    </div>
+  </details>
+  <details class="trest" id="done-el10">
+    <summary class="rest"><span class="g">└─ </span><b>el10 · 10 built</b> <span class="names">munge, ucx, pmix, pmix_v5, pmix_v4, prrte, slurm, openmpi, slurm-singularity-exec, slurm-release</span><span class="r">all ok · new target</span></summary>
+    <div class="trest-body">
+      <div class="trow head" aria-hidden="true"><span>Node</span><span>State</span><span>Step</span><span></span><span class="r">Time</span><span></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">munge@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 15s · rpm 1m49s · stage 12s</div><div class="c-tl"></div><span class="dur">2m16s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">ucx@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 24s · rpm 8m06s · stage 14s</div><div class="c-tl"></div><span class="dur">8m44s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">pmix@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 18s · rpm 4m50s · stage 12s</div><div class="c-tl"></div><span class="dur">5m20s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">pmix_v5@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 17s · rpm 4m26s · stage 12s</div><div class="c-tl"></div><span class="dur">4m55s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">pmix_v4@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 17s · rpm 4m12s · stage 12s</div><div class="c-tl"></div><span class="dur">4m41s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">prrte@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 16s · rpm 3m34s · stage 12s</div><div class="c-tl"></div><span class="dur">4m02s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">slurm@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 1m01s · rpm 16m51s · stage 13s</div><div class="c-tl"></div><span class="dur">18m05s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">openmpi@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 34s · rpm 29m45s · stage 12s</div><div class="c-tl"></div><span class="dur">30m31s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">slurm-singularity-exec@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 13s · rpm 40s · stage 11s</div><div class="c-tl"></div><span class="dur">1m04s</span><span class="lnk"><a href="#">Log</a></span></div>
+      <div class="trow"><div class="tname"><span class="g">   · </span><a class="name" href="#">slurm-release@el10</a></div><span class="qs ok">ok</span><div class="det">srpm 11s · rpm 28s · stage 11s</div><div class="c-tl"></div><span class="dur">50s</span><span class="lnk"><a href="#">Log</a></span></div>
+    </div>
+  </details>
+</section>
+
+<section class="card run-folds" aria-label="Events">
+  <details class="fold" id="run-feed" hx-get="/s/slurm-26.05/runs/r-20260912-1251-e19/f/feed?limit=10" hx-trigger="toggle once" hx-swap="innerHTML">
+    <summary><b>Events</b> (48)<span class="sum">last 14:02:51 · run.finished · exit 0</span></summary>
+    <div class="fold-body">
+      <ul class="feed">
+        <li><span class="t">14:02:51</span><span class="ev">run.finished</span><span class="what">ok · 20 built · exit 0</span></li>
+        <li><span class="t">14:02:51</span><span class="ev">node.state</span><span class="what">openmpi@el10 → staged</span></li>
+        <li><span class="t">13:44:38</span><span class="ev">node.state</span><span class="what">slurm-singularity-exec@el10 → staged</span></li>
+        <li><span class="t">12:51:12</span><span class="ev">plan.ready</span><span class="what">21 nodes · 20 build · 1 current</span></li>
+        <li><span class="t">12:51:08</span><span class="ev">run.started</span><span class="what">d.klein@hpc-a1 · jobs 3</span></li>
+      </ul>
+    </div>
+  </details>
+</section>
+</main>
+</div>
+<div class="nav-scrim" data-nav-close></div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="step-n">Esc closes</span></header>
+  <div class="body"><table class="keys">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Advisories</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Advisories: upstream releases</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>k</kbd></td><td>Signing (keys)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Repository of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Close a dialog, a menu or leave an input</td></tr>
+  </table><p class="muted">No key starts a build, a cancel or a publish.</p></div>
+  <footer><form method="dialog"><button class="btn">Close</button></form></footer>
+</dialog>
+<script src="../assets/shell.js"></script>
+</body>
+</html>

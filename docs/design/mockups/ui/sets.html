@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sets · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../assets/repoctl.css">
+<link rel="stylesheet" href="../assets/shell.css">
+<link rel="stylesheet" href="../assets/overview.css">
+</head>
+<body data-set="" data-target="" hx-ext="sse" sse-connect="/-/events?page=sets"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app nosb">
+<header class="topbar">
+  <a class="brand" href="sets.html" aria-label="repoctl: all sets"><span class="brand-mark" aria-hidden="true">rc</span><span class="brand-name">repoctl</span><small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set">All sets<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="overview.html"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span><b>slurm-26.05</b><span class="qs run">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-ok)" aria-hidden="true"></span><b>slurm-25.11</b><span class="qs ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-blocked)" aria-hidden="true"></span><b>slurm-25.11-testing</b><span class="qs warn">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="sets.html" aria-current="page"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">To add a set, run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="run-detail.html" sse-swap="chip" hx-swap="outerHTML"
+     title="Run r-20261102-1750-a3f of slurm-26.05: 2 of 8 builds done, 1 failed (slurm@el10). Started 17:50 by d.klein.">
+    <span class="spin" aria-hidden="true"></span><span class="id">slurm-26.05 r-…a3f</span><span class="n">2/8<span class="w"> builds</span> <span class="sep">·</span> <span class="bad">1 failed</span><span class="el"> <span class="sep">·</span> 11m02s</span></span><span class="sr-only">: run in progress</span></a>
+  <span class="live" role="status" title="Live updates"><span class="dot" aria-hidden="true"></span><span class="t">offline</span></span>
+  <span class="who">d.klein@hpc-a1</span>
+  <button class="icon-btn" type="button" data-help aria-label="Keyboard shortcuts (?)">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
+  <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
+<div class="page-head sets-head">
+  <div><h1>Sets</h1><div class="sub">3 sets on hpc-a1. One repoctl ui server serves them all.</div></div>
+  <div class="actions">
+    <details class="cli-toggle"><summary class="btn btn-ghost" aria-label="CLI commands of this page">CLI</summary>
+      <div class="cli-pop">repoctl -C ~/src/slurm-repo status
+repoctl -C ~/src/slurm-repo-25.11 status
+repoctl -C ~/src/slurm-repo-25.11-testing status</div></details>
+  </div>
+</div>
+
+<div class="sets">
+<section class="card setc" id="set-slurm-26.05" aria-labelledby="set-1-t" sse-swap="set:slurm-26.05" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="set-1-t"><a class="name" href="overview.html">slurm-26.05</a></h2><span class="pill st-running">running</span>
+    <span class="right"><details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for slurm-26.05">⋯</summary><div class="more-pop" role="menu">
+      <a href="overview.html" role="menuitem">Open overview</a>
+      <button type="button" role="menuitem" data-copy="/home/dklein/src/slurm-repo">Copy path <span class="code-sub">/home/dklein/src/slurm-repo</span></button>
+      <hr>
+      <button type="button" role="menuitem" hx-delete="/-/sets/slurm-26.05" hx-confirm="Remove slurm-26.05 from this list? The files stay.">Remove from list…</button>
+    </div></details></span></div>
+  <div class="card-body">
+    <p class="path mono">~/src/slurm-repo</p>
+    <dl class="kv">
+      <dt>Branch</dt><dd><code>builder/slurm-26.05</code></dd>
+      <dt>Targets</dt><dd><b class="mono" title="rocky+epel-9-x86_64">el9</b>, <b class="mono" title="rocky+epel-10-x86_64">el10</b> · 21 nodes</dd>
+      <dt>Newest run</dt><dd><a href="run-detail.html" title="r-20261102-1750-a3f: 2 ok, 1 failed, 1 blocked, 3 running, 1 waiting, 13 current">today 17:50</a> · 8 builds</dd>
+      <dt>Published</dt><dd>2026-09-12 · 51 days ago</dd>
+      <dt>Needs you</dt><dd><a href="overview.html#attention">4 items</a>: slurm@el10 failed, pmix@el9 required, lock not committed, latest 51 days old</dd>
+    </dl>
+  </div>
+  <details class="fold">
+    <summary>Snapshot refs<span class="sum">c21 on el9 and el10</span></summary>
+    <div class="fold-body"><dl class="kv refs">
+      <dt>el9</dt><dd><span class="mono">ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9:p-20260912-1403-c21</span><button class="copy" type="button" data-copy="ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9:p-20260912-1403-c21" aria-label="Copy the el9 snapshot ref" title="Copy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></dd>
+      <dt>el10</dt><dd><span class="mono">ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el10:p-20260912-1403-c21</span><button class="copy" type="button" data-copy="ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el10:p-20260912-1403-c21" aria-label="Copy the el10 snapshot ref" title="Copy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></dd>
+    </dl><p class="same">The local copy and the served tree are the same as latest.</p></div>
+  </details>
+</section>
+
+<section class="card setc" id="set-slurm-25.11" aria-labelledby="set-2-t" sse-swap="set:slurm-25.11" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="set-2-t"><a class="name" href="#">slurm-25.11</a></h2><span class="qs ok">ok</span>
+    <span class="right"><details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for slurm-25.11">⋯</summary><div class="more-pop" role="menu">
+      <a href="#" role="menuitem">Open overview</a>
+      <button type="button" role="menuitem" data-copy="/home/dklein/src/slurm-repo-25.11">Copy path <span class="code-sub">/home/dklein/src/slurm-repo-25.11</span></button>
+      <hr>
+      <button type="button" role="menuitem" hx-delete="/-/sets/slurm-25.11" hx-confirm="Remove slurm-25.11 from this list? The files stay.">Remove from list…</button>
+    </div></details></span></div>
+  <div class="card-body">
+    <p class="path mono">~/src/slurm-repo-25.11</p>
+    <dl class="kv">
+      <dt>Branch</dt><dd><code>builder/slurm-25.11</code></dd>
+      <dt>Targets</dt><dd><b class="mono" title="rocky+epel-9-x86_64">el9</b> · 10 nodes</dd>
+      <dt>Newest run</dt><dd><a href="#" title="r-20261028-1420-b17: 1 ok, 9 current">Oct 28 14:20</a> · 1 build</dd>
+      <dt>Published</dt><dd>2026-10-28 · 5 days ago</dd>
+      <dt>Needs you</dt><dd class="muted">nothing</dd>
+    </dl>
+  </div>
+  <details class="fold">
+    <summary>Snapshot refs<span class="sum">d07 on el9</span></summary>
+    <div class="fold-body"><dl class="kv refs">
+      <dt>el9</dt><dd><span class="mono">ghcr.io/gsi-hpc/slurm-repo/slurm-25.11-el9:p-20261028-1436-d07</span><button class="copy" type="button" data-copy="ghcr.io/gsi-hpc/slurm-repo/slurm-25.11-el9:p-20261028-1436-d07" aria-label="Copy the el9 snapshot ref" title="Copy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></dd>
+    </dl><p class="same">The local copy and the served tree are the same as latest.</p></div>
+  </details>
+</section>
+
+<section class="card setc" id="set-slurm-25.11-testing" aria-labelledby="set-3-t" sse-swap="set:slurm-25.11-testing" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="set-3-t"><a class="name" href="#">slurm-25.11-testing</a></h2><span class="pill st-blocked">not published</span>
+    <span class="right"><details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for slurm-25.11-testing">⋯</summary><div class="more-pop" role="menu">
+      <a href="#" role="menuitem">Open overview</a>
+      <button type="button" role="menuitem" data-copy="/home/dklein/src/slurm-repo-25.11-testing">Copy path <span class="code-sub">/home/dklein/src/slurm-repo-25.11-testing</span></button>
+      <hr>
+      <button type="button" role="menuitem" hx-delete="/-/sets/slurm-25.11-testing" hx-confirm="Remove slurm-25.11-testing from this list? The files stay.">Remove from list…</button>
+    </div></details></span></div>
+  <div class="card-body">
+    <p class="path mono">~/src/slurm-repo-25.11-testing</p>
+    <dl class="kv">
+      <dt>Branch</dt><dd><code>builder/slurm-25.11-testing</code></dd>
+      <dt>Targets</dt><dd><b class="mono" title="rocky+epel-9-x86_64">el9</b>, <b class="mono" title="rocky+epel-10-x86_64">el10</b> · 20 nodes</dd>
+      <dt>Newest run</dt><dd><a href="#" title="r-20261101-2210-91c: 3 ok, 17 current">Nov 1 22:10</a> · 3 builds</dd>
+      <dt>Published</dt><dd>2026-10-27 · 6 days ago</dd>
+      <dt>Needs you</dt><dd><a href="#">1 item</a>: run Nov 1 22:10 is ok and not published</dd>
+    </dl>
+  </div>
+  <details class="fold">
+    <summary>Snapshot refs<span class="sum">8e4 on el9 and el10</span></summary>
+    <div class="fold-body"><dl class="kv refs">
+      <dt>el9</dt><dd><span class="mono">ghcr.io/gsi-hpc/slurm-repo/slurm-25.11-testing-el9:p-20261027-1102-8e4</span><button class="copy" type="button" data-copy="ghcr.io/gsi-hpc/slurm-repo/slurm-25.11-testing-el9:p-20261027-1102-8e4" aria-label="Copy the el9 snapshot ref" title="Copy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></dd>
+      <dt>el10</dt><dd><span class="mono">ghcr.io/gsi-hpc/slurm-repo/slurm-25.11-testing-el10:p-20261027-1102-8e4</span><button class="copy" type="button" data-copy="ghcr.io/gsi-hpc/slurm-repo/slurm-25.11-testing-el10:p-20261027-1102-8e4" aria-label="Copy the el10 snapshot ref" title="Copy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button></dd>
+    </dl><p class="same">The local copy and the served tree are the same as latest.</p></div>
+  </details>
+</section>
+</div>
+
+<p class="sets-add">To add a set, run <code>repoctl ui</code> in its directory.</p>
+
+<section class="card host-card" id="host" aria-labelledby="host-t">
+  <details class="fold">
+    <summary><b id="host-t">This host</b><span class="sum">hpc-a1 · d.klein · server 127.0.0.1:43817 · data 18.4 GiB · cache 3.1 GiB</span></summary>
+    <div class="fold-body"><dl class="kv">
+      <dt>Server</dt><dd><span class="mono">127.0.0.1:43817</span> · pid 48211 · up 3 days · repoctl v0.4.0</dd>
+      <dt>Data</dt><dd><span class="mono">~/.local/share/repoctl</span> · 18.4 GiB: staging, local copies of latest, clones of external packages</dd>
+      <dt>Cache</dt><dd><span class="mono">~/.cache/repoctl</span> · 3.1 GiB: SRPMs, upstream answers, mock work files. Safe to delete with <code>repoctl clean --cache</code>.</dd>
+      <dt>State</dt><dd><span class="mono">~/.local/state/repoctl</span> · 0.6 GiB: journals, logs, check results</dd>
+    </dl><p class="doc"><a href="#">Doctor ›</a></p></div>
+  </details>
+</section>
+</main>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="step-n">Esc closes</span></header>
+  <div class="body"><table class="keys">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Advisories</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Advisories: upstream releases</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>k</kbd></td><td>Signing (keys)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Repository of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Close a dialog, a menu or leave an input</td></tr>
+  </table><p class="muted">No key starts a build, a cancel or a publish.</p></div>
+  <footer><form method="dialog"><button class="btn">Close</button></form></footer>
+</dialog>
+<script src="../assets/shell.js"></script>
+</body>
+</html>

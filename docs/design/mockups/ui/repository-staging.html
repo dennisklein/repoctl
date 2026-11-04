@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Staging of run a3f · el9 · repoctl</title>
+<meta name="csrf-token" content="(per-session token)">
+<link rel="stylesheet" href="../assets/repoctl.css">
+<link rel="stylesheet" href="../assets/shell.css">
+<link rel="stylesheet" href="../assets/pkg.css">
+</head>
+<body data-set="slurm-26.05" data-target="el9" hx-ext="sse" sse-connect="/s/slurm-26.05/-/events?page=repo&amp;target=el9&amp;run=r-20261102-1750-a3f"
+      hx-headers='{"X-CSRF-Token":"(per-session token)"}'>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+<header class="topbar">
+  <a class="icon-btn nav-toggle" href="#nav" aria-controls="nav" aria-expanded="false" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></a>
+  <a class="brand" href="sets.html" aria-label="repoctl: all sets"><span class="brand-mark" aria-hidden="true">rc</span><span class="brand-name">repoctl</span><small>ui</small></a>
+  <details class="set-menu" hx-get="/-/frag/set-menu" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span>slurm-26.05<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML">
+      <a href="overview.html" aria-current="page"><span class="dot" style="color:var(--s-running)" aria-hidden="true"></span><b>slurm-26.05</b><span class="qs run">running</span><span class="path">~/src/slurm-repo</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-ok)" aria-hidden="true"></span><b>slurm-25.11</b><span class="qs ok">ok</span><span class="path">~/src/slurm-repo-25.11</span></a>
+      <a href="sets.html"><span class="dot" style="color:var(--s-blocked)" aria-hidden="true"></span><b>slurm-25.11-testing</b><span class="qs warn">not published</span><span class="path">~/src/slurm-repo-25.11-testing</span></a>
+      <hr><a href="sets.html"><span></span><span>All sets</span><kbd>g s</kbd></a>
+      <div class="foot">To add a set, run <code>repoctl ui</code> in its directory.</div>
+    </div>
+  </details>
+  <label class="jump"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="/s/slurm-26.05/-/frag/jump" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <span class="spacer"></span>
+  <a class="run-chip" id="run-chip" href="run-detail.html" sse-swap="chip" hx-swap="outerHTML"
+     title="Run r-20261102-1750-a3f of slurm-26.05: 2 of 8 builds done, 1 failed (slurm@el10). Started 17:50 by d.klein.">
+    <span class="spin" aria-hidden="true"></span><span class="id">r-…a3f</span><span class="n">2/8<span class="w"> builds</span> <span class="sep">·</span> <span class="bad">1 failed</span><span class="el"> <span class="sep">·</span> 11m02s</span></span><span class="sr-only">: run in progress</span></a>
+  <span class="live" role="status" title="Live updates"><span class="dot" aria-hidden="true"></span><span class="t">offline</span></span>
+  <span class="who">d.klein@hpc-a1</span>
+  <button class="icon-btn" type="button" data-help aria-label="Keyboard shortcuts (?)">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: auto"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>
+<nav class="sidebar" id="nav" aria-label="Navigation">
+  <div class="nav-label">Set <span class="set-name">slurm-26.05</span></div>
+  <a class="nav-item" href="overview.html" data-key="o"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+  <a class="nav-item" href="graph.html" data-key="g"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/></svg>Graph</a>
+  <a class="nav-item" href="plan.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M4 18h3"/></svg>Plan<span class="count">6 build</span></a>
+  <a class="nav-item" href="advisories.html" data-key="a"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>Advisories<span class="count attn">1 required</span></a>
+  <a class="nav-item" href="runs.html" data-key="r"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Runs<span class="count hot" sse-swap="nav-runs">1 running</span></a>
+  <a class="nav-item" href="packages.html" data-key="p"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>Packages</a>
+  <div class="nav-label">Repository</div>
+  <a class="nav-item" href="repository.html" data-key="b" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el9</a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>el10</a>
+  <a class="nav-item" href="publish-review.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>Publish</a>
+  <a class="nav-item" href="signing.html" data-key="k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg>Signing</a>
+  <div class="nav-label">Host</div>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>Config and lock</a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Doctor</a>
+  <a class="nav-item" href="sets.html" data-key="s"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>All sets</a>
+  <div class="side-foot">repoctl v0.4.0</div>
+</nav>
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5 12a10 10 0 0114 0M8.5 15.5a5 5 0 017 0M12 19h.01M3 3l18 18"/></svg>
+  <div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" onclick="location.reload()">Reload</button></div>
+
+<div class="narrow wide">
+<div class="page-head">
+  <div><h1>Repository el9</h1><div class="sub"><span class="mono">rocky+epel-9-x86_64</span></div></div>
+  <div class="actions">
+    <details class="cli-toggle"><summary class="btn btn-ghost" aria-label="CLI commands of this page">CLI</summary>
+      <div class="cli-pop"><span class="c"># what a publish of run a3f adds to el9</span>
+repoctl -C ~/src/slurm-repo repo diff --run r-20261102-1750-a3f --target el9
+<span class="c"># the staging tree of run a3f</span>
+repoctl repo ls --run r-20261102-1750-a3f --target el9</div></details>
+    <div class="seg" role="group" aria-label="View">
+      <a href="repository.html" hx-get="/s/slurm-26.05/repo/el9" hx-push-url="true">Published</a>
+      <a href="repository-staging.html" aria-current="page" title="Staging of run r-20261102-1750-a3f">Staging <span class="n">run a3f</span></a>
+    </div>
+  </div>
+</div>
+
+<div class="stg-line">
+  <span>Staging of run <a class="id" href="run-detail.html" title="r-20261102-1750-a3f">a3f</a> for el9, against latest <a class="id" href="repository.html" title="p-20260912-1403-c21">c21</a></span><span class="sep">·</span>
+  <span class="muted">not signed</span>
+  <details class="help"><summary aria-label="About staging">?</summary><div class="help-pop">Staging is not signed. Publish signs the new RPMs. The staging repo of this run is <code>~/.local/share/repoctl/slurm-26.05/staging/r-20261102-1750-a3f/el9/</code>. A row with ◌ changes to ↑ or + when its node is staged.</div></details>
+  <span class="grow"></span>
+  <div class="seg" role="group" aria-label="Staging view">
+    <a href="#" hx-get="/s/slurm-26.05/repo/el9?run=r-20261102-1750-a3f" hx-push-url="true">List</a>
+    <a href="#" aria-current="page">Diff vs latest</a>
+  </div>
+</div>
+
+<div class="dchips" id="diff-sum" aria-label="Summary">
+  <span class="dchip"><span class="dsym upd" aria-hidden="true">&uarr;</span><b>1</b> updated</span>
+  <span class="dchip"><span class="dsym pend" aria-hidden="true">&#9676;</span><b>3</b> pending</span>
+  <span class="dchip"><span class="dsym same" aria-hidden="true">=</span><b>7</b> unchanged</span>
+</div>
+
+<section class="card" id="diff" aria-label="Diff of the staging of run a3f against latest for el9">
+  <ul class="sdiff">
+    <li class="upd" id="d-ucx" sse-swap="node:ucx@el9" hx-swap="outerHTML">
+      <details><summary><span class="dsym upd" aria-label="updated">&uarr;</span><span class="pk">ucx</span><span class="evr">1.22.0-2 <span class="arrow">&rarr;</span> <b>1.22.1-1</b></span><span class="n">14 RPMs</span><span class="st"><span class="qs ok">staged 17:54</span></span></summary>
+        <ul class="srpm-files">
+          <li><span>ucx-1.22.1-1.el9.x86_64.rpm</span><span class="num">1.0 MB</span></li><li><span>ucx-cma-1.22.1-1.el9.x86_64.rpm</span><span class="num">18 KB</span></li>
+          <li><span>ucx-devel-1.22.1-1.el9.x86_64.rpm</span><span class="num">695 KB</span></li><li><span>ucx-examples-1.22.1-1.el9.x86_64.rpm</span><span class="num">44 KB</span></li>
+          <li><span>ucx-ib-1.22.1-1.el9.x86_64.rpm</span><span class="num">197 KB</span></li><li><span>ucx-ib-efa-1.22.1-1.el9.x86_64.rpm</span><span class="num">52 KB</span></li>
+          <li><span>ucx-ib-mlx5-1.22.1-1.el9.x86_64.rpm</span><span class="num">415 KB</span></li><li><span>ucx-knem-1.22.1-1.el9.x86_64.rpm</span><span class="num">16 KB</span></li>
+          <li><span>ucx-mad-1.22.1-1.el9.x86_64.rpm</span><span class="num">34 KB</span></li><li><span>ucx-rdmacm-1.22.1-1.el9.x86_64.rpm</span><span class="num">28 KB</span></li>
+          <li><span>ucx-rocm-1.22.1-1.el9.x86_64.rpm</span><span class="num">88 KB</span></li><li><span>ucx-static-1.22.1-1.el9.x86_64.rpm</span><span class="num">2.1 MB</span></li>
+          <li><span>ucx-vfs-1.22.1-1.el9.x86_64.rpm</span><span class="num">22 KB</span></li><li><span>ucx-xpmem-1.22.1-1.el9.x86_64.rpm</span><span class="num">17 KB</span></li>
+        </ul>
+        <p class="fold-note">The 14 RPMs of ucx 1.22.0-2 stay in the repo. Sonames are unchanged: <code>libucp.so.0</code> stays.</p>
+      </details></li>
+    <li class="pend" id="d-slurm" sse-swap="node:slurm@el9" hx-swap="outerHTML"><div class="row"><span class="dsym pend" aria-label="pending">&#9676;</span><span class="pk">slurm</span><span class="evr">26.05.4-1 <span class="arrow">&rarr;</span> <b>26.05.4-2</b> <span class="muted">expected</span></span><span class="n">17 RPMs</span><span class="st"><a class="qs run" href="node-log-live.html">running 6m53s · rpm</a></span></div></li>
+    <li class="pend" id="d-openmpi" sse-swap="node:openmpi@el9" hx-swap="outerHTML"><div class="row"><span class="dsym pend" aria-label="pending">&#9676;</span><span class="pk">openmpi</span><span class="evr">5.0.11-1 <span class="arrow">&rarr;</span> <b>5.0.11-2</b> <span class="muted">expected</span></span><span class="n">6 RPMs</span><span class="st"><a class="qs run" href="run-detail.html#node-openmpi-el9">running 6m53s · rpm</a></span></div></li>
+    <li class="pend" id="d-slurm-singularity-exec" sse-swap="node:slurm-singularity-exec@el9" hx-swap="outerHTML"><div class="row"><span class="dsym pend" aria-label="pending">&#9676;</span><span class="pk">slurm-singularity-exec</span><span class="evr">3.2.0-1 <span class="arrow">&rarr;</span> <b>3.2.0-2</b> <span class="muted">expected</span></span><span class="n">1 RPM</span><span class="st"><span class="qs">waiting for slurm@el9</span></span></div></li>
+  </ul>
+  <details><summary class="rest"><b>7 packages</b> unchanged: current, the RPMs in latest stay</summary>
+    <div class="rest-body">munge 0.5.18-1, rocm-smi 7.14.0-1, pmix 6.1.0-1, pmix5 5.0.11-2, pmix4 4.2.9-3, prrte 4.1.0-1, slurm-release 26.05-2.</div></details>
+  <div class="card-foot">A publish adds RPMs and keeps all old versions. Only <code>repoctl repo prune</code> removes RPMs.</div>
+</section>
+</div>
+</main>
+</div>
+<div class="nav-scrim" data-nav-close></div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" sse-swap="toast" hx-swap="afterbegin"></div>
+<div id="modal"></div>
+<span hidden sse-swap="hb" hx-swap="none"></span>
+<div id="jump-results"></div>
+<dialog id="help" class="dlg" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keyboard shortcuts</h2><span class="step-n">Esc closes</span></header>
+  <div class="body"><table class="keys">
+    <tr><td><kbd>g</kbd> <kbd>o</kbd></td><td>Overview of this set</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>g</kbd></td><td>Graph of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>r</kbd></td><td>Runs</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>p</kbd></td><td>Packages</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Advisories</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>u</kbd></td><td>Advisories: upstream releases</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>k</kbd></td><td>Signing (keys)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>b</kbd></td><td>Repository of the current target</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>All sets</td></tr>
+    <tr><td><kbd>t</kbd></td><td>Next target on per-target pages</td></tr>
+    <tr><td><kbd>/</kbd></td><td>Jump to a package, node, run or page</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Close a dialog, a menu or leave an input</td></tr>
+  </table><p class="muted">No key starts a build, a cancel or a publish.</p></div>
+  <footer><form method="dialog"><button class="btn">Close</button></form></footer>
+</dialog>
+<script src="../assets/shell.js"></script>
+</body>
+</html>

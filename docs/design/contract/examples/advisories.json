@@ -1,0 +1,166 @@
+{
+  "apiVersion": "repoctl/v1alpha1",
+  "kind": "AdvisoryList",
+  "metadata": {
+    "set": "slurm-26.05",
+    "setDir": "/home/dklein/src/slurm-repo",
+    "command": "advisories ls",
+    "generatedAt": "2026-11-03T14:05:12.640Z",
+    "repoctl": {
+      "version": "v0.4.0",
+      "commit": "3f9a1c2"
+    },
+    "targets": [
+      "el9",
+      "el10"
+    ]
+  },
+  "items": [
+    {
+      "advisories": [
+        {
+          "id": "closure.broken/pmix@el9",
+          "code": "closure.broken",
+          "level": "required",
+          "subject": "pmix@el9",
+          "targets": [
+            "el9"
+          ],
+          "state": "open",
+          "title": "pmix cannot be installed on a new el9 host",
+          "facts": {
+            "nvra": "pmix-6.1.0-1.el9.x86_64",
+            "requires": "libhwloc.so.15()(64bit)",
+            "newest": "hwloc-libs-2.11.2-1.el9.x86_64",
+            "newestRepo": "epel",
+            "newestProvides": [
+              "libhwloc.so.16()(64bit)"
+            ]
+          },
+          "factsDigest": "sha256:6854028586eeb606703539d00c38971acbe1d1856735516afd810570200897c8",
+          "closure": [
+            "pmix"
+          ],
+          "suggestion": {
+            "text": "Rebuild pmix against hwloc 2.11, or change its spec.",
+            "command": "repoctl rebuild pmix --reason \"hwloc: libhwloc.so.15 -> .so.16\""
+          },
+          "source": "check",
+          "seen": "2026-11-02T06:00:41.213Z"
+        },
+        {
+          "id": "buildroot.drift/munge@el9",
+          "code": "buildroot.drift",
+          "level": "info",
+          "subject": "munge@el9",
+          "targets": [
+            "el9"
+          ],
+          "state": "open",
+          "title": "openssl-devel 3.0.7 in the buildroot, 3.2.2 in the repos",
+          "facts": {
+            "package": "openssl-devel",
+            "recorded": "3.0.7",
+            "available": "3.2.2",
+            "repo": "baseos"
+          },
+          "factsDigest": "sha256:d6a464ff7518fb3e6199acc651c31daf86a4fa898cc6b8b187cfd91859b3f167",
+          "suggestion": {
+            "text": "Nothing, or a rebuild of munge.",
+            "command": "repoctl rebuild munge --reason \"openssl 3.2.2\""
+          },
+          "source": "check",
+          "seen": "2026-11-02T06:00:41.213Z"
+        },
+        {
+          "id": "upstream.release/slurm",
+          "code": "upstream.release",
+          "level": "info",
+          "subject": "slurm",
+          "targets": [
+            "el9",
+            "el10"
+          ],
+          "state": "open",
+          "title": "slurm 26.05.5 is released",
+          "facts": {
+            "current": "26.05.4",
+            "upstream": "26.05.5",
+            "source": "github",
+            "tag": "slurm-26-05-5-1"
+          },
+          "factsDigest": "sha256:18a1814d46da857ae8d9c6a44f69e56b8c0898d9ccd6565c26577dc7ff735a7b",
+          "suggestion": {
+            "text": "Bump the version with the skill bump-package."
+          },
+          "source": "check",
+          "seen": "2026-11-02T06:00:41.213Z"
+        },
+        {
+          "id": "upstream.release/openmpi",
+          "code": "upstream.release",
+          "level": "info",
+          "subject": "openmpi",
+          "targets": [
+            "el9",
+            "el10"
+          ],
+          "state": "open",
+          "title": "openmpi 5.0.12 is released",
+          "facts": {
+            "current": "5.0.11",
+            "upstream": "5.0.12",
+            "source": "github",
+            "tag": "v5.0.12"
+          },
+          "factsDigest": "sha256:cc9bd23e85fe72dcfec887095fa3182dba5940d74f357b78a9364e82c2463c7e",
+          "suggestion": {
+            "text": "Bump the version with the skill bump-package."
+          },
+          "source": "check",
+          "seen": "2026-11-02T06:00:41.213Z"
+        },
+        {
+          "id": "upstream.release/slurm-singularity-exec",
+          "code": "upstream.release",
+          "level": "info",
+          "subject": "slurm-singularity-exec",
+          "targets": [
+            "el9",
+            "el10"
+          ],
+          "state": "dismissed",
+          "title": "slurm-singularity-exec 3.2.1 is released",
+          "facts": {
+            "current": "3.2.0",
+            "upstream": "3.2.1",
+            "source": "github",
+            "tag": "v3.2.1"
+          },
+          "factsDigest": "sha256:802ef6e343cee3acc37df2475c8831ab8a74d7f2aa4ea83248bdb0f2afb598a9",
+          "suggestion": {
+            "text": "Bump the version with the skill bump-package."
+          },
+          "source": "check",
+          "seen": "2026-10-28T06:00:37.902Z",
+          "dismissal": {
+            "by": "d.klein@gsi.de",
+            "at": "2026-10-29T10:14:03.000Z",
+            "note": "3.2.1 only changes the docs",
+            "stale": false
+          }
+        }
+      ],
+      "check": {
+        "at": "2026-11-03T06:00:41.508Z",
+        "by": "timer",
+        "ok": true,
+        "failed": [],
+        "stale": false,
+        "timer": "active"
+      }
+    }
+  ],
+  "warnings": [],
+  "errors": []
+}
