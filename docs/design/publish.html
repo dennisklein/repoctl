@@ -570,6 +570,11 @@ Next: repoctl status</pre>
 <p>Thus each RPM that a client can have stays in at least one snapshot for <code>keep_removed</code>. After that time, gc can delete the last snapshot that holds it. <code>removed[]</code> still holds the NVR and the sha256 of each RPM, so <code>nvr.removed</code> still works.</p>
 </aside>
 <p>The defaults come from <code>retention.snapshots</code> in <code>repoctl.yaml</code> (<code>keep: 10</code>, <code>keep_days: 90d</code>, <code>keep_removed: 1y</code>, see <a href="config.html#set-config">config.html#set-config</a>). The flags <code>--keep N</code>, <code>--keep-days D</code> and <code>--keep-removed D</code> change them for one call. gc needs the token scope <code>delete:packages</code> and admin access to the package. gc never runs unattended, because it deletes history (<a href="cli.html#safety">cli.html#safety</a>). Nothing to delete gives exit 4. Command: <a href="cli.html#cmd-repo-gc">repo gc</a>.</p>
+<p><code>gc --apply</code> is a run of kind gc with its own journal. It deletes the package versions of one target after the other, oldest first, so the chain from latest has no gap. It writes one <code>gc.deleted</code> event per deleted version: target, publish id and digest (<a href="contract.html#events">contract.html#events</a>).</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: a failed delete</p>
+<p>When the GitHub API refuses or fails one delete, gc stops at once. The versions that it deleted before stay deleted, and the journal lists them. gc exits with 13: <code>registry.denied</code> for a missing scope or role, else <code>gc.failed</code>. A second <code>repoctl repo gc --apply</code> continues, because gc computes the list again from the registry.</p>
+</aside>
 
 <h2 id="registry">Registry access</h2>
 <table class="compact">
@@ -578,7 +583,7 @@ Next: repoctl status</pre>
 <tr><td>Namespace</td><td><code>ghcr.io/&lt;org&gt;/&lt;repo&gt;/&lt;set&gt;-&lt;target&gt;</code>. The examples use <code>ghcr.io/gsi-hpc/slurm-repo</code>. A new repository of sets, for example for Lustre, uses its own <code>&lt;repo&gt;</code>: <code>ghcr.io/gsi-hpc/lustre-repo</code>. Where the slurm sets live is an <a href="delivery.html#open">open question</a>.</td></tr>
 <tr><td>Pull</td><td>Public. No token. The mirror job and <code>repo pull</code> use an anonymous token.</td></tr>
 <tr><td>Push</td><td>A classic personal access token with <code>write:packages</code>. <code>gh auth token</code> does not have this scope by default. Fix: <code>gh auth refresh -s write:packages</code>, then <code>gh auth token | oras login ghcr.io -u USER --password-stdin</code>. repoctl reads the container credential store (<code>~/.config/containers/auth.json</code> or <code>~/.docker/config.json</code>), never <code>repoctl.yaml</code>.</td></tr>
-<tr><td>gc</td><td>Also <code>delete:packages</code>, and admin access to the package.</td></tr>
+<tr><td>gc</td><td>Also <code>delete:packages</code>, and the role admin on the package. The team role write is not enough. An organization owner gives the role admin to the admins who run gc; in the story, d.klein has it on both packages. V30 confirms the limits of GitHub for the delete of a public version (<a href="delivery.html#verification">delivery.html#verification</a>).</td></tr>
 <tr><td>Team access</td><td>A GitHub team, for example <code>slurm-repo-admins</code>, has write access to the set repository. Each package has "Inherit access from source repository" on. Thus the team has write access to all packages.</td></tr>
 <tr><td>New set or target</td><td>The first push makes the package. Then an organization owner sets it to public and turns on the inherited access. <code>repoctl doctor</code> shows this step until it is done (<code>registry.public</code>).</td></tr>
 </tbody>

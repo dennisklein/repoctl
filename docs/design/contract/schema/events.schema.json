@@ -233,6 +233,18 @@
       "then": {
         "$ref": "#/$defs/AdvisoryAccepted"
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "gc.deleted"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/GcDeleted"
+      }
     }
   ],
   "$defs": {
@@ -254,7 +266,8 @@
         "publish.finished",
         "advisory",
         "advisory.gone",
-        "advisory.accepted"
+        "advisory.accepted",
+        "gc.deleted"
       ]
     },
     "RunStarted": {
@@ -272,7 +285,8 @@
           "enum": [
             "build",
             "publish",
-            "check"
+            "check",
+            "gc"
           ]
         },
         "trace": {
@@ -858,6 +872,26 @@
         },
         "host": {
           "type": "string"
+        }
+      }
+    },
+    "GcDeleted": {
+      "description": "repo gc --apply deleted one package version (one snapshot).",
+      "required": [
+        "target",
+        "publish",
+        "digest"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "output.json#/$defs/TargetId"
+        },
+        "publish": {
+          "type": "string",
+          "description": "Publish id of the deleted snapshot."
+        },
+        "digest": {
+          "$ref": "output.json#/$defs/Digest"
         }
       }
     }

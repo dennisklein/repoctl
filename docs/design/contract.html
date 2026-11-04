@@ -166,7 +166,7 @@
 <tr><td>package dir</td><td><code>Dir</code></td><td>the <code>dir</code> of a package in repoctl.yaml</td><td><code>pmix_v5</code></td></tr>
 <tr><td>target</td><td><code>TargetId</code></td><td>a target id of repoctl.yaml</td><td><code>el9</code></td></tr>
 <tr><td>node</td><td><code>NodeId</code></td><td><code>DIR@TARGET</code></td><td><code>slurm@el10</code></td></tr>
-<tr><td>run</td><td><code>RunId</code></td><td><code>r-YYYYMMDD-HHMM-xxx</code> (build, check), <code>p-YYYYMMDD-HHMM-xxx</code> (publish)</td><td><code>r-20261102-1750-a3f</code></td></tr>
+<tr><td>run</td><td><code>RunId</code></td><td><code>r-YYYYMMDD-HHMM-xxx</code> (build, check, gc), <code>p-YYYYMMDD-HHMM-xxx</code> (publish)</td><td><code>r-20261102-1750-a3f</code></td></tr>
 <tr><td>publish id</td><td><code>Snapshot.publish</code></td><td>the id of the publish run; an import has <code>p-import-YYYYMMDD</code></td><td><code>p-20261103-1412-5e1</code></td></tr>
 <tr><td>advisory</td><td><code>Advisory.id</code></td><td><code>CODE/SUBJECT</code>; the subject is a node, a dir or a key id</td><td><code>closure.broken/pmix@el9</code>, <code>sign.expiring/d.klein</code></td></tr>
 <tr><td>key</td><td><code>Signer.keyId</code></td><td>an id in <code>sign.keys</code></td><td><code>d.klein</code></td></tr>
@@ -183,7 +183,7 @@
 <tr><td>PlanAction</td><td><code>build</code> <code>current</code> <code>staged</code> <code>skip</code></td><td><a href="build.html#actions">Plan actions</a></td></tr>
 <tr><td>PlanReasonCode</td><td><code>commit-changed</code> <code>rebuild</code> <code>new-package</code> <code>new-target</code> <code>forced</code> <code>staging-missing</code></td><td><a href="build.html#plan">Plan</a></td></tr>
 <tr><td>RunState</td><td><code>planning</code> <code>running</code> <code>ok</code> <code>failed</code> <code>canceled</code> <code>abandoned</code></td><td><a href="build.html#states">Run states</a>. Only a reader gives <code>abandoned</code>.</td></tr>
-<tr><td>Run kind; origin</td><td><code>build</code> <code>publish</code> <code>check</code>; <code>cli</code> <code>ui</code> <code>mcp</code> <code>ci</code></td><td>origin <code>ci</code> when <code>CI=true</code></td></tr>
+<tr><td>Run kind; origin</td><td><code>build</code> <code>publish</code> <code>check</code> <code>gc</code>; <code>cli</code> <code>ui</code> <code>mcp</code> <code>ci</code></td><td>origin <code>ci</code> when <code>CI=true</code></td></tr>
 <tr><td>FailureClass</td><td><code>srpm</code> <code>builddep</code> <code>build</code> <code>stage</code> <code>mock</code> <code>host</code> <code>timeout</code> <code>canceled</code> <code>internal</code></td><td><a href="build.html#logs">Logs</a>. <code>host</code>: the host failed, not the package. <code>timeout</code>: a step limit or the idle limit ended (<a href="build.html#failures">Failures</a>).</td></tr>
 <tr><td><code>checks.soname</code></td><td><code>pending</code> <code>unchanged</code> <code>removed</code></td><td><a href="build.html#soname">Soname check</a> of a node</td></tr>
 <tr><td>LockState</td><td><code>in-sync</code> <code>in-tree</code> <code>ahead</code> <code>behind</code> <code>diverged</code> <code>dirty</code> <code>missing</code> <code>unpinned</code> <code>orphaned</code></td><td><a href="lifecycle.html#lock-states">Lock states</a>. <code>in-tree</code>: an in-tree package without a change; <code>dirty</code> also covers an in-tree path.</td></tr>
@@ -277,7 +277,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 92 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 93 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -298,6 +298,7 @@
 <tr><td><code>config.unsupported</code></td><td>1</td><td>This release does not support the key or its value, for example a target that is not <code>x86_64</code>.</td><td>Remove the key, or change the value.</td></tr>
 <tr><td><code>dep.not-for-target</code></td><td>warning</td><td>Plan: only a package of another target provides a BuildRequires of the node.</td><td>Guard the BuildRequires with <code>%if</code>, or add the target.</td></tr>
 <tr><td><code>deprecated</code></td><td>warning</td><td>The input uses a deprecated name, for example <code>sign.gpg_name</code>.</td><td>Use the name in the message.</td></tr>
+<tr><td><code>gc.failed</code></td><td>13</td><td><code>repo gc --apply</code>: the GitHub API failed one delete. gc stopped; the versions before it are deleted.</td><td>Run <code>repoctl repo gc --apply</code> again. The dry run shows what is left.</td></tr>
 <tr><td><code>git.busy</code></td><td>7</td><td>Another command holds the clone lock of an external package (<a href="lifecycle.html#clones">clones</a>). The message names the clone and the holder.</td><td>Try again, or set <code>--lock-wait</code>.</td></tr>
 <tr><td><code>git.fetch-failed</code></td><td>1</td><td><code>git fetch</code> failed.</td><td>Examine the remote and the credentials.</td></tr>
 <tr><td><code>git.mirror-unpushed</code></td><td>warning</td><td><code>clean --git</code> keeps a bare clone with commits that are not on the remote.</td><td>Push the commits.</td></tr>
@@ -460,9 +461,10 @@
 <tr><td><code>advisory</code></td><td>a plan, a node build or a check finds an advisory or changes its state</td><td><code>id</code>, <code>state</code>, <code>level</code>, <code>factsDigest</code></td></tr>
 <tr><td><code>advisory.gone</code></td><td>the check does not find the advisory any more</td><td><code>id</code></td></tr>
 <tr><td><code>advisory.accepted</code></td><td>a human accepts a blocking advisory for one publish</td><td><code>id</code>, <code>factsDigest</code>, <code>reason</code>, <code>user</code>, <code>host</code></td></tr>
+<tr><td><code>gc.deleted</code></td><td><code>repo gc --apply</code> deleted one package version</td><td><code>target</code>, <code>publish</code>, <code>digest</code></td></tr>
 </tbody>
 </table>
-<p>A reader skips a line whose type it does not know. A check writes a journal with <code>kind: check</code> and only advisory events between <code>run.started</code> and <code>run.finished</code>.</p>
+<p>A reader skips a line whose type it does not know. A check writes a journal with <code>kind: check</code> and only advisory events between <code>run.started</code> and <code>run.finished</code>. <code>repo gc --apply</code> writes a journal with <code>kind: gc</code> and only <code>gc.deleted</code> and <code>warning</code> events between them (<a href="publish.html#gc">publish.html#gc</a>).</p>
 
 <h3 id="excerpt">Story excerpt</h3>
 <p>Dennis ran <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code> and <code>repoctl pin</code>, then <code>repoctl build</code> with <code>jobs: 3</code>. The listing shows lines of <code>runs/r-20261102-1750-a3f.jsonl</code> up to 18:01:06, the time of the live frames, and the last line. Gaps in <code>seq</code> are lines that the listing leaves out; <a href="contract/examples/journal.jsonl">journal.jsonl</a> has more lines.</p>
