@@ -212,5 +212,26 @@ $ echo $?
 <p>The admins push set commits directly: lock commits, deployment records and key changes. A required pull request would put each lock commit through a review. GitHub cannot require a review only for some paths of a branch. The design checks trust changes in two other ways: each change of a set input has a signature (<a href="#set-inputs">signed set inputs</a>), and the human who publishes a new key file answers the trust block. The rule "Require signed commits" of GitHub is not used either. It verifies with the keys of the GitHub accounts, not with <code>keys/</code>, and it also refuses the unsigned lock commits of a host that only builds.</p>
 </aside>
 <p><code>repoctl doctor</code> reads the rules of the set branch, of <code>main</code> and of the package branches of the lock with the GitHub REST API (<code>GET /repos/OWNER/REPO/rules/branches/BRANCH</code>). OWNER and REPO come from the URL of the remote. The check <code>git.protection</code> warns for each branch without the rules "restrict deletions" and "block force pushes", and for <code>main</code> without a required pull request. A remote outside GitHub, or a failed request, gives a warning with the reason.</p>
+
+<h2 id="public">Public information</h2>
+<p>The GHCR packages are public, so the mirror job and <code>repo pull</code> need no token (<a href="publish.html#registry">publish.html#registry</a>). The served tree is public for each client. The set repository can be public, and this chapter treats it as public. The table gives each field that repoctl writes to these places, and the decision for it. All decisions are "keep": each field is intended to be public.</p>
+<table class="compact">
+<thead><tr><th>Field</th><th>Where</th><th>Content</th><th>Decision and reason</th></tr></thead>
+<tbody>
+<tr><td><code>io.repoctl.user</code>, <code>io.repoctl.host</code></td><td>GHCR annotations of each snapshot</td><td>The local user name and the host name, for example <code>dklein</code> and <code>hpc-a1</code>.</td><td>Keep. Status and the web UI show who published from where. A host name gives no access. A hash does not hide a short name.</td></tr>
+<tr><td><code>io.repoctl.signer</code>; <code>keys/ID.asc</code>; the key file</td><td>GHCR annotations; set repository; release package</td><td>The full fingerprint; the public key with its user id, a name and an e-mail address.</td><td>Keep. The clients need the public keys. The user id tells the clients who signed.</td></tr>
+<tr><td><code>io.repoctl.set</code>, <code>.target</code>, <code>.publish</code>, <code>.kind</code>, <code>.parent</code>, <code>.set-commit</code>, <code>.created</code>, <code>.repoctl-version</code>, <code>org.opencontainers.image.source</code></td><td>GHCR annotations</td><td>The identity and the chain of the snapshot.</td><td>Keep. The mirror job, status and <code>repo snapshots</code> need them.</td></tr>
+<tr><td><code>io.repoctl.advisories.accepted</code></td><td>GHCR annotations</td><td>The advisory id, the reason, the user and the host of each acceptance.</td><td>Keep. The reason is free text: it must hold no secret.</td></tr>
+<tr><td>Provenance and SBOM records, RepoManifest</td><td>files in the snapshot</td><td>The build parameters with <code>user</code> and <code>host</code>, the source URLs, the digests and the components (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>).</td><td>Keep. The records are for auditors and user sites. They have the same user and host as the annotations.</td></tr>
+<tr><td><code>repoctl-snapshot.json</code></td><td>served tree</td><td>Set, target, digest, publish id and the time of the pull.</td><td>Keep. Status reads it.</td></tr>
+<tr><td>Dismissals: <code>by</code> and <code>note</code></td><td><code>.repoctl/advisories.yaml</code> in the set repository</td><td>The git e-mail address of the human and a free text (<a href="advisories.html#dismissals">advisories.html#dismissals</a>).</td><td>Keep. The commits of the same human show the same address. The note must hold no secret.</td></tr>
+<tr><td>Deployment records: <code>confirmedBy</code> and <code>note</code></td><td><code>keys/deployed.yaml</code> in the set repository</td><td>A key id and a free text.</td><td>Keep. The note must hold no secret.</td></tr>
+<tr><td>Commit messages, for example <code>Rebuild: TEXT</code></td><td>set repository and package branches</td><td>The reason of a rebuild and of each set commit.</td><td>Keep. The text must hold no secret.</td></tr>
+</tbody>
+</table>
+<aside class="callout rule">
+<p class="callout-title">Rule: no secret in a public field</p>
+<p>repoctl writes only the fields of this table to GHCR, to the served tree and to the set repository. A free text (<code>--reason</code>, <code>--note</code>) is public. The help of each such flag says so. The journals, the logs, the staging, the user config and the credential store stay on the admin host.</p>
+</aside>
 </body>
 </html>
