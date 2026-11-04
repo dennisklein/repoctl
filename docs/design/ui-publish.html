@@ -70,7 +70,7 @@
 <ul>
   <li>A hash shows only where two values differ: pin, worktree HEAD, the commit in latest. NVRs have no epoch and no arch.</li>
   <li>Pin 4b1e9c2 opens the pin dialog; the CLI toggle of the page holds <code>repoctl pin ucx</code>. Pin writes repoctl.lock and makes no commit; the lock banner then shows on Packages and in Needs you.</li>
-  <li>Notes: Save writes <code>packages[dir].notes</code> in repoctl.yaml. The UI does not commit it.</li>
+  <li>Notes: the fold shows <code>packages[dir].notes</code> as text. The UI does not edit it. The human edits repoctl.yaml and commits it, as for each other set input, so the CLI, the skills and the UI read the same committed text (<a href="ui.html#calm">R10</a>). The fold gives this hint with the key path.</li>
   <li><code>?target=el9</code> limits the page to one target. <code>tab=history|spec|upstream</code> opens that section.</li>
 </ul>
 <dl class="facts">
@@ -184,7 +184,7 @@
   <li><b>Targets.</b> One card per publishable target, with a tick. el9 is ticked and ready: "38 new RPMs to sign · 170 kept from latest · 208 after publish". These counts show only here. A target that is not ready is one neutral line, not a card: "el10 is not in this publish: slurm@el10 failed. Why ▸". The fold names the failed and the blocked node with the fix.</li>
   <li><b>Advisories.</b> Head: "none blocks this publish". One gate row per required advisory. closure.broken/pmix@el9: "pmix cannot be installed on a new el9 host. This publish does not change pmix, so it can go ahead." Its state reads "open, not changed by this publish": neutral, with no checkbox. Rebuild pmix…, Show the advisory and ✦ Is a rebuild necessary? are in ⋯. One line follows: "3 info advisories and 1 dismissed advisory do not block. Open the list".</li>
   <li><b>Changes in el9.</b> "against latest c21 · from run a3f". Four rows: ↑ ucx 1.22.0-2 → 1.22.1-1 (14 RPMs), ↑ slurm 26.05.4-1 → 26.05.4-2 (17), ↑ openmpi 5.0.11-1 → 5.0.11-2 (6), ↑ slurm-singularity-exec 3.2.0-1 → 3.2.0-2 (1). The fold "7 packages do not change" names them and says "A publish adds RPMs; all old versions stay." There is no "0 removed" row. Full diff opens the <a href="#staging">staging diff</a>.</li>
-  <li><b>Checks ▸.</b> "9 checks passed at 14:05 · gates 1–3 ok". Open, each row has one sentence and its problem code: base is current (<code>state.behind</code>); inputs committed and pushed, set commit 9a0c4e2 (<code>lock.dirty</code>); signer active, valid and in the right format (gate 1, gate 3); signer deployed, slurm-release-26.05-2, confirmed by d.klein 2026-09-10 (gate 2); key file matches sign.keys (<code>sign.keyfile-stale</code>); no NVR returns with other content (<code>nvr.reused</code>); registry login and scope; verify root for el9; disk. A failed check opens the fold, shows first and turns Continue off.</li>
+  <li><b>Checks ▸.</b> "9 checks passed at 14:05 · gates 1–3 ok". Open, each row has one sentence and its problem code: base is current (<code>state.behind</code>); inputs committed, pushed and pinned, set commit 9a0c4e2 (<code>lock.dirty</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code>); signer active, valid and in the right format (gate 1, gate 3); signer deployed, slurm-release-26.05-2, confirmed by d.klein 2026-09-10 (gate 2); key file matches sign.keys (<code>sign.keyfile-stale</code>); no NVR returns with other content (<code>nvr.reused</code>); registry login and scope; verify root for el9; disk. A failed check opens the fold, shows first and turns Continue off.</li>
   <li><b>Signing ▸.</b> "d.klein signs with …41D8 0B6E · probe passed · trust: no change". Open: the full fingerprint, "Sign 38 new RPMs and 3 repomd.xml files", "Kept RPMs: 170 keep their signature: d.klein 120 · hpc-repo 50 <span class="tag warn">retiring</span>", the hint <code>repoctl repo resign --signer hpc-repo</code> and the line "The browser never asks for a PIN; the pinentry of this host does." Probe states: <a href="signing.html#probe">signing.html#probe</a>.</li>
   <li><b>What happens ▸.</b> "8 steps · latest does not change before step 7", with one line per step.</li>
   <li><b>Trust.</b> A trust card shows only when the key file changes (<a href="signing.html#trust-block">signing.html#trust-block</a>): each added and removed key with its full fingerprint. In the story the trust does not change, so only the Signing fold says it.</li>
@@ -200,8 +200,8 @@
 <figure class="shot"><a href="mockups/ui/publish-accept.html"><img src="img/ui-publish-accept.webp" alt="Variant review of el9: soname.removed/ucx@el9 accepted with a reason, pill accepted, red edge kept, Continue on" loading="lazy"></a><figcaption>Variant, not the story publish: the human accepts soname.removed/ucx@el9 for this publish.</figcaption></figure>
 <aside class="callout note"><p class="callout-title">Variant</p><p>This screen uses a variant state. In the story, no advisory blocks the el9 publish. In the variant, run <code>r-20261102-1720-9b1</code> builds ucx alone, and ucx 1.22.1 removes libucp.so.0. The soname check gives <code>soname.removed/ucx@el9</code> (required): "libucp.so.0 removed; openmpi requires it". The closure is ucx and openmpi.</p></aside>
 <ul>
-  <li><b>Blocker.</b> The gate row comes right after the targets. It is the only red item of the page: "This publish changes ucx, and openmpi on el9 requires libucp.so.0." Continue is off.</li>
-  <li><b>Ways out.</b> Rebuild… (openmpi) is the primary of the row. The checkbox "Accept for this publish" opens a reason field (8 or more characters). The reason goes to the journal and to the snapshot annotation <code>io.repoctl.advisories.accepted</code>.</li>
+  <li><b>Blocker.</b> The gate row comes right after the targets. It is the only red item of the page: "This publish changes ucx, and openmpi on el9 requires libucp.so.0." A second sentence names the effect on the clients: "Clients that have openmpi-5.0.11-1.el9 cannot update ucx until openmpi is rebuilt and published." Continue is off.</li>
+  <li><b>Ways out.</b> Rebuild… (openmpi) is the primary of the row. The checkbox "Accept for this publish" opens a reason field (8 or more characters). The reason goes to the journal and to the snapshot annotation <code>io.repoctl.advisories.accepted</code>. The reason is public (<a href="security.html#public">security.html#public</a>).</li>
   <li><b>Accepted.</b> The pill reads <span class="tag warn">accepted</span>. The red edge of the row stays, so the exception stays visible. Rebuild…, Show closure and the agent button move into ⋯. The CLI toggle shows <code>repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 --reason "openmpi loads libucp only in mca_pml_ucx; our clusters use ob1"</code>. The footer says "Next: type the set name to confirm.", and Continue is on.</li>
   <li><b>Counts.</b> 14 new RPMs (ucx only), 170 kept, 184 after. 10 packages do not change.</li>
 </ul>
@@ -214,11 +214,12 @@
   <li>Target and store: el9 to <code>ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9</code> as p-20261103-1412-5e1, in quiet text.</li>
   <li>Sign 38 RPMs and 3 repomd.xml files with d.klein …41D8 0B6E.</li>
   <li>Keep 170 RPMs with their signatures. 50 of them carry the retiring key hpc-repo (quiet text).</li>
-  <li>Advisories: none accepted. In the variant: "soname.removed/ucx@el9 accepted" with the reason.</li>
+  <li>Advisories: none accepted. In the variant: "soname.removed/ucx@el9 accepted" with the reason, and "Clients that have openmpi cannot update ucx until openmpi is rebuilt and published."</li>
   <li>Trust change: none. Hosts see the new RPMs after the mirror job and the metadata expiry of the clients.</li>
 </ol>
 <p>The field "Type slurm-26.05 to confirm" comes next. A trust change puts one field per added key above it, for example "Type the key id a.admin" for the publish of slurm-release-26.05-3. Sign and publish is a solid danger button. It is off until each field matches. The dialog has no CLI line; the CLI toggle of the review holds the command. Cancel and Esc close the dialog.</p>
 <p>The POST carries the CSRF header, the typed values, the plan digest and the accepted ids. The server checks all of them again. When the plan changed, the dialog says "The plan changed. Review again." and nothing starts. Else the answer is <code>HX-Location</code> to the publish run page.</p>
+<p>The server gives the values to the publish child as a UI confirmation (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>). The child makes the plan digest again under the set lock. When the plan changed between the server check and the set lock, the run stops before the first signature with <code>publish.plan-changed</code>. The run page then says "The plan changed. Review again." and links to the review.</p>
 
 <h3 id="progress">Progress</h3>
 <figure class="shot"><a href="mockups/ui/publish-progress.html"><img src="img/ui-publish-progress.webp" alt="Publish 5e1 in step sign, 17 of 38, touch your key; later steps waiting" loading="lazy"></a><figcaption>Publish p-…5e1 at 14:12, step 2 sign: 17 of 38, "Touch your key".</figcaption></figure>
@@ -239,11 +240,11 @@
 <figure class="shot"><a href="mockups/ui/publish-failed.html"><img src="img/ui-publish-failed.webp" alt="Variant: publish stopped at step 6 push, Recover box with two commands, steps 1 to 5 folded, state now" loading="lazy"></a><figcaption>Variant: step 6 push failed, because the token has no write:packages scope. In the story, push takes 38 s and succeeds.</figcaption></figure>
 <ul>
   <li><b>Banner.</b> The only red item: "Publish stopped at step 6, push. Nothing is tagged. latest is unchanged." Second line: "The registry refused the upload: the token has no write:packages scope for slurm-26.05-el9." Then <code>registry.denied</code> · exit 13, small and muted.</li>
-  <li><b>Recover.</b> Right under the banner: "Give the token the scope, then push the kept tree. The command checks the base again, then runs push, tag and cache." Two commands with copy: <code>gh auth refresh -s write:packages</code> and <code>repoctl repo push p-20261103-1412-5e1</code> (<a href="cli.html#cmd-repo-push">cli.html#cmd-repo-push</a>). The UI has no retry button, because the push changes shared state.</li>
+  <li><b>Recover.</b> Right under the banner: "Make a token with write:packages on github.com/settings/tokens and log in with it. Then push the kept tree. The command checks the base again, then runs push, tag and cache." Two commands with copy: <code>oras login ghcr.io -u dklein --password-stdin</code> and <code>repoctl repo push p-20261103-1412-5e1</code> (<a href="cli.html#cmd-repo-push">cli.html#cmd-repo-push</a>). The UI has no retry button, because the push changes shared state.</li>
   <li><b>Steps.</b> "Steps 1–5 ok (52 s) ▸", then "6 push failed after 31 s", then 7 tag and 8 cache "not run".</li>
   <li><b>State now.</b> latest p-…c21 · new snapshot p-…5e1 not tagged · signed tree kept · local copy same as latest.</li>
 </ul>
-<p>The page has no Signing card and no CLI toggle: the Recover box holds the commands. When step 7 fails with <code>snapshot.diverged</code> (latest moved), the state reads "The snapshot is in the registry. latest is unchanged.", and Recover gives <code>repoctl repo pull</code> and a new review. The publish run stays on Runs with the result failed.</p>
+<p>A publish of several targets has one State now line per target: tagged, pushable tree or not run. Recover then gives <code>repoctl repo push p-… --target ID</code> for each target that is not tagged (<a href="publish.html#several-targets">publish.html#several-targets</a>). The page has no Signing card and no CLI toggle: the Recover box holds the commands. When step 7 fails with <code>snapshot.diverged</code> (latest moved), the state reads "The snapshot is in the registry. latest is unchanged.", and Recover gives <code>repoctl repo pull</code> and a new review. The publish run stays on Runs with the result failed.</p>
 
 <h3 id="done">Done</h3>
 <figure class="shot"><a href="mockups/ui/publish-done.html"><img src="img/ui-publish-done.webp" alt="Result of the publish of el9: snapshot ref with copy, 208 RPMs, served behind, next items" loading="lazy"></a><figcaption>Result of the story publish: latest of el9 is p-…5e1. The served tree is behind until the mirror job runs.</figcaption></figure>
@@ -269,11 +270,11 @@
 repoctl: error: el10 is not publishable: slurm@el10 failed, slurm-singularity-exec@el10 is blocked
 hint: read the log. run: repoctl logs slurm@el10
 hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
-<p>When the selection holds a ready target, the page is the normal review, and el10 is one neutral line in Targets.</p>
+<p>When the selection holds a ready target, the page is the normal review, and el10 is one neutral line in Targets. The web UI does not hold a node back. For an urgent fix, the human runs <code>repoctl publish --hold NODE --reason TEXT</code> in a terminal (<a href="publish.html#urgent">publish.html#urgent</a>).</p>
 
 <h2 id="signing">Signing</h2>
-<figure class="shot"><a href="mockups/ui/signing.html"><img src="img/ui-signing.webp" alt="Signing at 15:00: three keys, a.admin with no record, onboarding of a.admin 2 of 5 done" loading="lazy"></a><figcaption>Signing of slurm-26.05 on 2026-11-03 15:00, after A. Admin added the key a.admin.</figcaption></figure>
-<p>Purpose: the Signing page shows the keys of <code>sign.keys</code>, their deployment records and the onboarding steps, as <code>repoctl sign ls</code> and <code>repoctl sign onboard</code> do. The rules are in <a href="signing.html">Signing and trust</a>.</p>
+<figure class="shot"><a href="mockups/ui/signing.html"><img src="img/ui-signing.webp" alt="Signing at 15:00: three keys, a.admin with no record, onboarding of a.admin 2 of 5 done, offboarding of hpc-repo 2 of 6 done" loading="lazy"></a><figcaption>Signing of slurm-26.05 on 2026-11-03 15:00, after A. Admin added the key a.admin.</figcaption></figure>
+<p>Purpose: the Signing page shows the keys of <code>sign.keys</code>, their deployment records and the onboarding and offboarding steps, as <code>repoctl sign ls</code>, <code>repoctl sign onboard</code> and <code>repoctl sign offboard</code> do. The rules are in <a href="signing.html">Signing and trust</a>.</p>
 <table class="compact">
 <thead><tr><th>Key</th><th>Fingerprint</th><th>State</th><th>Deployed</th><th>Expires</th><th>RPMs in latest of el9</th></tr></thead>
 <tbody>
@@ -282,7 +283,7 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
 <tr><td>a.admin, A. Admin &lt;a.admin@gsi.de&gt;</td><td>…E93F 52A7</td><td>active</td><td>no record (warn: gate 2 stops a publish with this key)</td><td>2028-03-01</td><td>0</td></tr>
 </tbody>
 </table>
-<p>Colour is only for retiring, no record and an expiry within 30 days. Active and "you" are plain text. The row fold holds the full fingerprint with copy. The head has the CLI toggle (<code>repoctl sign ls</code>, <code>repoctl sign onboard a.admin</code>).</p>
+<p>Colour is only for retiring, revoked, no record and an expiry within 30 days. Active and "you" are plain text. The row fold holds the full fingerprint with copy. The head has the CLI toggle (<code>repoctl sign ls</code>, <code>repoctl sign onboard a.admin</code>).</p>
 <p>Onboarding: a key with open steps gets the card "Onboarding a.admin · 2 of 5 done ▸". The open steps are visible; the done steps fold.</p>
 <ol>
   <li>Done: key in sign.keys, state active. Set commit 7e21d0a "Trust key a.admin C2F9…52A7".</li>
@@ -291,10 +292,11 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
   <li>Open: deployed on all clients, no record. A human confirms it once per target. Confirm deployment… is off until a target has the release in latest.</li>
   <li>Open: GHCR write access. a.admin is not in the team slurm-repo-admins. A. Admin checks it with <code>repoctl doctor</code> on hpc-a2 (<a href="publish.html#registry">publish.html#registry</a>).</li>
 </ol>
-<p>The Rules fold links <a href="signing.html#gates">signing.html#gates</a> and <a href="signing.html#onboarding">signing.html#onboarding</a>. The UI does not add, retire or remove a key: these are CLI steps (<a href="cli.html#cmd-sign-add"><code>sign add</code></a>, <a href="cli.html#cmd-sign-retire"><code>sign retire</code></a>, <a href="cli.html#cmd-sign-remove"><code>sign remove</code></a>).</p>
+<p>Offboarding: a key in state retiring or removed with open steps gets the card "Offboarding hpc-repo · 2 of 6 done ▸", with the six steps of <code>repoctl sign offboard</code> (<a href="signing.html#offboarding">signing.html#offboarding</a>). Done for hpc-repo: no team member, state retiring. Open: the re-sign of the 50 RPMs in el9, sign remove, the new release, and the key removal on the clients with its removal record. The UI has no action for these steps; each open step shows its command. A removed key without a removal record shows "clients: unconfirmed" in the Deployed column.</p>
+<p>The Rules fold links <a href="signing.html#gates">signing.html#gates</a>, <a href="signing.html#onboarding">signing.html#onboarding</a> and <a href="signing.html#offboarding">signing.html#offboarding</a>. The UI does not add, retire, activate, revoke or remove a key: these are CLI steps (<a href="cli.html#cmd-sign-add"><code>sign add</code></a>, <a href="cli.html#cmd-sign-retire"><code>sign retire</code></a>, <a href="cli.html#cmd-sign-activate"><code>sign activate</code></a>, <a href="cli.html#cmd-sign-revoke"><code>sign revoke</code></a>, <a href="cli.html#cmd-sign-remove"><code>sign remove</code></a>).</p>
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/signing</code></dd>
-  <dt>CLI</dt><dd><a href="cli.html#cmd-sign-ls"><code>repoctl sign ls</code></a>, <a href="cli.html#cmd-sign-onboard"><code>repoctl sign onboard ID</code></a></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-sign-ls"><code>repoctl sign ls</code></a>, <a href="cli.html#cmd-sign-onboard"><code>repoctl sign onboard ID</code></a>, <a href="cli.html#cmd-sign-offboard"><code>repoctl sign offboard ID</code></a></dd>
   <dt>Live</dt><dd><code>signing</code> (key table and onboarding after a set commit or a publish)</dd>
 </dl>
 
@@ -307,10 +309,10 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
   <li><b>Note.</b> How the human checked the clients, for example "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters".</li>
   <li><b>Typed key id.</b> "Type a.admin to confirm". Record deployment is the filled primary, off until the text matches.</li>
 </ul>
-<p>The CLI toggle of the Signing page holds <code>repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9 --note "…"</code>. The action writes <code>keys/deployed.yaml</code> and makes a set commit (b3d94f1). The toast says "Committed b3d94f1. Push it." with <code>git push origin builder/slurm-26.05</code> to copy. The UI does not push. The action has no MCP tool and no unattended mode.</p>
+<p>The dialog writes a release record only. A key file record is a CLI step (<a href="cli.html#cmd-sign-deployed"><code>sign deployed --keyfile</code></a>). The CLI toggle of the Signing page holds <code>repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9 --note "…"</code>. The server gives the typed key id to the child as a UI confirmation (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>). The action writes <code>keys/deployed.yaml</code> and makes a set commit (b3d94f1), signed with the key of <code>sign.key</code>; pinentry asks on the local desktop (<a href="security.html#set-inputs">security.html#set-inputs</a>). The toast says "Committed b3d94f1. Push it." with <code>git push origin builder/slurm-26.05</code> to copy. The UI does not push. The action has no MCP tool and no unattended mode.</p>
 <dl class="facts">
   <dt>URL</dt><dd><code>GET /s/&lt;set&gt;/-/dialog/sign-deployed?key=a.admin</code>; <code>POST /s/&lt;set&gt;/-/actions/sign-deployed</code></dd>
-  <dt>CLI</dt><dd><a href="cli.html#cmd-sign-deployed"><code>repoctl sign deployed ID --release NVR [--target ID] --note TEXT</code></a></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-sign-deployed"><code>repoctl sign deployed ID --release NVR --target ID --note TEXT</code></a></dd>
   <dt>Live</dt><dd><code>signing</code> (the key table and step 4 after the commit)</dd>
 </dl>
 </body>

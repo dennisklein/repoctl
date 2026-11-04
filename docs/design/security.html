@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Security model</title>
+<meta name="description" content="The security model of repoctl: the assets, the actors, the trust boundaries, the rules that protect the set inputs and the GitHub branches, the threats with their mitigations, the public fields and the residual risks.">
+</head>
+<body>
+<h1>Security model</h1>
+<p class="lede">This chapter specifies the security model of repoctl. It names the assets, the actors and the trust boundaries. It gives the rules that protect the set inputs, the GitHub branches and the agent sessions. It ends with the threats, the public fields and the residual risks. The chapter on signing gives the key rules (<a href="signing.html">Signing and trust</a>).</p>
+<ul class="keypoints">
+  <li>The clients trust only OpenPGP signatures. GHCR, the HTTP server and the network hold signed files, but they are not trusted.</li>
+  <li>The builder branch is the root of trust. It holds <code>sign.keys</code>, the public keys and the deployment records.</li>
+  <li>The admin host is the builder. One human builds, signs and publishes there, with a personal key on a YubiKey.</li>
+</ul>
+
+<h2 id="assets">Assets</h2>
+<p>An asset is a thing that an attacker wants to read, change or use. The table gives each asset, where it is, what an attacker gets from it and the guard of the design.</p>
+<table class="compact">
+<thead><tr><th>#</th><th>Asset</th><th>Where</th><th>What an attacker gets</th><th>Guard</th></tr></thead>
+<tbody>
+<tr><td>A1</td><td>Signing keys</td><td>The private key of each admin, on a YubiKey or in a gpg keyring of the admin host.</td><td>A signature that all clients trust.</td><td>The card does not give out the key. PIN and touch. Gate 1 (<a href="signing.html#gates">signing.html#gates</a>). Offboarding (<a href="signing.html#offboarding">signing.html#offboarding</a>).</td></tr>
+<tr><td>A2</td><td>Trust records</td><td><code>sign.keys</code> in <code>repoctl.yaml</code>, <code>keys/ID.asc</code> and <code>keys/deployed.yaml</code> on <code>builder/&lt;set&gt;</code>.</td><td>A new trusted key, or a key that signs before the clients have it.</td><td>Signed set inputs (<a href="#set-inputs">signed set inputs</a>). The trust block, gate 2 and the mirror job (<a href="signing.html#trust-block">signing.html#trust-block</a>).</td></tr>
+<tr><td>A3</td><td>Set inputs</td><td><code>repoctl.yaml</code>, <code>repoctl.lock</code>, the macros files, the in-tree packages and <code>keys/</code> on <code>builder/&lt;set&gt;</code>.</td><td>A change of what the next publish builds, for example a pin to a bad package commit.</td><td>Signed set inputs. The publish summary (<a href="publish.html#summary">publish.html#summary</a>).</td></tr>
+<tr><td>A4</td><td>Package sources</td><td>The package branches and the source archives of upstream.</td><td>Bad code in a build.</td><td>The lock pins each package commit. A human reviews each version bump. The provenance records the digest of each source and buildroot RPM (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>).</td></tr>
+<tr><td>A5</td><td>Snapshots</td><td>GHCR: the snapshot artifacts and the tag <code>latest</code>.</td><td>A change of what the mirror job pulls.</td><td>Each RPM and each <code>repomd.xml.asc</code> is signed. The mirror job verifies them (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
+<tr><td>A6</td><td>Served tree</td><td>The HTTP server.</td><td>A change of what the clients download.</td><td>dnf checks <code>repomd.xml.asc</code> and rpm checks each RPM (<a href="signing.html#chain">signing.html#chain</a>).</td></tr>
+<tr><td>A7</td><td>Client keyrings</td><td>The rpmdb keys and the dnf repository keyring of each client.</td><td>Trust for any key.</td><td>Only the release package and config management write them.</td></tr>
+<tr><td>A8</td><td>Credentials</td><td>The GHCR token of each admin in the container credential store. The GitHub login with push access to the set repository.</td><td>A push of snapshots and tags, a delete of snapshots, a push of commits.</td><td>Team membership and package access (<a href="publish.html#registry">publish.html#registry</a>). OpenPGP stops a change of a signed file.</td></tr>
+<tr><td>A9</td><td>The tool</td><td>repoctl and its skills on branch <code>main</code>, the release RPMs of repoctl and the mirror job script <code>contrib/mirror/</code>.</td><td>Code that runs on each admin host and on the HTTP server.</td><td>The ruleset <code>main</code> (<a href="#rulesets">GitHub rulesets</a>). The records of the tool (<a href="supply-chain.html#tool">supply-chain.html#tool</a>).</td></tr>
+</tbody>
+</table>
+
+<h2 id="actors">Actors</h2>
+<p>An actor is a human or a process that can change an asset. The table gives what each actor has and what it can do in the design.</p>
+<table class="compact">
+<thead><tr><th>Actor</th><th>Has</th><th>Can</th></tr></thead>
+<tbody>
+<tr><td>Admin</td><td>An active and deployed key, push access to the set repository, a GHCR token.</td><td>Build, sign and publish. Change the trust records.</td></tr>
+<tr><td>New admin</td><td>An active key without a deployment record.</td><td>Build into staging. A publish stops at gate 2 (<a href="signing.html#onboarding">signing.html#onboarding</a>).</td></tr>
+<tr><td>Leaver</td><td>A retiring or removed key. Push access and a token until the offboarding ends.</td><td>Gate 1 refuses the key. The access ends with step 6 of the offboarding (<a href="signing.html#offboarding">signing.html#offboarding</a>).</td></tr>
+<tr><td>Agent in a terminal</td><td>The permissions of the human, limited by the tool list of the skill, the deny list and the guard hook (<a href="agents.html#tool-lists">agents.html#tool-lists</a>, <a href="agents.html#guard">agents.html#guard</a>).</td><td>Read, build into staging, edit and commit in a package worktree. It never pushes, publishes or signs.</td></tr>
+<tr><td>UI agent</td><td>The read-only MCP server (<a href="agents.html#ui-agent">agents.html#ui-agent</a>).</td><td>Read.</td></tr>
+<tr><td>Organization owner</td><td>Owner rights in the GitHub organization.</td><td>Set the rulesets, the package visibility and the team members.</td></tr>
+<tr><td>Config management</td><td>Root on the clients and on the HTTP server.</td><td>Install the release package. Remove a key from the clients.</td></tr>
+<tr><td>Mirror job</td><td>A system user on the HTTP server and an anonymous pull token.</td><td>Serve a tree that its key file verifies, and no other tree.</td></tr>
+<tr><td>Client</td><td>dnf and rpm with the keys of the release package.</td><td>Install a package that verifies.</td></tr>
+<tr><td>Outside attacker</td><td>Anonymous read access to GHCR and to a public set repository. Possibly a stolen token or a stolen login.</td><td>Read the public data. With a stolen token: push to GHCR. With a stolen login: push to GitHub.</td></tr>
+</tbody>
+</table>
+
+<h2 id="boundaries">Trust boundaries</h2>
+<p>A trust boundary is a line where data goes from one zone to another zone with a different trust. Each crossing has a check. The diagram shows the zones, and the table gives the check of each crossing.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 1040 480" role="img" aria-labelledby="bound-t">
+<title id="bound-t">The trust boundaries of repoctl: upstream, the admin host with the agent session, GitHub, GHCR, the HTTP server, config management and the clients, and the crossings B1 to B7</title>
+
+<!-- upstream -->
+<rect class="zone" x="16" y="40" width="164" height="162" rx="12"/>
+<text class="t-title" x="30" y="64">Upstream</text>
+<rect class="box-soft" x="30" y="80" width="136" height="48" rx="8"/>
+<text class="t" x="42" y="100">Source archives</text>
+<text class="t-small t-muted" x="42" y="118">upstream releases</text>
+<rect class="box-soft" x="30" y="138" width="136" height="48" rx="8"/>
+<text class="t" x="42" y="158">Rocky, EPEL</text>
+<text class="t-small t-muted" x="42" y="176">buildroot RPMs</text>
+<path class="edge" d="M180,121 C208,121 208,222 250,222" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="208" y="110" text-anchor="middle">B2</text>
+
+<!-- admin host -->
+<rect class="zone" x="236" y="40" width="300" height="420" rx="12"/>
+<text class="t-title" x="250" y="64">Admin host</text>
+<text class="t-small t-muted" x="522" y="64" text-anchor="end">own user, own key</text>
+<rect class="box" x="252" y="80" width="128" height="56" rx="8"/>
+<text class="t-title" x="266" y="104">Human</text>
+<text class="t-small" x="266" y="124">reads, confirms</text>
+<rect class="box" x="392" y="80" width="128" height="56" rx="8"/>
+<text class="t-title" x="406" y="104">YubiKey</text>
+<text class="t-small" x="406" y="124">private key, PIN</text>
+<line class="edge" x1="316" y1="136" x2="316" y2="180" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="324" y="162">runs</text>
+<line class="edge" x1="456" y1="136" x2="456" y2="180" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="464" y="162">signs</text>
+<rect class="box-accent" x="252" y="182" width="268" height="80" rx="8"/>
+<text class="t-title t-on" x="268" y="208">repoctl</text>
+<text class="t-small t-on" x="268" y="228">build, sign, publish</text>
+<text class="t-small t-on" x="268" y="246">gates, signed set inputs</text>
+<rect class="box-warn" x="252" y="322" width="268" height="72" rx="8"/>
+<text class="t-title" x="268" y="346">Agent session</text>
+<text class="t-small" x="268" y="366">skills, read MCP tools</text>
+<text class="t-small" x="268" y="384">tool list, deny list, guard hook</text>
+<line class="edge-accent" x1="386" y1="322" x2="386" y2="266" marker-end="url(#arrow-accent)"/>
+<text class="t-small t-accent" x="396" y="298">B7 tool calls</text>
+<rect class="box-soft" x="252" y="408" width="268" height="36" rx="8"/>
+<text class="t-small" x="268" y="431">local copy, staging, journals</text>
+
+<!-- GitHub -->
+<rect class="zone" x="592" y="40" width="200" height="162" rx="12"/>
+<text class="t-title" x="606" y="64">GitHub</text>
+<text class="t-small t-muted" x="778" y="64" text-anchor="end">set repository</text>
+<rect class="box" x="606" y="78" width="172" height="50" rx="8"/>
+<text class="t-title t-mono" x="618" y="98">builder/&lt;set&gt;</text>
+<text class="t-small" x="618" y="118">set inputs, keys/</text>
+<rect class="box-soft" x="606" y="136" width="172" height="26" rx="6"/>
+<text class="t-small" x="618" y="153">package branches</text>
+<rect class="box-soft" x="606" y="168" width="172" height="26" rx="6"/>
+<text class="t-small" x="618" y="185">main: tool, skills</text>
+<path class="edge" d="M522,206 C566,206 566,103 604,103" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="554" y="152" text-anchor="end">B1</text>
+
+<!-- GHCR -->
+<rect class="zone" x="592" y="250" width="200" height="130" rx="12"/>
+<text class="t-title" x="606" y="274">GHCR</text>
+<text class="t-small t-muted" x="778" y="274" text-anchor="end">public</text>
+<rect class="box" x="606" y="290" width="172" height="72" rx="8"/>
+<text class="t-title" x="618" y="314">snapshots</text>
+<text class="t-small" x="618" y="334">tag latest</text>
+<text class="t-small" x="618" y="352">signed RPMs, repomd</text>
+<path class="edge-accent" d="M522,240 C566,240 566,326 604,326" marker-end="url(#arrow-accent)"/>
+<text class="t-small t-accent" x="554" y="292" text-anchor="end">B3</text>
+
+<!-- clients -->
+<rect class="zone" x="848" y="40" width="150" height="162" rx="12"/>
+<text class="t-title" x="862" y="64">Clients</text>
+<rect class="box" x="862" y="78" width="122" height="50" rx="8"/>
+<text class="t-title" x="874" y="98">dnf, rpm</text>
+<text class="t-small" x="874" y="118">check each file</text>
+<rect class="box-soft" x="862" y="138" width="122" height="50" rx="8"/>
+<text class="t" x="874" y="158">keyrings</text>
+<text class="t-small" x="874" y="176">from the key file</text>
+
+<!-- HTTP server -->
+<rect class="zone" x="848" y="250" width="150" height="130" rx="12"/>
+<text class="t-title" x="862" y="274">HTTP server</text>
+<rect class="box" x="862" y="290" width="122" height="72" rx="8"/>
+<text class="t-title" x="874" y="314">mirror job</text>
+<text class="t-small" x="874" y="334">its key file</text>
+<text class="t-small" x="874" y="352">served tree</text>
+<line class="edge" x1="778" y1="326" x2="858" y2="326" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="820" y="316" text-anchor="middle">B4</text>
+<line class="edge" x1="970" y1="290" x2="970" y2="192" marker-end="url(#arrow)"/>
+<text class="t-small t-accent" x="960" y="232" text-anchor="end">B5</text>
+
+<!-- config management -->
+<rect class="zone" x="848" y="404" width="150" height="56" rx="12"/>
+<text class="t" x="862" y="426">Config management</text>
+<text class="t-small t-muted" x="862" y="446">release package</text>
+<line class="edge-muted" x1="900" y1="404" x2="900" y2="384" marker-end="url(#arrow-muted)"/>
+<path class="edge-muted" d="M998,432 H1022 V103 H988" marker-end="url(#arrow-muted)"/>
+<text class="t-small t-accent" x="1010" y="272" text-anchor="middle">B6</text>
+</svg>
+<figcaption>The trust boundaries. Each zone is a trust domain, and each arrow that leaves a zone is a crossing. The table gives the check of each crossing.</figcaption>
+</figure>
+<table class="compact">
+<thead><tr><th>#</th><th>Crossing</th><th>Check at the crossing</th></tr></thead>
+<tbody>
+<tr><td>B1</td><td>Admin host and GitHub: set commits and package commits, push and fetch.</td><td>Publish refuses a change of a set input without a valid signature of an allowed key (<a href="#set-inputs">signed set inputs</a>). The lock pins each package commit. The rulesets block force pushes and deletions (<a href="#rulesets">GitHub rulesets</a>).</td></tr>
+<tr><td>B2</td><td>Upstream to the admin host: source archives and buildroot RPMs.</td><td>mock checks the signatures of the Rocky and EPEL RPMs. The provenance records each digest. A human reviews each version bump.</td></tr>
+<tr><td>B3</td><td>Admin host to GHCR: the push of a snapshot and the tag.</td><td>The GHCR token. GHCR is storage only: nothing in it is trusted without its OpenPGP signature.</td></tr>
+<tr><td>B4</td><td>GHCR to the HTTP server: the pull of the mirror job.</td><td>The mirror job verifies each <code>repomd.xml.asc</code> and each RPM with the key file that config management installed (<a href="publish.html#mirror">publish.html#mirror</a>).</td></tr>
+<tr><td>B5</td><td>HTTP server to the clients: dnf over HTTPS.</td><td><code>repo_gpgcheck=1</code> and <code>gpgcheck=1</code> with the client keyrings (<a href="signing.html#chain">signing.html#chain</a>).</td></tr>
+<tr><td>B6</td><td>Config management to the clients and the HTTP server: the release package and the key removal.</td><td>Outside repoctl. A human confirms the result with a deployment record (<a href="signing.html#deployment-record">signing.html#deployment-record</a>).</td></tr>
+<tr><td>B7</td><td>Agent session to the admin host: tool calls.</td><td>The tool list of the skill, the MCP server without shared-state tools, the deny list and the guard hook (<a href="agents.html#deny">agents.html#deny</a>).</td></tr>
+</tbody>
+</table>
+
+<h2 id="set-inputs">Signed set inputs</h2>
+<p>A set input is a file of the builder branch that decides what a publish builds or which keys the clients trust: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, each <code>targets[].macros</code> file, each in-tree package path and <code>keys/</code>. Each human with push access to the set repository can change them. git does not authenticate the author of a commit. Thus publish checks the OpenPGP signature of each change.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: signed set inputs</p>
+<p>Each commit that changes a set input must have a valid signature of an allowed key. Publish checks this in step 1, before the first signature. A commit that fails stops the publish with <code>sign.trust-unverified</code> (exit 12).</p>
+</aside>
+<ul>
+  <li><b>The commits.</b> For each selected target, publish reads the set commit of the base, the annotation <code>io.repoctl.set-commit</code> (<a href="publish.html#format">publish.html#format</a>). It checks each commit that <code>git log BASE..SET -- INPUTS</code> lists. SET is the set commit of the publish. INPUTS are the set inputs of SET. When a target has no base, or the set commit of the base is not an ancestor of SET, the range is all of SET.</li>
+  <li><b>The allowed keys.</b> A key that is active in <code>sign.keys</code> of the first parent of the commit. Two more cases allow one of the keys that the commit adds: a commit that only adds keys (new entries in state active, their <code>keys/ID.asc</code> and the files of <code>release write</code>), and a commit whose first parent has no <code>sign.keys</code>. Thus a new admin signs the commit "Trust key ID FPR" with the new key.</li>
+  <li><b>The check.</b> repoctl runs <code>git verify-commit --raw</code> with a temporary GnuPG home. The home holds the <code>keys/ID.asc</code> files of the first parent, plus the added keys of the commit. The line <code>VALIDSIG</code> gives the full fingerprint, and repoctl compares it with <code>sign.keys</code>.</li>
+  <li><b>The deployment records.</b> In each checked commit, each new entry of <code>keys/deployed.yaml</code> has <code>confirmedBy</code> equal to the key id of the signer of that commit. <code>confirmedBy</code> is not the key of the entry, unless no other key was active in the first parent. Else the result is also <code>sign.trust-unverified</code>.</li>
+</ul>
+<p>repoctl signs each set commit that it makes with the key of <code>sign.key</code> (<code>git commit -S&lt;FPR&gt;</code>). The sign commands <code>sign add</code>, <code>sign retire</code>, <code>sign remove</code> and <code>sign deployed</code> do not commit without the secret key of <code>sign.key</code> (<code>sign.no-key</code>, exit 9). A human who commits a set input with git must sign the commit too. The doctor check <code>git.signing</code> warns when git in the set directory does not sign commits with the key of <code>sign.key</code> (<code>commit.gpgsign</code> and <code>user.signingkey</code>).</p>
+<p>In the story, A. Admin signs the commit 7e21d0a "Trust key a.admin C2F9…52A7" with the new key a.admin. d.klein signs the deployment record of a.admin. d.klein also confirmed his own records in September: hpc-repo was retiring, so no other key was active.</p>
+
+<h3 id="review">Review commit</h3>
+<p>A commit that fails the rule stays in the history of the builder branch. Each publish stops at it until an admin reviews it. The admin reads the change with <code>git show</code>. If the change is wrong, the admin reverts it with a signed commit. In both cases, the admin then makes a review commit: an empty commit with a valid signature of an allowed key and one trailer <code>Trust-Reviewed: SHA</code> for each commit that it covers. Publish does not stop at a failed commit when a review commit in the range covers its full sha. The hint of <code>sign.trust-unverified</code> gives the command. A variant, not the story: a lock commit from a host without a key.</p>
+<pre class="term">$ repoctl publish --target el9 --dry-run
+repoctl: error: set commit 3c5d9e1 changes repoctl.lock and has no valid signature of an allowed key
+hint: review the change. run: git show 3c5d9e1
+hint: then sign a review commit. run: git commit --allow-empty -S4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E -m "Review set inputs of 3c5d9e1" --trailer "Trust-Reviewed: 3c5d9e1f…"
+$ echo $?
+12</pre>
+
+<h3 id="remote-tip">Trust records on the remote branch</h3>
+<p>Two admins can push to the builder branch at the same time. <code>lock.unpushed</code> checks only that the set commit is on the remote branch. Thus a publish from an older set commit could use old key states, for example after another admin pushed a retire.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: newest trust records</p>
+<p>After the fetch of step 1, publish compares <code>repoctl.yaml</code> and <code>keys/</code> of the set commit with the tip of the remote branch: <code>git diff --quiet SET origin/builder/SET -- repoctl.yaml keys/</code>. A difference stops the publish with <code>sign.trust-behind</code> (exit 13). The hint is <code>git pull --ff-only</code>, then publish again.</p>
+</aside>
+<p>Thus gates 1 and 2 and the trust block read the newest key states and deployment records. All admins see the same record. A change of <code>repoctl.yaml</code> outside <code>sign</code>, for example a new package, also stops the publish. This is on purpose: the rule stays one file comparison.</p>
+
+<h2 id="rulesets">GitHub rulesets</h2>
+<p>The set repository holds the tool on <code>main</code>, each set on <code>builder/&lt;set&gt;</code> and each package on its package branch (<a href="decision.html#home">decision.html#home</a>). An organization owner sets three rulesets on it. A ruleset also stops a human with a stolen login and push access.</p>
+<table class="compact">
+<thead><tr><th>Ruleset</th><th>Target branches</th><th>Rules</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>main</code></td><td><code>main</code></td><td>Require a pull request with one approval of another team member. Dismiss stale approvals on a new push. Require the status checks of the CI workflows. Restrict deletions. Block force pushes.</td><td><code>main</code> holds the tool, the skills and the mirror job script (A9). A change there runs on each admin host and on the HTTP server after the next release.</td></tr>
+<tr><td><code>sets</code></td><td><code>builder/*</code></td><td>Restrict deletions. Block force pushes.</td><td>The snapshots name their set commits (<code>io.repoctl.set-commit</code>). A rewrite removes these commits, the history of the trust records and the commits that a <a href="#review">review commit</a> covers.</td></tr>
+<tr><td><code>packages</code></td><td>all branches except <code>main</code> and <code>builder/*</code></td><td>Restrict deletions. Block force pushes.</td><td>The lock pins each package commit. A rewrite removes a pinned commit, and an old lock cannot build again.</td></tr>
+</tbody>
+</table>
+<p>The bypass list of each ruleset is empty. An organization owner can change a ruleset, and the audit log of the organization records the change.</p>
+<aside class="callout why">
+<p class="callout-title">Why no pull request on builder branches</p>
+<p>The admins push set commits directly: lock commits, deployment records and key changes. A required pull request would put each lock commit through a review. GitHub cannot require a review only for some paths of a branch. The design checks trust changes in two other ways: each change of a set input has a signature (<a href="#set-inputs">signed set inputs</a>), and the human who publishes a new key file answers the trust block. The rule "Require signed commits" of GitHub is not used either. It verifies with the keys of the GitHub accounts, not with <code>keys/</code>, and it also refuses the unsigned lock commits of a host that only builds.</p>
+</aside>
+<p><code>repoctl doctor</code> reads the rules of the set branch, of <code>main</code> and of the package branches of the lock with the GitHub REST API (<code>GET /repos/OWNER/REPO/rules/branches/BRANCH</code>). OWNER and REPO come from the URL of the remote. The check <code>git.protection</code> warns for each branch without the rules "restrict deletions" and "block force pushes", and for <code>main</code> without a required pull request. A remote outside GitHub, or a failed request, gives a warning with the reason.</p>
+
+<h2 id="threats">Threats and mitigations</h2>
+<p>The table gives each threat, the asset that it attacks, the mitigations of the design and what stays. The residual risks are in <a href="#residual">residual risks</a>. The supply chain chapter gives the threats to the build records (<a href="supply-chain.html#value">supply-chain.html#value</a>).</p>
+<table class="compact">
+<thead><tr><th>#</th><th>Threat</th><th>Asset</th><th>Mitigations</th><th>What stays</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td>An admin host is compromised. The attacker builds a bad RPM, and the admin signs it with the YubiKey.</td><td>A1, A3, A5</td><td>A personal key on a card that does not give out the key. Gates 1 to 3 (<a href="signing.html#gates">signing.html#gates</a>). The publish summary. The journal and the provenance record the build.</td><td>The signature is valid. R1.</td></tr>
+<tr><td>S2</td><td>A malicious set commit: a human with push access, or a stolen GitHub login, changes <code>repoctl.yaml</code>, the lock or <code>keys/</code> without an active key.</td><td>A2, A3</td><td>Publish refuses the change with <code>sign.trust-unverified</code> (<a href="#set-inputs">signed set inputs</a>). An admin reverts it and signs a <a href="#review">review commit</a>. The rulesets keep the history (<a href="#rulesets">GitHub rulesets</a>).</td><td>Nothing, if the admin reads the change before the review commit.</td></tr>
+<tr><td>S3</td><td>An admin with an active key adds a key of an attacker.</td><td>A2</td><td>Each step is a signed set commit, and the trust block shows the key and the signer of each key change (<a href="signing.html#trust-block">signing.html#trust-block</a>). The new key cannot sign before its deployment record (gate 2). The new key cannot confirm its own deployment while another key is active (<code>sign.self-confirm</code>). The mirror job serves only trees that the key file of config management verifies.</td><td>An admin who acts alone can add a key and confirm its deployment. R1.</td></tr>
+<tr><td>S4</td><td>A change on <code>main</code> puts bad code into repoctl, into a skill or into the mirror job script.</td><td>A9</td><td>The ruleset <code>main</code>: a pull request with one approval of another team member and the CI status checks.</td><td>Two members who act together. R5.</td></tr>
+<tr><td>S5</td><td>A stolen GHCR token pushes a snapshot or moves the tag <code>latest</code>.</td><td>A5</td><td>The mirror job serves no tree that its key file does not verify (<a href="publish.html#mirror">publish.html#mirror</a>). The clients check each file (<a href="signing.html#chain">signing.html#chain</a>). Offboarding removes the human from the team.</td><td>An older signed snapshot, or a deleted snapshot. R2.</td></tr>
+<tr><td>S6</td><td>A compromised HTTP server changes the served tree.</td><td>A6</td><td>dnf checks <code>repomd.xml.asc</code>, and rpm checks each RPM with the client keyrings. The keyring of the mirror job does not change the client keyrings.</td><td>An older signed tree, a tree that does not change, a false <code>repoctl-snapshot.json</code>. R2, R6.</td></tr>
+<tr><td>S7</td><td>A compromised upstream source: a bad source archive or a bad buildroot RPM.</td><td>A4</td><td>mock checks the signatures of the Rocky and EPEL RPMs. The lock pins each package commit, and a human reviews each version bump. The provenance records the digest of each source and buildroot RPM (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>).</td><td>A bad upstream release with a valid signature. R3.</td></tr>
+<tr><td>S8</td><td>A prompt injection into an agent: a log line, a spec, a commit subject, an advisory or a release note holds instructions.</td><td>A2, A3, A8</td><td>Skills and tool descriptions say that this text is data (<a href="agents.html#principles">agents.html#principles</a>). The tool list of each skill (<a href="agents.html#tool-lists">agents.html#tool-lists</a>). No MCP tool changes shared state (<a href="agents.html#not-exposed">agents.html#not-exposed</a>). The deny list and the guard hook deny push, publish, sign and each edit of a set input (<a href="agents.html#guard">agents.html#guard</a>). The UI agent has only the read-only MCP server.</td><td>A bad commit in a package worktree. A human reads it before the push and the pin. R4.</td></tr>
+<tr><td>S9</td><td>A leaver uses the old key, the GitHub login or the GHCR token.</td><td>A1, A2, A8</td><td>Gate 1 refuses a retiring or removed key. Offboarding re-signs the RPMs of the key, removes the key from the clients and removes the human from the team (<a href="signing.html#offboarding">signing.html#offboarding</a>).</td><td>Access until the last step of the offboarding.</td></tr>
+<tr><td>S10</td><td>A signing key is stolen and signs outside repoctl.</td><td>A1</td><td>A key on a YubiKey cannot be copied, and it needs the PIN. Offboarding and re-sign remove the trust in the key (<a href="supply-chain.html#value">supply-chain.html#value</a>, T7).</td><td>Trust in the key until config management removes it from the clients.</td></tr>
+</tbody>
+</table>
+
+<h2 id="public">Public information</h2>
+<p>The GHCR packages are public, so the mirror job and <code>repo pull</code> need no token (<a href="publish.html#registry">publish.html#registry</a>). The served tree is public for each client. The set repository can be public, and this chapter treats it as public. The table gives each field that repoctl writes to these places, and the decision for it. All decisions are "keep": each field is intended to be public.</p>
+<table class="compact">
+<thead><tr><th>Field</th><th>Where</th><th>Content</th><th>Decision and reason</th></tr></thead>
+<tbody>
+<tr><td><code>io.repoctl.user</code>, <code>io.repoctl.host</code></td><td>GHCR annotations of each snapshot</td><td>The local user name and the host name, for example <code>dklein</code> and <code>hpc-a1</code>.</td><td>Keep. Status and the web UI show who published from where. A host name gives no access. A hash does not hide a short name.</td></tr>
+<tr><td><code>io.repoctl.signer</code>; <code>keys/ID.asc</code>; the key file</td><td>GHCR annotations; set repository; release package</td><td>The full fingerprint; the public key with its user id, a name and an e-mail address.</td><td>Keep. The clients need the public keys. The user id tells the clients who signed.</td></tr>
+<tr><td><code>io.repoctl.set</code>, <code>.target</code>, <code>.publish</code>, <code>.kind</code>, <code>.parent</code>, <code>.set-commit</code>, <code>.created</code>, <code>.repoctl-version</code>, <code>org.opencontainers.image.source</code></td><td>GHCR annotations</td><td>The identity and the chain of the snapshot.</td><td>Keep. The mirror job, status and <code>repo snapshots</code> need them.</td></tr>
+<tr><td><code>io.repoctl.advisories.accepted</code></td><td>GHCR annotations</td><td>The advisory id, the reason, the user and the host of each acceptance.</td><td>Keep. The reason is free text: it must hold no secret.</td></tr>
+<tr><td>Provenance and SBOM records, RepoManifest</td><td>files in the snapshot</td><td>The build parameters with <code>user</code> and <code>host</code>, the source URLs, the digests and the components (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>).</td><td>Keep. The records are for auditors and user sites. They have the same user and host as the annotations.</td></tr>
+<tr><td><code>repoctl-snapshot.json</code></td><td>served tree</td><td>Set, target, digest, publish id and the time of the pull.</td><td>Keep. Status reads it.</td></tr>
+<tr><td>Dismissals: <code>by</code> and <code>note</code></td><td><code>.repoctl/advisories.yaml</code> in the set repository</td><td>The git e-mail address of the human and a free text (<a href="advisories.html#dismissals">advisories.html#dismissals</a>).</td><td>Keep. The commits of the same human show the same address. The note must hold no secret.</td></tr>
+<tr><td>Deployment records: <code>confirmedBy</code> and <code>note</code></td><td><code>keys/deployed.yaml</code> in the set repository</td><td>A key id and a free text.</td><td>Keep. The note must hold no secret.</td></tr>
+<tr><td>Commit messages, for example <code>Rebuild: TEXT</code></td><td>set repository and package branches</td><td>The reason of a rebuild and of each set commit.</td><td>Keep. The text must hold no secret.</td></tr>
+</tbody>
+</table>
+<aside class="callout rule">
+<p class="callout-title">Rule: no secret in a public field</p>
+<p>repoctl writes only the fields of this table to GHCR, to the served tree and to the set repository. A free text (<code>--reason</code>, <code>--note</code>) is public. The help of each such flag says so. The journals, the logs, the staging, the user config and the credential store stay on the admin host.</p>
+</aside>
+<h2 id="residual">Residual risks</h2>
+<p>A residual risk is a risk that the design does not stop. The table gives each risk, the reason for it and how a human sees it.</p>
+<table class="compact">
+<thead><tr><th>#</th><th>Risk</th><th>Reason</th><th>How a human sees it</th></tr></thead>
+<tbody>
+<tr><td>R1</td><td>One admin with an active and deployed key builds, signs and publishes alone. No second human reviews a build, a lock change or a new key. The signed set commits name the key of each step.</td><td>A small team. A second review of each publish stops urgent fixes. A hosted build (SLSA L2) is not in the design (<a href="supply-chain.html#slsa">supply-chain.html#slsa</a>).</td><td>The publish summary, the annotations <code>io.repoctl.user</code> and <code>io.repoctl.signer</code>, and the signed set commits.</td></tr>
+<tr><td>R2</td><td>A stolen GHCR token can stop the updates. The mirror job refuses an older signed snapshot: the revision of each <code>repomd.xml</code> must not go back (<a href="publish.html#mirror">publish.html#mirror</a>). Root on the HTTP server can still serve an older signed tree, and the clients take each tree that a trusted key signed.</td><td><code>repomd.xml</code> has no signed expiry date. The signature chain stops each changed file.</td><td>The freshness check of the next plan, build or publish sees a digest of latest that is not the local copy. Status shows the served tree (<a href="publish.html#freshness">publish.html#freshness</a>).</td></tr>
+<tr><td>R3</td><td>A bad upstream release with a valid signature goes into a build.</td><td>The design cannot check the code of upstream.</td><td>The SBOM and the provenance tell which RPMs hold the release (<a href="supply-chain.html#value">supply-chain.html#value</a>, T3 and T4).</td></tr>
+<tr><td>R4</td><td>An agent that does not run the guard hook has only the permissions of its client: an agent outside Claude Code, a skill from the RPM files or the MCP resource, or a tool that the hook matcher does not name.</td><td>repoctl cannot control other clients. The MCP server has no shared-state tool, and publish refuses an unsigned change of a set input.</td><td><code>repoctl doctor</code> warns with <code>skills.guard</code> for an installed skill without the guard hook.</td></tr>
+<tr><td>R5</td><td>An organization owner can change a ruleset, the visibility of the GHCR <span class="no-gl">packages</span> and the team. Two team members who act together can merge a change on <code>main</code>.</td><td>GitHub gives the owner these rights.</td><td>The audit log of the organization. The doctor check <code>git.protection</code>.</td></tr>
+<tr><td>R6</td><td><code>served:</code> in status comes from <code>repoctl-snapshot.json</code>, which the HTTP server writes.</td><td>The file is a status aid, not a trust record.</td><td>A human checks a client with <code>dnf list</code>.</td></tr>
+</tbody>
+</table>
+</body>
+</html>

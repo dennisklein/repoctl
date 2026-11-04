@@ -26,7 +26,7 @@
 <p>Purpose: the Overview is the landing page of a set. It tells the human what needs action now, and in which order. The page head shows the set name, directory, branch and targets on one line; Plan, Build… and Publish… are outline buttons; the CLI toggle holds <code>repoctl status</code>, <code>repoctl advisories</code> and <code>repoctl runs</code>.</p>
 
 <h3 id="needs-you">Needs you</h3>
-<p>One numbered list in work order. An item has a kind label, a coloured left edge (red failure, amber attention, grey info), one sentence, one visible button and a ⋯ menu; a code comes after the sentence, small and muted. Kinds in order: open steps of a new set, failed nodes, required advisories, lock and worktree problems, doctor failures, a stale check, staged nodes that wait for a publish, the age of <code>latest</code>.</p>
+<p>One numbered list in work order. An item has a kind label, a coloured left edge (red failure, amber attention, grey info), one sentence, one visible button and a ⋯ menu; a code comes after the sentence, small and muted. Kinds in order: open setup steps of a new set or a new target (<a href="lifecycle.html#setup">setup state</a>), failed nodes, required advisories, lock and worktree problems, doctor failures, a stale check, a stale served tree (<code>served.stale</code>, <a href="publish.html#freshness">publish.html#freshness</a>), staged nodes that wait for a publish, the age of <code>latest</code>.</p>
 <table class="compact">
 <thead><tr><th>#</th><th>Kind</th><th>Text in the story</th><th>Visible button</th><th>⋯ menu</th></tr></thead>
 <tbody>
@@ -71,6 +71,20 @@
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/advisories[?dismissed=1&amp;level=&amp;target=]</code>; <code>POST …/-/actions/advisory-dismiss</code>, <code>advisory-undismiss</code>, <code>check</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-advisories"><code>repoctl advisories</code></a>, <a href="cli.html#cmd-check"><code>repoctl check</code></a></dd>
   <dt>Live</dt><dd><code>advisories</code> (the list), <code>advisory:ID</code> (one row)</dd>
+</dl>
+
+<h2 id="upstream-page">Upstream page</h2>
+<p>Purpose: the page shows the output of <code>repoctl upstream</code> as a table: for each package, the version at the lock commit against the newest upstream release (status values: <a href="cli.html#cmd-upstream">cli.html#cmd-upstream</a>). It has no mockup.</p>
+<ul>
+  <li><b>Head.</b> "Checked TIME" and "from the cache" when the answer is less than one hour old. Refresh (quiet) loads the page with <code>?refresh=1</code>, which runs <code>repoctl upstream --refresh</code>. CLI toggle.</li>
+  <li><b>Table.</b> The columns of the CLI: Package, Current, Latest, Released, Fedora, Status, Note. update-available, ahead, frozen and unknown rows show; up-to-date and none rows fold into one line with a count per status, as the totals line of the CLI does.</li>
+  <li><b>Rows.</b> An update-available row links to its advisory <code>upstream.release/DIR</code> on the Advisories page. A dismissed update shows the note of its dismissal. The fold of a row lists the newer releases with date and URL (<code>--releases</code>). ✦ Summarize upstream release is in ⋯ when an agent is set up.</li>
+</ul>
+<p>The Upstream tab of the package page shows the same row for one package (<a href="ui-publish.html#package">ui-publish.html#package</a>).</p>
+<dl class="facts">
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/upstream[?refresh=1]</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-upstream"><code>repoctl upstream</code></a>, <code>--releases</code>, <code>--refresh</code></dd>
+  <dt>Live</dt><dd><code>upstream</code> (the table), <code>advisory:ID</code> (the dismissal note)</dd>
 </dl>
 
 <h2 id="graph">Graph</h2>
@@ -205,7 +219,7 @@
   <li><b>Head and form.</b> "Computed 17:49 from repoctl.lock, the manifests of latest and staging." Packages, Targets, From (lock | worktree); force, fail-fast and Jobs in an Options fold. The form maps 1:1 to the flags of <code>repoctl build</code> and keeps its state in the URL.</li>
   <li><b>Start box.</b> "8 build · 13 current" (no zero counts) and one sentence: "Start build runs 8 nodes into a new staging repo. It does not sign or publish." Start build is the filled primary; it opens the build dialog.</li>
   <li><b>Table.</b> One group per target: level, node, NVR after build, action, reason and advisory. el9: ucx@el9 build, commit-changed 907c60d → 4b1e9c2; slurm@el9, openmpi@el9, slurm-singularity-exec@el9 build, rebuild "ucx 1.22.1". el10: the same four. Current nodes fold into one row with node chips ("7 current", "6 current"); rocm-smi has one muted row, "not a target for el10".</li>
-  <li><b>Row notes.</b> dep.not-for-target stands next to slurm@el10: "slurm@el10 needs rocm-smi-devel. rocm-smi builds for el9 only." It does not stop Start build. "soname check pending" shows once, on the ucx rows.</li>
+  <li><b>Row notes.</b> dep.not-for-target stands next to slurm@el10: "slurm@el10 needs rocm-smi-devel. rocm-smi builds for el9 only." It does not stop Start build. "soname check pending" shows only on rows with the plan reason commit-changed: the ucx rows. The rebuild rows have the same value in the node drawer and in <code>--json</code> (<a href="build.html#soname">build.html#soname</a>).</li>
   <li><b>Changes since latest.</b> Against c21: the four NVR changes and "Publish adds. Old versions stay until repoctl repo prune." The lock diff is behind "Show lock diff ▸".</li>
   <li><b>Advisories.</b> Advisories of planned packages show as rows. The others fold with a count: "1 required and 3 info advisories do not touch this plan ▸".</li>
 </ul>
@@ -249,7 +263,7 @@
 </ul>
 <p>Story rows: today 17:50 · a3f (running, "ucx 1.22.1 · 3 rebuilds", 2 built · 1 failed · 1 blocked · 4 open); Sep 12 14:03 · c21 (publish, el9 and el10, latest); Sep 12 12:51 · e19 (20 built, 1h12m, ok, in latest); Sep 11 16:30 · 77f (3 builds, failed). The older publish runs of el9 (4a7, the import) follow.</p>
 <dl class="facts">
-  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs[?state=&amp;kind=build|publish|check&amp;target=&amp;since=&amp;cursor=]</code>; <code>/s/&lt;set&gt;/runs/compare?a=RUN&amp;b=RUN|prev|published</code></dd>
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs[?state=&amp;kind=build|publish|check|gc&amp;target=&amp;since=&amp;cursor=]</code>; <code>/s/&lt;set&gt;/runs/compare?a=RUN&amp;b=RUN|prev|published</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-runs"><code>repoctl runs [--state STATE] [--kind build|publish]</code></a></dd>
   <dt>Live</dt><dd><code>recent-runs</code> (a new row), <code>run:RUN</code> (one row, at most once per second)</dd>
 </dl>
@@ -272,7 +286,7 @@
 <table class="compact">
 <thead><tr><th>Action</th><th>Request</th><th>Behaviour</th></tr></thead>
 <tbody>
-<tr><td>Cancel run…</td><td><code>GET …/-/dialog/cancel?run=RUN</code>, then <code>POST /s/&lt;set&gt;/-/actions/cancel</code></td><td>A confirm dialog that names the origin of the run, then <code>repoctl cancel RUN</code> (<a href="build.html#cancel">build.html#cancel</a>): open nodes become canceled, ok nodes stay staged.</td></tr>
+<tr><td>Cancel run…</td><td><code>GET …/-/dialog/cancel?run=RUN</code>, then <code>POST /s/&lt;set&gt;/-/actions/cancel</code></td><td>A confirm dialog that names the origin of the run, then <code>repoctl cancel RUN</code> (<a href="build.html#cancel">build.html#cancel</a>): open nodes become canceled, ok nodes stay staged. While the run is interrupting, the button is Stop now…, and it runs <code>repoctl cancel RUN --force</code>.</td></tr>
 <tr><td>Retry failed</td><td><code>POST /s/&lt;set&gt;/-/actions/build</code></td><td>A new run with the dirs of the failed and blocked nodes, on the old targets (<code>repoctl build slurm slurm-singularity-exec</code>). The plan reads repoctl.lock again. Off while the old run is active. The entry says when a retry cannot help: the commit did not change since the failure.</td></tr>
 <tr><td>Open in terminal</td><td>client side</td><td>In the CLI toggle. Copies <code>repoctl -C ~/src/slurm-repo runs RUN --follow</code>.</td></tr>
 <tr><td>Copy for agent</td><td>client side</td><td>Copies <code>repoctl logs RUN NODE --json</code>, which includes the problems list.</td></tr>
@@ -374,11 +388,12 @@
 <ul>
   <li><b>Frame.</b> A drawer on the right, 600 px wide, under the top bar; full screen below 760 px. The page under it reflows, and the source row shows as selected.</li>
   <li><b>Head and verdict.</b> "Explain failure · slurm@el10", one muted line ("Done in 0m19s · triage-build · claude -p · input run 17:50 · read only"), then one bold line: "slurm needs rocm-smi-devel on el10, but rocm-smi is built for el9 only."</li>
-  <li><b>Proposed actions.</b> Fix A: guard the BuildRequires for el10 (<code>%if 0%{?rhel} &lt; 10</code>), with the proof line from <code>repoctl_graph</code>: "The graph of el10 has one unresolved BuildRequires for slurm: rocm-smi-devel. The guard removes it." Pin fix and build… is the filled primary; it stays off until the slurm branch has a new commit, then SSE turns it on. Copy diff and Open package are in ⋯. Fix B: add el10 to the targets of rocm-smi, with the repoctl.yaml line.</li>
+  <li><b>Proposed actions.</b> Fix A: guard the BuildRequires for el10 (<code>%if 0%{?rhel} &lt; 10</code>), with the proof line from <code>repoctl_graph</code>: "The graph of el10 has one unresolved BuildRequires for slurm: rocm-smi-devel. The guard removes it." Pin fix and build… is the filled primary; it stays off until the slurm branch has a new commit, then SSE turns it on. It pins the commit and opens the build dialog with the dirs of the failed and the blocked nodes: <code>slurm slurm-singularity-exec</code> (<a href="build.html#story">story</a>). Copy diff and Open package are in ⋯. Fix B: add el10 to the targets of rocm-smi, with the repoctl.yaml line.</li>
   <li><b>Folds and foot.</b> "Show diff (+3 −1)", "Evidence (5 lines)", "Tools used (5)", "Details" (skill, agent, agent id). Continue in terminal copies <code>claude --resume SESSION</code>. Last line: "Suggestions only. repoctl changes nothing until you click."</li>
 </ul>
 <figure class="shot"><a href="mockups/ui/agent-running.html"><img src="img/ui-agent-running.webp" alt="Agent panel while it runs: time, Stop, tools used with a spinner" loading="lazy"></a><figcaption>The same task while the agent runs. Text arrives over SSE.</figcaption></figure>
-<p>While the agent runs, the head shows "running", the time and Stop, and Tools used is open with a spinner on the current call. Screen readers hear only "Agent done" or "Agent stopped".</p>
+<p>While the agent runs, the head shows "running", the time and Stop, and Tools used is open with a spinner on the current call. Screen readers hear only "Agent done", "Agent stopped" or "Agent failed".</p>
+<p>A failed agent shows "failed" and the cause in the head line, for example "failed · time limit 10m". The panel has no verdict and no proposed actions. Details is open with the last 20 lines of stderr. The plain diagnosis of repoctl stays on the page.</p>
 <figure class="shot"><a href="mockups/ui/overview-no-agent.html"><img src="img/ui-overview-no-agent.webp" alt="Overview with no agent configured: no agent buttons, one line in the Advisories foot" loading="lazy"></a><figcaption>No agent configured: the same layout without agent buttons.</figcaption></figure>
 <p>With no agent in the user config, the server leaves the agent buttons out of the HTML (no disabled buttons). The Advisories foot says "Agent buttons are off. How to turn them on". The plain diagnosis stays: an agent button never replaces the deterministic hint.</p>
 <dl class="facts">

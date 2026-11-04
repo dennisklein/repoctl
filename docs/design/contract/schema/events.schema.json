@@ -233,6 +233,18 @@
       "then": {
         "$ref": "#/$defs/AdvisoryAccepted"
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "gc.deleted"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/GcDeleted"
+      }
     }
   ],
   "$defs": {
@@ -254,7 +266,8 @@
         "publish.finished",
         "advisory",
         "advisory.gone",
-        "advisory.accepted"
+        "advisory.accepted",
+        "gc.deleted"
       ]
     },
     "RunStarted": {
@@ -272,7 +285,8 @@
           "enum": [
             "build",
             "publish",
-            "check"
+            "check",
+            "gc"
           ]
         },
         "trace": {
@@ -306,6 +320,11 @@
             },
             "client": {
               "type": "string"
+            },
+            "session": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$",
+              "description": "via mcp or ui: the random id that the MCP server or the web UI server picks at its start, one per server process. repoctl_run_cancel compares it with its own id."
             }
           }
         },
@@ -314,6 +333,10 @@
         },
         "setCommit": {
           "$ref": "output.json#/$defs/Commit"
+        },
+        "lockDigest": {
+          "$ref": "output.json#/$defs/Digest",
+          "description": "sha256 of the bytes of repoctl.lock that the run read. The set commit can differ: the lock is often not committed yet."
         },
         "repoctl": {
           "type": "string"
@@ -324,17 +347,19 @@
             "restore",
             "prune",
             "resign",
-            "import"
+            "import",
+            "reseed"
           ]
         }
       }
     },
     "PlanReady": {
-      "description": "Gives every node its first state. Build nodes start waiting. When the dependencies of a node are done, the node starts if a job slot is free, else it is queued. Current and staged nodes keep their plan state. No node.state line is written for a first state.",
+      "description": "Gives every node its first state. Build nodes start waiting. When the dependencies of a node are done, the node starts if a job slot is free, else it is queued. Current and staged nodes keep their plan state. No node.state line is written for a first state. commits gives the package commit of each node: journal.Fold and the staged rule read the commit of a node only here.",
       "required": [
         "summary",
         "build",
-        "current"
+        "current",
+        "commits"
       ],
       "properties": {
         "summary": {
@@ -405,6 +430,26 @@
           "items": {
             "$ref": "output.json#/$defs/NodeId"
           }
+        },
+        "commits": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "output.json#/$defs/NodeId"
+          },
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/Commit"
+          },
+          "description": "One key per node of build[], current[] and staged[]: the package commit that the node builds or reuses. With from lock, the commit of repoctl.lock; with from worktree, the worktree HEAD at plan time."
+        },
+        "fromRun": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "output.json#/$defs/NodeId"
+          },
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/RunId"
+          },
+          "description": "One key per node of staged[]: the build run whose staging the node reuses."
         }
       }
     },
@@ -473,6 +518,10 @@
         },
         "durationMs": {
           "$ref": "output.json#/$defs/DurationMs"
+        },
+        "root": {
+          "type": "string",
+          "description": "phase started of srpm and rpm: the mock root of the step."
         }
       }
     },
@@ -603,7 +652,12 @@
             "ui",
             "mcp",
             "deadline"
-          ]
+          ],
+          "description": "deadline: build.timeout.run of the user config ended. A step limit fails one node with class timeout and writes no run.cancel-requested."
+        },
+        "force": {
+          "type": "boolean",
+          "description": "A second Ctrl-C or repoctl cancel --force: SIGKILL to the mock children, and the run ends without run.finished."
         }
       }
     },
@@ -788,7 +842,7 @@
       }
     },
     "AdvisoryGone": {
-      "description": "The check does not find the advisory any more.",
+      "description": "A check, or the end of a run, does not find the advisory any more.",
       "required": [
         "id"
       ],
@@ -824,6 +878,26 @@
         },
         "host": {
           "type": "string"
+        }
+      }
+    },
+    "GcDeleted": {
+      "description": "repo gc --apply deleted one package version (one snapshot).",
+      "required": [
+        "target",
+        "publish",
+        "digest"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "output.json#/$defs/TargetId"
+        },
+        "publish": {
+          "type": "string",
+          "description": "Publish id of the deleted snapshot."
+        },
+        "digest": {
+          "$ref": "output.json#/$defs/Digest"
         }
       }
     }

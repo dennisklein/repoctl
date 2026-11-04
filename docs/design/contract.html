@@ -11,6 +11,7 @@
 <ul class="keypoints">
   <li>Every <code>--json</code> result is one envelope: <code>apiVersion</code>, <code>kind</code>, <code>metadata</code>, <code>items[]</code>, <code>warnings[]</code>, <code>errors[]</code>. The MCP server returns the same envelope as <code>structuredContent</code>.</li>
   <li>One version string, <code>repoctl/v1alpha1</code>, covers the JSON output, the MCP results and the set files. The journal has its own integer version <code>v</code>.</li>
+  <li>A stored file takes only additions within one apiVersion. A binary never rewrites a file with a field that it does not know.</li>
   <li>Programs match on codes and enum values. Text fields are for humans.</li>
   <li>A problem code names the cause. The exit code names the class of the result.</li>
   <li>A run writes two JSON Lines files: the journal <code>runs/&lt;run&gt;.jsonl</code> and the go-clikit progress log <code>runs/&lt;run&gt;.progress.jsonl</code>.</li>
@@ -76,6 +77,7 @@
 <tr><td><code>repoctl</code></td><td><code>version</code> and <code>commit</code> of the binary.</td></tr>
 <tr><td><code>run</code></td><td>The run that the command made or read.</td></tr>
 <tr><td><code>targets</code></td><td>The targets of the command, after <code>--target</code>.</td></tr>
+<tr><td><code>next</code></td><td>Lock and File only: the <code>Next:</code> steps of the command, as NextStep objects.</td></tr>
 <tr><td><code>trace</code></td><td>W3C trace id and span id of the command.</td></tr>
 </tbody>
 </table>
@@ -123,7 +125,7 @@
 </ul>
 
 <h2 id="versioning">Versioning and stability</h2>
-<p>One version string, <code>repoctl/v1alpha1</code>, covers the <code>--json</code> output, the MCP structured content and the files that a set commits. <code>repoctl version --json</code> lists the API versions that the binary writes, the journal version and the go-clikit event log version.</p>
+<p>One version string, <code>repoctl/v1alpha1</code>, covers the <code>--json</code> output, the MCP structured content and the files that a set commits. <code>repoctl version --json</code> lists the API versions that the binary writes (<code>apiVersions</code>) and reads (<code>readApiVersions</code>), the journal version and the go-clikit event log version.</p>
 <table class="compact">
 <thead><tr><th>Document</th><th>Version field</th><th>Format</th></tr></thead>
 <tbody>
@@ -131,7 +133,7 @@
 <tr><td><code>repoctl.yaml</code></td><td><code>apiVersion</code></td><td><a href="config.html#set-config">repoctl.yaml</a></td></tr>
 <tr><td><code>repoctl.lock</code></td><td><code>apiVersion</code></td><td><a href="config.html#lock">repoctl.lock</a></td></tr>
 <tr><td>RepoManifest of each target repo</td><td><code>apiVersion</code>, <code>kind</code></td><td><a href="model.html#manifest">RepoManifest</a></td></tr>
-<tr><td><code>keys/deployed.yaml</code></td><td><code>apiVersion</code>, <code>kind: KeyDeployments</code></td><td><a href="signing.html#gates">Gates</a></td></tr>
+<tr><td><code>keys/deployed.yaml</code></td><td><code>apiVersion</code>, <code>kind: KeyDeployments</code></td><td><a href="signing.html#deployment-record">Deployment record</a></td></tr>
 <tr><td><code>.repoctl/advisories.yaml</code></td><td><code>apiVersion</code></td><td><a href="advisories.html#dismissals">Dismissal file</a></td></tr>
 <tr><td>Run journal</td><td><code>v</code> (1)</td><td><a href="#journal">Event journal</a></td></tr>
 <tr><td>Progress log</td><td>go-clikit event log v1</td><td>go-clikit</td></tr>
@@ -141,11 +143,12 @@
 <table>
 <thead><tr><th>Stage</th><th>When</th><th>What can change</th></tr></thead>
 <tbody>
-<tr><td><code>v1alpha1</code></td><td>repoctl 0.x</td><td>Any release can add fields, kinds, enum values and problem codes. A minor release can rename or remove a field; the release notes name it. When it is cheap, the old field stays for one minor release, marked <code>"deprecated": true</code> in the schema.</td></tr>
+<tr><td><code>v1alpha1</code></td><td>repoctl 0.x</td><td>Any release can add fields, kinds, enum values and problem codes. A minor release can rename or remove a field of the output; the release notes name it. When it is cheap, the old field stays for one minor release, marked <code>"deprecated": true</code> in the schema. The stored files take only additions (<a href="#stored">stored files</a>).</td></tr>
 <tr><td><code>v1beta1</code></td><td>with the release of the web UI and the skills</td><td>Only additions. A removal comes after two minor releases with a deprecated field and the warning <code>deprecated</code>.</td></tr>
 <tr><td><code>v1</code></td><td>repoctl 1.0</td><td>Only additions. A breaking change starts the next major API version. repoctl then writes both major versions for one major release; <code>--api-version</code> or <code>REPOCTL_API_VERSION</code> selects one (<a href="config.html#env">environment</a>).</td></tr>
 </tbody>
 </table>
+<p>One exception holds in each stage: the facts shape of an advisory code never changes inside one <code>apiVersion</code>. A committed dismissal matches by the factsDigest, and a new facts field changes the digest (<a href="advisories.html#facts">facts</a>).</p>
 <aside class="callout rule"><p class="callout-title">Rules for consumers</p>
 <ul>
   <li>Compare <code>apiVersion</code> as a string. If it is different, stop and say so.</li>
@@ -154,7 +157,57 @@
   <li>CI scripts pin the repoctl version and check <code>jq -e '.apiVersion == "repoctl/v1alpha1"'</code>.</li>
 </ul>
 </aside>
-<p>The skills and the web UI are in the binary of the CLI. <code>repoctl doctor</code> warns (<code>skills.version-mismatch</code>) when an installed copy of a skill is older than the binary.</p>
+<p>The skills and the web UI are in the binary of the CLI. <code>repoctl doctor</code> warns (<code>skills.version-mismatch</code>) when an installed copy of a skill has another version than the binary, older or newer.</p>
+<h3 id="stored">Stored files and mixed versions</h3>
+<p>The stored files are the four committed set files (<code>repoctl.yaml</code>, <code>repoctl.lock</code>, <code>keys/deployed.yaml</code>, <code>.repoctl/advisories.yaml</code>) and the RepoManifest of each snapshot. Two admins can run two releases of repoctl on one set, and the registry keeps the snapshots of old releases. A publish copies the entries of the base manifest. Thus an old binary could drop a field that a newer binary wrote. These rules prevent it.</p>
+<aside class="callout rule"><p class="callout-title">Rules for stored files</p>
+<ul>
+  <li>Within one apiVersion, a stored file takes only additions: a new optional field, or a new value of an open enum. A rename, a removal, a new required field, a new value of a closed enum or a change of meaning needs the next apiVersion. This rule applies from <code>v1alpha1</code>.</li>
+  <li>repoctl reads each apiVersion of a stored file that a release of repoctl wrote. <code>readApiVersions</code> lists them. Thus restore, <code>repo diff</code> and <code>repo verify</code> read the RepoManifest of each old snapshot.</li>
+  <li>A command that only reads a stored file ignores a field that it does not know, and gives the warning <code>contract.newer-file</code>.</li>
+  <li>A command that writes a stored file stops when the file has a field or a closed enum value that the binary does not know: <code>contract.newer-file</code>, exit 1, hint "upgrade repoctl". Publish, restore, prune and resign write a new RepoManifest from the base, so they stop when the base manifest has such a field.</li>
+  <li>A file with an apiVersion that the binary does not read stops each command that reads it, with <code>contract.newer-file</code> (exit 1).</li>
+  <li><code>minRepoctl</code> in <code>repoctl.yaml</code> is the oldest release that can work on the set. repoctl reads <code>apiVersion</code> and <code>minRepoctl</code> before it checks the other keys. An older binary stops each command that reads the set with <code>contract.newer-file</code> (exit 1), not with <code>config.unknown-key</code>. doctor reports it as the failed check <code>set.repoctl-version</code>.</li>
+  <li>A command writes a stored file in the apiVersion that the file has. If the binary only reads that apiVersion, the command stops with <code>contract.old-file</code> (exit 1). The hint is <code>repoctl migrate --api</code>.</li>
+  <li>A new snapshot gets its RepoManifest in the apiVersion of <code>repoctl.yaml</code>. Publish converts the entries of the base to it. An old snapshot never changes.</li>
+</ul>
+</aside>
+<figure class="diagram">
+<svg viewBox="0 0 900 232" role="img" aria-labelledby="stored-t">
+<title id="stored-t">What a command does with a stored file</title>
+<rect class="box" x="16" y="80" width="170" height="60" rx="8"/>
+<text class="t-title" x="30" y="104">read a stored file</text>
+<text class="t-small t-muted" x="30" y="124">set file or RepoManifest</text>
+<rect class="box-soft" x="236" y="80" width="190" height="60" rx="8"/>
+<text class="t-title" x="250" y="104">apiVersion known?</text>
+<text class="t-small t-muted" x="250" y="124">in readApiVersions</text>
+<rect class="box-err" x="236" y="176" width="190" height="40" rx="8"/>
+<text class="t-small" x="250" y="201">stop: contract.newer-file</text>
+<rect class="box-soft" x="476" y="80" width="190" height="60" rx="8"/>
+<text class="t-title" x="490" y="104">unknown field?</text>
+<text class="t-small t-muted" x="490" y="124">or closed enum value</text>
+<rect class="box-ok" x="476" y="176" width="190" height="40" rx="8"/>
+<text class="t-small" x="490" y="201">read and write as usual</text>
+<rect class="box-warn" x="716" y="16" width="170" height="56" rx="8"/>
+<text class="t-title" x="730" y="40">command only reads</text>
+<text class="t-small" x="730" y="60">ignore it, warning</text>
+<rect class="box-err" x="716" y="148" width="170" height="56" rx="8"/>
+<text class="t-title" x="730" y="172">command writes</text>
+<text class="t-small" x="730" y="192">stop, exit 1</text>
+<path class="edge" d="M186,110 L234,110" marker-end="url(#arrow)"/>
+<path class="edge-err" d="M331,140 L331,174" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="340" y="162">no</text>
+<path class="edge" d="M426,110 L474,110" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="436" y="100">yes</text>
+<path class="edge-ok" d="M571,140 L571,174" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="580" y="162">no</text>
+<path class="edge" d="M666,100 L714,48" marker-end="url(#arrow)"/>
+<path class="edge-err" d="M666,120 L714,172" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="680" y="114">yes</text>
+</svg>
+<figcaption>A binary reads each stored file whose apiVersion it knows. It never rewrites a file with a field that it does not know, so no field gets lost.</figcaption>
+</figure>
+<p>The move to the next apiVersion is one set commit. First, all admins install a release that writes the new apiVersion. Then one admin runs <code>repoctl migrate --api</code> (<a href="cli.html#cmd-migrate">cli.html#cmd-migrate</a>). It converts the four set files and sets <code>minRepoctl</code> to the version of the binary. The admin commits and pushes the change. The next publish writes the RepoManifest in the new apiVersion. The mirror job must read it first (<a href="publish.html#mirror">mirror job</a>).</p>
 
 <h2 id="names">Shared names and enums</h2>
 <p>These names are the same in every result, in the journal, in the MCP tools and in the web UI. The table gives the form. The linked chapter gives the meaning.</p>
@@ -165,8 +218,8 @@
 <tr><td>package dir</td><td><code>Dir</code></td><td>the <code>dir</code> of a package in repoctl.yaml</td><td><code>pmix_v5</code></td></tr>
 <tr><td>target</td><td><code>TargetId</code></td><td>a target id of repoctl.yaml</td><td><code>el9</code></td></tr>
 <tr><td>node</td><td><code>NodeId</code></td><td><code>DIR@TARGET</code></td><td><code>slurm@el10</code></td></tr>
-<tr><td>run</td><td><code>RunId</code></td><td><code>r-YYYYMMDD-HHMM-xxx</code> (build, check), <code>p-YYYYMMDD-HHMM-xxx</code> (publish)</td><td><code>r-20261102-1750-a3f</code></td></tr>
-<tr><td>publish id</td><td><code>Snapshot.publish</code></td><td>the id of the publish run; an import has <code>p-import-YYYYMMDD</code></td><td><code>p-20261103-1412-5e1</code></td></tr>
+<tr><td>run</td><td><code>RunId</code></td><td><code>r-YYYYMMDD-HHMM-xxx</code> (build, check, gc), <code>p-YYYYMMDD-HHMM-xxx</code> (publish)</td><td><code>r-20261102-1750-a3f</code></td></tr>
+<tr><td>publish id</td><td><code>Snapshot.publish</code></td><td>the id of the publish run; an import has <code>p-import-YYYYMMDD</code>, a re-seed <code>p-reseed-YYYYMMDD</code></td><td><code>p-20261103-1412-5e1</code></td></tr>
 <tr><td>advisory</td><td><code>Advisory.id</code></td><td><code>CODE/SUBJECT</code>; the subject is a node, a dir or a key id</td><td><code>closure.broken/pmix@el9</code>, <code>sign.expiring/d.klein</code></td></tr>
 <tr><td>key</td><td><code>Signer.keyId</code></td><td>an id in <code>sign.keys</code></td><td><code>d.klein</code></td></tr>
 <tr><td>fingerprint</td><td><code>Signer.fingerprint</code></td><td>OpenPGP v4, 40 upper-case hex digits</td><td><code>4E7A0C93…41D80B6E</code></td></tr>
@@ -180,23 +233,23 @@
 <tr><td>NodeState</td><td><code>waiting</code> <code>queued</code> <code>running</code> <code>ok</code> <code>failed</code> <code>blocked</code> <code>canceled</code> <code>current</code> <code>staged</code></td><td><a href="build.html#states">Node states</a>. waiting: a dependency is not done. queued: all dependencies are done, and the node waits for a free job slot. <code>counts</code> has one key per state.</td></tr>
 <tr><td>Step</td><td><code>srpm</code> <code>rpm</code> <code>stage</code></td><td><a href="build.html#run">The run</a></td></tr>
 <tr><td>PlanAction</td><td><code>build</code> <code>current</code> <code>staged</code> <code>skip</code></td><td><a href="build.html#actions">Plan actions</a></td></tr>
-<tr><td>PlanReasonCode</td><td><code>commit-changed</code> <code>rebuild</code> <code>new-package</code> <code>new-target</code> <code>forced</code></td><td><a href="build.html#plan">Plan</a></td></tr>
+<tr><td>PlanReasonCode</td><td><code>commit-changed</code> <code>rebuild</code> <code>new-package</code> <code>new-target</code> <code>forced</code> <code>staging-missing</code></td><td><a href="build.html#plan">Plan</a></td></tr>
 <tr><td>RunState</td><td><code>planning</code> <code>running</code> <code>ok</code> <code>failed</code> <code>canceled</code> <code>abandoned</code></td><td><a href="build.html#states">Run states</a>. Only a reader gives <code>abandoned</code>.</td></tr>
-<tr><td>Run kind; origin</td><td><code>build</code> <code>publish</code> <code>check</code>; <code>cli</code> <code>ui</code> <code>mcp</code> <code>ci</code></td><td>origin <code>ci</code> when <code>CI=true</code></td></tr>
-<tr><td>FailureClass</td><td><code>srpm</code> <code>builddep</code> <code>build</code> <code>stage</code> <code>mock</code> <code>host</code> <code>timeout</code> <code>canceled</code> <code>internal</code></td><td><a href="build.html#logs">Logs</a>. <code>host</code>: the host failed, not the package.</td></tr>
-<tr><td><code>checks.soname</code></td><td><code>pending</code> <code>unchanged</code> <code>removed</code></td><td><a href="build.html#soname">Soname check</a> of a node</td></tr>
-<tr><td>LockState</td><td><code>in-sync</code> <code>ahead</code> <code>behind</code> <code>diverged</code> <code>dirty</code> <code>missing</code> <code>unpinned</code> <code>orphaned</code></td><td><a href="lifecycle.html#lock-states">Lock states</a></td></tr>
+<tr><td>Run kind; origin</td><td><code>build</code> <code>publish</code> <code>check</code> <code>gc</code>; <code>cli</code> <code>ui</code> <code>mcp</code> <code>ci</code></td><td>origin <code>ci</code> when <code>CI=true</code></td></tr>
+<tr><td>FailureClass</td><td><code>srpm</code> <code>builddep</code> <code>build</code> <code>stage</code> <code>mock</code> <code>host</code> <code>timeout</code> <code>canceled</code> <code>internal</code></td><td><a href="build.html#logs">Logs</a>. <code>host</code>: the host failed, not the package. <code>timeout</code>: a step limit or the idle limit ended (<a href="build.html#failures">Failures</a>).</td></tr>
+<tr><td><code>checks.soname</code>; <code>checks.abi</code></td><td><code>pending</code> <code>unchanged</code> <code>removed</code> <code>skipped</code> <code>none</code>; <code>pending</code> <code>unchanged</code> <code>changed</code> <code>skipped</code> <code>none</code> <code>off</code></td><td><a href="build.html#soname">Soname check</a> and ABI check of a node</td></tr>
+<tr><td>LockState</td><td><code>in-sync</code> <code>in-tree</code> <code>ahead</code> <code>behind</code> <code>diverged</code> <code>dirty</code> <code>missing</code> <code>unpinned</code> <code>orphaned</code></td><td><a href="lifecycle.html#lock-states">Lock states</a>. <code>in-tree</code>: an in-tree package without a change; <code>dirty</code> also covers an in-tree path.</td></tr>
 <tr><td>AdvisoryCode</td><td><code>soname.removed</code> <code>closure.broken</code> <code>provider.changed</code> <code>abi.changed</code> <code>sign.expiring</code> <code>buildroot.drift</code> <code>mock.drift</code> <code>upstream.release</code> <code>retired.published</code></td><td><a href="advisories.html#codes">Codes</a></td></tr>
 <tr><td>AdvisoryLevel; AdvisoryState</td><td><code>info</code> <code>warn</code> <code>required</code>; <code>pending</code> <code>open</code> <code>dismissed</code></td><td><a href="advisories.html#states">Advisory states</a></td></tr>
 <tr><td>local copy; served tree</td><td><code>same</code> <code>behind</code> <code>unpushed</code> <code>none</code>; <code>same</code> <code>behind</code> <code>unknown</code></td><td><a href="publish.html#freshness">Freshness check</a></td></tr>
-<tr><td>publishKind</td><td><code>publish</code> <code>restore</code> <code>prune</code> <code>resign</code> <code>import</code></td><td><a href="publish.html#format">Snapshot format</a></td></tr>
+<tr><td>publishKind</td><td><code>publish</code> <code>restore</code> <code>prune</code> <code>resign</code> <code>import</code> <code>reseed</code></td><td><a href="publish.html#format">Snapshot format</a></td></tr>
 <tr><td>publish step</td><td><code>check</code> <code>sign</code> <code>repodata</code> <code>verify</code> <code>verify-el</code> <code>push</code> <code>tag</code> <code>cache</code></td><td><a href="publish.html#order">Publish order</a></td></tr>
-<tr><td>key state</td><td><code>active</code> <code>retiring</code> <code>removed</code></td><td><a href="signing.html#lifecycle">Key lifecycle</a></td></tr>
-<tr><td>UpstreamStatus</td><td><code>up-to-date</code> <code>update-available</code> <code>ahead</code> <code>frozen</code> <code>unknown</code></td><td><a href="cli.html#cmd-upstream">repoctl upstream</a></td></tr>
+<tr><td>key state</td><td><code>active</code> <code>retiring</code> <code>removed</code> <code>revoked</code></td><td><a href="signing.html#lifecycle">Key lifecycle</a></td></tr>
+<tr><td>UpstreamStatus</td><td><code>up-to-date</code> <code>update-available</code> <code>ahead</code> <code>frozen</code> <code>unknown</code> <code>none</code></td><td><a href="cli.html#cmd-upstream">repoctl upstream</a></td></tr>
 <tr><td>CheckStatus</td><td><code>ok</code> <code>warning</code> <code>failed</code></td><td><a href="cli.html#cmd-doctor">repoctl doctor</a></td></tr>
 <tr><td>MCP tool class</td><td><code>read</code> <code>staging</code> <code>local-write</code></td><td><a href="model.html#safety">Safety classes</a>; shared state has no tool</td></tr>
 <tr><td><code>HumanAction.action</code></td><td><code>commit-worktree</code> <code>commit-lock</code> <code>confirm</code> <code>trust-change</code> <code>repo-pull</code> <code>repo-push</code> <code>sign-deployed</code> …</td><td><a href="agents.html#human-action">Needs human</a></td></tr>
-<tr><td><code>NextStep.action</code></td><td><code>triage</code> <code>fix-spec</code> <code>rebuild</code> <code>pin</code> <code>commit</code> <code>push</code> <code>build</code> <code>publish</code> <code>cancel</code></td><td><code>Run.next</code>; <code>human: true</code> marks a step for a human</td></tr>
+<tr><td><code>NextStep.action</code></td><td><code>triage</code> <code>fix-spec</code> <code>rebuild</code> <code>pin</code> <code>commit</code> <code>push</code> <code>build</code> <code>publish</code> <code>cancel</code> <code>checkout</code> <code>other</code></td><td><code>next</code> of Status, Run and SignerList, <code>metadata.next</code> of Lock and File (<a href="#kinds">kinds</a>); <code>human: true</code> marks a step for a human. <code>other</code>: <code>command</code> holds the step.</td></tr>
 </tbody>
 </table>
 
@@ -220,7 +273,7 @@
 <tr><td><a href="contract/schema/output.schema.json#/$defs/SnapshotList">SnapshotList</a></td><td><code>repo snapshots</code>, <code>repo gc</code> (with <code>gc</code>: delete or keep)</td><td>1 per target</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Advisory">Advisory</a></td><td><code>advisories show</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/AdvisoryList">AdvisoryList</a></td><td><code>check</code>, <code>advisories ls</code>, <code>advisories dismiss</code>, <code>advisories undismiss</code></td><td>1</td></tr>
-<tr><td><a href="contract/schema/output.schema.json#/$defs/SignerList">SignerList</a></td><td><code>sign ls</code>, <code>sign add</code>, <code>sign retire</code>, <code>sign remove</code>, <code>sign deployed</code></td><td>1</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/SignerList">SignerList</a></td><td><code>sign ls</code>, <code>sign add</code>, <code>sign retire</code>, <code>sign activate</code>, <code>sign remove</code>, <code>sign revoke</code>, <code>sign deployed</code>, <code>sign removed</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/OnboardReport">OnboardReport</a></td><td><code>sign onboard</code>, <code>sign offboard</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/DoctorReport">DoctorReport</a></td><td><code>doctor</code>, <code>repo verify</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Upstream">Upstream</a></td><td><code>upstream</code></td><td>1 per dir</td></tr>
@@ -233,7 +286,8 @@
 </tbody>
 </table>
 <p><code>ui</code>, <code>mock</code>, <code>mcp</code> and <code>completion</code> have no <code>--json</code>. <code>schema</code> prints a schema without an envelope.</p>
-<p>A publish run is a Run with <code>kind: publish</code> and a <code>publishKind</code>. Per target, it adds the base, the new snapshot, the gate rows, the sign counts and the eight publish steps. A <code>--dry-run</code> publish gives the same Run with <code>state: planning</code>. <code>repoctl runs</code> lists Runs with empty <code>nodes</code>.</p>
+<p>The <code>Next:</code> line of a command (<a href="cli.html#next">cli.html#next</a>) is the field <code>next</code>, a list of NextStep objects. A kind with one item holds it in the item: Status, Run and SignerList. A kind with one item per dir or per file holds it in <code>metadata.next</code>: Lock and File. Status also gives each line of <code>repoctl status</code>: <code>set.git.pushed</code>, <code>lockHolder</code>, <code>upstream</code> and <code>signing</code>. Each item of <code>Package.targets[]</code> gives the columns of <code>repoctl show</code> for one target: <code>nvr</code>, <code>dependsOn</code>, <code>usedBy</code>, <code>published</code>, <code>action</code> and <code>reasons</code>.</p>
+<p>A publish run is a Run with <code>kind: publish</code> and a <code>publishKind</code>. Per target, it adds the base, the new snapshot, the gate rows, the sign counts, the eight publish steps and <code>pushable</code>. The state file <code>publishes/p-…/state.json</code> of a kept tree holds the same Run (<a href="publish.html#complete">publish.html#complete</a>). The cache file <code>snapshot.json</code> of the local copy holds one Snapshot (<a href="publish.html#pull">publish.html#pull</a>); <code>repoctl schema Snapshot</code> prints its schema. A <code>--dry-run</code> publish gives the same Run with <code>state: planning</code>. <code>repoctl runs</code> lists Runs with empty <code>nodes</code>.</p>
 
 <h2 id="schemas">Schemas</h2>
 <p>The schemas use JSON Schema draft 2020-12. A test generates them from the Go types of <code>internal/api</code> and compares the result with the files in the repository. A second test validates every example file.</p>
@@ -245,6 +299,7 @@
 <tr><td><a href="contract/schema/mcp-tools.json">mcp-tools.json</a></td><td>The MCP tools with input schemas, output kinds, classes and annotations; the tool modes; the resources</td><td><code>tools/list</code> of <code>repoctl mcp start</code>; <a href="agents.html#mcp-tools">Tools</a></td></tr>
 </tbody>
 </table>
+<p><code>output.schema.json</code> also holds the file schema of <code>keys/deployed.yaml</code>: <code>$defs/KeyDeployments</code>, with one <code>KeyDeploymentEntry</code> per key and target. Its list <code>removals</code> holds one <code>KeyRemovalEntry</code> per key and target. <code>repoctl schema deployments</code> prints it.</p>
 <p>The <code>$id</code> values are <code>https://gsi-hpc.github.io/repoctl/schema/v1alpha1/output.json</code> and <code>…/events.json</code>. The Envelope selects the schema of the items by kind. Excerpt:</p>
 <pre><code class="language-json">"Envelope": {
   "type": "object",
@@ -275,85 +330,137 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 76 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 128 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
+<tr><td><code>advisories.invalid</code></td><td>1 in dismiss, undismiss; warning</td><td><code>.repoctl/advisories.yaml</code> is invalid or has conflict markers. repoctl ignores the file: no advisory is dismissed.</td><td>Keep the entries of both sides, remove the markers, commit (<a href="advisories.html#dismissals">dismissals</a>).</td></tr>
+<tr><td><code>advisory.gate-unavailable</code></td><td>13</td><td>The advisory gate cannot read the repodata of the result tree or of a closure repo. It fails closed; no acceptance overrides it.</td><td>Try again when the repo answers. The message names the repo.</td></tr>
+<tr><td><code>advisory.not-blocking</code></td><td>12</td><td><code>--accept-advisory</code> names an id that does not block this publish.</td><td>Remove the flag for this id; <code>repoctl publish --dry-run</code> shows the gate rows.</td></tr>
 <tr><td><code>advisory.not-dismissable</code></td><td>1</td><td>A required advisory cannot be dismissed.</td><td><code>repoctl publish --accept-advisory ID --reason TEXT</code></td></tr>
 <tr><td><code>advisory.open</code></td><td>12</td><td>A required advisory is open, and the publish changes its closure.</td><td>Fix it, or accept it for one publish (<code>accept-advisory</code>).</td></tr>
 <tr><td><code>advisory.unknown</code></td><td>1</td><td>No advisory has this id.</td><td><code>repoctl advisories ls</code></td></tr>
 <tr><td><code>branch.exists-remote</code></td><td>1</td><td><code>checkout --create</code>: the branch is on the remote.</td><td><code>repoctl checkout DIR</code></td></tr>
 <tr><td><code>branch.start-missing</code></td><td>1</td><td><code>checkout --create --from-set SET</code>: SET has no such dir.</td><td>Name another start point.</td></tr>
-<tr><td><code>cancel.foreign-run</code></td><td>1</td><td>The MCP server cancels only the runs that it started.</td><td>The human runs <code>repoctl cancel RUN</code> (<code>cancel-foreign-run</code>).</td></tr>
+<tr><td><code>cancel.foreign-run</code></td><td>1</td><td>MCP: the MCP server cancels only the runs that it started: its session id is in <code>origin.session</code>.</td><td>The human runs <code>repoctl cancel RUN</code> (<code>cancel-foreign-run</code>).</td></tr>
+<tr><td><code>cancel.not-holder</code></td><td>1</td><td>CLI, web UI: the process of the run is on another host or belongs to another user.</td><td>Cancel the run on its host, as its user.</td></tr>
 <tr><td><code>check.failed</code></td><td>warning</td><td>The last check failed.</td><td><code>repoctl check</code></td></tr>
+<tr><td><code>check.incomplete</code></td><td>1</td><td><code>advisories undismiss --stale</code>: a code or target of the last check has no good result.</td><td><code>repoctl check</code></td></tr>
 <tr><td><code>check.never</code></td><td>warning</td><td>No check ran for this set on this host.</td><td><code>repoctl check --install-timer</code></td></tr>
 <tr><td><code>check.no-linger</code></td><td>note</td><td>Lingering is off. The timer runs only while the user is logged in.</td><td><code>loginctl enable-linger USER</code></td></tr>
-<tr><td><code>check.stale</code></td><td>warning</td><td>The last check is older than 36 hours.</td><td><code>repoctl check</code></td></tr>
+<tr><td><code>check.outdated</code></td><td>warning</td><td>latest of a target differs from the digest that the last check used.</td><td><code>repoctl check</code></td></tr>
+<tr><td><code>check.stale</code></td><td>warning</td><td>The last check is older than 36 hours, or older than latest of a target.</td><td><code>repoctl check</code></td></tr>
 <tr><td><code>check.timer-off</code></td><td>warning</td><td>The timer of this set is not active.</td><td><code>repoctl check --install-timer</code></td></tr>
+<tr><td><code>check.timer-orphan</code></td><td>warning</td><td>A timer instance points to a set directory that is gone or holds no set.</td><td><code>systemctl --user disable --now repoctl-check@INSTANCE.timer</code></td></tr>
+<tr><td><code>check.timer-unit</code></td><td>warning</td><td>The installed timer units differ from the units of this binary.</td><td><code>repoctl check --install-timer</code></td></tr>
 <tr><td><code>config.invalid</code></td><td>1</td><td>A configuration file does not agree with its schema or with a rule.</td><td>Correct the file; <code>repoctl schema config</code>.</td></tr>
-<tr><td><code>config.unknown-key</code></td><td>1</td><td>A key is unknown, or the user config sets a key that changes the build.</td><td>Remove the key; <code>repoctl config show</code>.</td></tr>
-<tr><td><code>config.unsupported</code></td><td>1</td><td>This release does not support the key.</td><td>Remove the key.</td></tr>
+<tr><td><code>config.unknown-key</code></td><td>1</td><td>A key is unknown, or the user config sets a key that changes the build.</td><td>Remove the key, or upgrade repoctl when a newer release knows it; <code>repoctl config show</code>.</td></tr>
+<tr><td><code>config.unknown-set</code></td><td>warning</td><td><code>config show</code>: the user config has <code>sets.NAME</code> for a set that this host does not know.</td><td>Correct NAME, or remove the key.</td></tr>
+<tr><td><code>config.unsupported</code></td><td>1</td><td>This release does not support the key or its value, for example a target that is not <code>x86_64</code>.</td><td>Remove the key, or change the value.</td></tr>
+<tr><td><code>contract.newer-file</code></td><td>1; warning in a command that only reads the file</td><td>A stored file needs a newer repoctl: its apiVersion, a field, a closed enum value or <code>minRepoctl</code> is newer than this binary. The message names the file and the versions.</td><td>Upgrade repoctl on this host (<a href="cli.html#upgrade">upgrade</a>).</td></tr>
+<tr><td><code>contract.old-file</code></td><td>1</td><td>The command must write a stored file in an apiVersion that this binary only reads.</td><td><code>repoctl migrate --api</code>, then commit.</td></tr>
 <tr><td><code>dep.not-for-target</code></td><td>warning</td><td>Plan: only a package of another target provides a BuildRequires of the node.</td><td>Guard the BuildRequires with <code>%if</code>, or add the target.</td></tr>
 <tr><td><code>deprecated</code></td><td>warning</td><td>The input uses a deprecated name, for example <code>sign.gpg_name</code>.</td><td>Use the name in the message.</td></tr>
+<tr><td><code>gc.failed</code></td><td>13</td><td><code>repo gc --apply</code>: the GitHub API failed one delete. gc stopped; the versions before it are deleted.</td><td>Run <code>repoctl repo gc --apply</code> again. The dry run shows what is left.</td></tr>
+<tr><td><code>git.busy</code></td><td>7</td><td>Another command holds the clone lock of an external package (<a href="lifecycle.html#clones">clones</a>). The message names the clone and the holder.</td><td>Try again, or set <code>--lock-wait</code>.</td></tr>
 <tr><td><code>git.fetch-failed</code></td><td>1</td><td><code>git fetch</code> failed.</td><td>Examine the remote and the credentials.</td></tr>
 <tr><td><code>git.mirror-unpushed</code></td><td>warning</td><td><code>clean --git</code> keeps a bare clone with commits that are not on the remote.</td><td>Push the commits.</td></tr>
+<tr><td><code>git.protection</code></td><td>warning in doctor</td><td>A branch of the set repository does not have the rules of its GitHub ruleset, or doctor cannot read them.</td><td>An organization owner sets the ruleset (<a href="security.html#rulesets">GitHub rulesets</a>).</td></tr>
+<tr><td><code>git.signing</code></td><td>warning in doctor</td><td>git in the set directory does not sign commits with the key of <code>sign.key</code>.</td><td><code>git config commit.gpgsign true</code> and <code>git config user.signingkey FPR</code> (<a href="security.html#set-inputs">Signed set inputs</a>).</td></tr>
 <tr><td><code>git.unreachable</code></td><td>1</td><td><code>git ls-remote</code> of an external package failed.</td><td>Make the project on the git server.</td></tr>
 <tr><td><code>graph.ambiguous-provider</code></td><td>warning</td><td>Two set packages provide one capability.</td><td>Make the Provides unique.</td></tr>
 <tr><td><code>graph.cycle</code></td><td>1</td><td>The BuildRequires make a cycle. The message names it.</td><td>Break the cycle in one spec.</td></tr>
 <tr><td><code>graph.dynamic-buildrequires</code></td><td>warning</td><td>The spec uses <code>%generate_buildrequires</code>. Edges can be missing.</td><td>Add the BuildRequires to the spec.</td></tr>
+<tr><td><code>graph.srpm-failed</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>The SRPM of a node failed at plan time. The node has no known dependencies.</td><td>Fix the spec. <code>repoctl graph -v</code> shows the mock output.</td></tr>
 <tr><td><code>host.not-ready</code></td><td>9</td><td>A required host check failed.</td><td><code>repoctl doctor</code> (<code>install-tool</code>)</td></tr>
+<tr><td><code>host.stale-server</code></td><td>9; warning in doctor</td><td>A UI or MCP server runs a binary that an upgrade replaced. It starts no child.</td><td>Restart the server: <code>repoctl ui</code>, or a new agent session.</td></tr>
+<tr><td><code>import.not-empty</code></td><td>13</td><td><code>repo push --from</code>: the registry has a snapshot of the target. An import makes only the first snapshot.</td><td><code>repoctl repo snapshots --target ID</code>; publish on top of latest, or import into a new target.</td></tr>
 <tr><td><code>journal.sampling-stopped</code></td><td>warning</td><td>The journal is 32 MiB. No more <code>node.log</code> lines come.</td><td>The node log has the full text.</td></tr>
-<tr><td><code>lock.dirty</code></td><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed.</td><td>The exact git commands (<code>commit-worktree</code>, <code>commit-lock</code>).</td></tr>
-<tr><td><code>lock.missing-package</code></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line.</td><td><code>repoctl pin DIR</code></td></tr>
-<tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin</code></td></tr>
+<tr><td><code>lock.behind</code></td><td>5 in <code>pin DIR</code>; warning in <code>pin</code></td><td>The worktree HEAD is an ancestor of the lock commit. pin does not write the older commit back.</td><td><code>repoctl checkout DIR</code>; <code>repoctl pin DIR --older</code> pins the older commit on purpose.</td></tr>
+<tr><td><code>lock.dirty</code></td><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed. Plan and build give it for a selected worktree.</td><td>The exact git commands (<code>commit-worktree</code>, <code>commit-lock</code>).</td></tr>
+<tr><td><code>lock.diverged</code></td><td>5</td><td>pin: the worktree and the lock commit both have commits that the other does not have.</td><td>Rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code>.</td></tr>
+<tr><td><code>lock.missing-package</code></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line, or publish takes a target that has one.</td><td><code>repoctl pin DIR</code></td></tr>
+<tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin --orphans</code></td></tr>
 <tr><td><code>lock.unpushed</code></td><td>5</td><td>The set commit or a pinned commit is not on its remote branch.</td><td>The exact <code>git push</code> commands (<code>push</code>).</td></tr>
+<tr><td><code>manifest.invalid</code></td><td>1</td><td>The RepoManifest of a snapshot does not agree with the schema <code>manifest</code>. An <code>apiVersion</code> that this binary does not read is <code>contract.newer-file</code>.</td><td>The message names the field.</td></tr>
 <tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The human runs the command.</td></tr>
+<tr><td><code>mock.busy</code></td><td>7</td><td><code>repoctl mock update</code> or <code>mock clean</code> holds the host mock lock, or a repoctl mock runs while one of them waits for it. The problem names the holder.</td><td>Wait, or use <code>--lock-wait</code> (<a href="build.html#mock">Mock roots</a>).</td></tr>
+<tr><td><code>mock.config-differs</code></td><td>warning in doctor</td><td>The mock config of a target on this host differs from the config of the newest build in latest. <code>mock.drift</code> and the default closure repos depend on it.</td><td>Install the mock config of the build host, or rebuild against the new config (<a href="advisories.html#data">data</a>).</td></tr>
 <tr><td><code>mock.config-missing</code></td><td>9</td><td>The mock config of a target is not on this host.</td><td>Install it, or correct <code>targets[].mock</code>.</td></tr>
 <tr><td><code>mock.unavailable</code></td><td>9</td><td>mock is not installed, or the user is not in the group <code>mock</code>.</td><td>Install mock (<code>install-tool</code>).</td></tr>
 <tr><td><code>node.blocked</code></td><td>3</td><td>A dependency failed. The node did not run.</td><td>Repair the failed dependency.</td></tr>
 <tr><td><code>node.failed</code></td><td>3</td><td>The node failed in a step.</td><td><code>repoctl logs RUN NODE</code>, or the skill triage-build.</td></tr>
+<tr><td><code>nvr.older</code></td><td>12</td><td>A new NVR is not newer than the newest NVR of its source package name in the base or in <code>removed[]</code>. Clients never install it.</td><td>Raise <code>Epoch</code> or the version (<a href="publish.html#restore">Restore and fix forward</a>).</td></tr>
 <tr><td><code>nvr.removed</code></td><td>12</td><td>A prune or a restore removed this NVR, and the new build has other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
 <tr><td><code>nvr.reused</code></td><td>12</td><td>latest holds this NVR with other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
+<tr><td><code>prune.breaks-closure</code></td><td>12</td><td>The prune gives a broken requirement that the base does not have.</td><td>Keep the NVR that the message names; prune the requirer first.</td></tr>
 <tr><td><code>prune.not-retired</code></td><td>1</td><td><code>repo prune --package NAME --all</code>: NAME is not retired.</td><td>Retire it first (<a href="lifecycle.html#retire">Retire</a>).</td></tr>
+<tr><td><code>prune.unsafe</code></td><td>12</td><td><code>repo prune --nvr</code> or <code>--package NAME --all</code> selects an NVR that a rule protects: the newest NVR of a kept package or a release NVR of a deployment record. A new broken requirement is <code>prune.breaks-closure</code>.</td><td>The message names the rule. Select other NVRs.</td></tr>
 <tr><td><code>publish.needs-confirmation</code></td><td>6</td><td>No terminal for the confirmation, or the human answers no.</td><td>Publish in a terminal or in the UI (<code>confirm</code>).</td></tr>
-<tr><td><code>publish.not-ready</code></td><td>12</td><td>A node of a selected target is not current or staged.</td><td>Build it, or publish the other targets.</td></tr>
+<tr><td><code>publish.not-ready</code></td><td>12</td><td>A node of a selected target is not current or staged.</td><td>Build it, or publish the other targets. For an urgent fix, hold the node for one publish: <code>repoctl publish --hold NODE --reason TEXT</code> (<a href="publish.html#urgent">urgent fix</a>).</td></tr>
+<tr><td><code>publish.not-verified</code></td><td>10</td><td><code>repo push</code>: the state file of the tree does not record verify and verify-el ok for the target.</td><td>Discard the tree: <code>repoctl clean --publish p-…</code>, then publish again.</td></tr>
 <tr><td><code>publish.nothing-to-publish</code></td><td>4</td><td>No node is staged, or prune finds nothing.</td><td>-</td></tr>
-<tr><td><code>publish.unattended-refused</code></td><td>6</td><td><code>--yes</code> without a terminal, and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is not 1.</td><td><a href="cli.html#safety">Shared-state safety</a></td></tr>
+<tr><td><code>publish.plan-changed</code></td><td>6</td><td>The plan digest under the set lock differs from the plan digest of the UI confirmation. Nothing is signed.</td><td>Review the publish again (<code>confirm</code>, <a href="cli.html#ui-confirmation">UI confirmation</a>).</td></tr>
+<tr><td><code>publish.served-exists</code></td><td>12</td><td>A first publish of a target: <code>repo.url</code> already serves a repo for the target, or does not answer with 404, or <code>keys/deployed.yaml</code> has a record for the target. Clients can exist.</td><td>Import the repo (<a href="../runbooks/import.html">import runbook</a>), or correct <code>store.oci</code>.</td></tr>
+<tr><td><code>publish.unattended-refused</code></td><td>6</td><td><code>--yes</code> without a terminal, and <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is not 1. Also <code>--accept-advisory</code> without a terminal, with any value of the variable.</td><td><a href="cli.html#safety">Shared-state safety</a></td></tr>
+<tr><td><code>rebuild.in-tree</code></td><td>1; warning for a glob</td><td><code>repoctl rebuild</code>: the package is in-tree. An empty commit does not change its commit.</td><td>Change a file below the path of the package, and commit it to the builder branch.</td></tr>
 <tr><td><code>records.mismatch</code></td><td>10</td><td>A supply chain record does not have the sha256 in the RepoManifest, or a subject does not have the sha256 of its file.</td><td>The message names the record. Publish keeps the tree; the mirror job keeps the old tree.</td></tr>
 <tr><td><code>records.missing</code></td><td>1; warning in repo verify</td><td>The build has no record of this type, for example an adopted build without provenance.</td><td>-</td></tr>
 <tr><td><code>registry.denied</code></td><td>13</td><td>The token has no write scope for the OCI package.</td><td>The message names the scope.</td></tr>
 <tr><td><code>registry.unreachable</code></td><td>13; warning in plan, build</td><td>The registry does not answer.</td><td>Plan and build use the local copy.</td></tr>
+<tr><td><code>run.abandoned</code></td><td>1</td><td><code>runs --follow</code>, <code>repoctl_run_wait</code>: the process of the run ended without <code>run.finished</code>.</td><td><code>repoctl mock clean</code></td></tr>
 <tr><td><code>run.not-finished</code></td><td>1</td><td>The run is still active.</td><td><code>repoctl runs RUN --follow</code></td></tr>
 <tr><td><code>run.not-found</code></td><td>1</td><td>No run has this id.</td><td><code>repoctl runs</code></td></tr>
-<tr><td><code>run.staging-missing</code></td><td>1</td><td>The staging repo of the run is not there.</td><td><code>repoctl build</code></td></tr>
+<tr><td><code>run.staging-missing</code></td><td>1 in publish; warning in plan, build</td><td>A file of a staged node is not in the staging of its run, or has another size or sha256. Plan and build then build the node again (reason <code>staging-missing</code>).</td><td><code>repoctl plan</code>, then <code>repoctl build</code></td></tr>
 <tr><td><code>run.unpinned</code></td><td>12</td><td>The run built worktree commits.</td><td>Pin, then build from the lock.</td></tr>
+<tr><td><code>served.stale</code></td><td>warning</td><td>The served tree is behind latest for more than 15 minutes, or the mirror job wrote no heartbeat for 15 minutes.</td><td>Read the journal of the mirror job on the HTTP server (<a href="publish.html#freshness">Freshness</a>).</td></tr>
 <tr><td><code>set.busy</code></td><td>7</td><td>Another command of this user on this host holds the set lock. The problem names the run.</td><td><code>repoctl runs RUN --follow</code></td></tr>
+<tr><td><code>set.lock-lost</code></td><td>warning; the run ends canceled (130)</td><td>The lock file of the set lock was removed during the run, and another process now holds the set lock.</td><td>Turn on lingering: <code>loginctl enable-linger USER</code> (<a href="build.html#lock">Set lock</a>).</td></tr>
+<tr><td><code>set.renamed</code></td><td>12</td><td>A first publish of a target: the served tree at <code>repo.url</code> names another set or target.</td><td>Give the set its own <code>repo.url</code>. A set name or a target id never changes (<a href="lifecycle.html#rename">Rename</a>).</td></tr>
+<tr><td><code>set.retired</code></td><td>12; warning in plan</td><td>Each target of the set has <code>state: retired</code>. build and publish do nothing for a retired set.</td><td>Work in the next set (<a href="lifecycle.html#end-set">End a set</a>).</td></tr>
 <tr><td><code>sign.card-absent</code></td><td>9</td><td>No card for <code>sign.key</code>.</td><td>Insert the card (<code>unlock</code>).</td></tr>
+<tr><td><code>sign.expired-signer</code></td><td>warning</td><td>A kept RPM has a signature that its key made before the key expired. EL10 clients refuse the RPM.</td><td><code>repoctl repo resign --signer ID</code> (<a href="signing.html#after-expiry">After the expiry</a>)</td></tr>
 <tr><td><code>sign.failed</code></td><td>1</td><td><code>rpmsign</code> failed. repoctl deletes the new tree.</td><td>The message names the file.</td></tr>
-<tr><td><code>sign.key-expiring</code></td><td>12; warning in doctor</td><td>Gate 1: the key expires within <code>sign.checks.key_min_validity</code>.</td><td>Extend the expiry (<a href="signing.html#expiry">Key expiry</a>).</td></tr>
+<tr><td><code>sign.key-exists</code></td><td>1</td><td><code>sign add</code>: <code>sign.keys</code> has the id or the fingerprint, in any state.</td><td>Use a new id for a new key (<a href="signing.html#lifecycle">Key lifecycle</a>).</td></tr>
+<tr><td><code>sign.key-expiring</code></td><td>12</td><td>Gate 1: the signer key expires within <code>sign.checks.key_min_validity</code>. The doctor check of the expiry is <code>sign.expiry</code>.</td><td>Add a new key, then retire this key (<a href="signing.html#expiry">Key expiry</a>).</td></tr>
 <tr><td><code>sign.key-format</code></td><td>9</td><td>Gate 3: the key format is not allowed.</td><td><a href="signing.html#gates">Gates</a></td></tr>
 <tr><td><code>sign.key-in-use</code></td><td>12</td><td><code>sign remove</code>: latest holds RPMs of the key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
 <tr><td><code>sign.keyfile-stale</code></td><td>5</td><td>The key file of the in-tree release package differs from <code>sign.keys</code>.</td><td><code>repoctl release write</code>, then commit.</td></tr>
-<tr><td><code>sign.locked</code></td><td>9</td><td>The card or the key is locked.</td><td><code>gpg --card-status</code> (<code>unlock</code>)</td></tr>
+<tr><td><code>sign.last-signer</code></td><td>12</td><td><code>sign retire</code>: for a target with a latest, no other active key has a deployment record.</td><td>Deploy a second key first (<a href="signing.html#onboarding">Onboarding</a>).</td></tr>
+<tr><td><code>sign.locked</code></td><td>9</td><td>The card or the key is locked.</td><td><code>gpg --card-status</code> (<code>unlock</code>). A blocked PIN: <a href="signing.html#card">Card and key failures</a>.</td></tr>
 <tr><td><code>sign.no-key</code></td><td>9; warning in build</td><td>The secret key of <code>sign.key</code> is not on this host.</td><td><code>repoctl doctor</code></td></tr>
 <tr><td><code>sign.no-pinentry</code></td><td>9</td><td>No pinentry works.</td><td>Install a pinentry.</td></tr>
 <tr><td><code>sign.not-active</code></td><td>12</td><td>Gate 1: the key is not active in <code>sign.keys</code>.</td><td><code>repoctl sign onboard ID</code></td></tr>
 <tr><td><code>sign.not-deployed</code></td><td>12</td><td>Gate 2: <code>keys/deployed.yaml</code> has no record of the key for a selected target.</td><td><code>repoctl sign onboard ID</code> (<code>sign-deployed</code>)</td></tr>
-<tr><td><code>sign.removed-signer</code></td><td>12</td><td>A kept RPM has the signature of a removed key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
+<tr><td><code>sign.not-removed</code></td><td>12</td><td><code>sign removed</code>: the key is not in state removed, or the key file in latest of the target still holds it.</td><td><code>repoctl sign offboard ID</code></td></tr>
+<tr><td><code>sign.removed-signer</code></td><td>12; warning in repo pull</td><td>A kept RPM has the signature of a removed or revoked key. repo pull gives a warning for a revoked key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
+<tr><td><code>sign.repofile-stale</code></td><td>5</td><td>A <code>.repo</code> file of the in-tree release package differs from the file that <code>repoctl release write</code> writes.</td><td><code>repoctl release write</code>, then commit.</td></tr>
 <tr><td><code>sign.retiring</code></td><td>warning in doctor</td><td>RPMs in latest have the signature of a retiring key.</td><td><code>repoctl repo resign --signer ID</code></td></tr>
+<tr><td><code>sign.self-confirm</code></td><td>12</td><td><code>sign deployed</code>: the key of <code>sign.key</code> is the key of the record, and another key is active.</td><td>An admin with another active key confirms the deployment.</td></tr>
+<tr><td><code>sign.trust-behind</code></td><td>13</td><td>The tip of the remote branch has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit of the publish.</td><td><code>git pull --ff-only</code>, then publish again (<a href="security.html#remote-tip">Trust records on the remote branch</a>).</td></tr>
 <tr><td><code>sign.trust-change</code></td><td>6</td><td>The publish changes the trust set. The human must type the key id.</td><td>Use a terminal or the UI (<code>trust-change</code>).</td></tr>
-<tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files.</td></tr>
-<tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed skill is older than the binary.</td><td><code>repoctl skills install</code></td></tr>
-<tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>)</td></tr>
+<tr><td><code>sign.trust-unverified</code></td><td>12</td><td>A commit since the set commit of the base changes a set input and has no valid signature of an allowed key, or a new deployment record names another key than the signer of its commit. The message names the commit.</td><td>Review the commit, then sign a review commit (<a href="security.html#review">Review commit</a>).</td></tr>
+<tr><td><code>sign.unknown-signer</code></td><td>10</td><td>An RPM has the signature of a key outside the trust set.</td><td>The message names the files. In <code>repo pull</code>, when the set checkout does not hold the set commit of the snapshot: <code>git pull origin builder/SET</code>, then pull again.</td></tr>
+<tr><td><code>sign.wrong-state</code></td><td>1</td><td>A sign command does not allow the current state of the key, for example <code>sign remove</code> of an active key.</td><td>The message gives the allowed command (<a href="signing.html#lifecycle">Key lifecycle</a>).</td></tr>
+<tr><td><code>skills.guard</code></td><td>warning in doctor</td><td>A skill of repoctl is installed, or the plugin is on, and no guard hook covers the set directory. Or the deny list of a settings file differs from the list of the binary.</td><td><code>repoctl skills install</code> with the same scope (<a href="agents.html#guard">Guard hook</a>).</td></tr>
+<tr><td><code>skills.version-mismatch</code></td><td>warning</td><td>An installed copy of a skill has another version than the binary: older or newer. The message names the copy.</td><td><code>repoctl skills install</code> for a user or project copy; update the plugin or the RPM for the others.</td></tr>
+<tr><td><code>snapshot.diverged</code></td><td>13</td><td>latest moved between the publish steps check and tag.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>), then plan and publish again. Discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
+<tr><td><code>snapshot.exists</code></td><td>13</td><td><code>repo push --from</code> or <code>--reseed</code>: the registry has a snapshot of the target.</td><td>Use publish. These forms work only on an empty package.</td></tr>
+<tr><td><code>snapshot.missing</code></td><td>13; warning in plan, build, status</td><td>The registry has no snapshot of the target, but the local copy or <code>keys/deployed.yaml</code> says that it was published. The OCI package is lost.</td><td>Re-seed it: <code>repoctl repo push --reseed --target ID</code> (<code>repo-push</code>, <a href="publish.html#disaster">Registry outage and loss</a>).</td></tr>
+<tr><td><code>snapshot.not-found</code></td><td>1</td><td>REF names no snapshot of the target: no tag, publish id or digest has this value.</td><td><code>repoctl repo snapshots --all</code></td></tr>
+<tr><td><code>snapshot.orphaned</code></td><td>warning</td><td>The local copy holds a publish of this user that is not on the parent chain of latest. Another publish won the tag race.</td><td><code>repoctl repo pull</code>, then plan and publish again. The staged nodes of that publish are staged again.</td></tr>
 <tr><td><code>snapshot.push-failed</code></td><td>13</td><td>An upload failed. The signed tree stays.</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>)</td></tr>
-<tr><td><code>state.behind</code></td><td>13</td><td>latest is newer than the local copy.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>)</td></tr>
-<tr><td><code>state.unpushed</code></td><td>13; warning in plan, build</td><td>The local copy has a publish that the registry does not have.</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>)</td></tr>
+<tr><td><code>source.mismatch</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>A source archive does not have the SHA-512 of its line in the sources file.</td><td>Find out why the archive changed. Then correct the archive or the line, and commit.</td></tr>
+<tr><td><code>source.unlisted</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>A Source line has a URL, and the sources file has no SHA512 line for its file.</td><td>Add the line, for example with <code>sha512sum --tag FILE</code>, and commit (<a href="build.html#sources">Sources</a>).</td></tr>
+<tr><td><code>source.unreachable</code></td><td>warning in plan, graph; the node fails in build (class srpm)</td><td>No source of the file answers, and the source cache does not have it.</td><td>Try again with network access.</td></tr>
+<tr><td><code>state.behind</code></td><td>13</td><td>latest is newer than the local copy.</td><td><code>repoctl repo pull</code> (<code>repo-pull</code>). When latest is the new snapshot of a pushable tree of this user: <code>repoctl repo push p-…</code>, which runs only the cache step.</td></tr>
+<tr><td><code>state.unpushed</code></td><td>13; warning in plan, build</td><td>This user has a pushable tree, and latest is still its base (<a href="publish.html#complete">pushable tree</a>).</td><td><code>repoctl repo push p-…</code> (<code>repo-push</code>), or discard the tree: <code>repoctl clean --publish p-…</code>.</td></tr>
 <tr><td><code>upstream.no-match</code></td><td>warning</td><td>The tag filter matches no upstream tag.</td><td>Correct <code>upstream.tags</code>.</td></tr>
 <tr><td><code>upstream.rate-limited</code></td><td>warning</td><td>The GitHub API limit is reached.</td><td>Set <code>GH_TOKEN</code>.</td></tr>
 <tr><td><code>upstream.unreachable</code></td><td>1 in check; warning</td><td>An upstream does not answer. The other checks continue.</td><td>Try again later.</td></tr>
 <tr><td><code>verify.el-failed</code></td><td>10</td><td>The check in the EL chroot with the client trust set fails.</td><td>The message names the files.</td></tr>
 <tr><td><code>verify.failed</code></td><td>10</td><td>A signature, a checksum or the repodata is wrong.</td><td>The message names the files.</td></tr>
-<tr><td><code>worktree.dirty</code></td><td>warning</td><td>Plan, status: a worktree is not in-sync with the lock. The plan uses the lock.</td><td>Commit and pin.</td></tr>
+<tr><td><code>worktree.dirty</code></td><td>warning</td><td>Status, checkout; plan for a worktree that no selected node uses: a worktree is not in-sync with the lock. The plan uses the lock. checkout keeps the worktree (exit 0).</td><td>Commit and pin.</td></tr>
 <tr><td><code>worktree.missing</code></td><td>warning</td><td>The worktree of a package is not there.</td><td><code>repoctl checkout DIR</code></td></tr>
 </tbody>
 </table>
@@ -364,7 +471,7 @@
 <table class="compact">
 <thead><tr><th>File in <code>$XDG_STATE_HOME/repoctl/&lt;set&gt;/</code></th><th>Format</th><th>Writer</th><th>Readers</th></tr></thead>
 <tbody>
-<tr><td><code>runs/&lt;run&gt;.jsonl</code></td><td>journal v1</td><td>the process that holds the set lock</td><td>CLI, web UI, MCP server, through <code>journal.Fold</code></td></tr>
+<tr><td><code>runs/&lt;run&gt;.jsonl</code></td><td>journal v1</td><td>the process that holds the set lock; for a check run, the process that holds the check lock (<a href="advisories.html#check">check</a>)</td><td>CLI, web UI, MCP server, through <code>journal.Fold</code></td></tr>
 <tr><td><code>runs/&lt;run&gt;.progress.jsonl</code></td><td>go-clikit event log v1</td><td><code>progress.Log</code> on the Bus of the run</td><td>bug reports, CI artifacts</td></tr>
 <tr><td><code>logs/&lt;run&gt;/&lt;node&gt;.log</code></td><td>text with step markers</td><td>the node runner: the step markers and a tee of the mock output</td><td><code>repoctl logs</code>, the UI log view, <code>repoctl_logs</code></td></tr>
 <tr><td><code>logs/&lt;run&gt;/&lt;node&gt;/&lt;step&gt;/</code> <code>root.log</code>, <code>build.log</code>, <code>state.log</code></td><td>mock logs</td><td>mock</td><td><code>repoctl logs --file</code>, the UI log view</td></tr>
@@ -384,6 +491,7 @@
   <li><code>plan.ready</code> gives every node its first state. Build nodes start waiting. repoctl writes no <code>node.state</code> line for a first state.</li>
   <li>When the dependencies of a node are done, the node goes to running if a job slot is free. If no slot is free, it goes to queued.</li>
   <li>A terminal state is the last <code>node.state</code> line of the node. <code>run.finished</code> is the last line of the run.</li>
+  <li>A run that stops in its plan has no <code>plan.ready</code> line and no nodes (<a href="build.html#run-states">run states</a>).</li>
 </ul>
 </aside>
 
@@ -391,9 +499,23 @@
 <ul>
   <li>The journal writer has the rules of <code>progress.Log</code>: whole lines, <code>O_APPEND</code>, file mode 0600, a trusted state directory. It flushes every 250 ms, and at once after a terminal <code>node.state</code> and after <code>run.finished</code>.</li>
   <li>Text from mock goes through <code>progress.Sanitize</code>. At 32 MiB, repoctl stops the <code>node.log</code> lines of the run and writes the warning <code>journal.sampling-stopped</code>. State lines continue.</li>
-  <li>A killed process leaves a journal without <code>run.finished</code>. A reader then shows the run as abandoned (<a href="build.html#cancel">Cancel and abandoned runs</a>).</li>
-  <li>At the start of a build, repoctl deletes the run files of runs beyond <code>state.keep_runs</code> (user config, default 50). It keeps active runs and runs with staged nodes. <code>activity.jsonl</code> rotates at 8 MiB.</li>
+  <li>A killed process leaves a journal without <code>run.finished</code>. When nobody holds the lock of the run (the set lock, or the check lock for a check run), a reader shows the run as abandoned (<a href="build.html#cancel">Cancel and abandoned runs</a>).</li>
+  <li>Retention deletes the journal, the progress log and the node logs of a run. It runs at the start of a build, at the start of a publish, at the start of a check and in <code>repoctl clean --logs</code>. The table gives the one rule. The shared audit record is the publish history, not the journal (<a href="publish.html#format">publish.html#format</a>). <code>activity.jsonl</code> rotates at 8 MiB.</li>
+  <li>Check runs do not count toward <code>state.keep_runs</code>. At the start of each check, repoctl deletes the files of the check runs beyond <code>state.keep_checks</code> (user config, default 30). Thus a daily timer keeps 30 days of checks and never pushes out the build history.</li>
+  <li>The publish history keeps each acceptance (<code>advisory.accepted</code>) after <code>repo gc</code> deletes the snapshot and its annotation, and after retention deletes the journal of the publish run (<a href="publish.html#format">publish.html#format</a>).</li>
 </ul>
+<table class="compact" id="retention">
+<thead><tr><th>Runs</th><th>Retention</th></tr></thead>
+<tbody>
+<tr><td>Active runs</td><td>Always kept.</td></tr>
+<tr><td>Build runs with a staged node</td><td>Always kept. The plan and publish read their <code>artifact.added</code> events.</td></tr>
+<tr><td>Publish runs (<code>p-…</code>)</td><td>The newest <code>state.keep_publishes</code> (user config, default 100) are kept, and each publish with a kept tree. They do not count toward <code>state.keep_runs</code>.</td></tr>
+<tr><td>Runs of another host</td><td>Always kept (<a href="#readers">readers</a>).</td></tr>
+<tr><td>Other finished build runs, also abandoned ones</td><td>The newest <code>state.keep_runs</code> (user config, default 50) are kept. Only these runs count toward <code>state.keep_runs</code>.</td></tr>
+<tr><td>Check runs (<code>kind: check</code>)</td><td>The newest <code>state.keep_checks</code> (user config, default 30) are kept. They do not count toward <code>state.keep_runs</code>.</td></tr>
+</tbody>
+</table>
+<p>Retention never deletes a staging. <code>repoctl clean --staging</code> does that (<a href="cli.html#cmd-clean">repoctl clean</a>).</p>
 
 <h3 id="trace">Trace context and spans</h3>
 <p>repoctl reads <code>TRACEPARENT</code> and <code>TRACESTATE</code> at start and gives them to go-clikit. <code>run.started</code> copies the trace id and the parent span into <code>trace</code> and <code>traceParent</code>. The web UI and the MCP server set <code>TRACEPARENT</code> for the build that they start. repoctl does not give <code>TRACEPARENT</code> to mock.</p>
@@ -413,29 +535,30 @@
 <table class="compact">
 <thead><tr><th>type</th><th>When</th><th>Keys</th></tr></thead>
 <tbody>
-<tr><td><code>run.started</code></td><td>first line</td><td><code>set</code>, <code>kind</code>, <code>publishKind</code>, <code>trace</code>, <code>traceParent</code>, <code>origin</code>, <code>selection</code>, <code>setCommit</code>, <code>repoctl</code></td></tr>
-<tr><td><code>plan.ready</code></td><td>the plan is done</td><td><code>summary</code>, <code>build[]</code> with reasons, <code>current[]</code>, <code>staged[]</code>, <code>skip[]</code></td></tr>
+<tr><td><code>run.started</code></td><td>first line</td><td><code>set</code>, <code>kind</code>, <code>publishKind</code>, <code>trace</code>, <code>traceParent</code>, <code>origin</code>, <code>selection</code>, <code>setCommit</code>, <code>lockDigest</code>, <code>repoctl</code></td></tr>
+<tr><td><code>plan.ready</code></td><td>the plan is done</td><td><code>summary</code>, <code>build[]</code> with reasons, <code>current[]</code>, <code>staged[]</code>, <code>skip[]</code>, <code>commits</code> (the commit of each node that is not skip), <code>fromRun</code> (the run of each staged node)</td></tr>
 <tr><td><code>node.state</code></td><td>each change after the first state</td><td><code>state</code>, <code>prev</code>, <code>durationMs</code>, <code>error</code>, <code>blockedBy</code>, <code>nvrs</code>, <code>checks</code></td></tr>
-<tr><td><code>node.step</code></td><td>start and end of srpm, rpm, stage</td><td><code>step</code>, <code>phase</code>, <code>status</code>, <code>exitCode</code>, <code>durationMs</code></td></tr>
+<tr><td><code>node.step</code></td><td>start and end of srpm, rpm, stage</td><td><code>step</code>, <code>phase</code>, <code>status</code>, <code>exitCode</code>, <code>durationMs</code>, <code>root</code></td></tr>
 <tr><td><code>node.log</code></td><td>1 line per node every 2 s, and each line that matches an error pattern</td><td><code>step</code>, <code>line</code> (512 bytes or less), <code>offset</code>, <code>dropped</code>, <code>level</code></td></tr>
 <tr><td><code>artifact.added</code></td><td>each RPM or SRPM in staging</td><td><code>kind</code>, <code>repo</code>, <code>nvra</code>, <code>file</code>, <code>sizeBytes</code>, <code>sha256</code></td></tr>
 <tr><td><code>staging.updated</code></td><td>after <code>createrepo_c --update</code></td><td><code>target</code>, <code>repo</code>, <code>packages</code>, <code>revision</code></td></tr>
 <tr><td><code>warning</code></td><td>any time</td><td><code>code</code>, <code>message</code>, <code>target</code></td></tr>
-<tr><td><code>run.cancel-requested</code></td><td>SIGINT, UI, MCP</td><td><code>by</code>, <code>user</code>, <code>reason</code></td></tr>
+<tr><td><code>run.cancel-requested</code></td><td>SIGINT, UI, MCP, <code>build.timeout.run</code></td><td><code>by</code>, <code>user</code>, <code>reason</code>, <code>force</code></td></tr>
 <tr><td><code>run.finished</code></td><td>last line</td><td><code>state</code>, <code>counts</code>, <code>durationMs</code>, <code>exitCode</code>, <code>publishable</code></td></tr>
 <tr><td><code>publish.started</code></td><td>start of a publish run</td><td><code>fromRuns</code>, <code>targets</code>, <code>by</code>, <code>dryRun</code>, <code>signer</code>, <code>base</code>, <code>unattended</code></td></tr>
 <tr><td><code>publish.step</code></td><td>start and end of a publish step per target</td><td><code>target</code>, <code>repo</code>, <code>step</code>, <code>phase</code>, <code>status</code>, <code>count</code>, <code>digest</code></td></tr>
 <tr><td><code>publish.finished</code></td><td>end of a publish run</td><td><code>state</code>, <code>targets</code>, <code>exitCode</code>, <code>snapshots</code></td></tr>
 <tr><td><code>advisory</code></td><td>a plan, a node build or a check finds an advisory or changes its state</td><td><code>id</code>, <code>state</code>, <code>level</code>, <code>factsDigest</code></td></tr>
-<tr><td><code>advisory.gone</code></td><td>the check does not find the advisory any more</td><td><code>id</code></td></tr>
+<tr><td><code>advisory.gone</code></td><td>a check, or the end of a run, does not find the advisory any more</td><td><code>id</code></td></tr>
 <tr><td><code>advisory.accepted</code></td><td>a human accepts a blocking advisory for one publish</td><td><code>id</code>, <code>factsDigest</code>, <code>reason</code>, <code>user</code>, <code>host</code></td></tr>
+<tr><td><code>gc.deleted</code></td><td><code>repo gc --apply</code> deleted one package version</td><td><code>target</code>, <code>publish</code>, <code>digest</code></td></tr>
 </tbody>
 </table>
-<p>A reader skips a line whose type it does not know. A check writes a journal with <code>kind: check</code> and only advisory events between <code>run.started</code> and <code>run.finished</code>.</p>
+<p>A reader skips a line whose type it does not know. A check writes a journal with <code>kind: check</code> and only advisory events between <code>run.started</code> and <code>run.finished</code>. <code>repo gc --apply</code> writes a journal with <code>kind: gc</code> and only <code>gc.deleted</code> and <code>warning</code> events between them (<a href="publish.html#gc">publish.html#gc</a>).</p>
 
 <h3 id="excerpt">Story excerpt</h3>
 <p>Dennis ran <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code> and <code>repoctl pin</code>, then <code>repoctl build</code> with <code>jobs: 3</code>. The listing shows lines of <code>runs/r-20261102-1750-a3f.jsonl</code> up to 18:01:06, the time of the live frames, and the last line. Gaps in <code>seq</code> are lines that the listing leaves out; <a href="contract/examples/journal.jsonl">journal.jsonl</a> has more lines.</p>
-<pre><code class="language-json">{"v":1,"run":"r-20261102-1750-a3f","seq":1,"time":"2026-11-02T17:50:04.112Z","type":"run.started","span":"c71e0a94b25d3f10","set":"slurm-26.05","kind":"build","trace":"4bf92f3577b34da6a3ce929d0e0e4736","origin":{"via":"cli","user":"dklein","host":"hpc-a1","pid":48213},"selection":{"dirs":[],"targets":["el9","el10"],"from":"lock","force":false,"failFast":false,"jobs":3},"setCommit":"5d81c3e09f7a2b64c1e8d0f3a6b9c27e41d5f803","repoctl":"v0.4.0"}
+<pre><code class="language-json">{"v":1,"run":"r-20261102-1750-a3f","seq":1,"time":"2026-11-02T17:50:04.112Z","type":"run.started","span":"c71e0a94b25d3f10","set":"slurm-26.05","kind":"build","trace":"4bf92f3577b34da6a3ce929d0e0e4736","origin":{"via":"cli","user":"dklein","host":"hpc-a1","pid":48213},"selection":{"dirs":[],"targets":["el9","el10"],"from":"lock","force":false,"failFast":false,"jobs":3},"setCommit":"5d81c3e09f7a2b64c1e8d0f3a6b9c27e41d5f803","lockDigest":"sha256:b9002aaaed380dd0704b6bd8a3d1b987544b32c0e1938d60c563d931b1eb26f4","repoctl":"v0.4.0"}
 {"v":1,"run":"r-20261102-1750-a3f","seq":5,"time":"2026-11-02T17:50:08.312Z","type":"warning","span":"c71e0a94b25d3f11","node":"slurm@el10","code":"dep.not-for-target","target":"el10","message":"slurm@el10 requires rocm-smi-devel. Only rocm-smi@el9 provides it; rocm-smi is not built for el10."}
 {"v":1,"run":"r-20261102-1750-a3f","seq":44,"time":"2026-11-02T17:54:13.330Z","type":"node.state","node":"ucx@el9","span":"5a0e3b7c9d1f2a01","parent":"c71e0a94b25d3f12","state":"ok","prev":"running","durationMs":245000,"nvrs":["ucx-1.22.1-1.el9.x86_64","ucx-cma-1.22.1-1.el9.x86_64","ucx-devel-1.22.1-1.el9.x86_64","ucx-examples-1.22.1-1.el9.x86_64","ucx-ib-1.22.1-1.el9.x86_64","ucx-ib-efa-1.22.1-1.el9.x86_64","ucx-ib-mlx5-1.22.1-1.el9.x86_64","ucx-knem-1.22.1-1.el9.x86_64","ucx-mad-1.22.1-1.el9.x86_64","ucx-rdmacm-1.22.1-1.el9.x86_64","ucx-rocm-1.22.1-1.el9.x86_64","ucx-static-1.22.1-1.el9.x86_64","ucx-vfs-1.22.1-1.el9.x86_64","ucx-xpmem-1.22.1-1.el9.x86_64"],"checks":{"soname":"unchanged"}}
 {"v":1,"run":"r-20261102-1750-a3f","seq":77,"time":"2026-11-02T17:58:52.027Z","type":"node.state","node":"openmpi@el10","span":"5a0e3b7c9d1f2a04","parent":"c71e0a94b25d3f12","state":"queued","prev":"waiting"}
@@ -504,7 +627,7 @@
 <thead><tr><th>Reader</th><th>Reads</th><th>How</th></tr></thead>
 <tbody>
 <tr><td>terminal display</td><td>the Bus</td><td>cliprogress on stderr, in the process of the run</td></tr>
-<tr><td><code>repoctl runs RUN --follow</code></td><td>journal</td><td><code>eventlog.Tail</code>, then <code>journal.Fold</code>; it ends after <code>run.finished</code></td></tr>
+<tr><td><code>repoctl runs RUN --follow</code></td><td>journal</td><td><code>eventlog.Tail</code>, then <code>journal.Fold</code>; it ends after <code>run.finished</code>, or when the run is abandoned</td></tr>
 <tr><td><code>repoctl logs RUN NODE --follow</code></td><td>node log</td><td>it ends when the node has a terminal state</td></tr>
 <tr><td>web UI</td><td>journal, node log</td><td>one Tail per active run feeds a <code>journal.Fold</code> store, which sends the SSE events (<a href="ui.html#live">Live updates</a>)</td></tr>
 <tr><td>MCP server</td><td>journal</td><td><code>repoctl_run_get</code> and <code>repoctl_run_wait</code> return the folded Run. Progress counts the build nodes with a terminal state.</td></tr>
@@ -514,6 +637,22 @@
 </table>
 <aside class="callout rule"><p class="callout-title">Rule</p>
 <p>A program that shows node state reads it through <code>journal.Fold</code> or through a result that <code>journal.Fold</code> made. Thus <code>repoctl runs</code>, the web UI and the MCP tools always show the same state. MCP resources for runs are in <a href="agents.html#resources">Resources</a>.</p>
+</aside>
+<aside class="callout rule"><p class="callout-title">Rule: a followed run whose process ends</p>
+<p>A tailer checks the holder of the set lock every 2 s: <code>repoctl runs --follow</code>, <code>repoctl_run_wait</code> and the store of the web UI. When no process of the run holds the set lock and the journal has no <code>run.finished</code>, the fold gives the run state abandoned. Its open nodes (waiting, queued, running) count as canceled. <code>repoctl runs --follow</code> then exits 1 with the error <code>run.abandoned</code>. <code>repoctl_run_wait</code> returns at once with the Run and the same error. The web UI shows the finished state abandoned (<a href="ui-build.html#finished">finished runs</a>).</p>
+</aside>
+<aside class="callout rule"><p class="callout-title">Rule: runs of another host</p>
+<p>On a home directory that two hosts share, for example over NFS, the state and data directories hold runs of both hosts. The set lock is per host. The rules for a run whose <code>origin.host</code> is not this host:</p>
+<ul>
+  <li>A reader cannot check the set lock of another host. It never shows such a run as abandoned. Such a run without <code>run.finished</code> is running, and the reader names its host.</li>
+  <li>Retention and <code>repoctl clean</code> never delete the files or the staging of such a run.</li>
+  <li>The plan never stages a node of such a run. The node gets the action build.</li>
+  <li><code>repoctl runs</code>, the web UI and MCP list only the runs of this host.</li>
+</ul>
+<p>The doctor check <code>host.shared-state</code> warns when the state or the data directory is on a network file system.</p>
+</aside>
+<aside class="callout rule"><p class="callout-title">Rule: the commit of a node</p>
+<p><code>journal.Fold</code> takes the commit of each node from <code>commits</code> of <code>plan.ready</code>. <code>NodeResult.commit</code> comes from there. The staged rule of the plan compares the commit and the target with this value of an earlier run whose <code>selection.from</code> is <code>lock</code> (<a href="build.html#actions">plan actions</a>). It never uses <code>setCommit</code> or the lock of today. <code>setCommit</code> and <code>lockDigest</code> record the set inputs of the run for a human.</p>
 </aside>
 
 <h2 id="examples">Example files</h2>

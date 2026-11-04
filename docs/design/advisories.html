@@ -88,11 +88,12 @@
 <tr><td><code>id</code>, <code>code</code>, <code>subject</code>, <code>targets</code></td><td>What the advisory is about (<a href="#id">id and subject</a>).</td></tr>
 <tr><td><code>level</code></td><td>info, warn or required.</td></tr>
 <tr><td><code>state</code></td><td>pending, open or dismissed (<a href="#states">states</a>).</td></tr>
-<tr><td><code>title</code>, <code>facts</code></td><td>One line in plain words. The evidence, with fields for each code.</td></tr>
-<tr><td><code>factsDigest</code></td><td>The SHA-256 of the canonical JSON of the facts.</td></tr>
+<tr><td><code>title</code>, <code>facts</code></td><td>One line in plain words. The evidence, with a fixed shape for each code (<a href="#facts">facts</a>).</td></tr>
+<tr><td><code>factsDigest</code></td><td>The SHA-256 of the JCS form (RFC 8785) of the facts.</td></tr>
+<tr><td><code>hostFacts</code></td><td>Values of this host that explain the advisory. They are not in the digest.</td></tr>
 <tr><td><code>closure</code></td><td>Required level only: the dirs whose publish the advisory blocks.</td></tr>
 <tr><td><code>suggestion</code></td><td>A text and a command.</td></tr>
-<tr><td><code>source</code>, <code>seen</code></td><td>Where the check ran (plan, build, check or publish) and when.</td></tr>
+<tr><td><code>source</code>, <code>seen</code></td><td>Where the check ran (plan, build, check, upstream or publish) and when.</td></tr>
 <tr><td><code>dismissal</code></td><td>By, at, note, and <code>stale</code> when the dismissal no longer matches.</td></tr>
 </tbody>
 </table>
@@ -105,6 +106,7 @@
 <tr><td><code>DIR@TARGET</code></td><td>Each code that depends on a target.</td><td><code>closure.broken/pmix@el9</code></td></tr>
 <tr><td><code>DIR</code></td><td><code>upstream.release</code>: an upstream release does not depend on a target.</td><td><code>upstream.release/slurm</code></td></tr>
 <tr><td>source package name</td><td>A retired package: it has no dir in repoctl.yaml (<a href="lifecycle.html#retire">retire</a>).</td><td><code>retired.published/NAME</code></td></tr>
+<tr><td>source package name<code>@TARGET</code></td><td><code>closure.broken</code> of a retired package (level warn).</td><td><code>closure.broken/NAME@el9</code></td></tr>
 <tr><td>key id</td><td><code>sign.expiring</code>: a signer key, not a package.</td><td><code>sign.expiring/KEYID</code></td></tr>
 </tbody>
 </table>
@@ -116,13 +118,13 @@
 <thead><tr><th>Code</th><th>Level</th><th>Computed in</th><th>Check</th><th>Suggests</th></tr></thead>
 <tbody>
 <tr><td><code>soname.removed</code></td><td><span class="tag req">required</span></td><td>after a node build</td><td>A soname that the newest published build of the node provides is gone in the new build, and a kept set package requires it. A retired package does not count.</td><td><code>repoctl rebuild DEPENDENTS --reason "ucx: libucp.so.0 → .so.1"</code></td></tr>
-<tr><td><code>closure.broken</code></td><td><span class="tag req">required</span></td><td>plan, check, publish gate</td><td><code>dnf repoclosure --newest</code> per target, on the published repo plus the upstream repos, finds a requirement with no provider. Only the newest NVR of each name counts.</td><td>Rebuild the affected package, or change its spec.</td></tr>
+<tr><td><code>closure.broken</code></td><td><span class="tag req">required</span></td><td>plan, check, publish gate</td><td><code>dnf repoclosure --newest</code> per target, on the published repo plus the closure repos, finds a requirement with no provider. Only the newest NVR of each name counts.</td><td>Rebuild the affected package, or change its spec.</td></tr>
 <tr><td><code>closure.broken</code> of a retired package</td><td><span class="tag warn">warn</span></td><td>plan, check</td><td>As above, for a source package that no dir in repoctl.yaml builds.</td><td><code>repoctl repo prune --package NAME --all</code>. Never a rebuild.</td></tr>
 <tr><td><code>provider.changed</code></td><td><span class="tag warn">warn</span></td><td>plan, check</td><td>A current node took a BuildRequires provider from outside the set. Now a set package provides it, for example a new hwloc in the set. The recorded buildroot shows the old provider.</td><td><code>repoctl rebuild DEPENDENTS --reason "build against set hwloc"</code></td></tr>
 <tr><td><code>abi.changed</code></td><td><span class="tag warn">warn</span></td><td>after a node build (optional, needs libabigail)</td><td><code>abidiff</code> of the shared libraries, old and new, with the same soname.</td><td>Review. Rebuild the dependents when the change matters.</td></tr>
-<tr><td><code>sign.expiring</code></td><td><span class="tag warn">warn</span></td><td>check</td><td>Published RPMs carry a signer whose key expires inside the warn window (<code>sign.checks.key_expiry_warn</code>, default 180 days).</td><td>Treat it as a key change (<a href="signing.html#expiry">key expiry</a>).</td></tr>
-<tr><td><code>buildroot.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>A BuildRequires provider in the upstream repos has a newer version than the recorded buildroot.</td><td>Nothing, or a rebuild.</td></tr>
-<tr><td><code>mock.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The hash of the mock config or the macros of this host differs from the manifest.</td><td>Nothing, or a rebuild.</td></tr>
+<tr><td><code>sign.expiring</code></td><td><span class="tag warn">warn</span>, <span class="tag req">required</span></td><td>check</td><td>Published RPMs carry a signer whose key expires inside the warn window (<code>sign.checks.key_expiry_warn</code>, default 180 days): level warn. Inside <code>sign.checks.key_min_validity</code> (default 30 days): level required. The advisory has no closure, so it never blocks a publish.</td><td>Treat it as a key change, and re-sign the RPMs before the expiry (<a href="signing.html#expiry">key expiry</a>).</td></tr>
+<tr><td><code>buildroot.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>A BuildRequires provider in the closure repos has a newer version than the recorded buildroot.</td><td>Nothing, or a rebuild.</td></tr>
+<tr><td><code>mock.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The hash of the mock config or the macros of this host differs from the manifest. Per host (<a href="#data">data</a>).</td><td>Nothing, or a rebuild.</td></tr>
 <tr><td><code>upstream.release</code></td><td><span class="tag info">info</span></td><td>upstream, check</td><td>A new upstream version of the package.</td><td>Bump the version (skill bump-package).</td></tr>
 <tr><td><code>retired.published</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The published repo of a target holds RPMs of a source package that no dir in repoctl.yaml builds. Facts: NVRs, RPM count, size.</td><td>Nothing (the default), or <code>repoctl repo prune --package NAME --all</code>.</td></tr>
 </tbody>
@@ -133,6 +135,28 @@
   <li>An adopted manifest entry from the import has no buildroot file. <code>buildroot.drift</code>, <code>mock.drift</code> and <code>provider.changed</code> skip it. The next build of the node writes a buildroot (<a href="lifecycle.html#adopted">adopted entries</a>).</li>
 </ul>
 <p>In the story, the check of 2026-11-02 06:00 finds <code>closure.broken/pmix@el9</code> (required): pmix-6.1.0-1.el9 needs <code>libhwloc.so.15</code>, and EPEL 9 now has hwloc-libs 2.11.2, which gives only <code>libhwloc.so.16</code>. The closure is {pmix}. It also finds three info advisories: <code>buildroot.drift/munge@el9</code> (openssl-devel 3.0.7 → 3.2.2), <code>upstream.release/slurm</code> (26.05.5) and <code>upstream.release/openmpi</code> (5.0.12). <code>upstream.release/slurm-singularity-exec</code> is dismissed.</p>
+
+<h3 id="facts">Facts and factsDigest</h3>
+<p>Each code has one fixed facts shape. The facts hold only values of the inputs: NVRs, capabilities, versions, hashes and repo ids. They never hold a time, a host name, a user or a path. Each list has no duplicates and is sorted in byte order of the key that the table names. Thus the same inputs give the same facts on each host.</p>
+<table class="compact">
+<thead><tr><th>Code</th><th>Facts</th><th>Sort</th></tr></thead>
+<tbody>
+<tr><td><code>soname.removed</code></td><td><code>removed[]</code>: the sonames that the new build does not provide. <code>requiredBy[]</code>: <code>{nvra, requires}</code> of each kept set package that requires one of them.</td><td>removed by value; requiredBy by nvra, then requires</td></tr>
+<tr><td><code>closure.broken</code></td><td><code>broken[]</code>: <code>{nvra, requires, newest, newestRepo, newestProvides[]}</code>, one entry per broken requirement of the node. <code>newest</code> is the newest NVRA in the closure repos of the package that gave the requirement before, if one exists.</td><td>by nvra, then requires</td></tr>
+<tr><td><code>provider.changed</code></td><td><code>changes[]</code>: <code>{capability, recorded, provider}</code>: the provider NVRA in the recorded buildroot and the set dir that provides it now.</td><td>by capability</td></tr>
+<tr><td><code>abi.changed</code></td><td><code>libraries[]</code>: <code>{soname, old, new, status}</code>: the old and new NVRA and the exit status of <code>abidiff</code>.</td><td>by soname</td></tr>
+<tr><td><code>sign.expiring</code></td><td><code>{fingerprint, expires}</code>: the full fingerprint and the expiry date.</td><td>-</td></tr>
+<tr><td><code>buildroot.drift</code></td><td><code>drift[]</code>: <code>{package, recorded, available, repo}</code>.</td><td>by package</td></tr>
+<tr><td><code>mock.drift</code></td><td><code>{recorded}</code>: the hash of the mock config and the macros in the manifest entry. The hash of this host is <code>hostFacts.current</code>.</td><td>-</td></tr>
+<tr><td><code>upstream.release</code></td><td><code>{current, upstream, source, tag}</code>.</td><td>-</td></tr>
+<tr><td><code>retired.published</code></td><td><code>{nvrs[], rpms, sizeBytes}</code>.</td><td>nvrs by value</td></tr>
+</tbody>
+</table>
+<ul>
+  <li><code>factsDigest</code> is <code>sha256:</code> plus the hex SHA-256 of the JSON Canonicalization Scheme form (JCS, RFC 8785) of <code>facts</code>. No other field goes into the digest: not the id, level, state, title, closure, suggestion, source, seen, dismissal or <code>hostFacts</code>.</li>
+  <li>The facts shape of a code changes only with a new <code>apiVersion</code> (<a href="contract.html#versioning">versioning</a>). Thus two repoctl versions with the same <code>apiVersion</code> give the same digest for the same inputs.</li>
+  <li>The schema has one <code>$defs/Facts…</code> entry per code (<a href="contract/schema/output.schema.json">output.schema.json</a>).</li>
+</ul>
 
 <h2 id="states">States</h2>
 <figure class="diagram wide">
@@ -167,11 +191,16 @@
 <figcaption>The states of an advisory. An acceptance is a record of one publish, not a state.</figcaption>
 </figure>
 <dl>
-  <dt>pending</dt><dd>The check needs a build that did not end. Example: <code>soname.removed</code> for a node that is still in the run. Only the UI and <code>repoctl advisories</code> show this state, during a run.</dd>
+  <dt>pending</dt><dd>The check needs a build that did not end. Example: <code>soname.removed</code> for a node that is still in the run. Only the UI and <code>repoctl advisories</code> show this state, during a run. pending ends at the end state of the node: ok gives a result, and the other end states give <code>skipped</code> and no advisory (<a href="build.html#soname">soname check</a>).</dd>
   <dt>open</dt><dd>The check finds the problem now, and no dismissal matches.</dd>
-  <dt>dismissed</dt><dd>A dismissal in <code>.repoctl/advisories.yaml</code> has the same id and the same factsDigest. Only info and warn advisories can be dismissed.</dd>
+  <dt>dismissed</dt><dd>A dismissal in <code>.repoctl/advisories.yaml</code> has the same id and the same factsDigest. Only info and warn advisories can be dismissed. A dismissal never matches a required advisory. When an advisory with a dismissed id becomes required, for example the <code>closure.broken</code> of a retired package that a dir builds again, the dismissal is stale, and the advisory is open.</dd>
   <dt>gone</dt><dd>The check does not find the problem any more. repoctl does not keep gone advisories. The journal of the check records the event <code>advisory.gone</code>.</dd>
 </dl>
+<p>A run advisory (<code>soname.removed</code>, <code>abi.changed</code>) comes from a node build and lives in the record and the journal of its run. It has its own gone rule:</p>
+<ul>
+  <li>At <code>run.finished</code>, repoctl checks each <code>soname.removed</code> of the run again, on latest plus the staging of the run. The advisory is gone when no newest NVR there requires a removed soname, for example because a dependent built later in the same run. The run journal records <code>advisory.gone</code>.</li>
+  <li>A run advisory is also gone when its node is published (the gate checks it on the result tree), or when a newer run stages a new build of the node.</li>
+</ul>
 <p>When the facts change, the factsDigest changes. For example, a newer upstream version changes the facts of <code>upstream.release</code>. The dismissal then does not match, and the advisory is open again. The contract enum has the states pending, open and dismissed; gone is not stored.</p>
 
 <h2 id="data">Where repoctl keeps data</h2>
@@ -184,7 +213,8 @@
 <tr><td>Acceptances</td><td>the journal of the publish; the snapshot annotation <code>io.repoctl.advisories.accepted</code> (<a href="publish.html#format">snapshot format</a>)</td><td>team, through the registry</td><td><code>repoctl publish</code></td></tr>
 </tbody>
 </table>
-<p>Two admins compute the same advisories from the same inputs: latest in the registry and the upstream repos. Thus the check result can stay per user, and only the dismissals must be shared.</p>
+<p>Two admins compute the same advisories from the same inputs: latest in the registry, the closure repos and the release feeds. Thus the check result can stay per user, and only the dismissals must be shared.</p>
+<p>One code depends on the host: <code>mock.drift</code> compares the mock config and the macros of this host with the manifest. Its facts hold only the recorded hash; the hash of this host is in <code>hostFacts.current</code>, outside the digest. Thus a dismissal of <code>mock.drift</code> matches on each host with a different config. On a host whose config equals the manifest, the advisory does not exist, and the dismissal is not stale there. Without <code>targets[].closure_repos</code>, the closure repos also come from the mock config of the host. The doctor check <code>mock.config-differs</code> (warning) tells when the mock config of a target on this host differs from the config of the newest build in latest.</p>
 
 <h2 id="dismissals">Dismissal file</h2>
 <pre><code class="language-yaml"># .repoctl/advisories.yaml
@@ -192,20 +222,22 @@
 apiVersion: repoctl/v1alpha1
 dismissed:
   - id: upstream.release/slurm-singularity-exec
-    facts: sha256:5be07c…                 # factsDigest at dismiss time
+    facts: sha256:802ef6…                 # factsDigest at dismiss time
     note: 3.2.1 only changes the docs
     by: d.klein@gsi.de                    # git config user.email
     at: 2026-10-21T09:14:52Z</code></pre>
 <ul>
   <li>repoctl writes the file atomically and keeps the entries sorted by id. Thus two dismissals of different ids seldom give a git conflict.</li>
   <li>repoctl does not commit the file. dismiss prints the commit and push command. <code>repoctl status</code> shows "advisories.yaml: not committed" when the file has changes.</li>
-  <li>Publish does not require that this file is committed, because the file does not change the output of a build.</li>
-  <li>An entry whose id is gone, or whose digest does not match, is stale. <code>repoctl advisories ls --dismissed</code> marks it. <code>repoctl advisories undismiss --stale</code> removes all stale entries.</li>
+  <li>Publish does not require that this file is committed, because the file does not change the output of a build. Publish never reads it: the gate uses only required advisories, and they cannot be dismissed.</li>
+  <li>An invalid file gives the warning <code>advisories.invalid</code>: a YAML error, git conflict markers, an unknown <code>apiVersion</code> or a bad entry. repoctl then ignores the whole file, so no advisory is dismissed. dismiss and undismiss refuse to change an invalid file (exit 1, <code>advisories.invalid</code>).</li>
+  <li>After a git conflict, keep the entries of both sides and remove the markers. Two entries with the same id are valid. repoctl uses the entry with the newest <code>at</code>, and the next dismiss or undismiss writes one entry per id.</li>
+  <li>An entry whose id is gone, whose digest does not match, or whose advisory is required now, is stale. A <code>mock.drift</code> entry whose id this host does not find is not stale, because another host can still find it. <code>repoctl advisories ls --dismissed</code> marks it. <code>repoctl advisories undismiss --stale</code> removes all stale entries.</li>
   <li>A new set does not copy this file from the old set (<a href="lifecycle.html#new-set">new set</a>).</li>
 </ul>
-<p><code>repoctl advisories dismiss ID... --note TEXT</code> adds a dismissal for each open id. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, problem code <code>advisory.not-dismissable</code>, and the hint gives <code>repoctl publish --accept-advisory</code>. An id that is not open gives exit 1, <code>advisory.unknown</code>. dismiss and undismiss take no set lock and write only this file.</p>
+<p><code>repoctl advisories dismiss ID... --note TEXT</code> adds a dismissal for each open id. The note is required, with at least 8 characters. A required advisory cannot be dismissed: exit 1, problem code <code>advisory.not-dismissable</code>, and the hint gives <code>repoctl publish --accept-advisory</code>. An id that is not open gives exit 1, <code>advisory.unknown</code>. dismiss and undismiss take no set lock, because a build can hold it for an hour. They take a short file lock, <code>$XDG_RUNTIME_DIR/repoctl/SET.advisories.lock</code>, for the read, the change and the rename of the file. They write only this file.</p>
 <pre class="term">$ repoctl advisories dismiss upstream.release/slurm-singularity-exec --note "3.2.1 only changes the docs"
-dismissed upstream.release/slurm-singularity-exec (facts sha256:5be07c…)
+dismissed upstream.release/slurm-singularity-exec (facts sha256:802ef6…)
 Next: git add .repoctl/advisories.yaml &amp;&amp; git commit -m "chore: dismiss upstream.release/slurm-singularity-exec" &amp;&amp; git push</pre>
 <p>After the commit and the push, the whole team sees the dismissal. It stays until the facts change. Command: <a href="cli.html#cmd-advisories">repoctl advisories</a>.</p>
 
@@ -213,11 +245,23 @@ Next: git add .repoctl/advisories.yaml &amp;&amp; git commit -m "chore: dismiss 
 <p><code>repoctl check</code> computes all advisories that need no build, for each target. Its inputs are:</p>
 <ul>
   <li>the RepoManifest and the repodata of latest (check pulls only the repodata, not the RPMs),</li>
-  <li>the upstream repos of the target,</li>
+  <li>the closure repos of the target,</li>
   <li>the upstream release feeds,</li>
   <li>the mock config of this host.</li>
 </ul>
-<p>The check is read-only. It takes no set lock and can run while a build runs. It writes <code>check.json</code> in the state directory and a journal with <code>kind: check</code>. When one input fails, for example an upstream repo that is not reachable, the other checks still run. <code>check.json</code> records the failure (<code>upstream.unreachable</code>), and the exit code is 1. With <code>--check</code>, the exit code is 11 when an open advisory has the level of <code>--min-level</code> (default warn) or higher. <code>--quiet</code> prints nothing on success; the timer uses it.</p>
+<p>The <dfn>closure repos</dfn> of a target are the RPM repos that its clients have. They are <code>targets[].closure_repos</code> in <code>repoctl.yaml</code> (<a href="config.html#set-config">repoctl.yaml</a>). Without this key, they are the enabled repos of the mock config of the target, plus <code>targets[].repos</code>. The closure check, <code>buildroot.drift</code> and the publish gate read the same closure repos. In the story, the closure repos of el9 are Rocky 9 BaseOS, AppStream and CRB, and EPEL 9.</p>
+<p>In the check, the closure of a <code>closure.broken</code> is the dir that built the RPM, plus each set dir with an older NVR in latest that provides the requirement. For example, an old ucx NVR that still provides <code>libucp.so.0</code> puts ucx into the closure of <code>closure.broken/openmpi@el9</code>.</p>
+<p>The check is read-only. It takes no set lock and can run while a build runs. It writes <code>check.json</code> in the state directory and a journal with <code>kind: check</code>. Instead of the set lock, it takes the <dfn>check lock</dfn> <code>$XDG_RUNTIME_DIR/repoctl/SET.check.lock</code>: one check per set for one user on one host. A second check (the timer, Check now, MCP or a terminal) does not start a second run. It waits for the running check and gives its result, with the note "check running since TIME". The holder of the check lock writes the check journal and <code>check.json</code>. It writes <code>check.json</code> to a temporary file and renames it, so a reader never sees a part of it. A check run without <code>run.finished</code> whose check lock nobody holds is abandoned. When one input fails, for example an upstream repo that is not reachable, the other checks still run. <code>check.json</code> records the failure (<code>upstream.unreachable</code>), and the exit code is 1. A failed or a narrowed check never loses an advisory:</p>
+<ul>
+  <li><code>check.json</code> holds one result per code and target: the time, ok or failed, the digest of latest that it used, and the advisories. <code>upstream.release</code> has one result for all targets.</li>
+  <li>When a code fails on a target, repoctl keeps the advisories of that code and target from the last good result. Each one has <code>carriedFrom</code>, the time of that result. The CLI and the UI show "check failed: CODE; from the check of TIME". Thus <code>closure.broken/pmix@el9</code> stays in status, in Needs you and in the gate rows.</li>
+  <li>A check writes no <code>advisory.gone</code> for a code and target that failed or did not run.</li>
+  <li><code>--code</code> and <code>--target</code> run some codes and targets only. Their results replace only those entries in <code>check.json</code>. The other entries stay.</li>
+  <li>The publish step cache runs all codes except <code>upstream.release</code> on the new local copy of each published target, and replaces their results in <code>check.json</code>. It reads the same repodata as the gate and takes the check lock for the update. Thus after a publish, a fixed advisory is gone and an accepted break shows at once. When this fails, the publish gives a warning, and the old result stays.</li>
+  <li>When latest of a target differs from the digest of its result, for example after a publish by another admin, the result is outdated. status, the UI and doctor show <code>check.outdated</code> until the next check.</li>
+  <li><code>advisories undismiss --stale</code> needs a complete result: each code ran ok on each target. Else it stops with <code>check.incomplete</code> (exit 1) and the hint <code>repoctl check</code>. Thus a failed input never removes a valid dismissal of the team.</li>
+</ul>
+<p>With <code>--check</code>, the exit code is 11 when an open advisory has the level of <code>--min-level</code> (default warn) or higher. <code>--quiet</code> prints nothing on success; the timer uses it.</p>
 <pre class="term">$ repoctl check
 ADVISORY                   LEVEL     FACTS
 closure.broken/pmix@el9    required  pmix-6.1.0-1.el9 needs libhwloc.so.15; EPEL 9 hwloc-libs 2.11.2 gives only .so.16
@@ -226,7 +270,7 @@ upstream.release/slurm     info      26.05.4 → 26.05.5
 upstream.release/openmpi   info      5.0.11 → 5.0.12
 4 open: 1 required, 3 info  ·  1 dismissed  ·  el9 and el10 checked in 38s  (-v shows all)
 hint: read the facts and the closure. run: repoctl advisories show closure.broken/pmix@el9</pre>
-<p><code>repoctl advisories</code> lists the last check result plus the advisories of the newest unpublished run. The head line gives the age and the source of the last check. <code>--refresh</code> runs the check first. <code>repoctl advisories show ID</code> prints the level, the state, the facts, the closure, the suggested command and the dismissal. <code>repoctl status</code> has one advisories line. Its check line shows when the check is off, failed or old, and always with <code>-v</code>:</p>
+<p><code>repoctl advisories</code> lists the last check result plus the advisories of each run that has staged nodes. The head line gives the age and the source of the last check. <code>--refresh</code> runs the check first. <code>repoctl advisories show ID</code> prints the level, the state, the facts, the closure, the suggested command and the dismissal. <code>repoctl status</code> has one advisories line. Its check line shows when the check is off, failed, old or outdated, and always with <code>-v</code>:</p>
 <pre class="term">advisories  1 required (closure.broken/pmix@el9), 3 info
 check       last 8h ago (timer) · ok</pre>
 <p>Commands: <a href="cli.html#cmd-check">repoctl check</a>, <a href="cli.html#cmd-status">repoctl status</a>. Terminal frame: <a href="terminal.html#check">check</a>.</p>
@@ -291,7 +335,12 @@ check       last 8h ago (timer) · ok</pre>
 </svg>
 <figcaption>Each host checks the same shared inputs and keeps its own result. Only the dismissals go through git.</figcaption>
 </figure>
-<p><code>repoctl check --install-timer</code> writes the template pair once and starts one instance for the set. The instance name is the escaped set directory (<code>systemd-escape --path</code>). <code>--remove-timer</code> stops and removes the instance of the set.</p>
+<p><code>repoctl check --install-timer</code> writes the template pair and starts one instance for the set. The instance name is the escaped set directory (<code>systemd-escape --path</code>). When a template file differs from the template of this repoctl version, for example after an upgrade, <code>--install-timer</code> writes it again, runs <code>systemctl --user daemon-reload</code> and prints "updated". The units call <code>/usr/bin/repoctl</code>, so the timer runs the new binary after an upgrade. <code>--remove-timer</code> stops and removes the instance of the set.</p>
+<ul>
+  <li>A set that you no longer work on: run <code>--remove-timer</code> in its directory.</li>
+  <li>A moved set directory leaves an instance with the old path. The doctor check <code>check.timer-orphan</code> (warning) finds each instance whose directory is gone or holds no set. Its fix is <code>systemctl --user disable --now repoctl-check@INSTANCE.timer</code>, then <code>--install-timer</code> in the new directory.</li>
+  <li>A user service does not have the environment of a login shell. The service reads the optional file <code>~/.config/repoctl/check.env</code>, for example with <code>GH_TOKEN=…</code> (mode 0600). The human writes it; repoctl never does. Without a token, repoctl tries <code>gh auth token</code>, then asks GitHub without a token (<code>upstream.rate-limited</code>).</li>
+</ul>
 <pre><code class="language-ini"># ~/.config/systemd/user/repoctl-check@.service
 [Unit]
 Description=repoctl check for the set in %I
@@ -299,6 +348,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
+EnvironmentFile=-%h/.config/repoctl/check.env
 ExecStart=/usr/bin/repoctl -C %I check --quiet
 Nice=10</code></pre>
 <pre><code class="language-ini"># ~/.config/systemd/user/repoctl-check@.timer
@@ -319,7 +369,15 @@ started repoctl-check@home-dklein-src-slurm\x2drepo.timer (next: tomorrow 06:00)
 note: lingering is off. The timer runs only while you are logged in.
       Persistent=true runs a missed check at the next login.
       To run it always: loginctl enable-linger dklein</pre>
-<p>repoctl runs on Fedora hosts only. On a workstation, lingering is optional, so the linger note is info, not a warning. The result is ready when the work day starts. The onboarding of an admin has the step <code>repoctl check --install-timer</code> (<a href="signing.html#onboarding">onboarding</a>). At offboarding, the other hosts do nothing. The admin who leaves runs <code>--remove-timer</code>, or the host goes away.</p>
+<p>The timer prints nothing, and it does not fail on an open advisory. To get an alert for a new required advisory or a failed check, add this optional drop-in. <code>--check --min-level required</code> gives exit 11 for an open required advisory, and exit 1 for a failed check, so the unit fails and systemd starts the unit of <code>OnFailure=</code>. repoctl does not ship that unit: it is a local script, for example with <code>notify-send</code> or <code>mail</code>.</p>
+<pre><code class="language-ini"># ~/.config/systemd/user/repoctl-check@.service.d/alert.conf (optional)
+[Unit]
+OnFailure=repoctl-check-alert@%i.service
+
+[Service]
+ExecStart=
+ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</code></pre>
+<p>repoctl runs on Fedora hosts only. On a workstation, lingering is optional, so the linger note is info, not a warning. The result is ready when the work day starts. The onboarding of an admin has the step <code>repoctl check --install-timer</code> (<a href="signing.html#onboarding">onboarding</a>, <a href="signing.html#help-team">help team</a>). At offboarding, the other hosts do nothing. The admin who leaves runs <code>--remove-timer</code> on each of their hosts, or the host goes away (<a href="signing.html#offboarding">offboarding</a>). A retired set needs no timer: each admin runs <code>--remove-timer</code> at the end of the set, and the health signals do not apply to a retired set (<a href="lifecycle.html#end-set">end of a set</a>).</p>
 
 <h2 id="health">Health signals</h2>
 <table class="compact">
@@ -328,24 +386,35 @@ note: lingering is off. The timer runs only while you are logged in.
 <tr><td>The timer instance of this set is not active.</td><td><span class="tag warn">warn</span> <code>check.timer-off</code></td><td>"the timer is off"</td></tr>
 <tr><td>The last check failed.</td><td><span class="tag warn">warn</span> <code>check.failed</code></td><td>"last check failed 5h ago: CODE"</td></tr>
 <tr><td>The last check is older than 36 hours.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"last check 3 days ago"</td></tr>
+<tr><td>The last check is older than latest of a target: a publish, restore, prune or resign came after it.</td><td><span class="tag warn">warn</span> <code>check.stale</code></td><td>"check older than latest of el9: run repoctl check"</td></tr>
+<tr><td>latest of a target differs from the digest that the check used.</td><td><span class="tag warn">warn</span> <code>check.outdated</code></td><td>"latest of el9 changed after the check"</td></tr>
+<tr><td>A timer instance points to a directory that is gone or holds no set.</td><td><span class="tag warn">warn</span> <code>check.timer-orphan</code></td><td>nothing</td></tr>
 <tr><td>No check ran.</td><td><span class="tag warn">warn</span> <code>check.never</code></td><td>"never checked: run repoctl check --install-timer"</td></tr>
 <tr><td>Lingering is off.</td><td><span class="tag info">info</span> <code>check.no-linger</code></td><td>nothing</td></tr>
+<tr><td>The template pair differs from the pair of this binary.</td><td><span class="tag warn">warn</span> <code>check.timer-unit</code></td><td>nothing</td></tr>
 </tbody>
 </table>
+<p>Thus after a fixing publish, status and the UI do not show the old advisory as open. They show the check line in amber until the next check.</p>
 <aside class="callout rule"><p class="callout-title">Rule</p><p>A failed or old check is never shown as "no advisories". The Advisories card of the UI shows the check line above the rows and has the button Check now.</p></aside>
 <p>Command: <a href="cli.html#cmd-doctor">repoctl doctor</a>. Terminal frame: <a href="terminal.html#doctor">doctor</a>.</p>
 
 <h2 id="gate">Publish gate</h2>
 <p>The gate runs in the check step of publish (<a href="publish.html#checks">checks before the first signature</a>). It runs for each target of the publish, with these rules:</p>
 <ol class="steps">
-  <li>Make the result tree of the target: the published repo of latest, plus the nodes that the publish takes (<a href="publish.html#takes">what a publish takes</a>). A new NVR is the newest NVR of its name.</li>
-  <li>Run <code>dnf repoclosure --newest</code> on the result tree plus the upstream repos of the target. The result is a list of broken requirements: an RPM and a requirement.</li>
-  <li>For each broken requirement, find its closure: the dir that built the RPM, plus the dir whose newest published build provided the requirement and whose new build does not provide it.</li>
+  <li>Make the result tree of the target: the published repo of latest, plus the nodes that the publish takes (<a href="publish.html#takes">what a publish takes</a>). A new NVR is the newest NVR of its name, because publish refuses an older one (<code>nvr.older</code>).</li>
+  <li>Run <code>dnf repoclosure --newest</code> on the result tree plus the closure repos of the target. The result is a list of broken requirements: an RPM and a requirement.</li>
+  <li>Name the advisory of each broken requirement, and find its closure:
+    <ul>
+      <li>A dir of this publish provided the soname in its newest published build, and its new build does not provide it: <code>soname.removed/PROVIDER@TARGET</code>. The closure is the provider plus each dir that requires the soname.</li>
+      <li>Every other broken requirement: <code>closure.broken/REQUIRER@TARGET</code>, with REQUIRER the dir that built the RPM. The closure is REQUIRER, plus each set dir with an older NVR in the tree that provides the requirement.</li>
+    </ul>
+    One advisory holds all broken requirements of its subject (<a href="#facts">facts</a>).</li>
   <li>A required advisory blocks the target when its closure contains a dir of the publish on that target, and the human did not accept it.</li>
 </ol>
 <ul>
   <li>A required advisory whose closure has no dir of the publish does not block. The summary shows it as "open, not changed by this publish".</li>
-  <li>A broken requirement of an old NVR (not the newest of its name) never blocks. The summary shows it as info, with a prune suggestion.</li>
+  <li>A broken requirement of an old NVR (not the newest of its name) never blocks. The gate finds it with a second <code>dnf repoclosure</code> run without <code>--newest</code>: a broken requirement that only the second run gives belongs to an old NVR. The summary shows it as info, with a prune suggestion. <code>repoctl check</code> does not run the second repoclosure.</li>
+  <li>The gate does not take a <code>soname.removed</code> of the build as given. It checks each one again on the result tree. A <code>soname.removed</code> of a taken node that the gate does not find again is gone: no newest NVR in the result tree requires the soname, for example because this publish also takes a rebuilt dependent.</li>
   <li>A retired package is never in a closure. Its broken requirements are <code>closure.broken</code> at level warn.</li>
   <li>Info and warn advisories never block.</li>
 </ul>
@@ -478,26 +547,43 @@ note: lingering is off. The timer runs only while you are logged in.
 <text class="t-small" x="16" y="296" data-f="6">this publish, or accept</text>
 <text class="t-small" x="16" y="296" data-f="7">openmpi@el9 is open</text>
 </svg>
-<script type="application/json" class="steps">["Story, 2026-11-03 14:05 · Publish of el9. Base: latest p-20260912-1403-c21 with 170 RPMs. The publish takes the staged el9 nodes of r-…a3f: ucx, slurm, openmpi and slurm-singularity-exec, 38 new RPMs. The advisory closure.broken/pmix@el9 is open since the check of 2026-11-02 06:00.", "Step 1 · The gate makes the result tree: latest plus the nodes of this publish, 208 RPMs. A new NVR is the newest NVR of its name. The old NVRs stay in the tree.", "Step 2 · dnf repoclosure --newest runs on the result tree plus Rocky 9 and EPEL 9. One requirement is broken: pmix-6.1.0-1.el9 needs libhwloc.so.15, and EPEL 9 now gives only libhwloc.so.16.", "Step 3 · The closure is the dir that built the RPM (pmix), plus the dir whose newest published build provided the requirement and whose new build does not. hwloc is not in the set, so the closure is {pmix}.", "Step 4 · The closure {pmix} has no dir of this publish. The advisory does not block. The summary shows it as open, not changed by this publish. Info advisories never block. The publish p-20261103-1412-5e1 continues.", "Variant, not the story · Run r-20261102-1720-9b1 builds ucx alone, and ucx 1.22.1 removes libucp.so.0. After the build of ucx@el9, the soname check writes soname.removed/ucx@el9 (required). The publish takes only ucx.", "Variant · The repoclosure finds that openmpi-5.0.11-1.el9 needs libucp.so.0. The closure {ucx, openmpi} holds ucx, a dir of this publish. The gate blocks el9: exit 12, problem advisory.open, humanAction accept-advisory.", "Variant · The human accepts the advisory for this publish, with the reason \"openmpi loads libucp only in mca_pml_ucx; our clusters use ob1\". repoctl writes advisory.accepted to the journal and to the snapshot annotation. After the publish, closure.broken/openmpi@el9 is open until openmpi has a new build."]</script>
+<script type="application/json" class="steps">["Story, 2026-11-03 14:05 · Publish of el9. Base: latest p-20260912-1403-c21 with 170 RPMs. The publish takes the staged el9 nodes of r-…a3f: ucx, slurm, openmpi and slurm-singularity-exec, 38 new RPMs. The advisory closure.broken/pmix@el9 is open since the check of 2026-11-02 06:00.", "Step 1 · The gate makes the result tree: latest plus the nodes of this publish, 208 RPMs. A new NVR is the newest NVR of its name. The old NVRs stay in the tree.", "Step 2 · dnf repoclosure --newest runs on the result tree plus Rocky 9 and EPEL 9. One requirement is broken: pmix-6.1.0-1.el9 needs libhwloc.so.15, and EPEL 9 now gives only libhwloc.so.16.", "Step 3 · No dir of this publish provided libhwloc.so.15, so the advisory is closure.broken/pmix@el9. The closure is the dir that built the RPM (pmix), plus each set dir with an older NVR that provides the requirement. hwloc is not in the set, so the closure is {pmix}.", "Step 4 · The closure {pmix} has no dir of this publish. The advisory does not block. The summary shows it as open, not changed by this publish. Info advisories never block. The publish p-20261103-1412-5e1 continues.", "Variant, not the story · Run r-20261102-1720-9b1 builds ucx alone, and ucx 1.22.1 removes libucp.so.0. After the build of ucx@el9, the soname check writes soname.removed/ucx@el9 (required). The publish takes only ucx.", "Variant · The repoclosure finds that openmpi-5.0.11-1.el9 needs libucp.so.0. The closure {ucx, openmpi} holds ucx, a dir of this publish. The gate blocks el9: exit 12, problem advisory.open, humanAction accept-advisory.", "Variant · The human accepts the advisory for this publish, with the reason \"openmpi loads libucp only in mca_pml_ucx; our clusters use ob1\". repoctl writes advisory.accepted to the journal and to the snapshot annotation. After the publish, closure.broken/openmpi@el9 is open until openmpi has a new build. Until then, clients that have openmpi-5.0.11-1.el9 cannot update ucx."]</script>
 <figcaption>The gate on the story publish of el9 (frames 0 to 4), and a variant in which the gate blocks (frames 5 to 7). The variant is not part of the story.</figcaption>
 </figure>
 <p>A blocked publish fails with exit 12. The problem code is <code>advisory.open</code>. Its humanAction is <code>accept-advisory</code> with the exact command. For the variant, the output is:</p>
 <pre class="term">repoctl: error: el9: a required advisory has a dir of this publish in its closure
   soname.removed/ucx@el9  libucp.so.0 removed; openmpi requires it (closure: ucx, openmpi)
+  affected: clients with openmpi-5.0.11-1.el9 cannot update ucx until openmpi is rebuilt and published
 hint: rebuild the dependents into this publish. run: repoctl rebuild openmpi --reason "ucx: libucp.so.0 removed"
 hint: or accept it for this publish. run: repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 --reason TEXT</pre>
+<h3 id="gate-kinds">Gate per publish kind</h3>
+<p>Each publish run has a <code>publishKind</code> (<a href="publish.html#format">snapshot format</a>). The kind decides how the gate runs and which dirs count as the dirs of the publish.</p>
+<table class="compact">
+<thead><tr><th>Kind</th><th>Gate</th><th>Dirs of the publish</th><th>Acceptance</th></tr></thead>
+<tbody>
+<tr><td>publish</td><td>Runs as above.</td><td>The dirs of the taken nodes.</td><td><code>--accept-advisory</code></td></tr>
+<tr><td>restore</td><td>Runs as above, on the files of REF.</td><td>The dirs whose newest NVR is different in the base and in REF.</td><td><code>repo restore --accept-advisory</code></td></tr>
+<tr><td>prune</td><td>Runs <code>dnf repoclosure --newest</code> on the base and on the result tree. A broken requirement that only the result tree has refuses the prune: <code>prune.breaks-closure</code> (exit 12). A broken requirement that the base has, for example <code>closure.broken/pmix@el9</code>, does not block.</td><td>-</td><td>none</td></tr>
+<tr><td>resign</td><td>Skips the gate. A new signature does not change the requirements of an RPM.</td><td>-</td><td>-</td></tr>
+<tr><td>import</td><td>Runs as a report. The summary shows each broken requirement, and it is an open advisory after the import. It does not block, because the clients already have this tree.</td><td>All dirs of the manifest.</td><td>-</td></tr>
+</tbody>
+</table>
+<h3 id="gate-unavailable">When the gate cannot run</h3>
+<p>The gate fails closed. When repoctl cannot read the repodata of the result tree or of a closure repo, it stops the publish in step check with <code>advisory.gate-unavailable</code> (exit 13). The message names the repo. No acceptance overrides this stop, and the last check result never stands in for the gate. This is true for each kind that runs the gate, also for prune and import. Run the publish again when the repo answers.</p>
 <h3 id="accept">Acceptance</h3>
 <ul>
   <li><code>--accept-advisory</code> takes an id, not a code. One flag accepts one advisory. It does not accept a later advisory with the same code.</li>
   <li><code>--reason</code> is required with <code>--accept-advisory</code>, with at least 8 characters. One reason covers all ids of the call.</li>
-  <li>An id that does not block this publish is a usage error (exit 2). Thus a human cannot accept an advisory in advance.</li>
+  <li>Only the gate in step check knows if an id blocks. An id that does not block this publish stops the publish in step check with <code>advisory.not-blocking</code> (exit 12), before the first signature. The output has the envelope and the problem. Thus a human cannot accept an advisory in advance.</li>
+  <li>An acceptance does not change what the clients can install. After an accepted <code>soname.removed</code>, a client that has a requirer installed cannot update the provider, and a new host cannot install both, until the requirer has a new build in latest. In the variant, clients with openmpi-5.0.11-1.el9 cannot update ucx until openmpi is rebuilt and published. The gate row lists these requirer NVRs (<code>affected</code>).</li>
   <li>The acceptance is valid for this publish only. repoctl writes the event <code>advisory.accepted</code> (id, factsDigest, reason, user, host) to the journal and the same list to the snapshot annotation <code>io.repoctl.advisories.accepted</code>.</li>
   <li><code>--yes</code> does not accept an advisory. An unattended publish with a blocking advisory fails with exit 12.</li>
+  <li>An acceptance needs a human. Without a terminal, publish refuses <code>--accept-advisory</code> with <code>publish.unattended-refused</code> (exit 6), also when <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is 1. In the web UI, the confirm dialog is the step of the human (<a href="ui-publish.html#confirm">confirm</a>).</li>
   <li>MCP has no accept tool. An acceptance is a step of a human (<a href="agents.html#human-action">humanAction</a>).</li>
 </ul>
 <pre class="term">$ repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 \
     --reason "openmpi loads libucp only in mca_pml_ucx; our clusters use ob1"</pre>
-<p>The summary of the publish has one gate row per required advisory: id, blocks, accepted. Web UI: <a href="ui-publish.html#review">publish review</a>, <a href="ui-publish.html#accept">accept for this publish</a>. Command: <a href="cli.html#cmd-publish">repoctl publish</a>.</p>
+<p>The summary of the publish has one gate row per required advisory: id, blocks, accepted and, for <code>soname.removed</code>, the affected requirer NVRs. Web UI: <a href="ui-publish.html#review">publish review</a>, <a href="ui-publish.html#accept">accept for this publish</a>. Command: <a href="cli.html#cmd-publish">repoctl publish</a>.</p>
 
 <h2 id="recovery">Recovery path</h2>
 <p><code>repoctl help advisories</code> prints this text. It gives the full path for a required advisory.</p>
@@ -521,7 +607,19 @@ An unrelated publish on the same target does not wait for this path.
 To publish with a required advisory open, give the reason:
   repoctl publish --target T --accept-advisory ID --reason "..."
 Only info and warn advisories can be dismissed:
-  repoctl advisories dismiss ID --note "..."</code></pre>
+  repoctl advisories dismiss ID --note "..."
+
+A REQUIRED ADVISORY THAT IS WRONG OR HAS NO FIX
+
+A required advisory is never dismissed. Remove its cause:
+  - The clients get the provider from a repo that the check does not
+    read: add the repo to targets[].closure_repos in repoctl.yaml,
+    commit, push, then repoctl check. The advisory is gone.
+  - The requirement in the spec is wrong: fix the spec (step 2).
+  - The package is not needed any more: retire it (repoctl help
+    packages). Its closure.broken is then a warn advisory, and a
+    dismissal can hide it.</code></pre>
+<p>A required advisory stays open until its cause changes. Thus <code>repoctl check --check</code> gives exit 11, and each publish that changes its closure needs an acceptance. The three ways above remove the cause. A wrong advisory comes most often from closure repos that do not agree with the repos of the clients.</p>
 
 <h2 id="surfaces">Surfaces</h2>
 <table class="compact">
@@ -530,7 +628,7 @@ Only info and warn advisories can be dismissed:
 <tr><td>CLI</td><td><code>repoctl check</code>, <code>repoctl advisories ls|show|dismiss|undismiss</code>, the advisories line of status and plan, the gate rows of the publish summary.</td><td><a href="cli.html#cmd-advisories">repoctl advisories</a>, <a href="terminal.html#check">terminal frame</a></td></tr>
 <tr><td>JSON</td><td>Kinds <code>Advisory</code> and <code>AdvisoryList</code>; <code>Plan.advisories[]</code>, <code>Run.advisories[]</code>; journal events <code>advisory</code>, <code>advisory.gone</code>, <code>advisory.accepted</code>.</td><td><a href="contract.html#kinds">kinds</a>, <a href="contract.html#events">events</a></td></tr>
 <tr><td>MCP</td><td>Read tools <code>repoctl_advisories</code>, <code>repoctl_advisory</code> and <code>repoctl_check</code>. No dismiss tool and no accept tool. A skill that wants a dismissal returns the humanAction <code>dismiss-advisory</code> with the command.</td><td><a href="agents.html#mcp-tools">MCP tools</a></td></tr>
-<tr><td>Web UI</td><td>The badge in the sidebar, the Advisories card, the Advisories page, the panel of the Plan page, the Dismiss dialog, and the accept rows of the publish review. A required row has no Dismiss button.</td><td><a href="ui-build.html#advisories-page">Advisories page</a>, <a href="ui-build.html#plan">Plan page</a></td></tr>
+<tr><td>Web UI</td><td>The badge in the sidebar, the Advisories card, the Advisories page, the panel of the Plan page, the Dismiss dialog, the accept rows of the publish review and the Upstream page. A required row has no Dismiss button.</td><td><a href="ui-build.html#advisories-page">Advisories page</a>, <a href="ui-build.html#plan">Plan page</a>, <a href="ui-build.html#upstream-page">Upstream page</a></td></tr>
 <tr><td>Agent buttons</td><td>"Is a rebuild necessary?" (skill rebuild-check) and "Summarize upstream release" (skill package-updates) on an advisory row.</td><td><a href="agents.html#agent-buttons">agent buttons</a></td></tr>
 </tbody>
 </table>

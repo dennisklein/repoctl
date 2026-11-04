@@ -8,6 +8,10 @@ UI and an MCP server for agents. It is built on
 
 Status: design. No code yet.
 
+License: [Apache-2.0](LICENSE), for the code and the design record on this
+branch. The fonts and the vendored script in `docs/assets/` keep their own
+licenses ([details](docs/design/decision.html#license)).
+
 ## Design record
 
 Read the design record at **<https://dennisklein.github.io/repoctl/>**.
@@ -16,9 +20,9 @@ The source is in [`docs/`](docs/index.html):
 | Part | Chapters |
 |---|---|
 | I Foundations | [Why a Go tool](docs/design/decision.html) · [Core model](docs/design/model.html) · [Configuration](docs/design/config.html) |
-| II How it works | [Build](docs/design/build.html) · [Advisories](docs/design/advisories.html) · [Publish and snapshots](docs/design/publish.html) · [Signing and trust](docs/design/signing.html) · [Supply chain records](docs/design/supply-chain.html) · [Sets and packages](docs/design/lifecycle.html) |
+| II How it works | [Build](docs/design/build.html) · [Advisories](docs/design/advisories.html) · [Publish and snapshots](docs/design/publish.html) · [Signing and trust](docs/design/signing.html) · [Security model](docs/design/security.html) · [Supply chain records](docs/design/supply-chain.html) · [Sets and packages](docs/design/lifecycle.html) |
 | III Interfaces | [CLI reference](docs/design/cli.html) · [Terminal output](docs/design/terminal.html) · [Machine contract](docs/design/contract.html) · [Agents](docs/design/agents.html) · [Web UI](docs/design/ui.html) · [UI: overview, build, runs](docs/design/ui-build.html) · [UI: packages, publish, signing](docs/design/ui-publish.html) · [Mockup gallery](docs/design/mockups/index.html) |
-| IV Operations | [Import runbook](docs/runbooks/import.html) · [Delivery and verification](docs/design/delivery.html) |
+| IV Operations | [Import runbook](docs/runbooks/import.html) · [Key compromise runbook](docs/runbooks/key-compromise.html) · [Bad publish runbook](docs/runbooks/bad-publish.html) · [Registry loss runbook](docs/runbooks/registry-loss.html) · [Mirror job runbook](docs/runbooks/mirror-job.html) · [Host loss runbook](docs/runbooks/host-loss.html) · [Delivery and verification](docs/design/delivery.html) |
 
 The JSON Schemas and examples of the machine contract are in
 [`docs/design/contract/`](docs/design/contract/).

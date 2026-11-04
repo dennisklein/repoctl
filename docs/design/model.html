@@ -31,7 +31,7 @@
 <p>The set <code>slurm-26.05</code> has 11 packages. Other sets use the same tool with their own file, for example <code>slurm-25.11</code> in <code>~/src/slurm-repo-25.11</code>. A new set forks its branches from the previous set (<a href="lifecycle.html#new-set">lifecycle.html#new-set</a>).</p>
 
 <h2 id="targets">Targets</h2>
-<p>A <dfn>target</dfn> is one build platform: one mock chroot. The set <code>slurm-26.05</code> has two targets: <code>el9</code> (<code>rocky+epel-9-x86_64</code>) and <code>el10</code> (<code>rocky+epel-10-x86_64</code>).</p>
+<p>A <dfn>target</dfn> is one build platform: one mock chroot with one architecture. The set <code>slurm-26.05</code> has two targets: <code>el9</code> (<code>rocky+epel-9-x86_64</code>) and <code>el10</code> (<code>rocky+epel-10-x86_64</code>).</p>
 <p>repoctl keeps the targets apart. Each target has its own build graph, its own staging repo in each run, its own OCI package (<code>…/slurm-26.05-el9</code>) with its own <code>latest</code> and RepoManifest, and its own client path below <code>repo.url</code>.</p>
 <p>A run can build all targets. A publish covers the targets that are ready. In the story, <code>slurm@el10</code> fails, so el9 publishes and el10 waits. The configuration chapter has the keys (<a href="config.html#targets">config.html#targets</a>).</p>
 
@@ -95,7 +95,7 @@
 <thead><tr><th>Word</th><th>From</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td><code>current</code></td><td>plan</td><td>The commit and the target are in <code>latest</code>. Nothing to do.</td></tr>
-<tr><td><code>staged</code></td><td>plan</td><td>Built for the current lock in an unpublished run of this user.</td></tr>
+<tr><td><code>staged</code></td><td>plan</td><td>Built for the current lock in an unpublished run from the lock of this user. A run from worktree never stages a node. Of two such runs, the newest wins.</td></tr>
 <tr><td><code>skip</code></td><td>plan</td><td>Not selected and not needed by a selected node, or not pinned.</td></tr>
 <tr><td><code>waiting</code></td><td>run</td><td>A dependency of the node is not done.</td></tr>
 <tr><td><code>queued</code></td><td>run</td><td>All dependencies are done. The node waits for a job slot.</td></tr>
@@ -181,7 +181,7 @@
 
 <h2 id="manifest">RepoManifest</h2>
 <p>Each target repo carries one RepoManifest. repoctl adds it to the repodata of the binary repository (<code>slurm/</code>) with <code>modifyrepo_c --mdtype=repoctl</code>. <code>repomd.xml</code> lists it with its checksum, and <code>repomd.xml.asc</code> signs it. Thus clients and admins can trust the manifest as much as the RPMs. The manifest also lists the sha256 of each supply chain record, so the same signature covers the records (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</p>
-<p>The manifest has one entry per build. An entry lists the source RPM, the binary RPMs and the debuginfo RPMs of one node build. Thus <code>slurm-source</code> and <code>slurm-debuginfo</code> need no manifest. A publish keeps the entries of its base and adds its own, so the entry of ucx 1.22.0-2 stays. This is the manifest of el9 after the story publish, shortened with …:</p>
+<p>The manifest has one entry per build. An entry lists the source RPM, the binary RPMs and the debuginfo RPMs of one node build. Thus <code>slurm-source</code> and <code>slurm-debuginfo</code> need no manifest. A publish keeps the entries of its base and adds its own, so the entry of ucx 1.22.0-2 stays. A binary that does not know a field of the base stops the publish, so no field gets lost (<a href="contract.html#stored">stored files</a>). This is the manifest of el9 after the story publish, shortened with …:</p>
 <pre><code class="language-json">{
   "apiVersion": "repoctl/v1alpha1",
   "kind": "RepoManifest",
@@ -224,6 +224,14 @@
     "…"
   ],
   "removed": [],
+  "history": [
+    {"publish": "p-import-20260828", "kind": "import", "user": "d.klein", "host": "hpc-a1",
+     "signer": "9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2", "created": "2026-08-28T15:30:00Z"},
+    "…",
+    {"publish": "p-20261103-1412-5e1", "kind": "publish", "parent": "sha256:4be1…",
+     "user": "d.klein", "host": "hpc-a1", "signer": "4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E",
+     "setCommit": "9a0c4e2…", "created": "2026-11-03T14:13:33Z", "accepted": [], "trust": {"added": [], "removed": []}}
+  ],
   "records": {
     "sbom": {"path": "records/repository.cdx.json", "sha256": "5b77…"}
   }
@@ -232,15 +240,18 @@
 <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td><code>set</code>, <code>target</code>, <code>publish</code></td><td>The set, the target and the publish id of the snapshot that holds the manifest.</td></tr>
-<tr><td><code>builds[]</code>: <code>dir</code>, <code>branch</code>, <code>url</code>, <code>commit</code></td><td>The package and the commit of the build. <code>url</code> is set only for an external package. An in-tree package has the builder branch and a set commit. plan matches an entry by branch or URL, commit and target, not by dir.</td></tr>
+<tr><td><code>builds[]</code>: <code>dir</code>, <code>branch</code>, <code>url</code>, <code>commit</code></td><td>The package and the commit of the build. <code>url</code> is set only for an external package. An in-tree package has the builder branch and a set commit. The <dfn>match key</dfn> of an entry is the commit, the target and the source package name (the <code>Name</code> of the SRPM). plan finds the build of a node by this key. <code>dir</code>, <code>branch</code> and <code>url</code> are information only. Thus a rename of a dir or a branch, and a move of the history to another git server, keep the node current. The name tells apart two in-tree packages with the same set commit. For the reason <code>commit-changed</code>, plan compares with the newest entry of the same dir, else of the same source package name.</td></tr>
 <tr><td><code>reason</code></td><td>The plan reason: <code>commit-changed</code>, <code>new-package</code>, <code>new-target</code> or <code>rebuild: TEXT</code>. Imported entries have <code>adopted</code> or <code>adopted-unmapped</code> (<a href="lifecycle.html#adopted">lifecycle.html#adopted</a>).</td></tr>
 <tr><td><code>srpm</code>, <code>rpms</code>, <code>provides</code>, <code>requires</code></td><td>All RPMs of the build and their capabilities from the RPM headers. The soname and closure checks read them.</td></tr>
 <tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code>, <code>buildrootFile</code></td><td>Hashes of the mock config, the macro files and the buildroot. The buildroot file is the buildroot lock of mock (<code>buildroot_lock.json</code>): each RPM of the build root with its version, license, <code>SIGMD5</code> and signer key, and the digest of the bootstrap image. <code>buildroot</code> is the sha256 of this file.</td></tr>
-<tr><td><code>run</code>, <code>built</code>, <code>publish</code>, <code>signer</code></td><td>The run, the build time, the publish that added the build and the full fingerprint of the signer.</td></tr>
-<tr><td><code>removed[]</code></td><td>NVRs that a prune or a restore removed: <code>nvr</code>, <code>sha256</code> of each RPM, <code>publish</code>, <code>reason</code> (<code>prune</code>, <code>restore</code>). Each snapshot copies the list from its base, so plan and publish know every NVR that clients can still have.</td></tr>
+<tr><td><code>run</code>, <code>built</code>, <code>publish</code>, <code>signer</code></td><td>The run, the build time, the publish that added the build and the full fingerprint of the signer. A resign changes <code>signer</code> when it re-signs the binary RPMs of the build.</td></tr>
+<tr><td><code>removed[]</code></td><td>NVRs that a prune or a restore removed: <code>nvr</code>, <code>sha256</code> of each RPM, <code>publish</code>, <code>reason</code> (<code>prune</code>, <code>restore</code>). Each snapshot copies the list from its base, so plan and publish know every NVR that clients can still have. A build whose RPMs all leave moves from <code>builds[]</code> to <code>removed[]</code> (<a href="publish.html#per-kind">publish.html#per-kind</a>).</td></tr>
+<tr><td><code>history[]</code></td><td>The publish history: one entry per publish of the chain, oldest first. An entry has <code>publish</code>, <code>kind</code>, <code>parent</code>, <code>user</code>, <code>host</code>, <code>signer</code>, <code>setCommit</code>, <code>created</code>, the acceptances (<code>accepted[]</code>: <code>id</code>, <code>factsDigest</code>, <code>reason</code>), the held nodes (<code>held[]</code>: <code>node</code>, <code>reason</code>) and the trust change (<code>trust</code>: the added and removed fingerprints). Each snapshot copies the list from its base and adds its own entry. gc deletes snapshots, but latest keeps the list, so it is the audit record of the target (<a href="publish.html#format">publish.html#format</a>).</td></tr>
 <tr><td><code>builds[].records</code>, <code>records</code></td><td>Path and sha256 of the supply chain records: the provenance and the SBOM of each build, and the SBOM of the repository (<a href="supply-chain.html#layout">supply-chain.html#layout</a>). An adopted build has no provenance.</td></tr>
 </tbody>
 </table>
+<p>repoctl reads the RepoManifest of a snapshot in plan, build, publish, repo pull and the repo commands. It validates the manifest against the schema <code>manifest</code> (<code>repoctl schema manifest</code>). A manifest that does not agree with the schema stops the command with <code>manifest.invalid</code> (exit 1). A manifest whose <code>apiVersion</code> this binary does not read stops it with <code>contract.newer-file</code> (exit 1); the hint is to update repoctl. A publish reads the manifest of its base and writes the new manifest in the <code>apiVersion</code> of <code>repoctl.yaml</code> (<a href="contract.html#stored">stored files</a>).</p>
+<p><code>removed[]</code> and <code>history[]</code> only grow. <code>builds[]</code> grows with each publish and gets smaller with a prune or a restore. A set lives for one Slurm release series and gets some publishes per month, so the manifest stays small; V25 measures it with the records (<a href="delivery.html#verification">delivery.html#verification</a>). <code>repoctl repo ls --removed</code> lists <code>removed[]</code>.</p>
 
 <h2 id="triggers">What starts a build</h2>
 <table>
@@ -250,7 +261,8 @@
 <tr><td><code>repoctl rebuild DIR --reason TEXT</code></td><td>build, <code>rebuild</code></td><td>An empty commit <code>Rebuild: TEXT</code>, then pin. The release goes up. The changelog shows the reason.</td></tr>
 <tr><td>New package in <code>repoctl.yaml</code></td><td>build, <code>new-package</code></td><td>No entry in the manifest.</td></tr>
 <tr><td>New target in <code>repoctl.yaml</code></td><td>build, <code>new-target</code></td><td>No manifest for the target yet.</td></tr>
-<tr><td><code>repoctl build --force</code></td><td>build, <code>forced</code>, to staging only</td><td>For tests. Publish refuses an NVR that is published with other content (<a href="build.html#force">build.html#force</a>).</td></tr>
+<tr><td>The staging of a staged node is gone</td><td>build, <code>staging-missing</code></td><td>The plan checks the files of each staged node (<a href="build.html#actions">build.html#actions</a>).</td></tr>
+<tr><td><code>repoctl build --force</code></td><td>build, <code>forced</code>, to staging only</td><td>For tests. A forced build of a current node is never staged, so publish never takes it (<a href="build.html#force">build.html#force</a>).</td></tr>
 <tr><td>A dependency in the set was rebuilt</td><td>no build; <code>soname.removed</code> or <code>abi.changed</code></td><td>repoctl trusts the upstream ABI promise. The soname check tells when this is not safe.</td></tr>
 <tr><td>A set package now provides a <code>BuildRequires</code> of a current node</td><td>no build; <code>provider.changed</code></td><td>The human decides.</td></tr>
 <tr><td>Upstream binary repos changed (EPEL, Rocky, extra repos)</td><td>no build; <code>closure.broken</code> or <code>buildroot.drift</code></td><td>Repoclosure and buildroot checks.</td></tr>
@@ -321,11 +333,15 @@
 <tr><td>Supply chain records</td><td>files in the snapshot (<code>slurm/records/</code>), with their sha256 in the RepoManifest</td><td>publish, repo push, restore, prune, resign</td><td>repo provenance, repo sbom, repo verify, mirror job, scanners</td><td>part of the snapshot</td></tr>
 <tr><td>Served tree</td><td>HTTP server</td><td>mirror job</td><td>clients, status</td><td>copy for dnf</td></tr>
 <tr><td><code>keys/deployed.yaml</code></td><td>builder branch (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
-<tr><td><code>.repoctl/advisories.yaml</code></td><td>builder branch (git)</td><td>advisories dismiss</td><td>check, plan, publish</td><td>team record</td></tr>
+<tr><td><code>.repoctl/advisories.yaml</code></td><td>builder branch (git)</td><td>advisories dismiss</td><td>check, plan, status, advisories, web UI; never publish</td><td>team record</td></tr>
 <tr><td>Runs, staging, journals, logs</td><td><code>$XDG_DATA_HOME</code> (staging), <code>$XDG_STATE_HOME</code> (runs, journals, logs)</td><td>build, publish</td><td>the same user</td><td>personal, not shared</td></tr>
 </tbody>
 </table>
 <p>No file on an admin host says what is published. After a lost host, <code>repoctl repo pull</code> gives back the local copy. The runs, journals and staged nodes of the lost host are lost. They are personal, and nothing depends on them. The freshness check is in <a href="publish.html#freshness">publish.html#freshness</a>.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: push the commits at once</p>
+<p>A set commit holds a team record. The sign commands make one, for example <code>sign add</code> and <code>sign deployed</code>. The human commits <code>repoctl.lock</code> after <code>pin</code> and <code>.repoctl/advisories.yaml</code> after a dismiss. An external package has its commits in a bare clone on the host. A lost host loses each of these commits that is not on its remote. Thus push each commit at once. The set check <code>git.unpushed</code> of <code>repoctl doctor</code> lists each commit that is not pushed. The runbook <a href="../runbooks/host-loss.html">Lost admin host</a> gives the steps after a loss.</p>
+</aside>
 
 <h2 id="humans">Humans and hosts</h2>
 <ul>
@@ -344,8 +360,8 @@
 <tbody>
 <tr><td><span class="tag read">read</span></td><td>Nothing that matters (a cache file or <code>check.json</code> at most).</td><td>status, plan, graph, check, repo ls, repo verify, sign ls, doctor</td><td>No question, no lock or a shared lock. MCP tools are allowed.</td></tr>
 <tr><td><span class="tag staging">staging</span></td><td>The staging, the logs and the journal of this user.</td><td>build, cancel, clean, mock update</td><td>Takes the set lock. No question, except a delete in clean.</td></tr>
-<tr><td><span class="tag local">local write</span></td><td>Worktrees, branches and set files on this host.</td><td>checkout, pin, rebuild, repo pull, release write, sign add, advisories dismiss</td><td>Takes the set lock. Never pushes; the hint gives the push command.</td></tr>
-<tr><td><span class="tag shared">shared state</span></td><td>What other humans see or trust.</td><td>publish, repo push, repo restore, repo prune --apply, repo gc --apply, repo resign, sign deployed</td><td>Dry run, summary, typed confirmation by a human, journal, no MCP tool.</td></tr>
+<tr><td><span class="tag local">local write</span></td><td>Worktrees, branches and set files on this host.</td><td>checkout, pin, rebuild, repo pull, release write, sign add, advisories dismiss</td><td>Takes the set lock; advisories dismiss takes only the short lock of the dismissal file. Never pushes; the hint gives the push command.</td></tr>
+<tr><td><span class="tag shared">shared state</span></td><td>What other humans see or trust.</td><td>publish, repo push, repo restore, repo prune --apply, repo gc --apply, repo resign, sign deployed, sign removed</td><td>Dry run, summary, typed confirmation by a human, journal, no MCP tool.</td></tr>
 </tbody>
 </table>
 <aside class="callout rule">

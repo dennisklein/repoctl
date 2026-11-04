@@ -264,6 +264,42 @@
 </table>
 <p>sind and brig use the same pattern: a CLI and a local UI on one core. sind also has an MCP server. skyhook-io/radar shows the same idea for Kubernetes: one binary, a live graph UI and an MCP server. The core model explains how the surfaces share words, selectors and exit codes (<a href="model.html#surfaces">model.html#surfaces</a>).</p>
 
+<h3 id="code-layout">Go packages</h3>
+<p>The Go module <code>github.com/dennisklein/repoctl</code> has one command and these Go packages below <code>internal/</code>. Each Go package has one layer of the diagram above and one chapter that specifies it.</p>
+<table class="compact">
+<thead><tr><th>Go package</th><th>Layer</th><th>Content</th><th>Chapter</th></tr></thead>
+<tbody>
+<tr><td><code>cmd/repoctl</code></td><td>entry</td><td><code>main</code>: makes the command tree and calls <code>internal/cli</code>.</td><td><a href="cli.html">CLI reference</a></td></tr>
+<tr><td><code>internal/cli</code></td><td>surface</td><td>Commands, flags, help topics, terminal output. The exit codes are in <code>internal/cli/exit.go</code>.</td><td><a href="cli.html">CLI reference</a>, <a href="terminal.html">Terminal output</a></td></tr>
+<tr><td><code>internal/web</code></td><td>surface</td><td>The local web UI: server, pages, fragments, SSE, token launch.</td><td><a href="ui.html">Web UI</a>, <a href="ui-build.html">UI: overview, build, runs</a>, <a href="ui-publish.html">UI: packages, publish, signing</a></td></tr>
+<tr><td><code>internal/web/graphlayout</code></td><td>surface</td><td>The graph layout: a pure function with no I/O.</td><td><a href="ui-build.html#layout">Graph layout algorithm</a></td></tr>
+<tr><td><code>internal/mcp</code></td><td>surface</td><td>The MCP server: tools, resources, progress, safety policy.</td><td><a href="agents.html#mcp">Agents: MCP server</a></td></tr>
+<tr><td><code>internal/agent</code></td><td>surface</td><td>The UI agent: starts the agent command and reads its stream-json output.</td><td><a href="agents.html#ui-agent">Agents: the UI agent</a></td></tr>
+<tr><td><code>internal/skills</code></td><td>surface</td><td>The generic skills (<code>go:embed</code>), <code>skills install</code> and <code>skills ls</code>.</td><td><a href="agents.html#skills">Agents: where skills live</a></td></tr>
+<tr><td><code>internal/api</code></td><td>contract</td><td>The Go types of the output envelope, the kinds, the problem codes and the events. The schemas come from these types.</td><td><a href="contract.html">Machine contract</a></td></tr>
+<tr><td><code>internal/config</code></td><td>core</td><td>Config layers, set discovery, <code>repoctl.yaml</code>, user config, environment variables, XDG directories.</td><td><a href="config.html">Configuration</a></td></tr>
+<tr><td><code>internal/lock</code></td><td>core</td><td><code>repoctl.lock</code>, the lock states and the set lock.</td><td><a href="config.html#lock">Configuration: repoctl.lock</a>, <a href="lifecycle.html#lock-states">Lock states</a></td></tr>
+<tr><td><code>internal/workspace</code></td><td>core</td><td><code>init</code>, <code>migrate</code>, <code>checkout</code>, <code>pin</code>, <code>rebuild</code>, the package worktrees and the bare clones.</td><td><a href="lifecycle.html">Sets and packages</a>, <a href="config.html#external">external package repositories</a></td></tr>
+<tr><td><code>internal/graph</code></td><td>core</td><td>The SRPM cache and the graph per target.</td><td><a href="build.html#graph">Build: graph per target</a></td></tr>
+<tr><td><code>internal/plan</code></td><td>core</td><td>Plan actions and reasons, selection.</td><td><a href="build.html#plan">Build: plan</a></td></tr>
+<tr><td><code>internal/run</code></td><td>core</td><td>The executor: jobs, node states, staging, failures, cancel.</td><td><a href="build.html#run">Build: the run</a></td></tr>
+<tr><td><code>internal/journal</code></td><td>core</td><td>The journal writer and reader, the run files, the retention of runs.</td><td><a href="contract.html#journal">Machine contract: event journal</a></td></tr>
+<tr><td><code>internal/repo</code></td><td>core</td><td>The publish steps, the local copy, the RepoManifest, pull, push, restore, prune, gc.</td><td><a href="publish.html">Publish and snapshots</a></td></tr>
+<tr><td><code>internal/sign</code></td><td>core</td><td>Signer, signer probe, gates 1 to 3, trust block, key lifecycle, <code>release write</code>.</td><td><a href="signing.html">Signing and trust</a></td></tr>
+<tr><td><code>internal/records</code></td><td>core</td><td>Provenance and SBOM records and their verification.</td><td><a href="supply-chain.html">Supply chain records</a></td></tr>
+<tr><td><code>internal/advisory</code></td><td>core</td><td>The advisory checks, the soname check, dismissals, acceptances, the publish gate, the timer units.</td><td><a href="advisories.html">Advisories</a></td></tr>
+<tr><td><code>internal/upstream</code></td><td>adapter</td><td>The upstream queries to the GitHub API and to Fedora.</td><td><a href="cli.html#cmd-upstream">repoctl upstream</a></td></tr>
+<tr><td><code>internal/doctor</code></td><td>core</td><td>The checks of <code>repoctl doctor</code>: host, set, sign, registry and check.</td><td><a href="cli.html#cmd-doctor">repoctl doctor</a></td></tr>
+<tr><td><code>internal/tools/git</code>, <code>internal/tools/mock</code>, <code>internal/tools/rpm</code>, <code>internal/tools/gpg</code></td><td>adapter</td><td>The child processes: git; mock and the verify roots; rpmspec, rpmsign, rpmkeys and createrepo_c; gpg.</td><td><a href="build.html#mock">Build: mock roots</a>, <a href="signing.html#probe">Signing: signer probe</a></td></tr>
+<tr><td><code>internal/store</code></td><td>adapter</td><td>The OCI store with oras-go: manifests, blobs, tags.</td><td><a href="publish.html#format">Publish: snapshot format</a></td></tr>
+<tr><td><code>internal/testkit</code></td><td>test</td><td>The story fixture, the mock stub, the local OCI registry and the golden files.</td><td><a href="delivery.html#tests">Delivery: test strategy</a></td></tr>
+</tbody>
+</table>
+<aside class="callout rule">
+<p class="callout-title">Rule</p>
+<p>An import goes down the diagram only: a surface imports the core, and the core imports the adapters. The core never imports a surface. A core Go package starts no child process and connects to no remote service: it calls an adapter. The core reaches each adapter through a Go interface, so that a test can put a stub in its place.</p>
+</aside>
+
 <h2 id="run">One build run</h2>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 338" role="img" aria-labelledby="run-t">
@@ -381,7 +417,7 @@
 <tr><td><code>common.sh</code>: <code>reponame=slurm</code>, <code>rocky+epel-9</code></td><td>repo name, mock target</td><td><code>repo:</code> and <code>targets:</code></td></tr>
 <tr><td><code>scripts/macros</code></td><td>RPM macros</td><td>a file in the set, listed in <code>targets[].macros</code></td></tr>
 <tr><td><code>slurm-release</code> symlink in <code>build_repos</code></td><td>release package</td><td><code>role: release</code> on that package</td></tr>
-<tr><td><code>gh_repo_url</code> branch in <code>build_srpm</code></td><td>tarball from a git tag</td><td>No spec uses it. repoctl has no such source kind (<a href="config.html#scope">config.html#scope</a>).</td></tr>
+<tr><td><code>gh_repo_url</code> branch in <code>build_srpm</code></td><td>tarball from a git tag</td><td>No spec uses it. repoctl has no such source kind (<a href="build.html#sources">build.html#sources</a>).</td></tr>
 <tr><td><code>REPO_MAP</code>, <code>DEFAULT_FILTERS</code> of <code>package-info</code></td><td>upstream repo, tag filter</td><td><code>packages[].upstream</code></td></tr>
 <tr><td>comments in the skill ("pmix_v4 frozen at 4.2.9")</td><td>package notes</td><td><code>packages[].notes</code></td></tr>
 <tr><td>Fedora version through a <code>src.fedoraproject.org</code> remote</td><td>Fedora package name</td><td><code>packages[].upstream.fedora</code></td></tr>
@@ -393,17 +429,126 @@
 <h3 id="pages">GitHub Pages</h3>
 <ul>
   <li><b>Docs site</b> at <code>https://dennisklein.github.io/repoctl/</code>. It has the structure of the <code>GSI-HPC/sind</code> site, with its own theme.</li>
-  <li><b>Fedora RPM repo of repoctl</b> at <code>/rpm/</code>. It holds the tool RPM and the release RPM <code>repoctl-release</code>. The release RPM installs the GPG key and the <code>.repo</code> file. The tool RPM requires all system tools: mock, mock-rpmautospec, rpm-sign, createrepo_c, git and gnupg2. Thus one <code>dnf install</code> gives a ready admin host.</li>
+  <li><b>RPM repo of repoctl</b> at <code>/rpm/</code>, with one directory per <code>$releasever</code>: <code>rpm/43/x86_64/</code> and <code>rpm/44/x86_64/</code> for the Fedora releases that are not end of life, <code>rpm/9/x86_64/</code> and <code>rpm/10/x86_64/</code> for EL. A Fedora directory holds the tool RPM <code>repoctl</code>, the release RPM <code>repoctl-release</code> and the mirror job RPM <code>repoctl-mirror</code>. An EL directory holds only <code>repoctl-release</code> and <code>repoctl-mirror</code>, for the HTTP server. Both are noarch. The release RPM installs the public tool repository key as <code>/etc/pki/rpm-gpg/RPM-GPG-KEY-repoctl</code> and <code>/etc/yum.repos.d/repoctl.repo</code> with <code>baseurl=https://dennisklein.github.io/repoctl/rpm/$releasever/$basearch/</code>, <code>gpgcheck=1</code> and <code>repo_gpgcheck=1</code>. The tool RPM requires all system tools: mock, mock-rpmautospec, rpm-sign, createrepo_c, git and gnupg2. Thus one <code>dnf install</code> gives a ready admin host.</li>
 </ul>
-<p>CI flow: a tag on <code>main</code> builds the RPMs in a <code>fedora</code> container and attaches them to a GitHub Release. The Pages job collects the RPMs of all releases, runs <code>createrepo_c</code>, signs <code>repomd.xml</code> and deploys the docs and the repo together. No <code>gh-pages</code> branch is necessary.</p>
+<p>CI flow: a tag <code>v*</code> on <code>main</code> starts the release job. It makes the tool RPM in a <code>fedora</code> container for each Fedora directory, and the two noarch RPMs once. It signs the RPMs, runs <code>createrepo_c</code> in each directory and signs each <code>repomd.xml</code>. It attaches the RPMs and the signed tree <code>rpm-repo.tar</code> to a GitHub Release. The Pages job deploys the docs and the <code>rpm-repo.tar</code> of the newest release together. It needs no key. No <code>gh-pages</code> branch is necessary.</p>
+<p>The tree keeps, in each directory, the newest patch release of the newest three minor releases of repoctl, and the newest <code>repoctl-release</code> and <code>repoctl-mirror</code>. Each older RPM stays on its GitHub Release. Thus the site stays far below the size limit of GitHub Pages (1 GB). A copy of the newest <code>repoctl-release</code> is also at <code>rpm/</code>, for the first install.</p>
 <aside class="callout rule">
 <p class="callout-title">Rule</p>
-<p>The Pages repo has its own GPG key, stored as a GitHub Actions secret. It is not a key of a package set, and it never signs set RPMs.</p>
+<p>The Pages repo has its own key, the tool repository key (<a href="#tool-key">below</a>). It is not a key of a package set, and it never signs set RPMs. Only the release job and the yank job can read it.</p>
 </aside>
 <p>Admin hosts install repoctl from this repo or from the RPMs of a GitHub Release. repoctl runs on Fedora only (<a href="model.html#humans">model.html#humans</a>). The slurm sets and the tool share one GitHub repository; whether the sets move to their own repository is an open question (<a href="delivery.html#open">delivery.html#open</a>). The delivery phases are in <a href="delivery.html#phases">delivery.html#phases</a>.</p>
 
+<h3 id="tool-key">Tool repository key</h3>
+<p>The tool repository key signs the RPMs of repoctl and the repodata of the RPM repo on Pages. The tool RPM runs on the admin hosts, next to the signing keys of the admins. Thus a stolen tool repository key can give the admins a repoctl that signs bad set RPMs. The key never signs a set RPM, but it guards the trust of the clients.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 260" role="img" aria-labelledby="toolkey-t">
+<title id="toolkey-t">Only the release job and the yank job in the protected environment read the tool repository key</title>
+<rect class="box" x="16" y="56" width="160" height="56" rx="8"/>
+<text class="t-title" x="30" y="80">tag v* on main</text>
+<text class="t-small t-muted" x="30" y="100">or the yank job on main</text>
+<rect class="box-muted" x="16" y="168" width="160" height="56" rx="8"/>
+<text class="t-title" x="30" y="192">other refs</text>
+<text class="t-small t-muted" x="30" y="212">builder/*, pull requests</text>
+<rect class="zone" x="216" y="16" width="250" height="228" rx="8"/>
+<text class="t-title" x="232" y="40">environment tool-release</text>
+<rect class="box-soft" x="232" y="56" width="218" height="40" rx="8"/>
+<text class="t-small" x="246" y="81">a maintainer approves the job</text>
+<rect class="box-accent" x="232" y="108" width="218" height="64" rx="8"/>
+<text class="t-title t-on" x="246" y="132">release job, yank job</text>
+<text class="t-small t-on" x="246" y="154">sign the RPMs and the repodata</text>
+<text class="t-small t-mono" x="232" y="200">secret TOOL_REPO_KEY</text>
+<text class="t-small t-muted" x="232" y="222">refs: main, tags v*</text>
+<rect class="box" x="506" y="40" width="170" height="72" rx="8"/>
+<text class="t-title" x="520" y="64">GitHub Release</text>
+<text class="t-small" x="520" y="84">RPMs, rpm-repo.tar,</text>
+<text class="t-small" x="520" y="102">attestations</text>
+<rect class="box" x="506" y="160" width="170" height="56" rx="8"/>
+<text class="t-title" x="520" y="184">Pages job</text>
+<text class="t-small" x="520" y="204">no key: deploys the tree</text>
+<rect class="box-soft" x="716" y="40" width="168" height="56" rx="8"/>
+<text class="t-title" x="730" y="64">admin host</text>
+<text class="t-small t-mono" x="730" y="84">repoctl</text>
+<rect class="box-soft" x="716" y="160" width="168" height="56" rx="8"/>
+<text class="t-title" x="730" y="184">HTTP server</text>
+<text class="t-small t-mono" x="730" y="204">repoctl-mirror</text>
+<path class="edge" d="M176,84 L230,132" marker-end="url(#arrow)"/>
+<path class="edge-err" d="M176,196 L214,196"/>
+<text class="t-small t-err" x="180" y="186">no access</text>
+<path class="edge" d="M450,140 L504,84" marker-end="url(#arrow)"/>
+<path class="edge" d="M591,112 L591,158" marker-end="url(#arrow)"/>
+<path class="edge" d="M676,180 L714,72" marker-end="url(#arrow)"/>
+<path class="edge" d="M676,188 L714,188" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="694" y="232" text-anchor="middle">dnf from /rpm/</text>
+</svg>
+<figcaption>The trust boundary of the tool repository key. Only a job of the protected environment reads the key, after a maintainer approves it. The Pages job and the jobs of other refs never see it.</figcaption>
+</figure>
+<table class="compact">
+<thead><tr><th>Item</th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td>Key</td><td>OpenPGP, RSA 4096, one primary key that signs, no subkey, valid for 2 years. User ID <code>repoctl tool repository</code>. Fingerprint <code>7D3A1F0C9B2E4D6A8F1C3E5B7A9D0F2C4E6B8A13</code>.</td></tr>
+<tr><td>Creation</td><td>A maintainer makes the key with GnuPG on a host without network. One encrypted copy of the secret key stays offline with the maintainer. The other copy goes into the environment secret.</td></tr>
+<tr><td>Storage</td><td>The secret <code>TOOL_REPO_KEY</code> of the GitHub environment <code>tool-release</code> in <code>dennisklein/repoctl</code>. No repository secret and no organization secret holds the key.</td></tr>
+<tr><td>Access</td><td>The environment admits only the ref <code>main</code> and the tags <code>v*</code>, and a maintainer must approve each job (required reviewer). A workflow on a builder branch, a package branch or a pull request cannot read the secret. The release job also checks that the commit of the tag is on <code>main</code>.</td></tr>
+<tr><td>Fingerprint</td><td>In this chapter, in the README of <code>main</code> and in the notes of each GitHub Release. The binary has the fingerprints of all tool repository keys, each with a state: <code>current</code>, <code>retired</code> or <code>revoked</code>.</td></tr>
+<tr><td>First install</td><td><code>repoctl-release-1-1.noarch.rpm</code>, sha256 <code>2c4e6a8b0d1f3a5c7e9b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c</code>. Each new <code>repoctl-release</code> changes this value in the same commit (<a href="#tool-bootstrap">first install</a>).</td></tr>
+<tr><td>Expiry</td><td>Do not extend the expiry date. rpm 6 on the Fedora admin hosts updates a key at import, but rpm 4.16 and 4.19 on the EL HTTP servers do not (F12, <a href="signing.html#facts">client facts</a>). Rotate the key 180 days before it expires.</td></tr>
+<tr><td>doctor</td><td>The host check <code>tool.repo-key</code> passes when the rpm keyring has each current key and <code>repoctl.repo</code> has <code>gpgcheck=1</code> and <code>repo_gpgcheck=1</code>. It warns when a current key is missing, when it expires within 180 days, or when a key in state <code>retired</code> is still in the keyring. It fails when the keyring has a revoked key.</td></tr>
+</tbody>
+</table>
+<h3 id="tool-bootstrap">First install of the tool</h3>
+<p>dnf cannot check the first key. The human checks it by hand, once on each host. The same steps install the mirror job on the HTTP server.</p>
+<ol class="steps">
+  <li>Download <code>https://dennisklein.github.io/repoctl/rpm/repoctl-release-1-1.noarch.rpm</code>.</li>
+  <li>Compare its sha256 (<code>sha256sum</code>) with the value in the table above. If it is different, stop and tell the team.</li>
+  <li>Install the file: <code>sudo dnf install ./repoctl-release-1-1.noarch.rpm</code>.</li>
+  <li>Compare the fingerprint of the installed key with the fingerprint in the table: <code>gpg --show-keys /etc/pki/rpm-gpg/RPM-GPG-KEY-repoctl</code>.</li>
+  <li>On an admin host, install the tool: <code>sudo dnf install repoctl</code>. On the HTTP server, install the mirror job: <code>sudo dnf install repoctl-mirror</code>.</li>
+  <li>On an admin host, run <code>repoctl doctor --only host</code>. The check <code>tool.repo-key</code> must pass.</li>
+</ol>
+<h3 id="tool-rotation">Rotation of the tool repository key</h3>
+<ol class="steps">
+  <li>180 days before key A expires, make key B as above. Add it to the environment as a second secret.</li>
+  <li>Release a <code>repoctl-release</code> that ships A and B in one file (F14). The release job still signs with A. The binary of this release lists A and B as current.</li>
+  <li>Wait 30 days. On each admin host without B, doctor warns with the fix <code>sudo dnf upgrade repoctl-release</code>.</li>
+  <li>Sign the next release with B. Delete the secret of A. The binary of this release lists A as <code>retired</code>.</li>
+  <li>Release a <code>repoctl-release</code> with only B.</li>
+  <li>Erase A on each host: <code>sudo rpmkeys --erase</code> on Fedora, config management on the HTTP server. A release RPM cannot remove a key (F16).</li>
+</ol>
+<p>A host that did not get B in step 3 fails with a signature error of dnf. On that host, do the first install again.</p>
+<h3 id="tool-compromise">Compromise of the tool repository key</h3>
+<p>Treat the key as compromised when the secret can have leaked, when a job read it without a release, or when the repo holds an RPM that no release job made.</p>
+<ol class="steps">
+  <li>Delete the environment secret. Turn off the release workflow.</li>
+  <li>Make a new key C as above. Put it into the environment.</li>
+  <li>Yank each release that the old key signed after the first possible time of the leak (<a href="#tool-yank">bad release</a>).</li>
+  <li>Release a fixed version and a <code>repoctl-release</code> with only C, signed with C. Change the fingerprint and the sha256 in this chapter, in the README and in the release notes. The binary of this release lists the old key as revoked.</li>
+  <li>Tell all admins and the owner of the HTTP server in the team channel. dnf on their hosts cannot verify C.</li>
+  <li>On each host, erase the old key, then do the first install again. On an admin host, also run <code>sudo dnf reinstall repoctl</code>.</li>
+  <li>Compare the NVR and the sha256 of each installed repoctl RPM with the GitHub Releases. If a host installed an RPM that no release job made, offboard the signing key of the admin of that host (<a href="signing.html#offboarding">offboarding</a>).</li>
+</ol>
+<h3 id="tool-yank">A bad tool release</h3>
+<ol class="steps">
+  <li>Add the version to <code>packaging/yanked.txt</code> on <code>main</code>, in a reviewed commit.</li>
+  <li>Start the yank job (a manual workflow on <code>main</code>). A maintainer approves it in the environment.</li>
+  <li>The job makes and signs the repodata without the yanked RPMs. It attaches a new <code>rpm-repo.tar</code> to the newest GitHub Release, and the Pages job deploys it.</li>
+  <li>Mark the GitHub Release of the bad version as yanked in its title and its notes. Keep its files.</li>
+  <li>Tag a fix release with a higher version. dnf does not downgrade, so a host with the bad release gets the fix with <code>dnf upgrade</code>.</li>
+</ol>
+
 <h2 id="name">The name</h2>
 <p>The name is <code>repoctl</code>, in the pattern of <code>clusterctl</code>. The binary, the RPM and the Go module use this name. Fedora has no package with this name.</p>
+<h3 id="license">License</h3>
+<p>The license of repoctl is the Apache License 2.0 (SPDX <code>Apache-2.0</code>). It covers the branch <code>main</code>: the Go code, the skills, the mirror job, the CI workflows, the site generator and this design record. The full text is in the file <code>LICENSE</code> at the top of the repository.</p>
+<ul>
+  <li>The fonts in <code>docs/assets/fonts/</code> and the script in <code>docs/assets/vendor/</code> keep their own licenses. Their license files are next to them.</li>
+  <li>The tool RPM and the release RPM <code>repoctl-release</code> have the tag <code>License: Apache-2.0</code>.</li>
+  <li>The license covers only <code>main</code>, not the builder branches and the package branches. A spec file keeps the license that its author gives it. The RPMs that repoctl builds have the License tag of their spec.</li>
+</ul>
+<aside class="callout why">
+<p class="callout-title">Why Apache-2.0</p>
+<p>The Go libraries of repoctl, for example oras-go, use permissive licenses. Apache-2.0 is permissive too and adds a patent grant. One license for the code and the design record lets a human copy a rule, a schema or an example into the code without a second license.</p>
+</aside>
 
 <h2 id="sources">Sources</h2>
 <ul>

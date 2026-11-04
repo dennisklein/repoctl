@@ -68,7 +68,9 @@
       <div class="cli-pop"><span class="c"># the keys, their deployment records and the RPM counts</span>
 repoctl sign ls
 <span class="c"># the open onboarding steps of a.admin</span>
-repoctl sign onboard a.admin</div></details>
+repoctl sign onboard a.admin
+<span class="c"># the open offboarding steps of hpc-repo</span>
+repoctl sign offboard hpc-repo</div></details>
   </div>
 </div>
 
@@ -149,6 +151,31 @@ repoctl sign onboard a.admin</div></details>
   </ol>
 </section>
 
+<section class="card" id="offboarding" aria-labelledby="off-t">
+  <div class="card-head"><h2 id="off-t">Offboarding hpc-repo</h2><span class="right">2 of 6 done</span></div>
+  <details class="fold onb-done">
+    <summary><b>2 steps done</b><span class="sum">no team member · state retiring</span></summary>
+    <div class="fold-body">
+      <ol class="onb">
+        <li><span class="no ok" aria-label="done">&#10003;</span><span class="t">GitHub team and token</span>
+          <span class="s">hpc-repo is the key of the bash era. It has no team member.</span></li>
+        <li><span class="no ok" aria-label="done">&#10003;</span><span class="t">State retiring</span>
+          <span class="s">hpc-repo cannot sign. The <a class="gl" href="../../glossary.html#key-file" data-gl="key-file" data-domain="trust">key file</a> still holds it, so clients trust its RPMs.</span></li>
+      </ol>
+    </div>
+  </details>
+  <ol class="onb" start="3">
+    <li><span class="no">3</span><span class="t">Re-sign its RPMs</span>
+      <span class="s">50 RPMs in <a class="gl" href="../../glossary.html#latest" data-gl="latest" data-domain="publish">latest</a> of el9 carry hpc-repo; el10 has none. Run <code>repoctl repo resign --signer hpc-repo --target el9</code> in a terminal.</span></li>
+    <li><span class="no">4</span><span class="t">Remove the key</span>
+      <span class="s">After the <a class="gl" href="../../glossary.html#re-sign" data-gl="re-sign" data-domain="trust">re-sign</a>, <code>repoctl sign remove hpc-repo</code> writes a key file without it.</span></li>
+    <li><span class="no">5</span><span class="t">Publish the new release</span>
+      <span class="s">Each <a class="gl" href="../../glossary.html#target" data-gl="target" data-domain="build">target</a> gets a <a class="gl" href="../../glossary.html#release-package" data-gl="release-package" data-domain="trust">release package</a> without hpc-repo. Config management rolls it out to the clients and the <a class="gl" href="../../glossary.html#mirror-line" data-gl="mirror-line" data-domain="publish">mirror lines</a>.</span></li>
+    <li><span class="no">6</span><span class="t">Remove the key on the clients</span>
+      <span class="s">Config management runs the commands of <code>repoctl sign offboard hpc-repo</code>. Then a human records it per target with <code>repoctl sign removed hpc-repo --target el9</code>.</span></li>
+  </ol>
+</section>
+
 <section class="card" aria-label="Rules">
   <details class="fold">
     <summary><b>Rules</b><span class="sum">gates 1–3 · keys change in the CLI only</span></summary>
@@ -160,7 +187,7 @@ repoctl sign onboard a.admin</div></details>
         <li>Publish keeps old signatures. <code>repoctl repo resign</code> signs them again.</li>
         <li>This page does not add, retire or remove a key. These commands change the trust set: <code>repoctl sign add</code>, <code>sign retire</code>, <code>sign remove</code>.</li>
       </ul>
-      <p class="fold-note">More: <a href="../../signing.html#gates">Gates 1 to 3</a> · <a href="../../signing.html#onboarding">Onboarding</a></p>
+      <p class="fold-note">More: <a href="../../signing.html#gates">Gates 1 to 3</a> · <a href="../../signing.html#onboarding">Onboarding</a> · <a href="../../signing.html#offboarding">Offboarding</a></p>
     </div>
   </details>
 </section>
