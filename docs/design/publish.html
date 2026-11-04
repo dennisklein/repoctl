@@ -114,6 +114,7 @@ KEEP_TREES=2</code></pre>
 <p class="callout-title">Rule</p>
 <p>If a step fails, the job keeps the old tree, writes the error to the journal and exits with a failure. The next run tries again. The job never serves a tree that its keyring does not verify.</p>
 </aside>
+<p>The job reads the RepoManifest apiVersions of its release. A snapshot with another apiVersion fails step 4, so the job keeps the old tree. Thus the HTTP server gets the new release of the job before the first publish in a new apiVersion (<a href="contract.html#stored">stored files</a>).</p>
 <aside class="callout rule">
 <p class="callout-title">Rule: keyring of a mirror line</p>
 <p>Each mirror line has its own keyring: the key file of the release package that the clients of that set and target have. Config management puts this file at the keyring path in the same rollout as the clients of the target, for example from the release RPM with <code>rpm2cpio</code>. The HTTP server does not install the release packages of the sets.</p>
@@ -610,6 +611,7 @@ Next: repoctl status</pre>
   <li>These NVRs go into <code>removed[]</code>. After a restore, publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</li>
   <li>RPMs in REF that a key in state removed or revoked signed get a new signature from the human who restores (<a href="signing.html#resign">re-sign rules</a>).</li>
   <li>The new snapshot keeps each release NVR that a deployment record names for the target, also when REF does not hold it. Thus gate 2 and verify-el still find the key file of each signer. The summary lists these NVRs as "kept: deployment record". For example, a restore of el9 to <code>p-import-20260828</code> keeps slurm-release-26.05-2, the release of the record of d.klein; REF holds only slurm-release-26.05-1.</li>
+  <li>REF can have a RepoManifest of an older apiVersion. Restore reads it and writes the new RepoManifest in the apiVersion of <code>repoctl.yaml</code> (<a href="contract.html#stored">stored files</a>).</li>
 </ul>
 <p>After a restore, the lock still pins the commits of the builds that left. plan shows these nodes with the action build, and each build gives a removed NVR again: publish refuses it with <code>nvr.removed</code>. Before the next publish, do one of these steps for each package that the summary names:</p>
 <ul>

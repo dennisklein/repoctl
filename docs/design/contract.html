@@ -11,6 +11,7 @@
 <ul class="keypoints">
   <li>Every <code>--json</code> result is one envelope: <code>apiVersion</code>, <code>kind</code>, <code>metadata</code>, <code>items[]</code>, <code>warnings[]</code>, <code>errors[]</code>. The MCP server returns the same envelope as <code>structuredContent</code>.</li>
   <li>One version string, <code>repoctl/v1alpha1</code>, covers the JSON output, the MCP results and the set files. The journal has its own integer version <code>v</code>.</li>
+  <li>A stored file takes only additions within one apiVersion. A binary never rewrites a file with a field that it does not know.</li>
   <li>Programs match on codes and enum values. Text fields are for humans.</li>
   <li>A problem code names the cause. The exit code names the class of the result.</li>
   <li>A run writes two JSON Lines files: the journal <code>runs/&lt;run&gt;.jsonl</code> and the go-clikit progress log <code>runs/&lt;run&gt;.progress.jsonl</code>.</li>
@@ -124,7 +125,7 @@
 </ul>
 
 <h2 id="versioning">Versioning and stability</h2>
-<p>One version string, <code>repoctl/v1alpha1</code>, covers the <code>--json</code> output, the MCP structured content and the files that a set commits. <code>repoctl version --json</code> lists the API versions that the binary writes, the journal version and the go-clikit event log version.</p>
+<p>One version string, <code>repoctl/v1alpha1</code>, covers the <code>--json</code> output, the MCP structured content and the files that a set commits. <code>repoctl version --json</code> lists the API versions that the binary writes (<code>apiVersions</code>) and reads (<code>readApiVersions</code>), the journal version and the go-clikit event log version.</p>
 <table class="compact">
 <thead><tr><th>Document</th><th>Version field</th><th>Format</th></tr></thead>
 <tbody>
@@ -142,7 +143,7 @@
 <table>
 <thead><tr><th>Stage</th><th>When</th><th>What can change</th></tr></thead>
 <tbody>
-<tr><td><code>v1alpha1</code></td><td>repoctl 0.x</td><td>Any release can add fields, kinds, enum values and problem codes. A minor release can rename or remove a field; the release notes name it. When it is cheap, the old field stays for one minor release, marked <code>"deprecated": true</code> in the schema.</td></tr>
+<tr><td><code>v1alpha1</code></td><td>repoctl 0.x</td><td>Any release can add fields, kinds, enum values and problem codes. A minor release can rename or remove a field of the output; the release notes name it. When it is cheap, the old field stays for one minor release, marked <code>"deprecated": true</code> in the schema. The stored files take only additions (<a href="#stored">stored files</a>).</td></tr>
 <tr><td><code>v1beta1</code></td><td>with the release of the web UI and the skills</td><td>Only additions. A removal comes after two minor releases with a deprecated field and the warning <code>deprecated</code>.</td></tr>
 <tr><td><code>v1</code></td><td>repoctl 1.0</td><td>Only additions. A breaking change starts the next major API version. repoctl then writes both major versions for one major release; <code>--api-version</code> or <code>REPOCTL_API_VERSION</code> selects one (<a href="config.html#env">environment</a>).</td></tr>
 </tbody>
@@ -156,6 +157,56 @@
 </ul>
 </aside>
 <p>The skills and the web UI are in the binary of the CLI. <code>repoctl doctor</code> warns (<code>skills.version-mismatch</code>) when an installed copy of a skill is older than the binary.</p>
+<h3 id="stored">Stored files and mixed versions</h3>
+<p>The stored files are the four committed set files (<code>repoctl.yaml</code>, <code>repoctl.lock</code>, <code>keys/deployed.yaml</code>, <code>.repoctl/advisories.yaml</code>) and the RepoManifest of each snapshot. Two admins can run two releases of repoctl on one set, and the registry keeps the snapshots of old releases. A publish copies the entries of the base manifest. Thus an old binary could drop a field that a newer binary wrote. These rules prevent it.</p>
+<aside class="callout rule"><p class="callout-title">Rules for stored files</p>
+<ul>
+  <li>Within one apiVersion, a stored file takes only additions: a new optional field, or a new value of an open enum. A rename, a removal, a new required field, a new value of a closed enum or a change of meaning needs the next apiVersion. This rule applies from <code>v1alpha1</code>.</li>
+  <li>repoctl reads each apiVersion of a stored file that a release of repoctl wrote. <code>readApiVersions</code> lists them. Thus restore, <code>repo diff</code> and <code>repo verify</code> read the RepoManifest of each old snapshot.</li>
+  <li>A command that only reads a stored file ignores a field that it does not know, and gives the warning <code>contract.newer-file</code>.</li>
+  <li>A command that writes a stored file stops when the file has a field or a closed enum value that the binary does not know: <code>contract.newer-file</code>, exit 1, hint "upgrade repoctl". Publish, restore, prune and resign write a new RepoManifest from the base, so they stop when the base manifest has such a field.</li>
+  <li>A file with an apiVersion that the binary does not read stops each command that reads it, with <code>contract.newer-file</code> (exit 1).</li>
+  <li><code>minRepoctl</code> in <code>repoctl.yaml</code> is the oldest release that can work on the set. repoctl reads <code>apiVersion</code> and <code>minRepoctl</code> before it checks the other keys. An older binary stops each command that reads the set with <code>contract.newer-file</code> (exit 1), not with <code>config.unknown-key</code>. doctor reports it as the failed check <code>set.repoctl-version</code>.</li>
+  <li>A command writes a stored file in the apiVersion that the file has. If the binary only reads that apiVersion, the command stops with <code>contract.old-file</code> (exit 1). The hint is <code>repoctl migrate --api</code>.</li>
+  <li>A new snapshot gets its RepoManifest in the apiVersion of <code>repoctl.yaml</code>. Publish converts the entries of the base to it. An old snapshot never changes.</li>
+</ul>
+</aside>
+<figure class="diagram">
+<svg viewBox="0 0 900 232" role="img" aria-labelledby="stored-t">
+<title id="stored-t">What a command does with a stored file</title>
+<rect class="box" x="16" y="80" width="170" height="60" rx="8"/>
+<text class="t-title" x="30" y="104">read a stored file</text>
+<text class="t-small t-muted" x="30" y="124">set file or RepoManifest</text>
+<rect class="box-soft" x="236" y="80" width="190" height="60" rx="8"/>
+<text class="t-title" x="250" y="104">apiVersion known?</text>
+<text class="t-small t-muted" x="250" y="124">in readApiVersions</text>
+<rect class="box-err" x="236" y="176" width="190" height="40" rx="8"/>
+<text class="t-small" x="250" y="201">stop: contract.newer-file</text>
+<rect class="box-soft" x="476" y="80" width="190" height="60" rx="8"/>
+<text class="t-title" x="490" y="104">unknown field?</text>
+<text class="t-small t-muted" x="490" y="124">or closed enum value</text>
+<rect class="box-ok" x="476" y="176" width="190" height="40" rx="8"/>
+<text class="t-small" x="490" y="201">read and write as usual</text>
+<rect class="box-warn" x="716" y="16" width="170" height="56" rx="8"/>
+<text class="t-title" x="730" y="40">command only reads</text>
+<text class="t-small" x="730" y="60">ignore it, warning</text>
+<rect class="box-err" x="716" y="148" width="170" height="56" rx="8"/>
+<text class="t-title" x="730" y="172">command writes</text>
+<text class="t-small" x="730" y="192">stop, exit 1</text>
+<path class="edge" d="M186,110 L234,110" marker-end="url(#arrow)"/>
+<path class="edge-err" d="M331,140 L331,174" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="340" y="162">no</text>
+<path class="edge" d="M426,110 L474,110" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="436" y="100">yes</text>
+<path class="edge-ok" d="M571,140 L571,174" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="580" y="162">no</text>
+<path class="edge" d="M666,100 L714,48" marker-end="url(#arrow)"/>
+<path class="edge-err" d="M666,120 L714,172" marker-end="url(#arrow)"/>
+<text class="t-small t-muted" x="680" y="114">yes</text>
+</svg>
+<figcaption>A binary reads each stored file whose apiVersion it knows. It never rewrites a file with a field that it does not know, so no field gets lost.</figcaption>
+</figure>
+<p>The move to the next apiVersion is one set commit. First, all admins install a release that writes the new apiVersion. Then one admin runs <code>repoctl migrate --api</code> (<a href="cli.html#cmd-migrate">cli.html#cmd-migrate</a>). It converts the four set files and sets <code>minRepoctl</code> to the version of the binary. The admin commits and pushes the change. The next publish writes the RepoManifest in the new apiVersion. The mirror job must read it first (<a href="publish.html#mirror">mirror job</a>).</p>
 
 <h2 id="names">Shared names and enums</h2>
 <p>These names are the same in every result, in the journal, in the MCP tools and in the web UI. The table gives the form. The linked chapter gives the meaning.</p>
@@ -278,7 +329,7 @@
   <li><code>DoctorReport.checks[].name</code> holds the check id of <code>repoctl doctor</code>, for example <code>sign.keyfile</code>, <code>sign.release</code> or <code>sign.retiring</code>. A check id that is also a problem code is in the table. <a href="cli.html#cmd-doctor">repoctl doctor</a> lists all check ids.</li>
 </ul>
 <details>
-<summary>The 111 problem codes, sorted by code: exit code, meaning and hint</summary>
+<summary>The 113 problem codes, sorted by code: exit code, meaning and hint</summary>
 <table class="compact">
 <thead><tr><th>Code</th><th>Exit</th><th>Meaning</th><th>Hint</th></tr></thead>
 <tbody>
@@ -295,8 +346,10 @@
 <tr><td><code>check.stale</code></td><td>warning</td><td>The last check is older than 36 hours, or older than latest of a target.</td><td><code>repoctl check</code></td></tr>
 <tr><td><code>check.timer-off</code></td><td>warning</td><td>The timer of this set is not active.</td><td><code>repoctl check --install-timer</code></td></tr>
 <tr><td><code>config.invalid</code></td><td>1</td><td>A configuration file does not agree with its schema or with a rule.</td><td>Correct the file; <code>repoctl schema config</code>.</td></tr>
-<tr><td><code>config.unknown-key</code></td><td>1</td><td>A key is unknown, or the user config sets a key that changes the build.</td><td>Remove the key; <code>repoctl config show</code>.</td></tr>
+<tr><td><code>config.unknown-key</code></td><td>1</td><td>A key is unknown, or the user config sets a key that changes the build.</td><td>Remove the key, or upgrade repoctl when a newer release knows it; <code>repoctl config show</code>.</td></tr>
 <tr><td><code>config.unsupported</code></td><td>1</td><td>This release does not support the key or its value, for example a target that is not <code>x86_64</code>.</td><td>Remove the key, or change the value.</td></tr>
+<tr><td><code>contract.newer-file</code></td><td>1; warning in a command that only reads the file</td><td>A stored file needs a newer repoctl: its apiVersion, a field, a closed enum value or <code>minRepoctl</code> is newer than this binary. The message names the file and the versions.</td><td>Upgrade repoctl on this host.</td></tr>
+<tr><td><code>contract.old-file</code></td><td>1</td><td>The command must write a stored file in an apiVersion that this binary only reads.</td><td><code>repoctl migrate --api</code>, then commit.</td></tr>
 <tr><td><code>dep.not-for-target</code></td><td>warning</td><td>Plan: only a package of another target provides a BuildRequires of the node.</td><td>Guard the BuildRequires with <code>%if</code>, or add the target.</td></tr>
 <tr><td><code>deprecated</code></td><td>warning</td><td>The input uses a deprecated name, for example <code>sign.gpg_name</code>.</td><td>Use the name in the message.</td></tr>
 <tr><td><code>gc.failed</code></td><td>13</td><td><code>repo gc --apply</code>: the GitHub API failed one delete. gc stopped; the versions before it are deleted.</td><td>Run <code>repoctl repo gc --apply</code> again. The dry run shows what is left.</td></tr>
@@ -319,7 +372,7 @@
 <tr><td><code>lock.missing-package</code></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line, or publish takes a target that has one.</td><td><code>repoctl pin DIR</code></td></tr>
 <tr><td><code>lock.orphaned</code></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin --orphans</code></td></tr>
 <tr><td><code>lock.unpushed</code></td><td>5</td><td>The set commit or a pinned commit is not on its remote branch.</td><td>The exact <code>git push</code> commands (<code>push</code>).</td></tr>
-<tr><td><code>manifest.invalid</code></td><td>1</td><td>The RepoManifest of a snapshot does not agree with the schema <code>manifest</code>, or has an <code>apiVersion</code> that this binary does not know.</td><td>The message names the field. For a newer <code>apiVersion</code>, update repoctl.</td></tr>
+<tr><td><code>manifest.invalid</code></td><td>1</td><td>The RepoManifest of a snapshot does not agree with the schema <code>manifest</code>. An <code>apiVersion</code> that this binary does not read is <code>contract.newer-file</code>.</td><td>The message names the field.</td></tr>
 <tr><td><code>mcp.tool-not-allowed</code></td><td>MCP only</td><td>The tool is not in the mode of this server.</td><td>The human runs the command.</td></tr>
 <tr><td><code>mock.busy</code></td><td>7</td><td><code>repoctl mock update</code> or <code>mock clean</code> holds the host mock lock, or a repoctl mock runs while one of them waits for it. The problem names the holder.</td><td>Wait, or use <code>--lock-wait</code> (<a href="build.html#mock">Mock roots</a>).</td></tr>
 <tr><td><code>mock.config-missing</code></td><td>9</td><td>The mock config of a target is not on this host.</td><td>Install it, or correct <code>targets[].mock</code>.</td></tr>

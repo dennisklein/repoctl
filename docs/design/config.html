@@ -95,6 +95,7 @@ hint: start a new set here. run: repoctl init</pre>
 <p>The set config says what to build. It is committed on the builder branch. This is the file of the set <code>slurm-26.05</code>:</p>
 <pre><code class="language-yaml">apiVersion: repoctl/v1alpha1
 name: slurm-26.05                  # set id: in all local paths and OCI package names
+minRepoctl: 0.4.0                  # optional: an older repoctl stops on this set
 
 repo:
   name: slurm                      # gives slurm, slurm-source, slurm-debuginfo
@@ -187,6 +188,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tbody>
 <tr><td><code>apiVersion</code></td><td>yes</td><td><code>repoctl/v1alpha1</code>.</td></tr>
 <tr><td><code>name</code></td><td>yes</td><td>Set id: lowercase letters, digits, <code>.</code> and <code>-</code>.</td></tr>
+<tr><td><code>minRepoctl</code></td><td>no</td><td>The oldest repoctl release that can work on the set. An older binary stops with <code>contract.newer-file</code>. A human raises it after all admins upgrade; <code>migrate --api</code> sets it (<a href="contract.html#stored">contract.html#stored</a>).</td></tr>
 <tr><td><code>repo.name</code></td><td>yes</td><td>Gives the repositories NAME, NAME-source and NAME-debuginfo.</td></tr>
 <tr><td><code>repo.debuginfo</code>, <code>repo.source</code></td><td>no</td><td>Default true.</td></tr>
 <tr><td><code>repo.url</code></td><td>to publish</td><td>The URL that the clients use. The mirror job serves it. status compares the served tree with <code>latest</code>.</td></tr>
@@ -213,7 +215,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 
 <h2 id="rules">Rules</h2>
 <ul>
-  <li>An unknown key is an error (<code>config.unknown-key</code>, exit 1). <code>apiVersion</code> lets the schema change without silent errors.</li>
+  <li>An unknown key is an error (<code>config.unknown-key</code>, exit 1). <code>apiVersion</code> lets the schema change without silent errors. A key of a newer release also gives this error. Thus the team raises <code>minRepoctl</code> in the commit that first uses a new key, and an older binary stops with <code>contract.newer-file</code> and the hint to upgrade (<a href="contract.html#stored">stored files</a>).</li>
   <li>The schema also has keys for later releases (<a href="#scope">narrow now, open later</a>). repoctl rejects them with <code>config.unsupported</code>.</li>
   <li>The file has no build order. repoctl makes the graph from <code>rpmspec --buildrequires</code> and the <code>Provides</code> of each package (<a href="build.html#graph">build.html#graph</a>).</li>
   <li>The file has no secrets and no host paths. It has no registry credentials and no publish path. Push credentials come from the container credential store of the user (<a href="publish.html#registry">publish.html#registry</a>). Git credentials come from the git and ssh setup of the user.</li>

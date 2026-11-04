@@ -653,6 +653,8 @@
         "config.invalid",
         "config.unknown-key",
         "config.unsupported",
+        "contract.newer-file",
+        "contract.old-file",
         "dep.not-for-target",
         "deprecated",
         "gc.failed",
@@ -3597,7 +3599,14 @@
           "items": {
             "type": "string"
           },
-          "description": "apiVersions this binary can write, e.g. [\"repoctl/v1alpha1\"]."
+          "description": "apiVersions this binary can write, e.g. [\"repoctl/v1alpha1\"]. A command writes a stored file in the apiVersion that the file has."
+        },
+        "readApiVersions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "apiVersions of the stored files that this binary can read, oldest first, e.g. [\"repoctl/v1alpha1\"]. Restore reads old RepoManifests with them."
         },
         "journal": {
           "type": "integer",
