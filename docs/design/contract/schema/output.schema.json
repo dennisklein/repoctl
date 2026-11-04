@@ -2092,9 +2092,22 @@
           "enum": [
             "pending",
             "unchanged",
-            "removed"
+            "removed",
+            "skipped",
+            "none"
           ],
-          "description": "pending: the node is not built yet. unchanged: every soname of the newest published build is still provided. removed: see the advisory soname.removed/<node>."
+          "description": "pending: the node has no end state yet. unchanged: every soname of the newest published build is still provided. removed: see the advisory soname.removed/<node>. skipped: the node ended failed, canceled or blocked, or its run is abandoned. none: no published build with a shared library to compare."
+        },
+        "abi": {
+          "enum": [
+            "pending",
+            "unchanged",
+            "changed",
+            "skipped",
+            "none",
+            "off"
+          ],
+          "description": "The optional ABI check. changed: see the advisory abi.changed/<node>. off: libabigail is not installed. The other values as for soname."
         }
       }
     },

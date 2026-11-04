@@ -589,6 +589,18 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
   <li>No soname is gone: the result is <code>unchanged</code>. repoctl writes it into the node record as <code>checks.soname: unchanged</code>. This is a result, not an advisory.</li>
 </ul>
 <p>The plan and the UI show the result in the row of the node: "sonames unchanged: rebuild not necessary". While the node is in the run, its soname advisory is pending (<a href="advisories.html#states">advisory states</a>). The optional ABI check (<code>abi.changed</code>, needs libabigail) also runs after the node build.</p>
+<table class="compact">
+<thead><tr><th>Value</th><th><code>checks.soname</code></th><th><code>checks.abi</code></th></tr></thead>
+<tbody>
+<tr><td>pending</td><td colspan="2">The node is in the plan or the run and has no end state.</td></tr>
+<tr><td>unchanged</td><td>Every published soname is still provided.</td><td>abidiff finds no change.</td></tr>
+<tr><td>removed, changed</td><td>removed: see <code>soname.removed</code>.</td><td>changed: see <code>abi.changed</code>.</td></tr>
+<tr><td>skipped</td><td colspan="2">The node ended failed, canceled or blocked, or its run is abandoned. There are no RPMs to compare.</td></tr>
+<tr><td>none</td><td colspan="2">There is nothing to compare: the node has no published build (a new package or a new target), or that build provides no shared library.</td></tr>
+<tr><td>off</td><td>-</td><td>libabigail is not installed on this host.</td></tr>
+</tbody>
+</table>
+<p>pending ends at the end state of the node. Only the end state ok can give an advisory. The Plan page of the UI shows the note "soname check pending" only on rows with the plan reason commit-changed, because a rebuild or a forced build has the same sources. The other rows have the same value in the node drawer and in <code>--json</code>.</p>
 <p>In the story, ucx 1.22.1 keeps <code>libucp.so.0</code>, <code>libuct.so.0</code> and <code>libucs.so.0</code>. The result of ucx@el9 and ucx@el10 is unchanged. Thus the rebuilds of slurm, openmpi and slurm-singularity-exec are not necessary. Dennis wants them, and they do no harm: each has a new NVR.</p>
 <aside class="callout why"><p class="callout-title">Why a result and not an advisory</p><p>An advisory asks the human for a step. An unchanged soname asks for nothing. The record shows that the check ran. Thus "no advisory" and "not checked" do not look the same.</p></aside>
 

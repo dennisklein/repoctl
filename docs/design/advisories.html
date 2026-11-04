@@ -191,7 +191,7 @@
 <figcaption>The states of an advisory. An acceptance is a record of one publish, not a state.</figcaption>
 </figure>
 <dl>
-  <dt>pending</dt><dd>The check needs a build that did not end. Example: <code>soname.removed</code> for a node that is still in the run. Only the UI and <code>repoctl advisories</code> show this state, during a run.</dd>
+  <dt>pending</dt><dd>The check needs a build that did not end. Example: <code>soname.removed</code> for a node that is still in the run. Only the UI and <code>repoctl advisories</code> show this state, during a run. pending ends at the end state of the node: ok gives a result, and the other end states give <code>skipped</code> and no advisory (<a href="build.html#soname">soname check</a>).</dd>
   <dt>open</dt><dd>The check finds the problem now, and no dismissal matches.</dd>
   <dt>dismissed</dt><dd>A dismissal in <code>.repoctl/advisories.yaml</code> has the same id and the same factsDigest. Only info and warn advisories can be dismissed. A dismissal never matches a required advisory. When an advisory with a dismissed id becomes required, for example the <code>closure.broken</code> of a retired package that a dir builds again, the dismissal is stale, and the advisory is open.</dd>
   <dt>gone</dt><dd>The check does not find the problem any more. repoctl does not keep gone advisories. The journal of the check records the event <code>advisory.gone</code>.</dd>
