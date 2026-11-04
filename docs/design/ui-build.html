@@ -14,16 +14,16 @@
   <li>The Overview starts with "Needs you": one numbered list in work order. Each fact shows once.</li>
   <li>A pure Go function lays out the Graph. A state change never moves a card.</li>
   <li>The run page puts a failure first: one plain sentence, the fixes, then the log evidence in a fold.</li>
-  <li>The agent panel only suggests. Each proposed action is a normal button that the person clicks.</li>
+  <li>The agent panel only suggests. Each proposed action is a normal button that the human clicks.</li>
 </ul>
 
 <h2 id="common">Common parts</h2>
 <p>All pages use the app shell of <a href="ui.html#shell">ui.html#shell</a>. The run chip in the top bar is the only place that says "a run is active". In the story it reads <code>r-…a3f 2/8 builds · 1 failed · 11m02s</code>. A page body repeats the run state only when the page is that run.</p>
-<p>The page head has one "CLI" toggle. It also holds the command of each dialog that the page opens (<a href="ui.html#calm">R10</a>). A row shows one visible button and a ⋯ menu. Text that a person reads once is behind a "?" or a fold with a count. Link text is a time and a short id ("today 17:50 · a3f"). Each section ends with its URL, CLI equivalent and SSE events (mechanism: <a href="ui.html#live">ui.html#live</a>).</p>
+<p>The page head has one "CLI" toggle. It also holds the command of each dialog that the page opens (<a href="ui.html#calm">R10</a>). A row shows one visible button and a ⋯ menu. Text that a human reads once is behind a "?" or a fold with a count. Link text is a time and a short id ("today 17:50 · a3f"). Each section ends with its URL, CLI equivalent and SSE events (mechanism: <a href="ui.html#live">ui.html#live</a>).</p>
 
 <h2 id="overview">Overview</h2>
 <figure class="shot"><a href="mockups/ui/overview.html"><img src="img/ui-overview.webp" alt="Overview at 18:01: Needs you with four items, advisories, runs, last publish and a short matrix" loading="lazy"></a><figcaption>Overview of slurm-26.05 at 18:01. The one filled button is Show log on item 1.</figcaption></figure>
-<p>Purpose: the Overview is the landing page of a set. It tells the person what needs action now, and in which order. The page head shows the set name, directory, branch and targets on one line; Plan, Build… and Publish… are outline buttons; the CLI toggle holds <code>repoctl status</code>, <code>repoctl advisories</code> and <code>repoctl runs</code>.</p>
+<p>Purpose: the Overview is the landing page of a set. It tells the human what needs action now, and in which order. The page head shows the set name, directory, branch and targets on one line; Plan, Build… and Publish… are outline buttons; the CLI toggle holds <code>repoctl status</code>, <code>repoctl advisories</code> and <code>repoctl runs</code>.</p>
 
 <h3 id="needs-you">Needs you</h3>
 <p>One numbered list in work order. An item has a kind label, a coloured left edge (red failure, amber attention, grey info), one sentence, one visible button and a ⋯ menu; a code comes after the sentence, small and muted. Kinds in order: open steps of a new set, failed nodes, required advisories, lock and worktree problems, doctor failures, a stale check, staged nodes that wait for a publish, the age of <code>latest</code>.</p>
@@ -36,7 +36,7 @@
 <tr><td>4</td><td>Repo</td><td>el9 and el10: latest is 51 days old.</td><td>Review…</td><td>–</td></tr>
 </tbody>
 </table>
-<aside class="callout rule"><p class="callout-title">Rule</p><p>A fact shows once, where the person acts on it. The required advisory is Needs you item 2. The Advisories card only counts it ("1 required: item 2"), and the matrix does not tag it. The current run shows in the run chip, not in a card.</p></aside>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>A fact shows once, where the human acts on it. The required advisory is Needs you item 2. The Advisories card only counts it ("1 required: item 2"), and the matrix does not tag it. The current run shows in the run chip, not in a card.</p></aside>
 
 <h3 id="overview-cards">Advisories, Runs and Last publish</h3>
 <ul>
@@ -62,7 +62,7 @@
 <ul>
   <li><b>Head.</b> Check line, Check now, CLI toggle, filter chips by level and target with counts.</li>
   <li><b>Rows.</b> Order: required, warn, info; then by node. One plain sentence, then id, targets, check source and time, small and muted. The evidence (sonames, buildroot against the repo, who requires what) is in a fold.</li>
-  <li><b>Required row.</b> The sentence names the closure: "A publish of el9 that changes pmix stops." There is no Dismiss. Rebuild… is the filled primary of the page; Show closure and ✦ Is a rebuild necessary? are in ⋯. The person accepts a required advisory only in the publish review (<a href="ui-publish.html#accept">ui-publish.html#accept</a>).</li>
+  <li><b>Required row.</b> The sentence names the closure: "A publish of el9 that changes pmix stops." There is no Dismiss. Rebuild… is the filled primary of the page; Show closure and ✦ Is a rebuild necessary? are in ⋯. The human accepts a required advisory only in the publish review (<a href="ui-publish.html#accept">ui-publish.html#accept</a>).</li>
   <li><b>Warn and info rows.</b> Dismiss is the visible button; Rebuild… and the agent button are in ⋯. An upstream.release row shows ✦ Summarize upstream release; Open package and Dismiss are in ⋯.</li>
   <li><b>Dismissed.</b> <code>?dismissed=1</code> lists the dismissals with note, user and time (upstream.release/slurm-singularity-exec, "3.2.1 only changes the docs", d.klein). When the facts change, the advisory comes back as "dismissed, facts changed".</li>
 </ul>
@@ -200,7 +200,7 @@
 
 <h2 id="plan">Plan</h2>
 <figure class="shot"><a href="mockups/ui/plan.html"><img src="img/ui-plan.webp" alt="Plan at 17:49: 8 build, 13 current, Start build, four build rows per target" loading="lazy"></a><figcaption>Plan at 17:49, before the run. The warning dep.not-for-target is next to slurm@el10.</figcaption></figure>
-<p>Purpose: the Plan page shows what <code>repoctl build</code> does now, and why, before the person starts it (actions and reasons: <a href="build.html#plan">build.html#plan</a>).</p>
+<p>Purpose: the Plan page shows what <code>repoctl build</code> does now, and why, before the human starts it (actions and reasons: <a href="build.html#plan">build.html#plan</a>).</p>
 <ul>
   <li><b>Head and form.</b> "Computed 17:49 from repoctl.lock, the manifests of latest and staging." Packages, Targets, From (lock | worktree); force, fail-fast and Jobs in an Options fold. The form maps 1:1 to the flags of <code>repoctl build</code> and keeps its state in the URL.</li>
   <li><b>Start box.</b> "8 build · 13 current" (no zero counts) and one sentence: "Start build runs 8 nodes into a new staging repo. It does not sign or publish." Start build is the filled primary; it opens the build dialog.</li>
@@ -319,7 +319,7 @@
 <ul>
   <li>Follow works only while the node runs; for a finished node it is off with "node finished".</li>
   <li>A scroll up pauses follow. A bar counts the new lines; End or a click on the bar starts it again.</li>
-  <li>When the step changes, the page goes to the new step only if the person did not pick a step.</li>
+  <li>When the step changes, the page goes to the new step only if the human did not pick a step.</li>
   <li>When the node ends, the last line reads "node finished HH:MM:SS · log closed".</li>
 </ul>
 

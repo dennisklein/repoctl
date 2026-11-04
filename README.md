@@ -98,3 +98,20 @@ glossary or to a mockup, then make the screenshots again:
 ```sh
 python3 tools/site/glossary.py mockups
 ```
+
+The other projects that the text names (a tool such as `brig` or `mock`, a
+repository such as `GSI-HPC/go-clikit`) are in `tools/site/projects.json`. The
+build links the first use of each one in a section to its GitHub repository.
+
+To see each link of a word in context, build the site, then:
+
+```sh
+python3 tools/site/glossary.py report             # links per term and repo
+python3 tools/site/glossary.py report set-lock sigstore/cosign
+```
+
+### Skills for agents
+
+`.claude/skills/` has the skills for work on the docs: `docs-steward` (the
+checklist for each change), `docs-glossary` (project words and project links)
+and `docs-mockups` (mockups and screenshots).

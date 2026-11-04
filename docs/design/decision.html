@@ -86,7 +86,7 @@
 <tr><td>P2</td><td>Each run builds all 11 packages.</td><td>A change to one spec costs a full rebuild.</td></tr>
 <tr><td>P3</td><td>All builds run one after the other.</td><td>Long wall time. The graph allows 4 parallel builds.</td></tr>
 <tr><td>P4</td><td>Each package signs and updates <code>result/</code> directly.</td><td>If build 7 fails, <code>result/</code> has 6 new packages and 5 old ones. The repository is in a mixed state.</td></tr>
-<tr><td>P5</td><td>The output is <code>set -x</code> and one <code>sources.log</code>.</td><td>People cannot see the progress. An agent must parse free text.</td></tr>
+<tr><td>P5</td><td>The output is <code>set -x</code> and one <code>sources.log</code>.</td><td>Humans cannot see the progress. An agent must parse free text.</td></tr>
 <tr><td>P6</td><td>Each <code>builder/slurm-*</code> branch has a copy of the scripts.</td><td>A fix to the tooling must go to 3 branches.</td></tr>
 </tbody>
 </table>
@@ -99,7 +99,7 @@
 <tr><td>Deterministic and auditable</td><td>3</td><td>The output is a signed repository for production clusters.</td></tr>
 <tr><td>Build graph and incremental builds</td><td>2</td><td>Solves P1, P2 and P3.</td></tr>
 <tr><td>Low operation cost</td><td>2</td><td>Few new daemons, few new languages, a small team.</td></tr>
-<tr><td>Human UX (CLI, web UI)</td><td>1</td><td>Solves P5 for people.</td></tr>
+<tr><td>Human UX (CLI, web UI)</td><td>1</td><td>Solves P5 for humans.</td></tr>
 <tr><td>Agent UX (JSON, MCP, skills)</td><td>1</td><td>Solves P5 for agents.</td></tr>
 <tr><td>Same style as the GSI-HPC tools</td><td>1</td><td>clusterctl, sind and brig share go-clikit.</td></tr>
 </tbody>
@@ -192,7 +192,7 @@
 
 <h2 id="choice">The choice: a hybrid</h2>
 <p>repoctl is option E. One Go tool on <code>GSI-HPC/go-clikit</code> does all deterministic work: graph, plan, build, sign and publish. mock and rpmautospec stay as they are, and repoctl calls them. A CLI, a local web UI and an MCP server sit on the same core. Agent skills call repoctl. They never call mock, rpmsign or createrepo_c.</p>
-<p>The agent does judgment work: version updates, release notes, the triage of a failed build and the question "is a rebuild necessary?". A person does every step that changes shared state (<a href="model.html#safety">model.html#safety</a>). The skills are in <a href="agents.html#skill-list">agents.html#skill-list</a>.</p>
+<p>The agent does judgment work: version updates, release notes, the triage of a failed build and the question "is a rebuild necessary?". A human does every step that changes shared state (<a href="model.html#safety">model.html#safety</a>). The skills are in <a href="agents.html#skill-list">agents.html#skill-list</a>.</p>
 <aside class="callout why">
 <p class="callout-title">Why not the other options</p>
 <ul>
@@ -217,8 +217,8 @@
 <figure class="diagram wide">
 <svg viewBox="0 0 900 424" role="img" aria-labelledby="layers-t">
 <title id="layers-t">Layers of repoctl: three surfaces, one core, existing tools as child processes</title>
-<rect class="box-soft" x="20" y="16" width="270" height="40" rx="8"/><text class="t" x="155" y="36" text-anchor="middle" dominant-baseline="middle">Person in a terminal</text>
-<rect class="box-soft" x="315" y="16" width="270" height="40" rx="8"/><text class="t" x="450" y="36" text-anchor="middle" dominant-baseline="middle">Person in a browser</text>
+<rect class="box-soft" x="20" y="16" width="270" height="40" rx="8"/><text class="t" x="155" y="36" text-anchor="middle" dominant-baseline="middle">Human in a terminal</text>
+<rect class="box-soft" x="315" y="16" width="270" height="40" rx="8"/><text class="t" x="450" y="36" text-anchor="middle" dominant-baseline="middle">Human in a browser</text>
 <rect class="box-soft" x="610" y="16" width="270" height="40" rx="8"/><text class="t" x="745" y="36" text-anchor="middle" dominant-baseline="middle">Agent with skills</text>
 <path class="edge" d="M155,56 L155,90" marker-end="url(#arrow)"/>
 <path class="edge" d="M450,56 L450,90" marker-end="url(#arrow)"/>
@@ -300,7 +300,7 @@
 <path class="edge-muted" d="M810,162 L810,200" marker-end="url(#arrow-muted)"/>
 <rect class="box-muted" x="660" y="202" width="220" height="52" rx="8"/>
 <text class="t-small" x="770" y="222" text-anchor="middle">publish: a separate step</text>
-<text class="t-small" x="770" y="242" text-anchor="middle">that a person starts</text>
+<text class="t-small" x="770" y="242" text-anchor="middle">that a human starts</text>
 <rect class="box-soft" x="20" y="282" width="860" height="40" rx="8"/>
 <text class="t-small" x="450" y="302" text-anchor="middle" dominant-baseline="middle">journal runs/RUN.jsonl: the CLI, the web UI and MCP read the same events</text>
 </svg>
@@ -312,7 +312,7 @@
   <li><b>Parallel jobs.</b> Up to <code>--jobs N</code> builds run at the same time. Each job gets its own mock root through <code>mock --uniqueext</code>. repoctl sets it.</li>
   <li><b>Failure.</b> A failed node blocks its dependents. Other nodes continue, because keep going is the default (<code>--fail-fast</code> stops). The staging and the logs stay.</li>
   <li><b>Journal.</b> repoctl writes one journal per run. The CLI, the web UI and MCP read the same events (<a href="contract.html#journal">contract.html#journal</a>).</li>
-  <li><b>Publish</b> is a separate step that a person starts. It takes the staged nodes of the plan (<a href="publish.html#takes">publish.html#takes</a>).</li>
+  <li><b>Publish</b> is a separate step that a human starts. It takes the staged nodes of the plan (<a href="publish.html#takes">publish.html#takes</a>).</li>
 </ul>
 <p>The build chapter specifies the run, with a step explainer of the story run <code>r-20261102-1750-a3f</code> (<a href="build.html#run">build.html#run</a>).</p>
 
@@ -400,7 +400,7 @@
 <p class="callout-title">Rule</p>
 <p>The Pages repo has its own GPG key, stored as a GitHub Actions secret. It is not a key of a package set, and it never signs set RPMs.</p>
 </aside>
-<p>Admin hosts install repoctl from this repo or from the RPMs of a GitHub Release. repoctl runs on Fedora only (<a href="model.html#people">model.html#people</a>). The slurm sets and the tool share one GitHub repository; whether the sets move to their own repository is an open question (<a href="delivery.html#open">delivery.html#open</a>). The delivery phases are in <a href="delivery.html#phases">delivery.html#phases</a>.</p>
+<p>Admin hosts install repoctl from this repo or from the RPMs of a GitHub Release. repoctl runs on Fedora only (<a href="model.html#humans">model.html#humans</a>). The slurm sets and the tool share one GitHub repository; whether the sets move to their own repository is an open question (<a href="delivery.html#open">delivery.html#open</a>). The delivery phases are in <a href="delivery.html#phases">delivery.html#phases</a>.</p>
 
 <h2 id="name">The name</h2>
 <p>The name is <code>repoctl</code>, in the pattern of <code>clusterctl</code>. The binary, the RPM and the Go module use this name. Fedora has no package with this name.</p>

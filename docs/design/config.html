@@ -205,7 +205,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tr><td><code>packages[].targets</code></td><td>no</td><td>The targets of this package. Default all.</td></tr>
 <tr><td><code>packages[].role</code></td><td>no</td><td><code>release</code> for the release package (<a href="signing.html#release">signing.html#release</a>).</td></tr>
 <tr><td><code>packages[].upstream</code>: <code>github</code>, <code>tags</code>, <code>fedora</code></td><td>no</td><td>The input of <code>repoctl upstream</code>: GitHub repository, tag filter (regular expression), Fedora package name.</td></tr>
-<tr><td><code>packages[].notes</code></td><td>no</td><td>Free text for people and skills.</td></tr>
+<tr><td><code>packages[].notes</code></td><td>no</td><td>Free text for humans and skills.</td></tr>
 <tr><td><code>skills[]</code></td><td>no</td><td>Directories with set-local skills (<a href="agents.html#skills">agents.html#skills</a>).</td></tr>
 </tbody>
 </table>
@@ -265,7 +265,7 @@ packages:
 <p>Which command takes the set lock, and what a busy set shows, is in <a href="build.html#lock">build.html#lock</a>.</p>
 
 <h2 id="user-config">User config</h2>
-<p>The user config holds the values of one person on one host. It never says what to build.</p>
+<p>The user config holds the values of one human on one host. It never says what to build.</p>
 <pre><code class="language-yaml"># ~/.config/repoctl/config.yaml of dklein on hpc-a1
 jobs: 3                        # parallel mock builds
 sign:
@@ -283,7 +283,7 @@ sets:
 <tr><td><code>jobs</code></td><td>2</td><td>The maximum number of nodes in mock at the same time. Each mock build uses all CPUs, so a high value gives little.</td></tr>
 <tr><td><code>lock_wait</code></td><td>0</td><td>How long a command waits for a busy set lock.</td></tr>
 <tr><td><code>progress</code></td><td>auto</td><td>The progress display: auto, tree, counter, plain, none.</td></tr>
-<tr><td><code>sign.key</code></td><td><code>rpm --eval %{_gpg_name}</code></td><td>The signing key of this person: an id from <code>sign.keys</code> or a full fingerprint. <code>sign.gpg_name</code> is an alias.</td></tr>
+<tr><td><code>sign.key</code></td><td><code>rpm --eval %{_gpg_name}</code></td><td>The signing key of this human: an id from <code>sign.keys</code> or a full fingerprint. <code>sign.gpg_name</code> is an alias.</td></tr>
 <tr><td><code>sign.backend</code></td><td>gpg</td><td>gpg works with a YubiKey and with a key file. Other backends are for later (<a href="#scope">scope</a>).</td></tr>
 <tr><td><code>sign.gpg.homedir</code></td><td><code>GNUPGHOME</code>, else <code>~/.gnupg</code></td><td>The GnuPG home directory.</td></tr>
 <tr><td><code>ui.listen</code>, <code>ui.open</code></td><td>127.0.0.1:0, true</td><td>The loopback address of the web UI, and whether <code>repoctl ui</code> opens a browser.</td></tr>
@@ -292,7 +292,7 @@ sets:
 <tr><td><code>sets.NAME.*</code></td><td>-</td><td>The same keys for one set. They win over the top-level keys.</td></tr>
 </tbody>
 </table>
-<p>The set config lists the keys that the clients trust. The user config only selects the key of this person (<a href="signing.html#probe">signing.html#probe</a>). A user config has no publish path, because no admin writes the served tree.</p>
+<p>The set config lists the keys that the clients trust. The user config only selects the key of this human (<a href="signing.html#probe">signing.html#probe</a>). A user config has no publish path, because no admin writes the served tree.</p>
 
 <h2 id="env">Environment variables</h2>
 <p>A <code>REPOCTL_*</code> variable stands in for a flag that the command line does not give. A variable with the empty string counts as not set. The help of each flag names its variable before the default. A value that repoctl cannot use fails the command with exit 1 and names the variable. <code>REPOCTL_PROGRESS</code>, <code>REPOCTL_PROGRESS_LOG</code> and <code>REPOCTL_VERBOSE</code> never fail a command: repoctl writes one note and continues without them.</p>
@@ -309,7 +309,7 @@ sets:
 <tr><td><code>REPOCTL_VERBOSE</code></td><td><code>-v</code></td><td>A number: <code>2</code> is <code>-vv</code>.</td></tr>
 <tr><td><code>REPOCTL_JOBS</code></td><td><code>--jobs</code></td><td>Also the user config key <code>jobs</code>.</td></tr>
 <tr><td><code>REPOCTL_LOCK_WAIT</code></td><td><code>--lock-wait</code></td><td>A duration, for example <code>10m</code>.</td></tr>
-<tr><td><code>REPOCTL_SIGN_KEY</code></td><td>user config <code>sign.key</code></td><td>No flag: a person sets the key once. <code>REPOCTL_GPG_NAME</code> is an alias.</td></tr>
+<tr><td><code>REPOCTL_SIGN_KEY</code></td><td>user config <code>sign.key</code></td><td>No flag: a human sets the key once. <code>REPOCTL_GPG_NAME</code> is an alias.</td></tr>
 <tr><td><code>REPOCTL_UI_LISTEN</code></td><td><code>repoctl ui --listen</code></td><td>A loopback address only.</td></tr>
 <tr><td><code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code></td><td>no flag</td><td><code>1</code> lets publish, repo push, repo restore, repo prune and repo resign run with <code>--yes</code> and without a terminal. It never allows repo gc, sign deployed or a trust change. repoctl reads it from the environment only, never from a file (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
 </tbody>
@@ -449,7 +449,7 @@ sets:
   <li><b>One graph per target.</b> repoctl builds the SRPM in the mock chroot of the target and reads its requires. Thus <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives correct edges. repoctl cannot see dynamic <code>BuildRequires</code> (<code>%generate_buildrequires</code>) before the build, and it writes a warning for them.</li>
   <li><b>Missing dependency for a target.</b> plan shows the gap before the build: "slurm@el10 needs rocm-smi-devel; rocm-smi is not built for el10" (<code>dep.not-for-target</code>, warn).</li>
   <li><b>Staging and publish per target.</b> Each target has its own staging repo in a run and its own OCI package. A publish covers the targets that are ready.</li>
-  <li><b>Extra RPM repos</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. A change in these repos can change a build result. repoctl does not rebuild by itself. It shows the advisory <code>buildroot.drift</code>, and the person decides.</li>
+  <li><b>Extra RPM repos</b> (<code>targets[].repos</code>) go to mock as <code>--addrepo</code>. A change in these repos can change a build result. repoctl does not rebuild by itself. It shows the advisory <code>buildroot.drift</code>, and the human decides.</li>
   <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
 </ul>
 <p>Build a package for some targets only, and add or drop a target: <a href="lifecycle.html#some-targets">lifecycle.html#some-targets</a>, <a href="lifecycle.html#targets">lifecycle.html#targets</a>.</p>
@@ -481,6 +481,6 @@ sets:
 <h3 id="generic">The "generic" test</h3>
 <p>repoctl must not know the word slurm. The test is the branch <code>main</code> as its own set. <code>main</code> gets a <code>repoctl.yaml</code>: name <code>repoctl</code>, one target for the current Fedora, and the packages <code>repoctl</code> and <code>repoctl-release</code> (in-tree, <code>role: release</code>).</p>
 <p>The test passes when repoctl builds and publishes this set with the same commands as a slurm set. It runs on a Fedora host with a personal key, and the snapshot goes to GHCR. The release-version check (<a href="signing.html#release">signing.html#release</a>) compares the release package with the version in the set name. The name <code>repoctl</code> has no version, so the check is off for this set.</p>
-<p>The Fedora RPM repo on GitHub Pages stays the output of the Pages job (<a href="decision.html#pages">decision.html#pages</a>). A CI job that signs and publishes through repoctl without a person is a later feature.</p>
+<p>The Fedora RPM repo on GitHub Pages stays the output of the Pages job (<a href="decision.html#pages">decision.html#pages</a>). A CI job that signs and publishes through repoctl without a human is a later feature.</p>
 </body>
 </html>

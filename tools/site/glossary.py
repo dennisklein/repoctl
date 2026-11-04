@@ -2,12 +2,18 @@
 """The glossary of the design record: load it, link terms in HTML.
 
 Usage: python3 tools/site/glossary.py mockups [--check]
+       python3 tools/site/glossary.py report [--site DIR] [KEY ...]
 
 The data is docs/assets/glossary-data.js. tools/site/build.py imports this
 module: it makes design/glossary.html and links the first use of each term in
-each section of a chapter. The command "mockups" does the same for the web UI
+each section of a chapter. It also links the first use of the other projects in
+tools/site/projects.json (a tool name such as brig, or a repo such as
+GSI-HPC/go-clikit) to the project on GitHub. The command "mockups" does the same for the web UI
 mockups in docs/design/mockups/ui/ and writes the files in place (--check only
 tells which files change). The rules are in the profiles DOCS and MOCKUPS.
+The command "report" reads a built site (default _site/) and gives the number
+of links per term id or repo; for each KEY it also gives each link with the
+text around it. Use it to find a word that links where it has an other meaning.
 Python 3 standard library only.
 """
 
@@ -23,10 +29,32 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 DATA = REPO / "docs" / "assets" / "glossary-data.js"
+PROJECTS = HERE / "projects.json"
 PAGE = "design/glossary.html"          # site path of the glossary page
 
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
         "meta", "source", "track", "wbr"}
+
+
+def word_regex(forms):
+    """A word of its own: not part of a name, a path, an id or a hyphenated word."""
+    alts = "|".join(re.escape(f) for f in sorted(forms, key=len, reverse=True))
+    return re.compile(r"(?<![\w@./$-])(?:" + alts + r")(?![\w@/-]|\.[\w])")
+
+
+def compile_rules(entry):
+    return {k: re.compile(entry[k]) for k in ("only_after", "not_after", "not_before") if k in entry}
+
+
+def rules_ok(r, text, start, end):
+    before, after = text[:start], text[end:]
+    if "only_after" in r and not r["only_after"].search(before):
+        return False
+    if "not_after" in r and r["not_after"].search(before):
+        return False
+    if "not_before" in r and r["not_before"].search(after):
+        return False
+    return True
 
 
 class Glossary:
@@ -51,26 +79,50 @@ class Glossary:
         self.forms = forms
         self.rules = {}
         for t in self.terms:
-            r = {k: re.compile(t[k]) for k in ("only_after", "not_after", "not_before") if k in t}
+            r = compile_rules(t)
             if r:
                 self.rules[t["id"]] = r
-        alts = "|".join(re.escape(f) for f in sorted(forms, key=len, reverse=True))
-        # a word of its own: not part of a name, a path, an id or a hyphenated word
-        self.regex = re.compile(r"(?<![\w@./$-])(?:" + alts + r")(?![\w@/-]|\.[\w])")
+        self.regex = word_regex(forms)
 
     def find(self, text):
         for m in self.regex.finditer(text):
             tid = self.forms[m.group(0)]
             r = self.rules.get(tid)
-            if r:
-                before, after = text[:m.start()], text[m.end():]
-                if "only_after" in r and not r["only_after"].search(before):
-                    continue
-                if "not_after" in r and r["not_after"].search(before):
-                    continue
-                if "not_before" in r and r["not_before"].search(after):
-                    continue
+            if r and not rules_ok(r, text, m.start(), m.end()):
+                continue
             yield m.start(), m.end(), tid
+
+
+class Projects:
+    """Other projects: a form (a tool name, or owner/name) -> the repo on GitHub."""
+
+    def __init__(self, path=PROJECTS):
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        self.forms, self.rules = {}, {}
+        for p in data["projects"]:
+            repo = p["repo"]
+            if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
+                raise ValueError(f"projects: bad repo {repo!r}")
+            for f in [repo] + p["forms"]:
+                if f in self.forms:
+                    raise ValueError(f"projects: form {f!r} is in {self.forms[f]!r} and {repo!r}")
+                self.forms[f] = repo
+            r = compile_rules(p)
+            if r:
+                self.rules[repo] = r
+        self.regex = word_regex(self.forms)
+
+    @staticmethod
+    def url(repo):
+        return "https://github.com/" + repo
+
+    def find(self, text):
+        for m in self.regex.finditer(text):
+            repo = self.forms[m.group(0)]
+            r = self.rules.get(repo)
+            if r and not rules_ok(r, text, m.start(), m.end()):
+                continue
+            yield m.start(), m.end(), repo
 
 
 class Profile:
@@ -109,9 +161,10 @@ MOCKUPS = Profile(
 
 
 class Linker(HTMLParser):
-    """Copy HTML and wrap the first use of each term per block in <a class="gl">."""
+    """Copy HTML and wrap the first use of each term per block in <a class="gl">,
+    and the first use of each other project in <a href="https://github.com/...">."""
 
-    def __init__(self, glossary, profile, href):
+    def __init__(self, glossary, profile, href, projects=None):
         super().__init__(convert_charrefs=False)
         self.g = glossary
         self.p = profile
@@ -120,6 +173,9 @@ class Linker(HTMLParser):
         self.stack = []             # (tag, link_in, never_in)
         self.seen = set()
         self.used = []              # ids in order of first link on the page
+        self.projects = projects
+        self.seen_repo = set()
+        self.code_at = None         # index in out of a <code> that can be a repo link
 
     def _state(self):
         ok = any(e[1] for e in self.stack)
@@ -140,12 +196,28 @@ class Linker(HTMLParser):
         classes = (dict(attrs).get("class") or "").split()
         if Profile.hit(self.p.reset_on, tag, classes):
             self.seen = set()
+            self.seen_repo = set()
+        if tag == "code" and not closed and self.projects and self.stack and self._state():
+            self.code_at = len(self.out) - 1
         if not closed:
             self.stack.append((tag, Profile.hit(self.p.link_in, tag, classes),
                                Profile.hit(self.p.never_in, tag, classes)))
 
     def handle_endtag(self, tag):
+        if tag == "code" and self.code_at is not None:
+            i, self.code_at = self.code_at, None
+            inner = "".join(self.out[i + 1:])
+            repo = self.projects.forms.get(inner) if "/" in inner else None   # owner/name only
+            if repo and repo not in self.seen_repo:
+                self.seen_repo.add(repo)
+                self.out.insert(i, f'<a href="{Projects.url(repo)}">')
+                self.out.append("</code></a>")
+                self.stack_pop(tag)
+                return
         self.out.append(f"</{tag}>")
+        self.stack_pop(tag)
+
+    def stack_pop(self, tag):
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i][0] == tag:
                 del self.stack[i:]
@@ -155,17 +227,30 @@ class Linker(HTMLParser):
         if not self.stack or not self._state():
             self.out.append(data)
             return
+        hits = [(s, e, "gl", tid) for s, e, tid in self.g.find(data)]
+        if self.projects:
+            hits += [(s, e, "repo", repo) for s, e, repo in self.projects.find(data)]
+        hits.sort(key=lambda h: (h[0], h[0] - h[1]))
         pos = 0
-        for start, end, tid in self.g.find(data):
-            if tid in self.seen:
+        for start, end, kind, key in hits:
+            if start < pos:
                 continue
-            self.seen.add(tid)
-            if tid not in self.used:
-                self.used.append(tid)
-            t = self.g.by_id[tid]
+            if kind == "gl":
+                if key in self.seen:
+                    continue
+                self.seen.add(key)
+                if key not in self.used:
+                    self.used.append(key)
+                t = self.g.by_id[key]
+                a = (f'<a class="gl" href="{html.escape(self.href(key))}" data-gl="{key}" '
+                     f'data-domain="{t["domain"]}">')
+            else:
+                if key in self.seen_repo:
+                    continue
+                self.seen_repo.add(key)
+                a = f'<a href="{Projects.url(key)}">'
             self.out.append(data[pos:start])
-            self.out.append(f'<a class="gl" href="{html.escape(self.href(tid))}" data-gl="{tid}" '
-                            f'data-domain="{t["domain"]}">{data[start:end]}</a>')
+            self.out.append(f'{a}{data[start:end]}</a>')
             pos = end
         self.out.append(data[pos:])
 
@@ -188,9 +273,9 @@ class Linker(HTMLParser):
         self.out.append(f"<?{data}>")
 
 
-def link(text, glossary, profile, href):
+def link(text, glossary, profile, href, projects=None):
     """Return (html, ids): the text with links, and the linked term ids."""
-    lk = Linker(glossary, profile, href)
+    lk = Linker(glossary, profile, href, projects)
     lk.feed(text)
     lk.close()
     return "".join(lk.out), lk.used
@@ -216,11 +301,47 @@ def link_mockup(text, glossary, page):
     return head + body
 
 
+REPORT_LINK = re.compile(r'<a (?:class="gl" [^>]*data-gl="([^"]+)"|href="https://github\.com/([^"]+)")[^>]*>(.*?)</a>', re.S)
+
+
+def plain(text):
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", text)))
+
+
+def report(site, keys):
+    projects = set(Projects().forms.values()) if PROJECTS.is_file() else set()
+    count, ctx = {}, {}
+    for f in sorted(Path(site).rglob("*.html")):
+        rel = f.relative_to(site).as_posix()
+        if rel.startswith("design/mockups/"):
+            continue
+        text = f.read_text(encoding="utf-8")
+        for m in REPORT_LINK.finditer(text):
+            key = m.group(1) or m.group(2)
+            if m.group(2) and key not in projects:
+                continue            # a link in the source, not one that the build made
+            count[key] = count.get(key, 0) + 1
+            if key in keys:
+                before = plain(text[max(0, m.start() - 300):m.start()])[-45:]
+                after = plain(text[m.end():m.end() + 300])[:45]
+                ctx.setdefault(key, []).append(f"  {rel}: ...{before}[{plain(m.group(3))}]{after}...")
+    for key, n in sorted(count.items(), key=lambda kv: (-kv[1], kv[0])):
+        print(f"{n:5}  {key}")
+    for key in keys:
+        print(f"\n== {key}: {count.get(key, 0)} links")
+        print("\n".join(ctx.get(key, [])))
+    return 0
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Link glossary terms.")
-    ap.add_argument("what", choices=["mockups"])
-    ap.add_argument("--check", action="store_true", help="only tell which files change")
+    ap = argparse.ArgumentParser(description="Link glossary terms and other projects.")
+    ap.add_argument("what", choices=["mockups", "report"])
+    ap.add_argument("keys", nargs="*", help="report: term ids or repos to show in context")
+    ap.add_argument("--check", action="store_true", help="mockups: only tell which files change")
+    ap.add_argument("--site", default=str(REPO / "_site"), help="report: the built site (default _site/)")
     args = ap.parse_args(argv)
+    if args.what == "report":
+        return report(args.site, args.keys)
     g = Glossary()
     changed = 0
     for f in sorted((REPO / "docs" / "design" / "mockups" / "ui").glob("*.html")):

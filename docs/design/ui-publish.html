@@ -40,7 +40,7 @@
 <tr><td>Notes</td><td>The first line of <code>packages[dir].notes</code>.</td><td>pmix_v4 "Upstream 4.x is frozen at 4.2.9."</td></tr>
 </tbody>
 </table>
-<p>A package in the lock state unpinned or orphaned gets a row with the state word and a copy command, for example <code>repoctl pin DIR</code> (<a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>). The UI does not edit the package list: to add, retire or rename a package, the person changes repoctl.yaml (<a href="lifecycle.html#changes">lifecycle.html#changes</a>).</p>
+<p>A package in the lock state unpinned or orphaned gets a row with the state word and a copy command, for example <code>repoctl pin DIR</code> (<a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>). The UI does not edit the package list: to add, retire or rename a package, the human changes repoctl.yaml (<a href="lifecycle.html#changes">lifecycle.html#changes</a>).</p>
 <figure class="shot"><a href="mockups/ui/packages.html"><img src="img/ui-packages-mobile.webp" alt="Packages at 390 px: one card per package with labelled values" loading="lazy"></a><figcaption>Packages at 390 px. Each row becomes a card; each value keeps its column name as a label.</figcaption></figure>
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/packages[?filter=update|frozen|external|partial]</code></dd>
@@ -50,7 +50,7 @@
 
 <h2 id="package">Package detail</h2>
 <figure class="shot"><a href="mockups/ui/package-slurm.html"><img src="img/ui-package-slurm.webp" alt="Package slurm at 18:01: step line, builds per target with the el10 failure, upstream 26.05.5, closed folds" loading="lazy"></a><figcaption>Package slurm at 18:01. el9 builds, el10 failed. Open log is the one filled button.</figcaption></figure>
-<p>Purpose: the package page shows one package: lock state, builds per target, spec facts, upstream and dependents, as <code>repoctl show DIR</code> does. It leads the person to the next step of a package change.</p>
+<p>Purpose: the package page shows one package: lock state, builds per target, spec facts, upstream and dependents, as <code>repoctl show DIR</code> does. It leads the human to the next step of a package change.</p>
 <p>Layout: a header, a step line, a main column and a side column of 340 px. Below 760 px the side column goes under the main column. The header has the name, the version, the branch, the targets (only when not all), the spec summary, Show in graph (link) and Plan this package (outline). The step line reads "1 commit · 2 pin · 3 build". Each step shows done, open or its state. The next possible step holds the one filled primary.</p>
 <table class="compact">
 <thead><tr><th>Part</th><th>slurm at 18:01</th><th>ucx at 17:45 (before the pin)</th></tr></thead>
@@ -175,7 +175,7 @@
 <tr><td><a href="#progress">Progress</a>, <a href="#failed">Failed</a>, <a href="#done">Done</a></td><td><code>/s/&lt;set&gt;/runs/p-20261103-1412-5e1</code></td><td><a href="mockups/ui/publish-progress.html">progress</a>, <a href="mockups/ui/publish-failed.html">failed</a>, <a href="mockups/ui/publish-done.html">done</a></td></tr>
 </tbody>
 </table>
-<p>Each screen has the stepper "1 Review · 2 Confirm · 3 Sign and publish" under the page head. There is no snapshots page. The Overview and the result show the snapshot ref with a copy button. To list and restore snapshots, the person uses the CLI (<a href="cli.html#cmd-repo-snapshots"><code>repoctl repo snapshots</code></a>, <a href="cli.html#cmd-repo-restore"><code>repoctl repo restore</code></a>), because a restore changes shared state.</p>
+<p>Each screen has the stepper "1 Review · 2 Confirm · 3 Sign and publish" under the page head. There is no snapshots page. The Overview and the result show the snapshot ref with a copy button. To list and restore snapshots, the human uses the CLI (<a href="cli.html#cmd-repo-snapshots"><code>repoctl repo snapshots</code></a>, <a href="cli.html#cmd-repo-restore"><code>repoctl repo restore</code></a>), because a restore changes shared state.</p>
 
 <h3 id="review">Review</h3>
 <figure class="shot"><a href="mockups/ui/publish-review.html"><img src="img/ui-publish-review.webp" alt="Publish review of el9 at 14:05: el9 ready, el10 one line, pmix gate row open but not blocking, four changes, closed folds, sticky footer with Continue" loading="lazy"></a><figcaption>Review of el9 on 2026-11-03 14:05. Continue in the sticky footer is the one filled button.</figcaption></figure>
@@ -197,7 +197,7 @@
 </dl>
 
 <h3 id="accept">Accept state (variant)</h3>
-<figure class="shot"><a href="mockups/ui/publish-accept.html"><img src="img/ui-publish-accept.webp" alt="Variant review of el9: soname.removed/ucx@el9 accepted with a reason, pill accepted, red edge kept, Continue on" loading="lazy"></a><figcaption>Variant, not the story publish: the person accepts soname.removed/ucx@el9 for this publish.</figcaption></figure>
+<figure class="shot"><a href="mockups/ui/publish-accept.html"><img src="img/ui-publish-accept.webp" alt="Variant review of el9: soname.removed/ucx@el9 accepted with a reason, pill accepted, red edge kept, Continue on" loading="lazy"></a><figcaption>Variant, not the story publish: the human accepts soname.removed/ucx@el9 for this publish.</figcaption></figure>
 <aside class="callout note"><p class="callout-title">Variant</p><p>This screen uses a variant state. In the story, no advisory blocks the el9 publish. In the variant, run <code>r-20261102-1720-9b1</code> builds ucx alone, and ucx 1.22.1 removes libucp.so.0. The soname check gives <code>soname.removed/ucx@el9</code> (required): "libucp.so.0 removed; openmpi requires it". The closure is ucx and openmpi.</p></aside>
 <ul>
   <li><b>Blocker.</b> The gate row comes right after the targets. It is the only red item of the page: "This publish changes ucx, and openmpi on el9 requires libucp.so.0." Continue is off.</li>
@@ -288,7 +288,7 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
   <li>Done: key in sign.keys, state active. Set commit 7e21d0a "Trust key a.admin C2F9…52A7".</li>
   <li>Done: key in the key file <code>packages/slurm-release/RPM-GPG-KEY-slurm</code>.</li>
   <li>Open: a release with the key is published to each target. latest has slurm-release-26.05-2 on el9 and el10. el10 can publish after slurm@el10 builds. Plan slurm-release › is the filled primary. That publish shows the trust block, and Confirm asks for the typed key id a.admin.</li>
-  <li>Open: deployed on all clients, no record. A person confirms it once per target. Confirm deployment… is off until a target has the release in latest.</li>
+  <li>Open: deployed on all clients, no record. A human confirms it once per target. Confirm deployment… is off until a target has the release in latest.</li>
   <li>Open: GHCR write access. a.admin is not in the team slurm-repo-admins. A. Admin checks it with <code>repoctl doctor</code> on hpc-a2 (<a href="publish.html#registry">publish.html#registry</a>).</li>
 </ol>
 <p>The Rules fold links <a href="signing.html#gates">signing.html#gates</a> and <a href="signing.html#onboarding">signing.html#onboarding</a>. The UI does not add, retire or remove a key: these are CLI steps (<a href="cli.html#cmd-sign-add"><code>sign add</code></a>, <a href="cli.html#cmd-sign-retire"><code>sign retire</code></a>, <a href="cli.html#cmd-sign-remove"><code>sign remove</code></a>).</p>
@@ -304,7 +304,7 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
   <li><b>Key.</b> a.admin, A. Admin &lt;a.admin@gsi.de&gt;, the full fingerprint C2F9 7713 05AB E4D6 18C3 9F2B 70DE A5C1 E93F 52A7.</li>
   <li><b>Release per target.</b> slurm-release-26.05-3.el9: "in latest · key file holds a.admin". el10 has no release with the key yet, so the record covers el9 only; el10 gets its own record after its publish (<a href="signing.html#deployment-record">signing.html#deployment-record</a>). repoctl checks this before it shows the form. A failed check shows the refusal (exit 12 in the CLI) and no form.</li>
   <li><b>Statement.</b> "Config management installed this release on all clients. repoctl gets no feedback from config management, so you confirm it."</li>
-  <li><b>Note.</b> How the person checked the clients, for example "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters".</li>
+  <li><b>Note.</b> How the human checked the clients, for example "puppet run 2026-11-05 08:00, checked with rpm -q on 4 clusters".</li>
   <li><b>Typed key id.</b> "Type a.admin to confirm". Record deployment is the filled primary, off until the text matches.</li>
 </ul>
 <p>The CLI toggle of the Signing page holds <code>repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9 --note "…"</code>. The action writes <code>keys/deployed.yaml</code> and makes a set commit (b3d94f1). The toast says "Committed b3d94f1. Push it." with <code>git push origin builder/slurm-26.05</code> to copy. The UI does not push. The action has no MCP tool and no unattended mode.</p>

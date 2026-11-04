@@ -156,7 +156,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <tr><td><code>forced</code></td><td><code>--force</code> selected the node (<a href="#force">forced builds</a>).</td></tr>
 </tbody>
 </table>
-<aside class="callout rule"><p class="callout-title">Rule</p><p>A change in a dependency, in the mock config, in a macro file or in an upstream repo is never a plan reason. It gives an advisory (<a href="advisories.html#codes">advisory codes</a>). The person decides, and <code>repoctl rebuild</code> makes the build.</p></aside>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>A change in a dependency, in the mock config, in a macro file or in an upstream repo is never a plan reason. It gives an advisory (<a href="advisories.html#codes">advisory codes</a>). The human decides, and <code>repoctl rebuild</code> makes the build.</p></aside>
 <aside class="callout why"><p class="callout-title">Why</p><p>The build identity is the package commit plus the target (<a href="model.html#identity">build identity</a>). A rebuild of all dependents after each library change gives new NVRs with no change in content. repoctl trusts the ABI promise of upstream, and the soname and closure checks tell when this trust is wrong.</p></aside>
 
 <h3 id="deps">Selection and dependencies</h3>
@@ -250,7 +250,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <p>The job count is the maximum number of nodes in mock at the same time. It comes from <code>-j</code>, then <code>REPOCTL_JOBS</code>, then <code>jobs</code> in the user config, else 2 (<a href="config.html#user-config">user config</a>). Each mock build uses all CPUs, so a high value gives little. When more nodes are ready than slots are free, the node with the most dependents starts first, then the oldest.</p>
 <h3 id="failures">Failures</h3>
 <p>When a node fails, each node that depends on it becomes blocked. The other nodes continue: keep going is the default. With <code>--fail-fast</code>, repoctl starts no new node after the first failure and cancels the running nodes.</p>
-<p>A failure has a class: srpm, builddep, build, stage, mock, host, timeout, canceled or internal (<a href="contract.html#names">shared names</a>). For srpm, builddep, build and stage, the inputs are wrong, and a retry gives the same failure. For host (no disk space, no mock group, a repo metadata error), a retry can help after the person repairs the host. The skill triage-build selects its playbook by the class.</p>
+<p>A failure has a class: srpm, builddep, build, stage, mock, host, timeout, canceled or internal (<a href="contract.html#names">shared names</a>). For srpm, builddep, build and stage, the inputs are wrong, and a retry gives the same failure. For host (no disk space, no mock group, a repo metadata error), a retry can help after the human repairs the host. The skill triage-build selects its playbook by the class.</p>
 <h3 id="run-states">Run states</h3>
 <table class="compact">
 <thead><tr><th>Run state</th><th>Meaning</th><th>Exit of build</th></tr></thead>
@@ -304,7 +304,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <text class="t-small" x="772" y="189">failure class, excerpt</text>
 <rect class="box-soft" x="760" y="204" width="184" height="40" rx="8"/>
 <text class="t-title" x="772" y="224">canceled</text>
-<text class="t-small" x="772" y="241">person, signal, --fail-fast</text>
+<text class="t-small" x="772" y="241">human, signal, --fail-fast</text>
 <rect class="box-warn" x="110" y="228" width="140" height="48" rx="8"/>
 <text class="t-title" x="122" y="248">blocked</text>
 <text class="t-small" x="122" y="265">a dependency failed</text>
@@ -326,7 +326,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td>ok</td><td>terminal</td><td>The three steps ended ok. The node is staged in the next plan.</td></tr>
 <tr><td>failed</td><td>terminal</td><td>A step failed. The node has a failure class and an error excerpt.</td></tr>
 <tr><td>blocked</td><td>terminal</td><td>A dependency failed. The node did not start.</td></tr>
-<tr><td>canceled</td><td>terminal</td><td>A person, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
+<tr><td>canceled</td><td>terminal</td><td>A human, a signal or <code>--fail-fast</code> stopped the node.</td></tr>
 <tr><td>current</td><td>plan state</td><td>Plan action current. The node does not change in the run.</td></tr>
 <tr><td>staged</td><td>plan state</td><td>Plan action staged. The node does not change in the run.</td></tr>
 <tr><td>skip</td><td>plan action</td><td>The node is not in the run. The text output hides it.</td></tr>
@@ -516,7 +516,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 repoctl: error: set slurm-26.05 is busy: repoctl build holds the set lock (run r-20261102-1750-a3f, pid 48213 on hpc-a1)
 hint: watch that run. run: repoctl runs latest --follow
 hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
-<p>The set lock ends with its process. Thus a stale set lock cannot stay, and no command removes one. Two admins have two set locks on two hosts. They share no lease. Publish compares latest with its base in step 1 and in step 7 (<a href="publish.html#admins">two admins</a>). The team coordinates in its own channel (<a href="model.html#people">people and hosts</a>).</p>
+<p>The set lock ends with its process. Thus a stale set lock cannot stay, and no command removes one. Two admins have two set locks on two hosts. They share no lease. Publish compares latest with its base in step 1 and in step 7 (<a href="publish.html#admins">two admins</a>). The team coordinates in its own channel (<a href="model.html#humans">humans and hosts</a>).</p>
 
 <h2 id="soname">Soname check after a node build</h2>
 <p>At the end of step rpm, repoctl compares the sonames that the new RPMs provide with the sonames of the newest published build of the node. The published sonames come from the <code>provides</code> list of the node in the RepoManifest of latest.</p>
@@ -526,7 +526,7 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
 </ul>
 <p>The plan and the UI show the result in the row of the node: "sonames unchanged: rebuild not necessary". While the node is in the run, its soname advisory is pending (<a href="advisories.html#states">advisory states</a>). The optional ABI check (<code>abi.changed</code>, needs libabigail) also runs after the node build.</p>
 <p>In the story, ucx 1.22.1 keeps <code>libucp.so.0</code>, <code>libuct.so.0</code> and <code>libucs.so.0</code>. The result of ucx@el9 and ucx@el10 is unchanged. Thus the rebuilds of slurm, openmpi and slurm-singularity-exec are not necessary. Dennis wants them, and they do no harm: each has a new NVR.</p>
-<aside class="callout why"><p class="callout-title">Why a result and not an advisory</p><p>An advisory asks the person for a step. An unchanged soname asks for nothing. The record shows that the check ran. Thus "no advisory" and "not checked" do not look the same.</p></aside>
+<aside class="callout why"><p class="callout-title">Why a result and not an advisory</p><p>An advisory asks the human for a step. An unchanged soname asks for nothing. The record shows that the check ran. Thus "no advisory" and "not checked" do not look the same.</p></aside>
 
 <h2 id="rebuild">Rebuild</h2>
 <p><code>repoctl rebuild DIR... --reason TEXT</code> prepares a new build of a package with the same version. It does not start a build. For each package, repoctl adds an empty commit <code>Rebuild: TEXT</code> to the package branch, then pins it in <code>repoctl.lock</code>. rpmautospec counts commits, so the release goes up by one, and the changelog shows the reason. The next plan gives the action build with the reason rebuild on all targets of the package.</p>
@@ -564,7 +564,7 @@ Next: git -C packages/slurm push origin slurm/slurm-26.05   (the same for openmp
 <tr><td><code>…/logs/RUN/NODE/STEP/build.log</code>, <code>root.log</code>, <code>state.log</code></td><td>The mock logs of one step (<code>srpm</code> or <code>rpm</code>) of the node. <code>repoctl logs --file</code> opens the file of the last step; <code>--step</code> selects the other step.</td></tr>
 </tbody>
 </table>
-<p>The process that holds the set lock writes the journal. All readers fold the same journal: <code>repoctl runs</code>, <code>repoctl logs</code>, the web UI over SSE, MCP and the skills. Thus a person can watch from a terminal a run that the UI or MCP started: <code>repoctl runs RUN --follow</code>. The machine contract has the format and the event names (<a href="contract.html#journal">journal</a>).</p>
+<p>The process that holds the set lock writes the journal. All readers fold the same journal: <code>repoctl runs</code>, <code>repoctl logs</code>, the web UI over SSE, MCP and the skills. Thus a human can watch from a terminal a run that the UI or MCP started: <code>repoctl runs RUN --follow</code>. The machine contract has the format and the event names (<a href="contract.html#journal">journal</a>).</p>
 <p><code>repoctl logs RUN NODE</code> shows the log of one node. Without a node, it shows the first failed node of the run. For a failed node on a terminal, it shows an excerpt from 5 lines above the first error to the end. <code>-v</code> shows the whole log. <code>--file repoctl|root|build|state</code> selects the file. The default <code>repoctl</code> is the node log of repoctl, which holds the mock output; <code>root</code>, <code>build</code> and <code>state</code> select one mock log. The node log page of the web UI opens the file that holds the first error, for example <code>root.log</code> for a builddep failure (<a href="ui-build.html#node-log">node log</a>).</p>
 <pre class="term">$ repoctl logs slurm@el10
 slurm@el10 failed in rpm after 1m48s  run r-20261102-1750-a3f  commit d42f66a

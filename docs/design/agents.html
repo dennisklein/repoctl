@@ -7,21 +7,21 @@
 </head>
 <body>
 <h1>Agents</h1>
-<p class="lede">This chapter specifies how an LLM agent works with repoctl. It gives the generic skills, the tools of each task and the MCP server with its tool table. It also gives the agent that the web UI starts for an advisory button. The deterministic core does the work. The agent explains and proposes. A person takes every step that changes shared state.</p>
+<p class="lede">This chapter specifies how an LLM agent works with repoctl. It gives the generic skills, the tools of each task and the MCP server with its tool table. It also gives the agent that the web UI starts for an advisory button. The deterministic core does the work. The agent explains and proposes. A human takes every step that changes shared state.</p>
 <ul class="keypoints">
   <li>Five generic skills ship with repoctl: <code>repoctl</code>, <code>package-updates</code>, <code>bump-package</code>, <code>triage-build</code> and <code>rebuild-check</code>. Package facts live in <code>repoctl.yaml</code>, not in a skill.</li>
   <li>A set can add skills for local policy. A set-local skill can never replace a generic skill.</li>
   <li>Each task has its own tool list. <code>allowed-tools</code> only grants, so <code>repoctl skills install --project</code> also writes a deny list.</li>
   <li><code>repoctl mcp start</code> serves 28 tools for one set. <code>--tools read</code> limits the server to the 23 read tools. No tool changes shared state.</li>
-  <li>A step that only a person can take comes back as a problem with a <dfn>humanAction</dfn>. The agent stops and shows the command.</li>
+  <li>A step that only a human can take comes back as a problem with a <dfn>humanAction</dfn>. The agent stops and shows the command.</li>
   <li>The web UI has four advisory buttons. Each runs a local agent with a fixed skill, a fixed input and the read-only MCP server.</li>
-  <li>The result shows in the agent panel. Proposed actions are normal buttons. Nothing runs until the person clicks. There is no chat.</li>
+  <li>The result shows in the agent panel. Proposed actions are normal buttons. Nothing runs until the human clicks. There is no chat.</li>
 </ul>
 
 <h2 id="principles">Principles</h2>
 <figure class="diagram">
 <svg viewBox="0 0 880 236" role="img" aria-labelledby="roles-t">
-<title id="roles-t">The core does the work, the agent proposes, the person takes the shared-state steps</title>
+<title id="roles-t">The core does the work, the agent proposes, the human takes the shared-state steps</title>
 <rect class="box-accent" x="16" y="30" width="230" height="120" rx="8"/>
 <text class="t-on t-title" x="32" y="58">repoctl core</text>
 <text class="t-on" x="32" y="84">plan, build, check, gates</text>
@@ -33,7 +33,7 @@
 <text class="t" x="341" y="104">judge a rebuild</text>
 <text class="t" x="341" y="124">summarize, draft a bump</text>
 <rect class="box-soft" x="634" y="30" width="230" height="120" rx="8"/>
-<text class="t-title" x="650" y="58">Person</text>
+<text class="t-title" x="650" y="58">Human</text>
 <text class="t" x="650" y="84">publish, push, restore</text>
 <text class="t" x="650" y="104">sign deployed, trust change</text>
 <text class="t" x="650" y="124">dismiss, accept</text>
@@ -44,14 +44,14 @@
 <line class="edge-accent" x1="555" y1="90" x2="630" y2="90" marker-end="url(#arrow-accent)"/>
 <text class="t-small" x="594" y="82" text-anchor="middle">proposes</text>
 <path class="edge" d="M749,150 V196 H131 V154" marker-end="url(#arrow)"/>
-<text class="t-small" x="440" y="218" text-anchor="middle">shared-state command, confirmed by the person (terminal or UI)</text>
+<text class="t-small" x="440" y="218" text-anchor="middle">shared-state command, confirmed by the human (terminal or UI)</text>
 </svg>
-<figcaption>Three roles. The agent reads through the MCP read tools or <code>--json</code>. It gives the person a verdict, a diff or a command. Only the person runs a shared-state command.</figcaption>
+<figcaption>Three roles. The agent reads through the MCP read tools or <code>--json</code>. It gives the human a verdict, a diff or a command. Only the human runs a shared-state command.</figcaption>
 </figure>
 <ul>
   <li>The deterministic core does the work. Plan, build, check, advisories, gates and publish give the same result for the same input. An agent never replaces them.</li>
   <li>The agent does judgment work: it explains a failure, decides whether a rebuild is necessary, summarizes release notes and drafts a version bump. It gives a verdict with evidence, and it changes nothing.</li>
-  <li>A person does every step that changes shared state. The shared-state rules are in <a href="cli.html#safety">cli.html#safety</a>. No MCP tool exists for such a step, and the deny list blocks the CLI command.</li>
+  <li>A human does every step that changes shared state. The shared-state rules are in <a href="cli.html#safety">cli.html#safety</a>. No MCP tool exists for such a step, and the deny list blocks the CLI command.</li>
   <li>Skills call repoctl. They never call mock, rpmsign, createrepo_c or gpg directly.</li>
   <li>Every surface works without an agent. The plain diagnosis of repoctl stays when no agent is set (<a href="ui.html#loud">ui.html#loud</a>).</li>
   <li>Log lines, spec text, commit subjects, advisory facts and release notes are untrusted data. Tool descriptions and skills say that they are data, not instructions.</li>
@@ -97,7 +97,7 @@
 <p>The generic skills reach an agent in four ways:</p>
 <ul>
   <li>The Claude Code plugin on branch <code>main</code> holds the skills and declares the MCP server (<a href="#mcp-start">start and registration</a>).</li>
-  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. <code>--user</code> (the default) writes <code>~/.claude/skills/&lt;name&gt;/</code>. <code>--project</code> writes <code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>, adds the paths to <code>.git/info/exclude</code> and merges the <a href="#deny">deny list</a> into <code>.claude/settings.json</code>. The command replaces copies that repoctl installed and refuses a file that a person changed.</li>
+  <li><code>repoctl skills install</code> writes plain <code>SKILL.md</code> files for any agent. <code>--user</code> (the default) writes <code>~/.claude/skills/&lt;name&gt;/</code>. <code>--project</code> writes <code>&lt;set&gt;/.claude/skills/&lt;name&gt;/</code>, adds the paths to <code>.git/info/exclude</code> and merges the <a href="#deny">deny list</a> into <code>.claude/settings.json</code>. The command replaces copies that repoctl installed and refuses a file that a human changed.</li>
   <li>The RPM puts them in <code>/usr/share/repoctl/skills/</code> (<code>repoctl skills path</code>).</li>
   <li>The MCP resource <code>repoctl://skills/{name}</code> serves them to a client without skill support.</li>
 </ul>
@@ -108,7 +108,7 @@
 <ul>
   <li>The skill works with the MCP tools or with the CLI through Bash, whichever the session has. It uses MCP when the tools are present.</li>
   <li>The skill reads only <code>repoctl/v1alpha1</code> output. It stops when <code>apiVersion</code> has another value (<a href="contract.html#versioning">contract.html#versioning</a>).</li>
-  <li>The skill states its tool list for each mode (<a href="#tool-lists">tool lists</a>). A terminal session has the permissions of the person. A task of the web UI has read tools only.</li>
+  <li>The skill states its tool list for each mode (<a href="#tool-lists">tool lists</a>). A terminal session has the permissions of the human. A task of the web UI has read tools only.</li>
   <li>The skill stops at each problem with a <code>humanAction</code> (<a href="#human-action">needs human</a>). It never tries another way to the same step.</li>
 </ul>
 <table class="compact">
@@ -123,7 +123,7 @@
 </tbody>
 </table>
 <h3 id="bump-modes">The two modes of bump-package</h3>
-<p>Mode draft reads and plans only. The UI button "Draft version bump" uses it, and so does <code>/bump-package DIR VERSION --draft</code> in a terminal. Mode apply runs in a terminal only, for example <code>/bump-package ucx 1.22.1</code>. The person sees every step there and gives each OK in the terminal. The skill edits <code>ucx.spec</code>, commits "Bump to 1.22.1" on <code>ucx/slurm-26.05</code> and pins the commit. The push of the package branch and the commit of <code>repoctl.lock</code> stay steps for the person.</p>
+<p>Mode draft reads and plans only. The UI button "Draft version bump" uses it, and so does <code>/bump-package DIR VERSION --draft</code> in a terminal. Mode apply runs in a terminal only, for example <code>/bump-package ucx 1.22.1</code>. The human sees every step there and gives each OK in the terminal. The skill edits <code>ucx.spec</code>, commits "Bump to 1.22.1" on <code>ucx/slurm-26.05</code> and pins the commit. The push of the package branch and the commit of <code>repoctl.lock</code> stay steps for the human.</p>
 <h3 id="playbook">Playbook of triage-build</h3>
 <table class="compact">
 <thead><tr><th>error.class</th><th>What the skill looks at</th></tr></thead>
@@ -162,7 +162,7 @@ allowed-tools:
 <p>The frontmatter of <code>bump-package</code> grants the tools of mode apply. Mode draft has no frontmatter of its own. When the input has <code>--draft</code>, the skill text tells the agent to use only the tools of the draft list. In the web UI, repoctl enforces the draft list with <code>--allowedTools</code> and the read-only MCP server. The frontmatter of the <code>repoctl</code> skill grants the read commands of the CLI, <code>repoctl build</code>, the 23 read tools and <code>repoctl_build</code>. The full lists are in the next section.</p>
 
 <h2 id="tool-lists">Tool list per task</h2>
-<p>Each task has its own tool list. A terminal session runs with the permissions of the person, and the list of the skill grants its tools. A task of the web UI gets the list of its row and nothing else. Its MCP server runs with <code>--tools read</code>. repoctl passes the list with <code>--allowedTools</code> and denies Bash, Edit, Write and NotebookEdit. Thus the UI agent has no way around the MCP server.</p>
+<p>Each task has its own tool list. A terminal session runs with the permissions of the human, and the list of the skill grants its tools. A task of the web UI gets the list of its row and nothing else. Its MCP server runs with <code>--tools read</code>. repoctl passes the list with <code>--allowedTools</code> and denies Bash, Edit, Write and NotebookEdit. Thus the UI agent has no way around the MCP server.</p>
 <table class="compact">
 <thead><tr><th>Task</th><th>Skill and mode</th><th>MCP tools</th><th>Other tools</th></tr></thead>
 <tbody>
@@ -178,7 +178,7 @@ allowed-tools:
 <p>The table drops the prefix <code>repoctl_</code> of the MCP tool names. A UI task never gets <code>repoctl_build</code>, <code>repoctl_rebuild</code>, Edit or Bash.</p>
 
 <h2 id="deny">Deny list</h2>
-<p><code>allowed-tools</code> only grants. It cannot forbid. For this reason <code>repoctl skills install --project</code> also merges deny rules into <code>.claude/settings.json</code> of the set. The list covers every command of the safety class shared state, the trust commands and the tools that repoctl calls for the person:</p>
+<p><code>allowed-tools</code> only grants. It cannot forbid. For this reason <code>repoctl skills install --project</code> also merges deny rules into <code>.claude/settings.json</code> of the set. The list covers every command of the safety class shared state, the trust commands and the tools that repoctl calls for the human:</p>
 <pre><code class="language-json">{
   "permissions": {
     "deny": [
@@ -243,9 +243,9 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <text class="t-small" x="592" y="124">clean, mock *, init, migrate</text>
 <text class="t-small" x="592" y="144">ui, mcp, skills install, completion</text>
 <line class="edge-muted" x1="720" y1="168" x2="720" y2="194" marker-end="url(#arrow-muted)"/>
-<text class="t" x="720" y="216" text-anchor="middle">a person: terminal or UI, confirmed</text>
+<text class="t" x="720" y="216" text-anchor="middle">a human: terminal or UI, confirmed</text>
 </svg>
-<figcaption>The web UI starts its agent in mode read. A terminal client gets mode all. The commands outside the server stay with the person.</figcaption>
+<figcaption>The web UI starts its agent in mode read. A terminal client gets mode all. The commands outside the server stay with the human.</figcaption>
 </figure>
 <p>This is the one tool table. An asterisk marks a required argument. The class is the safety class of the command (<a href="model.html#safety">model.html#safety</a>).</p>
 <table class="compact">
@@ -281,13 +281,13 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>repoctl_rebuild</code></td><td>dirs*, reason*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Empty commit (<a href="build.html#rebuild">build.html#rebuild</a>). Reason of 8 characters or more. No push, pin or build.</td></tr>
 </tbody>
 </table>
-<p>Annotations follow the class. Read tools have <code>readOnlyHint</code>. Of the other five, only <code>repoctl_run_cancel</code> has <code>destructiveHint</code>. "Network" means <code>openWorldHint</code>. A client asks the person before a call that is not read-only, unless the person allowed it.</p>
+<p>Annotations follow the class. Read tools have <code>readOnlyHint</code>. Of the other five, only <code>repoctl_run_cancel</code> has <code>destructiveHint</code>. "Network" means <code>openWorldHint</code>. A client asks the human before a call that is not read-only, unless the human allowed it.</p>
 <h3 id="not-exposed">Not exposed</h3>
 <p>These commands have no tool, on purpose. The list is <code>notExposed</code> in <code>mcp-tools.json</code>.</p>
 <table class="compact">
 <thead><tr><th>Commands</th><th>Why there is no tool</th></tr></thead>
 <tbody>
-<tr><td><code>publish</code>, <code>repo push</code>, <code>repo restore</code>, <code>repo prune</code>, <code>repo gc</code>, <code>repo resign</code>, <code>sign deployed</code></td><td>Shared state. A person confirms each one (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
+<tr><td><code>publish</code>, <code>repo push</code>, <code>repo restore</code>, <code>repo prune</code>, <code>repo gc</code>, <code>repo resign</code>, <code>sign deployed</code></td><td>Shared state. A human confirms each one (<a href="cli.html#safety">cli.html#safety</a>).</td></tr>
 <tr><td><code>sign add|retire|remove</code>, <code>release write</code></td><td>Trust commands. They change which keys the clients trust.</td></tr>
 <tr><td><code>advisories dismiss|undismiss</code></td><td>A dismissal is a committed team file (<a href="advisories.html#dismissals">advisories.html#dismissals</a>). An acceptance is part of a publish.</td></tr>
 <tr><td><code>repo pull</code>, <code>clean</code>, <code>mock *</code></td><td>They replace the local copy, delete caches or change a mock chroot.</td></tr>
@@ -302,7 +302,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
   <li>Builds use committed, pinned sources only. A dirty worktree, or a worktree ahead of the lock, gives <code>lock.dirty</code> with a humanAction. <code>from: worktree</code> builds the committed worktree HEADs, but the run is unpinned and never publishable.</li>
   <li><code>repoctl_run_cancel</code> cancels only runs with origin <code>mcp</code> of this user. Another run gives <code>cancel.foreign-run</code>.</li>
   <li>In mode <code>read</code> a call to a tool outside the mode fails with the problem <code>mcp.tool-not-allowed</code> (<code>isError: true</code>). The limit holds for every client, not only for Claude Code.</li>
-  <li>The web UI starts its agent with <code>--tools read</code> and the tool list of the task. A write step that the agent proposes becomes a button. The button runs the command with the confirmation of the person.</li>
+  <li>The web UI starts its agent with <code>--tools read</code> and the tool list of the task. A write step that the agent proposes becomes a button. The button runs the command with the confirmation of the human.</li>
 </ul>
 <h3 id="mcp-results">Result shape</h3>
 <ul>
@@ -313,10 +313,10 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 </ul>
 <p>Examples: <a href="contract/examples/mcp-build-call.json">mcp-build-call.json</a>, <a href="contract/examples/mcp-build-result.json">mcp-build-result.json</a> (the refusal <code>set.busy</code> while run a3f runs), <a href="contract/examples/mcp-needs-human.json">mcp-needs-human.json</a>, <a href="contract/examples/mcp-progress.json">mcp-progress.json</a>.</p>
 <h3 id="human-action">Needs human</h3>
-<p>A tool does not take a step that belongs to a person. It returns <code>isError: true</code> and a problem whose code names the cause, for example <code>lock.dirty</code>, <code>cancel.foreign-run</code>, <code>publish.needs-confirmation</code>, <code>mcp.tool-not-allowed</code> or <code>advisory.not-dismissable</code> (<a href="contract.html#problems">contract.html#problems</a>). The problem has a <code>humanAction</code> with <code>action</code>, <code>reason</code>, an optional <code>command</code> and an optional <code>ui</code> path. The text starts with <code>NEEDS HUMAN:</code>.</p>
-<aside class="callout rule"><p class="callout-title">Rule</p><p>At a humanAction the agent stops this line of work and shows the command to the person. It must not try another way to the same step, for example the CLI through Bash.</p></aside>
-<p>A Run also lists suggested steps in <code>next</code>. A step with <code>human: true</code>, for example publish, is for the person only. Example (the person changed <code>slurm.spec</code> and did not commit it):</p>
-<pre><code class="language-json">"content": [{"type": "text", "text": "NEEDS HUMAN: worktree packages/slurm has uncommitted changes. repoctl never builds uncommitted files. Ask the person to commit or discard the changes."}],
+<p>A tool does not take a step that belongs to a human. It returns <code>isError: true</code> and a problem whose code names the cause, for example <code>lock.dirty</code>, <code>cancel.foreign-run</code>, <code>publish.needs-confirmation</code>, <code>mcp.tool-not-allowed</code> or <code>advisory.not-dismissable</code> (<a href="contract.html#problems">contract.html#problems</a>). The problem has a <code>humanAction</code> with <code>action</code>, <code>reason</code>, an optional <code>command</code> and an optional <code>ui</code> path. The text starts with <code>NEEDS HUMAN:</code>.</p>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>At a humanAction the agent stops this line of work and shows the command to the human. It must not try another way to the same step, for example the CLI through Bash.</p></aside>
+<p>A Run also lists suggested steps in <code>next</code>. A step with <code>human: true</code>, for example publish, is for the human only. Example (the human changed <code>slurm.spec</code> and did not commit it):</p>
+<pre><code class="language-json">"content": [{"type": "text", "text": "NEEDS HUMAN: worktree packages/slurm has uncommitted changes. repoctl never builds uncommitted files. Ask the human to commit or discard the changes."}],
 "structuredContent": {"apiVersion": "repoctl/v1alpha1", "kind": "Run", "items": [], "errors": [{
   "code": "lock.dirty", "exitCode": 5, "dir": "slurm",
   "message": "Worktree packages/slurm has uncommitted changes (slurm.spec).",
@@ -325,7 +325,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
                   "command": "git -C packages/slurm status"}}]},
 "isError": true, "_meta": {"repoctl/exitCode": 5}</code></pre>
 <table class="compact">
-<thead><tr><th>action</th><th>The person must</th></tr></thead>
+<thead><tr><th>action</th><th>The human must</th></tr></thead>
 <tbody>
 <tr><td><code>publish</code></td><td>run <code>repoctl publish</code> and confirm it</td></tr>
 <tr><td><code>repo-pull</code>, <code>repo-push</code>, <code>restore</code>, <code>prune</code>, <code>gc</code>, <code>resign</code></td><td>run the repository command</td></tr>
@@ -363,7 +363,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
             "message": "build: 4/8 done, 1 failed, 1 blocked"}}</code></pre>
 
 <h2 id="ui-agent">The UI agent</h2>
-<p>The web UI uses an agent in one way only: an advisory button runs a local agent with a fixed skill and a fixed input. The agent can read, but it cannot change anything. Its result shows in the agent panel. Each proposed action is a normal UI button that the person clicks. The screens are in <a href="ui-build.html#agent-panel">ui-build.html#agent-panel</a>.</p>
+<p>The web UI uses an agent in one way only: an advisory button runs a local agent with a fixed skill and a fixed input. The agent can read, but it cannot change anything. Its result shows in the agent panel. Each proposed action is a normal UI button that the human clicks. The screens are in <a href="ui-build.html#agent-panel">ui-build.html#agent-panel</a>.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 960 270" role="img" aria-labelledby="uiagent-t">
 <title id="uiagent-t">From the agent button to the agent panel and back to a normal action</title>
@@ -391,7 +391,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <text class="t-title" x="32" y="204">Agent panel</text>
 <text class="t-small" x="32" y="226">verdict, proposed actions, folds</text>
 <rect class="box-soft" x="330" y="176" width="280" height="72" rx="8"/>
-<text class="t-title" x="346" y="204">Person clicks an action</text>
+<text class="t-title" x="346" y="204">Human clicks an action</text>
 <text class="t-small" x="346" y="226">normal dialog and confirmation</text>
 <rect class="box" x="650" y="176" width="294" height="72" rx="8"/>
 <text class="t-title" x="666" y="204">repoctl command</text>
@@ -399,7 +399,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <line class="edge" x1="286" y1="212" x2="326" y2="212" marker-end="url(#arrow)"/>
 <line class="edge" x1="610" y1="212" x2="646" y2="212" marker-end="url(#arrow)"/>
 </svg>
-<figcaption>The agent reads through the read-only MCP server. repoctl reads its stream and sends it to the panel over SSE. A change runs only when the person clicks a normal action.</figcaption>
+<figcaption>The agent reads through the read-only MCP server. repoctl reads its stream and sends it to the panel over SSE. A change runs only when the human clicks a normal action.</figcaption>
 </figure>
 <h3 id="agent-buttons">Agent buttons</h3>
 <table class="compact">
@@ -431,15 +431,15 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <ol>
   <li>Head: the task, the node chip and a close button. One muted line gives the state, the skill, the agent command, the start time, the input run and "read only, changes nothing". While the agent runs, the line has the elapsed time and Stop.</li>
   <li>Verdict first: one bold sentence. Example: "slurm needs rocm-smi-devel on el10, but rocm-smi is built for el9 only."</li>
-  <li>Proposed actions, right after the verdict and above the fold. When the agent finds two fixes, it gives both and the person picks one. Example: Fix A "Build slurm without the rsmi plugin on el10" has the primary button "Pin fix and build…". Fix B "Build rocm-smi for el10 too" needs an edit of <code>repoctl.yaml</code> by the person.</li>
+  <li>Proposed actions, right after the verdict and above the fold. When the agent finds two fixes, it gives both and the human picks one. Example: Fix A "Build slurm without the rsmi plugin on el10" has the primary button "Pin fix and build…". Fix B "Build rocm-smi for el10 too" needs an edit of <code>repoctl.yaml</code> by the human.</li>
   <li>Four folds, each with a count or a summary: "Show diff (+3 −1)", "Evidence (5 lines)", "Tools used (5)" and "Details". The summary of Evidence has the <code>file:line</code> links. Details holds skill, agent, start, input and agent id.</li>
   <li>Foot: "Suggestions only. repoctl changes nothing until you click." and the link "Continue in terminal".</li>
 </ol>
 <p>Rules of the panel:</p>
 <ul>
-  <li>The panel is read only. repoctl never applies a diff. "Copy diff" copies it, and the person applies it in the package worktree.</li>
+  <li>The panel is read only. repoctl never applies a diff. "Copy diff" copies it, and the human applies it in the package worktree.</li>
   <li>A proposed action is a normal UI action with its normal dialog and confirmation. "Pin fix and build…" is off until the package branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog.</li>
-  <li>"Continue in terminal" copies <code>claude --resume &lt;session&gt;</code> for the set directory. The conversation stays in the agent tool, and repoctl keeps no copy. A "?" next to the link tells the person before the click: the terminal session has the permissions of the person's own agent setup, not the read-only tool list of the panel. Mode apply of <code>bump-package</code> runs only there.</li>
+  <li>"Continue in terminal" copies <code>claude --resume &lt;session&gt;</code> for the set directory. The conversation stays in the agent tool, and repoctl keeps no copy. A "?" next to the link tells the human before the click: the terminal session has the permissions of the human's own agent setup, not the read-only tool list of the panel. Mode apply of <code>bump-package</code> runs only there.</li>
   <li>While the agent runs, "Tools used" lists each call with a short argument, and a spinner marks the call that runs now.</li>
 </ul>
 <p>Accessibility of the panel:</p>
@@ -449,17 +449,17 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
   <li>The caret and the spinner stop with <code>prefers-reduced-motion</code>. Evidence and diff use the log colours (a dark block in both themes).</li>
 </ul>
 <h3 id="agent-config">Agent configuration</h3>
-<p>The agent is a key of the user config, because it belongs to one person and one host (<a href="config.html#user-config">config.html#user-config</a>):</p>
+<p>The agent is a key of the user config, because it belongs to one human and one host (<a href="config.html#user-config">config.html#user-config</a>):</p>
 <pre><code class="language-yaml"># ~/.config/repoctl/config.yaml
 agent:
   command: claude        # the agent program
   args: []               # extra arguments before the arguments that repoctl adds</code></pre>
-<p>The agent must run a skill from a prompt and use an MCP server from <code>--mcp-config</code>. It must accept the tool flags above and write the stream-json format of Claude Code. repoctl reads only this format. The agent uses the sign-in and model settings of the person.</p>
+<p>The agent must run a skill from a prompt and use an MCP server from <code>--mcp-config</code>. It must accept the tool flags above and write the stream-json format of Claude Code. repoctl reads only this format. The agent uses the sign-in and model settings of the human.</p>
 <h3 id="no-agent">No agent configured</h3>
 <p>Without <code>agent</code> in the user config, the server leaves the agent buttons out of the HTML. It does not show disabled buttons. All other actions stay. The Advisories card has one quiet line in its foot: "Agent buttons are off. How to turn them on". The plain diagnosis of repoctl stays, for example the Needs you item "slurm@el10 failed: rocm-smi-devel is not available for el10".</p>
 <figure class="shot"><a href="mockups/ui/overview-no-agent.html"><img src="img/ui-overview-no-agent.webp" alt="Advisories card of the Overview without agent buttons. Rows have Rebuild…, Show closure and Dismiss only." loading="lazy"></a><figcaption>No agent configured. The card has the same layout and no agent buttons.</figcaption></figure>
 <h3 id="no-chat">Why no chat</h3>
-<p>The UI has advisory buttons and no chat panel. For a free conversation, the person uses "Continue in terminal".</p>
+<p>The UI has advisory buttons and no chat panel. For a free conversation, the human uses "Continue in terminal".</p>
 <table>
 <thead><tr><th></th><th>Advisory buttons (chosen)</th><th>Chat panel</th></tr></thead>
 <tbody>

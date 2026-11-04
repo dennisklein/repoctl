@@ -585,7 +585,7 @@
       }
     },
     "Problem": {
-      "description": "One error or warning. code is the stable part. message and hint are for people and can change in any release. A problem with humanAction names a step that only a person can take.",
+      "description": "One error or warning. code is the stable part. message and hint are for humans and can change in any release. A problem with humanAction names a step that only a human can take.",
       "type": "object",
       "required": [
         "code",
@@ -710,7 +710,7 @@
       ]
     },
     "HumanAction": {
-      "description": "A step that repoctl, the MCP server and the skills do not take. The agent stops and shows the step to the person.",
+      "description": "A step that repoctl, the MCP server and the skills do not take. The agent stops and shows the step to the human.",
       "type": "object",
       "required": [
         "action",
@@ -746,7 +746,7 @@
         },
         "command": {
           "type": "string",
-          "description": "The exact command the person can run."
+          "description": "The exact command the human can run."
         },
         "ui": {
           "type": "string",
@@ -826,7 +826,7 @@
         "blocked",
         "canceled"
       ],
-      "description": "waiting: a dependency of the node is not done. queued: all dependencies are done, and the node waits for a free job slot. blocked: a dependency failed. canceled: a person, a signal or failFast stopped the node. current and staged are plan states: plan.ready gives them, and a run never changes them."
+      "description": "waiting: a dependency of the node is not done. queued: all dependencies are done, and the node waits for a free job slot. blocked: a dependency failed. canceled: a human, a signal or failFast stopped the node. current and staged are plan states: plan.ready gives them, and a run never changes them."
     },
     "Step": {
       "enum": [
@@ -853,7 +853,7 @@
         "new-target",
         "forced"
       ],
-      "description": "Why a node has the action build. repoctl never adds a dependent by itself: advisories say that a rebuild can be necessary, and the person makes it with repoctl rebuild."
+      "description": "Why a node has the action build. repoctl never adds a dependent by itself: advisories say that a rebuild can be necessary, and the human makes it with repoctl rebuild."
     },
     "RunState": {
       "enum": [
@@ -1743,7 +1743,7 @@
         },
         "text": {
           "type": "string",
-          "description": "rebuild: the reason that the person gave to repoctl rebuild (--reason)."
+          "description": "rebuild: the reason that the human gave to repoctl rebuild (--reason)."
         }
       },
       "allOf": [
@@ -2017,7 +2017,7 @@
           "items": {
             "$ref": "#/$defs/NextStep"
           },
-          "description": "Suggested next steps. A step with human: true is for a person only."
+          "description": "Suggested next steps. A step with human: true is for a human only."
         },
         "files": {
           "type": "object",
@@ -3266,7 +3266,7 @@
         },
         "human": {
           "type": "boolean",
-          "description": "true: only a person takes this step (for example commit-lock or publish). An agent shows it and stops."
+          "description": "true: only a human takes this step (for example commit-lock or publish). An agent shows it and stops."
         },
         "reason": {
           "type": "string"
@@ -3545,7 +3545,7 @@
         },
         "title": {
           "type": "string",
-          "description": "One line for people."
+          "description": "One line for humans."
         },
         "facts": {
           "type": "object",
@@ -3590,7 +3590,7 @@
           "properties": {
             "by": {
               "type": "string",
-              "description": "git user.email of the person."
+              "description": "git user.email of the human."
             },
             "at": {
               "$ref": "#/$defs/Time"
@@ -3629,7 +3629,7 @@
             "by": {
               "enum": [
                 "timer",
-                "person",
+                "human",
                 "ui",
                 "mcp"
               ]
@@ -3724,7 +3724,7 @@
         },
         "user": {
           "type": "string",
-          "description": "The person who made the snapshot."
+          "description": "The human who made the snapshot."
         },
         "host": {
           "type": "string",
@@ -3788,7 +3788,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Advisory ids that the person accepted for this publish."
+          "description": "Advisory ids that the human accepted for this publish."
         },
         "gc": {
           "enum": [
@@ -3867,7 +3867,7 @@
     },
     "KeyDeployment": {
       "type": "object",
-      "description": "A record of keys/deployed.yaml for one target: a person confirmed that all clients of the target have the release NVR with the key.",
+      "description": "A record of keys/deployed.yaml for one target: a human confirmed that all clients of the target have the release NVR with the key.",
       "required": [
         "release",
         "confirmedBy",
@@ -3881,7 +3881,7 @@
         },
         "confirmedBy": {
           "type": "string",
-          "description": "Key id of the person who ran repoctl sign deployed."
+          "description": "Key id of the human who ran repoctl sign deployed."
         },
         "at": {
           "$ref": "#/$defs/Time"
@@ -3928,7 +3928,7 @@
         },
         "next": {
           "type": "string",
-          "description": "The command that the person runs next."
+          "description": "The command that the human runs next."
         }
       }
     }

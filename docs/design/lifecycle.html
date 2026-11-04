@@ -90,7 +90,7 @@
 <li><code>LockEntry.commit</code> is required, except for state <code>unpinned</code>.</li>
 <li>plan shows an unpinned node with the note "not pinned" and the action <code>skip</code>. With <code>--from worktree</code>, the action is <code>build</code>.</li>
 <li><code>build --from lock</code> with a selected unpinned node stops with exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>.</li>
-<li><code>checkout</code> without <code>--create</code> makes the worktree of an unpinned package at the tip of the remote branch (detached HEAD) and prints "not pinned: run repoctl pin DIR". This is how a person checks out the new package of a colleague.</li>
+<li><code>checkout</code> without <code>--create</code> makes the worktree of an unpinned package at the tip of the remote branch (detached HEAD) and prints "not pinned: run repoctl pin DIR". This is how a human checks out the new package of a colleague.</li>
 <li><code>pin</code> without arguments removes orphaned entries and lists them (<a href="cli.html#cmd-pin">command block</a>). <code>pin DIR</code> for a dir that is not in <code>repoctl.yaml</code> is a usage error.</li>
 <li>publish refuses a set with an orphaned entry: exit 5, <code>lock.orphaned</code>. The lock and <code>repoctl.yaml</code> must agree, so that the set commit fixes the output (<a href="publish.html#checks">checks before the first signature</a>).</li>
 </ul>
@@ -134,7 +134,7 @@
 <text class="t-small" x="440" y="112" text-anchor="middle">checkout --create --from-set</text>
 <text class="t-small t-muted" x="440" y="262" text-anchor="middle">external: git.gsi.de</text>
 </svg>
-<figcaption>The new branches start at the lock commit of slurm-26.05 (the published state), not at the branch tip. The external package rocm-smi gets its branch on its own git server. The person pushes all new branches.</figcaption>
+<figcaption>The new branches start at the lock commit of slurm-26.05 (the published state), not at the branch tip. The external package rocm-smi gets its branch on its own git server. The human pushes all new branches.</figcaption>
 </figure>
 
 <h3 id="init-from">repoctl init --from</h3>
@@ -143,7 +143,7 @@
 <li><code>name</code> becomes <code>NAME</code>.</li>
 <li>In each <code>branch</code>, repoctl replaces the old set name with the new one: <code>pmix/slurm-26.05-v4</code> becomes <code>pmix/slurm-26.11-v4</code>. This is also true for an external package (<code>slurm-26.05</code> becomes <code>slurm-26.11</code>).</li>
 <li>A branch that does not contain the old set name stays the same. init lists it as "shared branch". Example: <code>slurm-25.11</code> uses <code>pmix/slurm-26.05-v4</code>.</li>
-<li>The other keys stay the same: targets, repo, store, upstream, notes, roles. The person sets <code>repo.url</code> for the clients of the new set (help step 3).</li>
+<li>The other keys stay the same: targets, repo, store, upstream, notes, roles. The human sets <code>repo.url</code> for the clients of the new set (help step 3).</li>
 <li>When the start directory is a fork of <code>SET</code> (its <code>repoctl.yaml</code> has the old set name), init changes the file in place without <code>--force</code>. Otherwise init also copies the files that <code>repoctl.yaml</code> names: the macro files and the release package path.</li>
 <li>init does not copy <code>repoctl.lock</code> or <code>.repoctl/advisories.yaml</code>. The new set has new branches and new advisories.</li>
 <li>init does not create branches. <code>checkout --create</code> does that.</li>
@@ -196,7 +196,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </table>
 
 <h2 id="changes">Package changes</h2>
-<p>Each case below gives the ordered steps. A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>builder branch</dfn> (the set directory). Each list ends with the plan result that the person must see. <code>repoctl help packages</code> prints the short form (<a href="#help-packages">text</a>).</p>
+<p>Each case below gives the ordered steps. A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>builder branch</dfn> (the set directory). Each list ends with the plan result that the human must see. <code>repoctl help packages</code> prints the short form (<a href="#help-packages">text</a>).</p>
 <table class="compact">
 <thead><tr><th>Change</th><th>Commits in</th><th>plan shows</th></tr></thead>
 <tbody>
