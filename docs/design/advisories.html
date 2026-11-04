@@ -504,6 +504,7 @@ hint: or accept it for this publish. run: repoctl publish --target el9 --accept-
   <li>An id that does not block this publish is a usage error (exit 2). Thus a human cannot accept an advisory in advance.</li>
   <li>The acceptance is valid for this publish only. repoctl writes the event <code>advisory.accepted</code> (id, factsDigest, reason, user, host) to the journal and the same list to the snapshot annotation <code>io.repoctl.advisories.accepted</code>.</li>
   <li><code>--yes</code> does not accept an advisory. An unattended publish with a blocking advisory fails with exit 12.</li>
+  <li>An acceptance needs a human. Without a terminal, publish refuses <code>--accept-advisory</code> with <code>publish.unattended-refused</code> (exit 6), also when <code>REPOCTL_ALLOW_UNATTENDED_PUBLISH</code> is 1. In the web UI, the confirm dialog is the step of the human (<a href="ui-publish.html#confirm">confirm</a>).</li>
   <li>MCP has no accept tool. An acceptance is a step of a human (<a href="agents.html#human-action">humanAction</a>).</li>
 </ul>
 <pre class="term">$ repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 \
