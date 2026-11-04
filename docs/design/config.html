@@ -259,7 +259,7 @@ packages:
 <thead><tr><th></th><th>Lock file</th><th>Set lock</th></tr></thead>
 <tbody>
 <tr><td>What</td><td>The pinned commits of the set.</td><td>One writer per set at a time, for one user on one host.</td></tr>
-<tr><td>Where</td><td><code>repoctl.lock</code> in the set directory, committed.</td><td><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>.</td></tr>
+<tr><td>Where</td><td><code>repoctl.lock</code> in the set directory, committed.</td><td><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>; without <code>XDG_RUNTIME_DIR</code>, <code>$XDG_STATE_HOME/repoctl/SET.lock</code>.</td></tr>
 <tr><td>Holds</td><td>Branch, commit and URL per package.</td><td>The holder: command, pid, host, user, start time and run id.</td></tr>
 <tr><td>Busy</td><td>-</td><td>A command waits up to <code>--lock-wait</code> (default 0), then stops with exit 7. Read-only commands never wait.</td></tr>
 </tbody>
@@ -387,7 +387,7 @@ sets:
 <tr><td><code>$XDG_STATE_HOME/repoctl/SET/runs/</code>, <code>logs/</code></td><td>journals, progress logs, node and mock logs</td><td><code>repoctl clean --logs</code>; <code>state.keep_runs</code></td></tr>
 <tr><td><code>$XDG_STATE_HOME/repoctl/SET/check.json</code></td><td>the result of the last <code>repoctl check</code></td><td>the next check writes it again</td></tr>
 <tr><td><code>$XDG_STATE_HOME/repoctl/SET/agent/</code></td><td>the results of agent buttons</td><td>with the logs</td></tr>
-<tr><td><code>$XDG_RUNTIME_DIR/repoctl/</code></td><td>the set lock <code>SET.lock</code>, the clone locks <code>git-HASH.lock</code>, the web UI socket <code>ui.sock</code> and <code>ui.json</code></td><td>at logout</td></tr>
+<tr><td><code>$XDG_RUNTIME_DIR/repoctl/</code></td><td>the set lock <code>SET.lock</code>, the clone locks <code>git-HASH.lock</code>, the web UI socket <code>ui.sock</code> and <code>ui.json</code></td><td>at logout, unless lingering is on; a run that holds the set lock takes it again (<a href="build.html#lock">build.html#lock</a>)</td></tr>
 </tbody>
 </table>
 <ul>

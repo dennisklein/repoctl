@@ -543,7 +543,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <p>Two different things have the name "lock". The help and the messages always say which one.</p>
 <dl>
   <dt>Lock file</dt><dd><code>repoctl.lock</code> in the set: the pinned commits, committed to git (<a href="config.html#lock">lock file</a>).</dd>
-  <dt>Set lock</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>: one writer per set at a time, for one user on one host. It records the holder: command, pid, host, user, start time and run id.</dd>
+  <dt>Set lock</dt><dd><code>$XDG_RUNTIME_DIR/repoctl/SET.lock</code>: one writer per set at a time, for one user on one host. It records the holder: command, pid, host, user, start time and run id. Without <code>XDG_RUNTIME_DIR</code>, for example after <code>su</code>, in cron or in CI, the path is <code>$XDG_STATE_HOME/repoctl/SET.lock</code>.</dd>
 </dl>
 <p>A command that writes the set or its build state takes the set lock: checkout, pin, rebuild, build (for the whole run), publish, repo pull and the repo commands that make a snapshot, sign add, retire, remove and deployed, release write, clean, mock update and mock clean. repo verify takes it shared. A read command takes no set lock and never waits. <code>repoctl check</code> takes none, so a check can run while a build runs. Each command block gives its lock (<a href="cli.html#commands">commands</a>).</p>
 <p>All sets share the bare clone of an external package. Each git step on the clone also takes its clone lock (<a href="lifecycle.html#clones">external package clones</a>).</p>
@@ -553,6 +553,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 repoctl: error: set slurm-26.05 is busy: repoctl build holds the set lock (run r-20261102-1750-a3f, pid 48213 on hpc-a1)
 hint: watch that run. run: repoctl runs latest --follow
 hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
+<aside class="callout rule"><p class="callout-title">Rule: the set lock after logout</p><p>systemd removes <code>$XDG_RUNTIME_DIR</code> at the last logout of the user, unless lingering is on. A build in tmux, under nohup or as a detached child of the UI or MCP can live longer than the login. Thus the holder checks every 30 s that the lock path still names the file that it locked (same device and inode). On a mismatch, it takes the lock again at the same path, and the run continues. When another process has the lock, the run starts no new node, acts as at <code>repoctl cancel</code>, writes the warning <code>set.lock-lost</code> and ends canceled (exit 130). The doctor check <code>build.linger</code> warns when lingering is off.</p></aside>
 <p>The set lock ends with its process. Thus a stale set lock cannot stay, and no command removes one. Two admins have two set locks on two hosts. They share no lease. Publish compares latest with its base in step 1 and in step 7 (<a href="publish.html#admins">two admins</a>). The team coordinates in its own channel (<a href="model.html#humans">humans and hosts</a>).</p>
 
 <h2 id="soname">Soname check after a node build</h2>
