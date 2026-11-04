@@ -109,3 +109,9 @@ To see each link of a word in context, build the site, then:
 python3 tools/site/glossary.py report             # links per term and repo
 python3 tools/site/glossary.py report set-lock sigstore/cosign
 ```
+
+### Skills for agents
+
+`.claude/skills/` has the skills for work on the docs: `docs-steward` (the
+checklist for each change), `docs-glossary` (project words and project links)
+and `docs-mockups` (mockups and screenshots).
