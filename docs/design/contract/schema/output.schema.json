@@ -192,6 +192,43 @@
           "if": {
             "properties": {
               "kind": {
+                "const": "Provenance"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Provenance"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Sbom"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Sbom"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
                 "const": "Upstream"
               }
             }
@@ -476,6 +513,8 @@
         "NodeLog",
         "RepoContents",
         "RepoDiff",
+        "Provenance",
+        "Sbom",
         "Upstream",
         "DoctorReport",
         "Lock",
@@ -632,6 +671,8 @@
         "publish.not-ready",
         "publish.nothing-to-publish",
         "publish.unattended-refused",
+        "records.mismatch",
+        "records.missing",
         "registry.denied",
         "registry.unreachable",
         "run.not-finished",
@@ -2649,6 +2690,275 @@
         }
       }
     },
+    "RecordFile": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "description": "A supply chain record file in the snapshot, as the RepoManifest lists it.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path in the binary repository, e.g. records/ucx-1.22.1-1.el9/provenance.json."
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256"
+        }
+      }
+    },
+    "Provenance": {
+      "type": "object",
+      "description": "repo provenance: the provenance record of one build, checked against the RepoManifest, and a summary of it. The supply chain chapter specifies the stored record.",
+      "required": [
+        "target",
+        "nvr",
+        "publish",
+        "record",
+        "source",
+        "run",
+        "builder",
+        "subjects",
+        "statement"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "node": {
+          "$ref": "#/$defs/NodeId"
+        },
+        "nvr": {
+          "type": "string",
+          "description": "NVR of the SRPM of the build."
+        },
+        "publish": {
+          "type": "string",
+          "description": "The publish that added the build."
+        },
+        "record": {
+          "$ref": "#/$defs/RecordFile"
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "commit"
+          ],
+          "properties": {
+            "branch": {
+              "type": "string"
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Set only for an external package."
+            },
+            "commit": {
+              "$ref": "#/$defs/Commit"
+            },
+            "reason": {
+              "type": "string",
+              "description": "The plan reason of the build."
+            }
+          }
+        },
+        "run": {
+          "type": "object",
+          "required": [
+            "id",
+            "startedOn",
+            "finishedOn"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/RunId"
+            },
+            "user": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "startedOn": {
+              "$ref": "#/$defs/Time"
+            },
+            "finishedOn": {
+              "$ref": "#/$defs/Time"
+            }
+          }
+        },
+        "builder": {
+          "type": "object",
+          "required": [
+            "id",
+            "repoctl",
+            "mock"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "runDetails.builder.id of the record."
+            },
+            "repoctl": {
+              "type": "string"
+            },
+            "mock": {
+              "type": "string"
+            },
+            "mockConfig": {
+              "type": "string",
+              "description": "Name of the mock config of the target."
+            },
+            "mockConfigSha256": {
+              "$ref": "#/$defs/Sha256"
+            }
+          }
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "sha256",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256"
+              },
+              "match": {
+                "type": "boolean",
+                "description": "true when the file in the repository has this sha256."
+              }
+            }
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "sha256"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uri": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256"
+              }
+            }
+          }
+        },
+        "buildroot": {
+          "type": "object",
+          "properties": {
+            "rpms": {
+              "type": "integer"
+            },
+            "since": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "NVR of the previous build of the same dir and target."
+            },
+            "changed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Names of buildroot RPMs with another version than in the previous build."
+            }
+          }
+        },
+        "statement": {
+          "type": "object",
+          "description": "The stored in-toto Statement v1 with predicateType https://slsa.dev/provenance/v1. Its own specification applies; repoctl does not change it."
+        }
+      }
+    },
+    "Sbom": {
+      "type": "object",
+      "description": "repo sbom: the SBOM of one target or one build, checked against the RepoManifest, as a component list. --raw gives the stored CycloneDX 1.6 file.",
+      "required": [
+        "target",
+        "publish",
+        "record",
+        "components"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "build": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "NVR of the SRPM for a build SBOM; null for the repository SBOM."
+        },
+        "publish": {
+          "type": "string",
+          "description": "The publish of the snapshot that holds the record."
+        },
+        "record": {
+          "$ref": "#/$defs/RecordFile"
+        },
+        "specVersion": {
+          "const": "1.6"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "version",
+              "purl",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "purl": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "upstream",
+                  "srpm",
+                  "rpm",
+                  "debuginfo",
+                  "bundled"
+                ]
+              },
+              "license": {
+                "type": "string",
+                "description": "SPDX expression, or the License tag when it is not one."
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256"
+              }
+            }
+          }
+        }
+      }
+    },
     "Upstream": {
       "type": "object",
       "required": [
@@ -2792,7 +3102,8 @@
                   "sign.release",
                   "sign.retiring",
                   "release.url",
-                  "check.stale"
+                  "check.stale",
+                  "sbom.license"
                 ]
               },
               "group": {
