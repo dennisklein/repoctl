@@ -488,6 +488,17 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </ol>
 <p>The commit is per package, so a rebuild applies to all targets of the package. A rebuild for a minor release of el9 also builds the el10 nodes again, each with a new NVR. To build one target only, use <code>repoctl build --force @el9</code> for a test. A forced build of a current node is never staged, so it is never published (<a href="build.html#force">forced builds</a>).</p>
 
+<h2 id="move-set">Move a set directory</h2>
+<p>The data and state directories of a set use the set name, so they stay correct after a move. Two things use the path of the set directory: the check timer instance (the escaped path, <a href="advisories.html#timer">timer units</a>) and the list of the web UI (<code>ui/sets.yaml</code>, <a href="ui.html#sets">Sets page</a>). Move a set directory, for example from <code>~/src/slurm-repo</code> to <code>~/work/slurm-repo</code>, in this order:</p>
+<ol class="steps">
+<li>In the old directory, run <code>repoctl check --remove-timer</code>.</li>
+<li>In the web UI, choose "Remove from list" in the ⋯ menu of the set card. The server refuses a second set with the same name from another path.</li>
+<li>Move the directory. When it is a linked worktree, run <code>git worktree move OLD NEW</code>. When it is the main worktree of the clone, use <code>mv OLD NEW</code>.</li>
+<li>In NEW, run <code>git worktree repair packages/*</code>. It repairs the links of the package worktrees of this repository. For an external package, run <code>git -C CLONE worktree repair NEW/packages/DIR</code>. <code>repoctl config paths</code> gives CLONE.</li>
+<li>In NEW, run <code>repoctl status</code>. Expect: no package is <code>missing</code>, and each package has its old lock state.</li>
+<li>In NEW, run <code>repoctl check --install-timer</code>, then <code>repoctl ui</code>. The UI adds the set with the new path.</li>
+</ol>
+
 <h2 id="clones">External package clones</h2>
 <p>A package with <code>git.url</code> (in its entry or in <code>defaults.git</code>) lives on another git server. rpmautospec needs the full history, so repoctl keeps one bare clone per URL (<a href="config.html#external">external package repos</a>).</p>
 <figure class="diagram">

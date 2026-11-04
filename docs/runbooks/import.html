@@ -262,6 +262,7 @@ git push origin builder/SET</code></pre>
 <li>The output of <code>plan</code> and <code>check</code> of <a href="#verify">Verify</a>.</li>
 <li>Each stop, with the step and the output.</li>
 </ul>
+<p>After <a href="#verify">Verify</a> passes, delete the copy of the served tree: <code>rm -rf $IMPORT</code>. It holds a full copy of the repo, and nothing reads it again. Keep the manifest and the log. <code>repoctl clean --set SET</code> deletes them at the end of the set (<a href="../design/config.html#xdg">XDG directories</a>).</p>
 
 <h2 id="remove">Remove the bash-era files</h2>
 <p>Do this step after the first publish of the set with repoctl. For <code>slurm-26.05</code> this is <code>p-20260902-1010-4a7</code>. Until then, the old scripts are the fallback. To use them, first roll back the switch (<a href="#switch">Rollback</a>). They never write into the served path of the mirror job.</p>
