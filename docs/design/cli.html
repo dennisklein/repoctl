@@ -356,7 +356,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 </tbody>
 </table>
 <p>Restore, resign, prune, sign retire, sign remove, sign deployed and sign removed also use exit 12, and build stops with 12 for a retired set. A first publish stops with 12 when <code>repo.url</code> already serves a repo (<code>publish.served-exists</code>) or the served tree names another set (<code>set.renamed</code>).</p>
-<p>The remote builder branch can stop a publish with 13 (<code>sign.trust-behind</code>). It counts only when its tip has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit of the publish. Exit 13 also comes from an advisory gate that cannot read a repo.</p>
+<p>The remote set branch can stop a publish with 13 (<code>sign.trust-behind</code>). It counts only when its tip has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit of the publish. Exit 13 also comes from an advisory gate that cannot read a repo.</p>
 <p>Exceptions: <code>mock shell</code> exits with the status of the shell or of its command. <code>ui</code> and <code>mcp start</code> exit 0 on SIGINT or SIGTERM, because a signal is the normal way to stop a server.</p>
 
 <h2 id="commands">Commands</h2>
@@ -376,20 +376,20 @@ repoctl init --from SET --name NAME [--force]</pre>
   <tr><td><code>--name NAME</code></td><td>The name of the new set.</td></tr>
   <tr><td><code>--repo NAME</code></td><td>The repository name. Default: the first part of the set name.</td></tr>
   <tr><td><code>--add-target ID=MOCKCFG</code></td><td>Add a target. Default: <code>el9=rocky+epel-9-x86_64</code>.</td></tr>
-  <tr><td><code>--from SET</code></td><td>Fork the set directory or builder branch SET (<a href="lifecycle.html#init-from">lifecycle.html#init-from</a>).</td></tr>
+  <tr><td><code>--from SET</code></td><td>Fork the set directory or set branch SET (<a href="lifecycle.html#init-from">lifecycle.html#init-from</a>).</td></tr>
   <tr><td><code>--force</code></td><td>Write over an existing file.</td></tr>
   </tbody>
   </table>
   <dl class="facts"><dt>Lock</dt><dd>none (no set yet)</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>repoctl.lock</code>; with <code>--from</code> also the files of <a href="lifecycle.html#init-from">init --from</a></dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1 the file exists (without <code>--force</code>) or no git work tree; 2</dd></dl>
-  <pre class="term">$ repoctl init --from builder/slurm-26.05 --name slurm-26.11
+  <pre class="term">$ repoctl init --from set/slurm-26.05 --name slurm-26.11
 wrote repoctl.yaml   set slurm-26.11, 10 branches renamed (slurm-26.05 → slurm-26.11), 0 shared branches
 wrote repoctl.lock   empty
 dropped key hpc-repo (retiring): no RPM of the new set carries it
 deleted .repoctl/advisories.yaml, keys/deployed.yaml, keys/hpc-repo.asc
 Next: steps 3 to 14 of "repoctl help new-set":
    3. set repo.url in repoctl.yaml; edit the release package: Version 26.11; repoctl release write
-   4. git commit -am "feat: start set slurm-26.11"            builder branch
-   5. repoctl checkout --create --from-set builder/slurm-26.05
+   4. git commit -am "feat: start set slurm-26.11"            set branch
+   5. repoctl checkout --create --from-set set/slurm-26.05
    …
   14. repoctl check --install-timer</pre>
 </section>
@@ -398,7 +398,7 @@ Next: steps 3 to 14 of "repoctl help new-set":
   <h4><code>repoctl migrate</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl migrate [--name NAME] [--dry-run] [--force]
 repoctl migrate --api [--dry-run]</pre>
-  <p>Convert a builder branch of the bash scripts to a set (<a href="../runbooks/import.html#convert">import runbook</a>). migrate reads <code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code>, the build lines of <code>scripts/build</code> and the tables <code>REPO_MAP</code> and <code>DEFAULT_FILTERS</code> of the package-info skill. It deletes no old file. It reports each difference between the hand order of <code>scripts/build</code> and the graph.</p>
+  <p>Convert a set branch of the bash scripts to a set (<a href="../runbooks/import.html#convert">import runbook</a>). migrate reads <code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code>, the build lines of <code>scripts/build</code> and the tables <code>REPO_MAP</code> and <code>DEFAULT_FILTERS</code> of the package-info skill. It deletes no old file. It reports each difference between the hand order of <code>scripts/build</code> and the graph.</p>
   <p>migrate does not import the published RPMs; an agent does that with the <a href="../runbooks/import.html">import runbook</a>.</p>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
@@ -432,7 +432,7 @@ Next: check the files, then:
   <p>The line <code>in flight</code> counts the pinned nodes whose commit latest does not hold (<a href="signing.html#help-team">signing.html#help-team</a>). It splits them into the nodes staged on this host and the nodes to build here, for example after the pin of another admin. Its JSON is <code>Status.inFlight</code> with <code>nodes</code>, <code>staged</code> and <code>build</code>.</p>
   <dl class="facts"><dt>Lock</dt><dd>none; status shows the holder of the set lock</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Status</code>, with <code>lockHolder</code>, <code>inFlight</code> and <code>next</code></dd><dt>Exit</dt><dd>0; 1. A dirty lock or a local copy that is behind is a finding, not a failure.</dd></dl>
   <pre class="term">$ repoctl status                         # 2026-11-02 17:41, after the ucx commit
-set         slurm-26.05  ~/src/slurm-repo  (builder/slurm-26.05 at 5d81c3e, pushed)
+set         slurm-26.05  ~/src/slurm-repo  (set/slurm-26.05 at 5d81c3e, pushed)
 published   el9 el10  p-20260912-1403-c21  2026-09-12 14:03  local same, served same
 last run    r-20260912-1251-e19  2026-09-12 12:51  ok, published in p-20260912-1403-c21
 advisories  1 required (closure.broken/pmix@el9), 3 info
@@ -1042,7 +1042,7 @@ a.admin   …E93F 52A7   active    no record                                   2
 wrote keys/a.admin.asc                          A. Admin &lt;a.admin@gsi.de&gt; · expires 2028-03-01
 wrote packages/slurm-release/RPM-GPG-KEY-slurm  3 keys: a.admin, d.klein, hpc-repo
 committed 7e21d0a "Trust key a.admin C2F9…52A7", signed by a.admin
-Next: git push origin builder/slurm-26.05</pre>
+Next: git push origin set/slurm-26.05</pre>
 </section>
 
 <section class="cmd" id="cmd-sign-retire">
@@ -1099,7 +1099,7 @@ release  slurm-release-26.05-3.el9 in latest of el9 · key file holds a.admin C2
 Type the key id to confirm that all clients have this release: a.admin
 committed keys/deployed.yaml "Deployed a.admin on el9 with slurm-release-26.05-3", signed by d.klein
 pin      el9/RPM-GPG-KEY-slurm 1c7f3e2d…  (client bootstrap: update the pin in config management)
-Next: git push origin builder/slurm-26.05</pre>
+Next: git push origin set/slurm-26.05</pre>
 </section>
 
 <section class="cmd" id="cmd-sign-removed">
@@ -1528,7 +1528,7 @@ Each row names its dependencies, so the graph is clear without the lanes.
 </table>
 
 <h2 id="migration">Migration from today's scripts</h2>
-<p>Each script of the bash era (builder branch <code>builder/slurm-26.05</code>) maps to repoctl. The import of the published repositories is a runbook for an agent, not a command (<a href="../runbooks/import.html">../runbooks/import.html</a>).</p>
+<p>Each script of the bash era (set branch <code>set/slurm-26.05</code>) maps to repoctl. The import of the published repositories is a runbook for an agent, not a command (<a href="../runbooks/import.html">../runbooks/import.html</a>).</p>
 <table class="compact">
 <thead><tr><th>Today</th><th>repoctl</th><th>Notes</th></tr></thead>
 <tbody>

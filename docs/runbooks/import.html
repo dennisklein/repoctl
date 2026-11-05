@@ -84,11 +84,11 @@
 
 <h2 id="inputs">Inputs and preconditions</h2>
 <table>
-<thead><tr><th>Set</th><th>Builder branch</th><th>Served at (el9)</th></tr></thead>
+<thead><tr><th>Set</th><th>Set branch</th><th>Served at (el9)</th></tr></thead>
 <tbody>
-<tr><td><code>slurm-26.05</code></td><td><code>builder/slurm-26.05</code></td><td><code>https://repo.example.org/slurm-26.05/el9/</code></td></tr>
-<tr><td><code>slurm-25.11</code></td><td><code>builder/slurm-25.11</code></td><td><code>https://repo.example.org/slurm-25.11/el9/</code></td></tr>
-<tr><td><code>slurm-25.11-testing</code></td><td><code>builder/slurm-25.11-testing</code></td><td><code>https://repo.example.org/slurm-25.11-testing/el9/</code></td></tr>
+<tr><td><code>slurm-26.05</code></td><td><code>set/slurm-26.05</code></td><td><code>https://repo.example.org/slurm-26.05/el9/</code></td></tr>
+<tr><td><code>slurm-25.11</code></td><td><code>set/slurm-25.11</code></td><td><code>https://repo.example.org/slurm-25.11/el9/</code></td></tr>
+<tr><td><code>slurm-25.11-testing</code></td><td><code>set/slurm-25.11-testing</code></td><td><code>https://repo.example.org/slurm-25.11-testing/el9/</code></td></tr>
 </tbody>
 </table>
 <p><code>repo.example.org</code> stands for the HTTP server of the bash-era repos. Each served directory has three repos (<code>slurm</code>, <code>slurm-source</code>, <code>slurm-debuginfo</code>) and the link <code>slurm-release.rpm</code>. Each repo has <code>packages/</code>, <code>repodata/</code> with <code>repomd.xml.asc</code>, and <code>RPM-GPG-KEY</code>. The only target is <code>el9</code> (<code>rocky+epel-9-x86_64</code>).</p>
@@ -103,9 +103,9 @@
 <li>The mirror job is installed on the HTTP server. The keyring path of the mirror line holds the key file of the bash-era release package, for example <code>/etc/repoctl-mirror/keys/slurm-26.05-el9.asc</code>. Config management puts it there (<a href="../design/publish.html#mirror-keyring">keyring of a mirror line</a>). This file holds <code>hpc-repo</code>, and the job verifies the import with it.</li>
 </ol>
 
-<h2 id="convert">Convert the builder branch to a set</h2>
+<h2 id="convert">Convert the set branch to a set</h2>
 <ol class="steps">
-<li>Make a worktree: <code>git worktree add DIR origin/builder/SET -B builder/SET</code>, for example <code>~/src/slurm-repo-25.11</code> for <code>slurm-25.11</code>. Work in DIR.</li>
+<li>Make a worktree: <code>git worktree add DIR origin/set/SET -B set/SET</code>, for example <code>~/src/slurm-repo-25.11</code> for <code>slurm-25.11</code>. Work in DIR.</li>
 <li>Run <code>repoctl migrate --dry-run</code> (<a href="../design/cli.html#cmd-migrate">command block</a>). Read the findings. A difference between the hand order of <code>scripts/build</code> and the graph is not an error. Write it in the report.</li>
 <li>Run <code>repoctl migrate</code>. It writes <code>repoctl.yaml</code>, <code>repoctl.lock</code> and <code>rpm/macros</code>.</li>
 <li>Compare <code>repoctl.lock</code> with <code>packages.lock</code>: the same dirs, branches and commits. A difference is a stop.</li>
@@ -145,7 +145,7 @@ packages:
 git commit -m "feat!: convert SET to a repoctl set" -m "- add repoctl.yaml and repoctl.lock from packages.lock
 - add the repo key as hpc-repo (active)
 - keep the bash-era scripts until the first repoctl publish"</code></pre></li>
-<li><span class="tag warn">human</span> Review and push: <code>git push origin builder/SET</code>.</li>
+<li><span class="tag warn">human</span> Review and push: <code>git push origin set/SET</code>.</li>
 </ol>
 
 <h2 id="copy">Copy and verify the served tree</h2>
@@ -174,7 +174,7 @@ rpmkeys --dbpath $TMP/rpmdb --checksig $IMPORT/*/packages/*.rpm</code></pre></li
 rpmautospec process-distgit $TMP/k/NAME.spec $TMP/out.spec
 rpmspec --load=rpm/macros --define 'dist .el9' -q --srpm --qf '%{nvr}' $TMP/out.spec
 git worktree remove $TMP/k</code></pre></li>
-<li>For the in-tree release package (<code>packages/slurm-release</code>), walk the builder branch: <code>git log --format=%H -- packages/slurm-release</code>. Compute the NVR at each commit as in item 3. Its build identity is the last set commit that changed its path (<a href="../design/signing.html#release">release package</a>).</li>
+<li>For the in-tree release package (<code>packages/slurm-release</code>), walk the set branch: <code>git log --format=%H -- packages/slurm-release</code>. Compute the NVR at each commit as in item 3. Its build identity is the last set commit that changed its path (<a href="../design/signing.html#release">release package</a>).</li>
 <li>Check the result for each dir:
 <table>
 <thead><tr><th>Result</th><th>Action</th></tr></thead>
@@ -231,7 +231,7 @@ The example values (dates, file lists) are illustrations. Use the values of <a h
 <pre><code class="language-bash">repoctl sign deployed hpc-repo --release slurm-release-26.05-1 \
     --target el9 --path $IMPORT \
     --note "bash-era slurm-release on all clients"
-git push origin builder/SET</code></pre>
+git push origin set/SET</code></pre>
 <p><code>sign deployed</code> asks for the typed key id and makes the set commit (<a href="../design/cli.html#cmd-sign-deployed">command block</a>). For <code>slurm-26.05</code> the record in <code>keys/deployed.yaml</code> is:</p>
 <pre><code class="language-yaml">  - key: hpc-repo
     fingerprint: 9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2

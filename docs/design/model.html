@@ -9,7 +9,7 @@
 <h1>Core model</h1>
 <p class="lede">This chapter gives the mental model of repoctl. It defines the words that all other chapters use, and it shows how one change goes from a commit to the clients. Read it first.</p>
 <ul class="keypoints">
-  <li>A set is one <code>repoctl.yaml</code> on one builder branch. It builds one repository per target.</li>
+  <li>A set is one <code>repoctl.yaml</code> on one set branch. It builds one repository per target.</li>
   <li>A node is one package on one target, written <code>DIR@TARGET</code>. Its build identity is the package commit plus the target.</li>
   <li>The published repo is the build state. Each target repo carries a signed RepoManifest. Only commits that are not in it build.</li>
   <li>A rebuild is an empty commit. rpmautospec raises the release, so every build has a new NVR.</li>
@@ -25,7 +25,7 @@
 <h2 id="set">Package set</h2>
 <p>A <dfn>set</dfn> (package set) is a group of packages that repoctl builds and publishes together. One <code>repoctl.yaml</code> describes one set: its packages, its targets and its output repositories (<a href="config.html#set-config">config.html#set-config</a>). The set name is in all local paths and in the OCI package names.</p>
 <p>The story set <code>slurm-26.05</code> has 11 packages. Other sets use the same tool with their own file, for example <code>slurm-25.11</code> in <code>~/src/slurm-repo-25.11</code>. A new set forks its branches from the previous set (<a href="lifecycle.html#new-set">lifecycle.html#new-set</a>).</p>
-<p>Each set lives on one builder branch, <code>builder/&lt;set&gt;</code>. The branch holds only data:</p>
+<p>Each set lives on one set branch, <code>set/&lt;set&gt;</code>. The branch holds only data:</p>
 <ul>
   <li><code>repoctl.yaml</code>, <code>repoctl.lock</code> and the macro files;</li>
   <li>the in-tree release package <code>packages/slurm-release</code>;</li>
@@ -33,7 +33,7 @@
   <li><code>.repoctl/advisories.yaml</code> with the dismissals;</li>
   <li><code>CLAUDE.md</code>.</li>
 </ul>
-<p>The <dfn>set directory</dfn> is a git work tree of the builder branch, for example <code>/home/dklein/src/slurm-repo</code>. repoctl checks out each package as a git worktree in <code>packages/&lt;dir&gt;</code>, which git ignores.</p>
+<p>The <dfn>set directory</dfn> is a git work tree of the set branch, for example <code>/home/dklein/src/slurm-repo</code>. repoctl checks out each package as a git worktree in <code>packages/&lt;dir&gt;</code>, which git ignores.</p>
 <p>A <dfn>package</dfn> is one <code>dir</code> entry in <code>repoctl.yaml</code>. Its source is one of these:</p>
 <ul>
   <li>a package branch <code>&lt;pkg&gt;/&lt;set&gt;[-&lt;variant&gt;]</code> of the same repository, for example <code>pmix/slurm-26.05-v4</code>;</li>
@@ -300,7 +300,7 @@
 <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td><code>set</code>, <code>target</code>, <code>publish</code></td><td>The set, the target and the publish id of the snapshot that holds the manifest.</td></tr>
-<tr><td><code>builds[]</code>: <code>dir</code>, <code>branch</code>, <code>url</code>, <code>commit</code></td><td>The package and the commit of the build. <code>url</code> is set only for an external package. An in-tree package has the builder branch and a set commit.</td></tr>
+<tr><td><code>builds[]</code>: <code>dir</code>, <code>branch</code>, <code>url</code>, <code>commit</code></td><td>The package and the commit of the build. <code>url</code> is set only for an external package. An in-tree package has the set branch and a set commit.</td></tr>
 <tr><td><code>reason</code></td><td>The plan reason: <code>commit-changed</code>, <code>new-package</code>, <code>new-target</code> or <code>rebuild: TEXT</code>. Imported entries have <code>adopted</code> or <code>adopted-unmapped</code> (<a href="lifecycle.html#adopted">lifecycle.html#adopted</a>).</td></tr>
 <tr><td><code>srpm</code>, <code>rpms</code>, <code>provides</code>, <code>requires</code></td><td>All RPMs of the build and their capabilities from the RPM headers. The soname and closure checks read them.</td></tr>
 <tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code></td><td>Hashes of the mock config, the macro files and the buildroot. <code>buildroot</code> is the sha256 of the buildroot file.</td></tr>
@@ -375,7 +375,7 @@
 <svg viewBox="0 0 900 312" role="img" aria-labelledby="records-t">
 <title id="records-t">One authority and its copies; team records in git; personal files</title>
 <rect class="box" x="20" y="20" width="260" height="100" rx="8"/>
-<text class="t-title" x="36" y="44">builder branch (git)</text>
+<text class="t-title" x="36" y="44">set branch (git)</text>
 <text class="t-small" x="36" y="66">repoctl.yaml, repoctl.lock</text>
 <text class="t-small" x="36" y="84">keys/deployed.yaml, advisories.yaml</text>
 <text class="t-small t-muted" x="36" y="104">team records: what to build, who is trusted</text>
@@ -418,8 +418,8 @@
 <tr><td>Local copy and <code>snapshot.json</code></td><td><code>$XDG_DATA_HOME/repoctl/SET/repo/TARGET/</code></td><td>repo pull, publish (after the tag)</td><td>plan, build, repo ls, repo diff</td><td>cache of <code>latest</code></td></tr>
 <tr><td>Supply chain records</td><td>files in the snapshot (<code>slurm/records/</code>), with their sha256 in the RepoManifest</td><td>publish, repo push, restore, prune, resign</td><td>repo provenance, repo sbom, repo verify, mirror job, scanners</td><td>part of the snapshot</td></tr>
 <tr><td>Served tree</td><td>HTTP server</td><td>mirror job</td><td>clients, status</td><td>copy for dnf</td></tr>
-<tr><td><code>keys/deployed.yaml</code></td><td>builder branch (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
-<tr><td><code>.repoctl/advisories.yaml</code></td><td>builder branch (git)</td><td>advisories dismiss</td><td>check, plan, status, advisories, web UI; never publish</td><td>team record</td></tr>
+<tr><td><code>keys/deployed.yaml</code></td><td>set branch (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
+<tr><td><code>.repoctl/advisories.yaml</code></td><td>set branch (git)</td><td>advisories dismiss</td><td>check, plan, status, advisories, web UI; never publish</td><td>team record</td></tr>
 <tr><td>Runs, staging, journals, logs</td><td><code>$XDG_DATA_HOME</code> (staging), <code>$XDG_STATE_HOME</code> (runs, journals, logs)</td><td>build, publish</td><td>the same user</td><td>personal, not shared</td></tr>
 </tbody>
 </table>

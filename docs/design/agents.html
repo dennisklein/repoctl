@@ -70,7 +70,7 @@
 <text class="t-on" x="32" y="136">binary (go:embed), Claude Code plugin,</text>
 <text class="t-on" x="32" y="156">/usr/share/repoctl/skills, skills install</text>
 <rect class="box" x="454" y="16" width="410" height="150" rx="8"/>
-<text class="t-title" x="470" y="42">Ships with the set (builder/&lt;set&gt;)</text>
+<text class="t-title" x="470" y="42">Ships with the set (set/&lt;set&gt;)</text>
 <text class="t" x="470" y="68">repoctl.yaml: upstream, tag filter, notes</text>
 <text class="t" x="470" y="92">set-local skills (skills: in repoctl.yaml):</text>
 <text class="t" x="470" y="112">local policy; add only, never replace</text>
@@ -88,14 +88,14 @@
 <thead><tr><th>Question</th><th>Ships with repoctl</th><th>Ships with the set config</th></tr></thead>
 <tbody>
 <tr><td>A skill calls <code>repoctl … --json</code>. Who keeps skill and CLI in step?</td><td>Same commit, same version. No drift.</td><td>Each set must update its skills when the CLI changes. Drift is likely.</td></tr>
-<tr><td>A fix to a skill</td><td>One release reaches all sets.</td><td>The fix must go to each builder branch (problem P6, <a href="decision.html#problems">decision.html#problems</a>).</td></tr>
+<tr><td>A fix to a skill</td><td>One release reaches all sets.</td><td>The fix must go to each set branch (problem P6, <a href="decision.html#problems">decision.html#problems</a>).</td></tr>
 <tr><td>Package facts (upstream repo, tag filter, notes)</td><td>Wrong place. The skill would know about slurm.</td><td>Right place. In <code>repoctl.yaml</code> the deterministic CLI can use them too.</td></tr>
 <tr><td>Local rules (who publishes, rollout order)</td><td>Wrong place.</td><td>Right place, as an optional set-local skill.</td></tr>
 <tr><td>Work without an agent</td><td colspan="2">The facts in <code>repoctl.yaml</code> work without an agent. <code>repoctl upstream</code> gives the same table as the skill, without the release-note summary.</td></tr>
 </tbody>
 </table>
 <p>The <code>skills:</code> key of <code>repoctl.yaml</code> names the set-local skill directories, for example <code>.claude/skills</code> (<a href="config.html#set-config">config.html#set-config</a>). <code>repoctl skills ls</code> shows the source, version and install place of each skill and marks a name conflict (<a href="cli.html#cmd-skills">cli.html#cmd-skills</a>). <code>repoctl doctor</code> warns about a conflict.</p>
-<p>The <code>CLAUDE.md</code> of a builder branch holds notes about the set. It points to the <code>repoctl</code> skill and to the help topics <code>new-set</code> and <code>packages</code>. It holds no generic workflow.</p>
+<p>The <code>CLAUDE.md</code> of a set branch holds notes about the set. It points to the <code>repoctl</code> skill and to the help topics <code>new-set</code> and <code>packages</code>. It holds no generic workflow.</p>
 <h3 id="install">Install paths</h3>
 <table class="compact">
 <thead><tr><th>Install path</th><th>Skills</th><th>Guard hook and deny list</th></tr></thead>
@@ -243,7 +243,7 @@ metadata:
 <p>A deny rule wins over an allow rule. But a prefix rule cannot see a path, so the guard hook closes these gaps:</p>
 <ul>
   <li>The rule <code>Bash(git push:*)</code> does not match <code>git -C packages/ucx push</code>.</li>
-  <li>Mode apply of bump-package allows the prefix <code>git -C packages/</code>. That prefix also matches <code>git -C packages/ucx/.. commit</code>, which commits on the builder branch.</li>
+  <li>Mode apply of bump-package allows the prefix <code>git -C packages/</code>. That prefix also matches <code>git -C packages/ucx/.. commit</code>, which commits on the set branch.</li>
 </ul>
 <p><code>Bash(repoctl sign:*)</code> also blocks <code>repoctl sign ls</code>. An agent reads the signing keys through the MCP tools <code>repoctl_sign_ls</code>, <code>repoctl_sign_onboard</code>, <code>repoctl_sign_offboard</code> and <code>repoctl_sign_keyfile</code>. Test V21 checks the rules and the hook (<a href="delivery.html#verification">delivery.html#verification</a>).</p>
 <h3 id="guard">Guard hook</h3>

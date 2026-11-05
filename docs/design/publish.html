@@ -32,7 +32,7 @@
 <text class="t t-title" x="368" y="42">Git remote (GitHub)</text>
 <text class="t-small" x="368" y="64">repoctl.yaml, repoctl.lock, keys/</text>
 <text class="t-small" x="368" y="82">keys/deployed.yaml</text>
-<text class="t-small t-muted" x="368" y="102">builder and package branches</text>
+<text class="t-small t-muted" x="368" y="102">set and package branches</text>
 <rect class="box" x="16" y="152" width="240" height="104" rx="8"/>
 <text class="t t-title" x="32" y="178">Second admin host hpc-a2</text>
 <text class="t-small" x="32" y="200">same tools, own user and XDG state</text>
@@ -203,7 +203,7 @@ WantedBy=timers.target</code></pre>
 <tr><td>REF names no snapshot of the target.</td><td><code>snapshot.not-found</code>, exit 1</td></tr>
 <tr><td>A file does not verify.</td><td>Pull stops and writes nothing, exit 10.</td></tr>
 <tr><td>A file of a revoked key</td><td>The warning <code>sign.removed-signer</code>, not a stop, so that the host can re-sign the file (<a href="signing.html#compromise">signing.html#compromise</a>).</td></tr>
-<tr><td>The signer of a file is not in <code>sign.keys</code>, and the set checkout does not hold the set commit of the snapshot (<code>.set-commit</code>).</td><td>The checkout is older than the publish. The hint of <code>sign.unknown-signer</code> is <code>git pull</code> of the builder branch, then <code>repoctl repo pull</code> again.</td></tr>
+<tr><td>The signer of a file is not in <code>sign.keys</code>, and the set checkout does not hold the set commit of the snapshot (<code>.set-commit</code>).</td><td>The checkout is older than the publish. The hint of <code>sign.unknown-signer</code> is <code>git pull</code> of the set branch, then <code>repoctl repo pull</code> again.</td></tr>
 <tr><td>The local copy holds a publish of this user that is not on the chain of latest.</td><td>The warning <code>snapshot.orphaned</code>, before pull replaces the local copy (<a href="#admins">two admins</a>).</td></tr>
 </tbody>
 </table>
@@ -233,7 +233,7 @@ WantedBy=timers.target</code></pre>
 <p>The warning names the time and the last error of the job. Its hint is <code>read the journal of the mirror job on the HTTP server: journalctl -u repoctl-mirror.service</code>. <code>repoctl doctor</code> (group registry) and the Needs you list of the web UI show the same warning (<a href="ui-build.html#needs-you">ui-build.html#needs-you</a>).</p>
 <p>The snapshot lines of <code>repoctl status</code> just after the story publish of el9 (2026-11-03 14:13):</p>
 <pre class="term">$ repoctl status
-set      slurm-26.05  (builder/slurm-26.05 at 9a0c4e2, pushed)
+set      slurm-26.05  (set/slurm-26.05 at 9a0c4e2, pushed)
 store    ghcr.io/gsi-hpc/slurm-repo
 TARGET  LATEST                 BY               LOCAL   SERVED
 el9     p-20261103-1412-5e1    d.klein@hpc-a1   same    behind (p-20260912-1403-c21)

@@ -47,7 +47,7 @@
 <h2 id="compromise">Compromise</h2>
 <ol class="steps">
 <li>Stop the access. When the human leaves, an organization owner removes the human from the GitHub team (<code>slurm-repo-admins</code> in the examples). Delete the registry tokens of each host that held the key.</li>
-<li>Run <code>repoctl sign revoke a.admin</code> and type the key id. Push the set commit: <code>git push origin builder/slurm-26.05</code>.</li>
+<li>Run <code>repoctl sign revoke a.admin</code> and type the key id. Push the set commit: <code>git push origin set/slurm-26.05</code>.</li>
 <li>Run <code>repoctl sign offboard a.admin</code>. Give its output to the owner of config management. Config management installs the new key file with the pinned sum. It erases the key and deletes the dnf repository keyring. It does this first on the HTTP server, then on each client. Do not wait for a release package.</li>
 <li>Check each snapshot that <code>sign offboard</code> lists. Compare the publish id, the user and the host with the team channel. When a publish is not known, run <code>repoctl repo restore REF</code> with the newest known snapshot of that target. Do this before the next step.</li>
 <li>With another active, deployed key, run <code>repoctl repo resign --signer a.admin --target el9</code>. Do the same for each other target that <code>sign offboard</code> lists.</li>

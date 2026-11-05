@@ -14,11 +14,11 @@
   <li>The build graph is real but small: 11 packages, 14 edges, 4 levels. Dagger and BuildKit add a privileged second isolation layer for little gain.</li>
   <li>Agent skills alone are not deterministic. A signed release must be repeatable. The agent does judgment work only.</li>
   <li>A CLI, a local web UI and an MCP server share one core, one plan and one journal.</li>
-  <li>The tool lives on the branch <code>main</code>. Each builder branch holds only the data of one set.</li>
+  <li>The tool lives on the branch <code>main</code>. Each set branch holds only the data of one set.</li>
 </ul>
 
 <h2 id="scripts">The bash scripts today</h2>
-<p>Each <code>builder/slurm-*</code> branch (<code>builder/slurm-26.05</code>, <code>builder/slurm-25.11</code>, <code>builder/slurm-25.11-testing</code>) has its own copy of the build scripts. They build one EL9 repository for one Slurm release.</p>
+<p>Each <code>set/slurm-*</code> branch (<code>set/slurm-26.05</code>, <code>set/slurm-25.11</code>, <code>set/slurm-25.11-testing</code>) has its own copy of the build scripts. They build one EL9 repository for one Slurm release.</p>
 <ul>
   <li><code>scripts/checkout</code> and <code>scripts/pin</code> manage one git worktree per package. <code>packages.lock</code> holds the pinned commits.</li>
   <li><code>scripts/build</code> calls <code>build &lt;dir&gt;</code> 11 times in a fixed order. Each call makes an SRPM, builds the RPMs in mock, signs them and runs <code>createrepo --update</code> on <code>result/el9/</code>.</li>
@@ -29,10 +29,10 @@
 <p>The CLI reference maps each script to its repoctl command (<a href="cli.html#migration">cli.html#migration</a>).</p>
 
 <h2 id="graph">The real build graph</h2>
-<p>The <code>BuildRequires</code> of the spec files on <code>builder/slurm-26.05</code> give this graph. An arrow means "is necessary to build".</p>
+<p>The <code>BuildRequires</code> of the spec files on <code>set/slurm-26.05</code> give this graph. An arrow means "is necessary to build".</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 392" role="img" aria-labelledby="graph-t">
-<title id="graph-t">Build graph of builder/slurm-26.05: 11 packages, 14 edges, 4 levels</title>
+<title id="graph-t">Build graph of set/slurm-26.05: 11 packages, 14 edges, 4 levels</title>
 <path class="edge-accent" d="M180,54 L248,54" marker-end="url(#arrow-accent)"/>
 <path class="edge-accent" d="M180,54 C215,54 215,134 248,134" marker-end="url(#arrow-accent)"/>
 <path class="edge-accent" d="M180,54 C215,54 215,230 248,230" marker-end="url(#arrow-accent)"/>
@@ -67,7 +67,7 @@
 <rect class="box-muted" x="620" y="366" width="24" height="16" rx="4"/>
 <text class="t-small" x="652" y="378">no build dependency in the set</text>
 </svg>
-<figcaption>The build graph of <code>builder/slurm-26.05</code>: 11 packages, 14 edges, 4 levels. Four packages have no dependency in the set, so up to 4 builds can run at the same time.</figcaption>
+<figcaption>The build graph of <code>set/slurm-26.05</code>: 11 packages, 14 edges, 4 levels. Four packages have no dependency in the set, so up to 4 builds can run at the same time.</figcaption>
 </figure>
 <ul>
   <li>The longest chain is <code>munge → pmix → prrte → openmpi</code>.</li>
@@ -84,7 +84,7 @@
 <tr><td>P3</td><td>All builds run one after the other.</td><td>Long wall time. The graph allows 4 parallel builds.</td></tr>
 <tr><td>P4</td><td>Each package signs and updates <code>result/</code> directly.</td><td>If build 7 fails, <code>result/</code> has 6 new packages and 5 old ones. The repository is in a mixed state.</td></tr>
 <tr><td>P5</td><td>The output is <code>set -x</code> and one <code>sources.log</code>.</td><td>Humans cannot see the progress. An agent must parse free text.</td></tr>
-<tr><td>P6</td><td>Each <code>builder/slurm-*</code> branch has a copy of the scripts.</td><td>A fix to the tooling must go to 3 branches.</td></tr>
+<tr><td>P6</td><td>Each <code>set/slurm-*</code> branch has a copy of the scripts.</td><td>A fix to the tooling must go to 3 branches.</td></tr>
 </tbody>
 </table>
 
@@ -348,7 +348,7 @@
 <text class="t-small t-on" x="155" y="92" text-anchor="middle">Go module, skills, contrib/mirror/</text>
 <text class="t-small t-on" x="155" y="112" text-anchor="middle">docs/, CI and Pages workflows</text>
 <rect class="box" x="320" y="44" width="250" height="100" rx="8"/>
-<text class="t-title" x="445" y="68" text-anchor="middle">builder/slurm-26.05</text>
+<text class="t-title" x="445" y="68" text-anchor="middle">set/slurm-26.05</text>
 <text class="t-small" x="445" y="92" text-anchor="middle">repoctl.yaml, repoctl.lock, macros</text>
 <text class="t-small" x="445" y="112" text-anchor="middle">slurm-release, keys/, CLAUDE.md</text>
 <text class="t-small t-muted" x="445" y="132" text-anchor="middle">set data only</text>
@@ -385,10 +385,11 @@
 <thead><tr><th>Branch</th><th>Holds</th></tr></thead>
 <tbody>
 <tr><td><code>main</code> (default)</td><td>The Go module of repoctl, the skills, the mirror job (<code>contrib/mirror/</code>), the source of this docs site (<code>docs/</code>) and the CI workflows.</td></tr>
-<tr><td><code>builder/&lt;set&gt;</code></td><td>The data of one set: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, macros, the in-tree release package, <code>keys/</code>, <code>.repoctl/advisories.yaml</code> and <code>CLAUDE.md</code>. No scripts (<a href="model.html#set">model.html#set</a>).</td></tr>
+<tr><td><code>set/&lt;set&gt;</code></td><td>The data of one set: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, macros, the in-tree release package, <code>keys/</code>, <code>.repoctl/advisories.yaml</code> and <code>CLAUDE.md</code>. No scripts (<a href="model.html#set">model.html#set</a>).</td></tr>
 <tr><td><code>&lt;pkg&gt;/&lt;set&gt;[-&lt;variant&gt;]</code></td><td>One package: its spec and its full git history, which rpmautospec reads. Example: <code>pmix/slurm-26.05-v4</code>.</td></tr>
 </tbody>
 </table>
+<p>In the bash era, the set branches had the name <code>builder/&lt;set&gt;</code>. The name changed for two reasons: the branch builds nothing, and the builder of a build is the repoctl process (<a href="supply-chain.html#builder">supply-chain.html#builder</a>).</p>
 
 <h3 id="set-data">Generic logic and set data</h3>
 <table class="compact">
@@ -415,7 +416,7 @@
 <ul>
   <li>The fonts in <code>docs/assets/fonts/</code> and the script in <code>docs/assets/vendor/</code> keep their own licenses. Their license files are next to them.</li>
   <li>The tool RPM and the release RPM <code>repoctl-release</code> have the tag <code>License: Apache-2.0</code>.</li>
-  <li>The license does not cover the builder branches and the package branches. A spec file keeps the license that its author gives it. The RPMs that repoctl builds have the License tag of their spec.</li>
+  <li>The license does not cover the set branches and the package branches. A spec file keeps the license that its author gives it. The RPMs that repoctl builds have the License tag of their spec.</li>
 </ul>
 <aside class="callout why">
 <p class="callout-title">Why Apache-2.0</p>
@@ -424,7 +425,7 @@
 
 <h2 id="sources">Sources</h2>
 <ul>
-  <li><code>builder/slurm-26.05</code>: <code>scripts/*</code>, <code>packages.lock</code>, <code>.claude/skills/*</code> and the spec files of all package worktrees.</li>
+  <li><code>set/slurm-26.05</code>: <code>scripts/*</code>, <code>packages.lock</code>, <code>.claude/skills/*</code> and the spec files of all package worktrees.</li>
   <li><code>GSI-HPC/go-clikit</code>: README and <code>doc/architecture.md</code>.</li>
   <li><code>GSI-HPC/sind</code>, <code>dennisklein/brig</code> and <code>skyhook-io/radar</code>: READMEs.</li>
   <li>Dagger documentation on <code>insecureRootCapabilities</code>.</li>

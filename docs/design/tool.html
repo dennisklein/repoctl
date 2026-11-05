@@ -54,7 +54,7 @@
 <text class="t-small t-muted" x="30" y="100">or the yank job on main</text>
 <rect class="box-muted" x="16" y="168" width="160" height="56" rx="8"/>
 <text class="t-title" x="30" y="192">other refs</text>
-<text class="t-small t-muted" x="30" y="212">builder/*, pull requests</text>
+<text class="t-small t-muted" x="30" y="212">set/*, pull requests</text>
 <rect class="zone" x="216" y="16" width="250" height="228" rx="8"/>
 <text class="t-title" x="232" y="40">environment tool-release</text>
 <rect class="box-soft" x="232" y="56" width="218" height="40" rx="8"/>
@@ -95,7 +95,7 @@
 <tr><td>Creation</td><td>A maintainer makes the key with GnuPG on a host without network. One encrypted copy of the secret key stays offline with the maintainer. The other copy goes into the environment secret.</td></tr>
 <tr><td>Storage</td><td>The secret <code>TOOL_REPO_KEY</code> of the GitHub environment <code>tool-release</code> in <code>dennisklein/repoctl</code>. No repository secret and no organization secret holds the key.</td></tr>
 <tr><td>Access</td><td>The environment admits only the ref <code>main</code> and the tags <code>v*</code>. A maintainer must approve each job (required reviewer).</td></tr>
-<tr><td>Other refs</td><td>A workflow on a builder branch, a package branch or a pull request cannot read the secret. The release job also checks that the commit of the tag is on <code>main</code>.</td></tr>
+<tr><td>Other refs</td><td>A workflow on a set branch, a package branch or a pull request cannot read the secret. The release job also checks that the commit of the tag is on <code>main</code>.</td></tr>
 <tr><td>Fingerprint</td><td>In this chapter, in the README of <code>main</code> and in the notes of each GitHub Release. The binary has the fingerprints of all tool repository keys, each with a state: <code>current</code>, <code>retired</code> or <code>revoked</code>.</td></tr>
 <tr><td>First install</td><td><code>repoctl-release-1-1.noarch.rpm</code>, sha256 <code>2c4e6a8b0d1f3a5c7e9b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c</code>. Each new <code>repoctl-release</code> changes this value in the same commit.</td></tr>
 <tr><td>Expiry</td><td>Do not extend the expiry date. rpm 6 on the Fedora admin hosts updates a key at import, but rpm 4.16 and 4.19 on the EL HTTP servers do not (F12, <a href="signing.html#facts">client facts</a>). Rotate the key instead.</td></tr>

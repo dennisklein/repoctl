@@ -98,16 +98,16 @@
 </aside>
 
 <h2 id="new-set">New set</h2>
-<p>A new set forks the builder branch and each package branch from the previous set, so the rpmautospec history and the changelogs continue. The example starts set <code>slurm-26.11</code> from <code>slurm-26.05</code> with the steps of <a href="#help-new-set">help new-set</a>.</p>
+<p>A new set forks the set branch and each package branch from the previous set, so the rpmautospec history and the changelogs continue. The example starts set <code>slurm-26.11</code> from <code>slurm-26.05</code> with the steps of <a href="#help-new-set">help new-set</a>.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 880 300" role="img" aria-labelledby="new-set-t">
-<title id="new-set-t">Set slurm-26.11 forks the builder branch and each package branch of slurm-26.05 at the lock commit</title>
+<title id="new-set-t">Set slurm-26.11 forks the set branch and each package branch of slurm-26.05 at the lock commit</title>
 <text class="t-title" x="24" y="24">slurm-26.05</text>
 <text class="t-title" x="528" y="24">slurm-26.11</text>
 <rect class="box" x="24" y="36" width="330" height="40" rx="8"/>
-<text class="t-mono" x="40" y="61">builder/slurm-26.05 (tip)</text>
+<text class="t-mono" x="40" y="61">set/slurm-26.05 (tip)</text>
 <rect class="box-accent" x="528" y="36" width="330" height="40" rx="8"/>
-<text class="t-mono t-on" x="544" y="61">builder/slurm-26.11</text>
+<text class="t-mono t-on" x="544" y="61">set/slurm-26.11</text>
 <line class="edge-accent" x1="354" y1="56" x2="526" y2="56" marker-end="url(#arrow-accent)"/>
 <text class="t-small" x="440" y="48" text-anchor="middle">git worktree add -b</text>
 <text class="t-small t-muted" x="440" y="92" text-anchor="middle">repoctl init --from rewrites repoctl.yaml</text>
@@ -139,7 +139,7 @@
 </figure>
 
 <h3 id="init-from">repoctl init --from</h3>
-<p><code>repoctl init --from SET --name NAME</code> forks the set config (<a href="cli.html#cmd-init">command block</a>). <code>SET</code> is a set directory or a builder branch, for example <code>builder/slurm-26.05</code>. init reads its <code>repoctl.yaml</code> and writes the files of the new set in the start directory:</p>
+<p><code>repoctl init --from SET --name NAME</code> forks the set config (<a href="cli.html#cmd-init">command block</a>). <code>SET</code> is a set directory or a set branch, for example <code>set/slurm-26.05</code>. init reads its <code>repoctl.yaml</code> and writes the files of the new set in the start directory:</p>
 <table>
 <thead><tr><th>Part</th><th>What init writes</th></tr></thead>
 <tbody>
@@ -179,7 +179,7 @@
 </tbody>
 </table>
 <p>The output gives the start point of each branch: "forked from pmix/slurm-26.05 at 6644bdf" or "orphan". repoctl does not push. The output ends with one push command for all new branches, then <code>repoctl pin</code>.</p>
-<pre class="term">$ repoctl checkout --create --from-set builder/slurm-26.05
+<pre class="term">$ repoctl checkout --create --from-set set/slurm-26.05
 munge                    munge/slurm-26.11                    forked from munge/slurm-26.05 at 3a244fd
 pmix                     pmix/slurm-26.11                     forked from pmix/slurm-26.05 at 6644bdf
 pmix_v4                  pmix/slurm-26.11-v4                  forked from pmix/slurm-26.05-v4 at 7525595
@@ -209,7 +209,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </table>
 
 <h2 id="testing">Testing and production sets</h2>
-<p>A <dfn>testing set</dfn> builds changes for test clients before its production set gets them. Example: <code>slurm-25.11-testing</code> tests the changes for <code>slurm-25.11</code>. For repoctl, a testing set is a normal set with its own name, <code>repo.url</code>, OCI packages, builder branch and package branches. Only the steps below connect the two sets.</p>
+<p>A <dfn>testing set</dfn> builds changes for test clients before its production set gets them. Example: <code>slurm-25.11-testing</code> tests the changes for <code>slurm-25.11</code>. For repoctl, a testing set is a normal set with its own name, <code>repo.url</code>, OCI packages, set branch and package branches. Only the steps below connect the two sets.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 210" role="img" aria-labelledby="testing-t">
 <title id="testing-t">A change goes from the testing set to the production set with a fast-forward merge; the testing build has the lower NVR</title>
@@ -244,9 +244,9 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 
 <h3 id="testing-start">Start a testing set</h3>
 <ol class="steps">
-<li>Follow <a href="#help-new-set">help new-set</a> with <code>repoctl init --from builder/slurm-25.11 --name slurm-25.11-testing</code>. init renames each branch: <code>munge/slurm-25.11</code> becomes <code>munge/slurm-25.11-testing</code>.</li>
+<li>Follow <a href="#help-new-set">help new-set</a> with <code>repoctl init --from set/slurm-25.11 --name slurm-25.11-testing</code>. init renames each branch: <code>munge/slurm-25.11</code> becomes <code>munge/slurm-25.11-testing</code>.</li>
 <li>Give the set its own <code>repo.url</code>, for example <code>https://repo.example.org/slurm-25.11-testing</code>. Only the test clients install its release package.</li>
-<li>Before the first build, add a macro file for each target that adds <code>~testing</code> to <code>%dist</code>. Example: <code>rpm/dist-el9</code> with the line <code>%dist .el9~testing</code>, in <code>targets[].macros</code> of el9. Commit and push. Repository: the builder branch.</li>
+<li>Before the first build, add a macro file for each target that adds <code>~testing</code> to <code>%dist</code>. Example: <code>rpm/dist-el9</code> with the line <code>%dist .el9~testing</code>, in <code>targets[].macros</code> of el9. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each NVR ends with <code>.el9~testing</code>.</li>
 </ol>
 
@@ -255,7 +255,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>In the testing set: commit the change on the testing package branch, push, pin, build and publish. Test it on the test clients.</li>
 <li>In the production set: run <code>git -C packages/DIR merge --ff-only origin/TESTING-BRANCH</code>. When git refuses, the production branch has commits that the testing branch does not have. Merge the production branch into the testing branch, publish and test that in the testing set, then try again.</li>
-<li>Run <code>git -C packages/DIR push origin BRANCH</code> and <code>repoctl pin DIR</code>. Commit and push. Repository: the builder branch of the production set.</li>
+<li>Run <code>git -C packages/DIR push origin BRANCH</code> and <code>repoctl pin DIR</code>. Commit and push. Repository: the set branch of the production set.</li>
 <li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>commit-changed</code>. Its release is the release of the testing build, without <code>~testing</code>.</li>
 <li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
 </ol>
@@ -270,23 +270,23 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </aside>
 
 <h2 id="changes">Package changes</h2>
-<p>A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>builder branch</dfn> (the set directory). <code>repoctl help packages</code> prints the short form of these steps (<a href="#help-packages">text</a>).</p>
+<p>A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>set branch</dfn> (the set directory). <code>repoctl help packages</code> prints the short form of these steps (<a href="#help-packages">text</a>).</p>
 <table class="compact">
 <thead><tr><th>Change</th><th>Commits in</th><th>plan shows</th></tr></thead>
 <tbody>
-<tr><td><a href="#bump">Change a spec or bump a version</a></td><td>package branch, builder branch</td><td><code>commit-changed</code></td></tr>
-<tr><td><a href="#add">Add a package</a></td><td>package branch, builder branch</td><td><code>new-package</code></td></tr>
-<tr><td><a href="#add-external">Add an external package</a></td><td>external server, builder branch</td><td><code>new-package</code></td></tr>
-<tr><td><a href="#stream">Add a second stream</a></td><td>package branch, builder branch</td><td><code>new-package</code></td></tr>
-<tr><td><a href="#some-targets">Some targets only</a></td><td>builder branch</td><td>no node on the other targets; <code>retired.published</code></td></tr>
-<tr><td><a href="#retire">Retire a package</a></td><td>builder branch</td><td>no node; <code>retired.published</code></td></tr>
-<tr><td><a href="#rename">Rename a dir or a branch</a></td><td>builder branch</td><td><code>current</code></td></tr>
-<tr><td><a href="#rename">Rename the RPM</a></td><td>package branch, builder branch</td><td><code>commit-changed</code></td></tr>
-<tr><td><a href="#move">Move to a branch</a></td><td>package branch, builder branch</td><td><code>rebuild</code></td></tr>
-<tr><td><a href="#move">Move to an external server</a></td><td>external server, builder branch</td><td><code>current</code></td></tr>
-<tr><td><a href="#targets">Add a target</a></td><td>builder branch</td><td><code>new-target</code></td></tr>
-<tr><td><a href="#targets">Retire a target</a></td><td>builder branch</td><td>no node on that target</td></tr>
-<tr><td><a href="#mass-rebuild">Rebuild the set</a></td><td>package branches, builder branch</td><td><code>rebuild</code></td></tr>
+<tr><td><a href="#bump">Change a spec or bump a version</a></td><td>package branch, set branch</td><td><code>commit-changed</code></td></tr>
+<tr><td><a href="#add">Add a package</a></td><td>package branch, set branch</td><td><code>new-package</code></td></tr>
+<tr><td><a href="#add-external">Add an external package</a></td><td>external server, set branch</td><td><code>new-package</code></td></tr>
+<tr><td><a href="#stream">Add a second stream</a></td><td>package branch, set branch</td><td><code>new-package</code></td></tr>
+<tr><td><a href="#some-targets">Some targets only</a></td><td>set branch</td><td>no node on the other targets; <code>retired.published</code></td></tr>
+<tr><td><a href="#retire">Retire a package</a></td><td>set branch</td><td>no node; <code>retired.published</code></td></tr>
+<tr><td><a href="#rename">Rename a dir or a branch</a></td><td>set branch</td><td><code>current</code></td></tr>
+<tr><td><a href="#rename">Rename the RPM</a></td><td>package branch, set branch</td><td><code>commit-changed</code></td></tr>
+<tr><td><a href="#move">Move to a branch</a></td><td>package branch, set branch</td><td><code>rebuild</code></td></tr>
+<tr><td><a href="#move">Move to an external server</a></td><td>external server, set branch</td><td><code>current</code></td></tr>
+<tr><td><a href="#targets">Add a target</a></td><td>set branch</td><td><code>new-target</code></td></tr>
+<tr><td><a href="#targets">Retire a target</a></td><td>set branch</td><td>no node on that target</td></tr>
+<tr><td><a href="#mass-rebuild">Rebuild the set</a></td><td>package branches, set branch</td><td><code>rebuild</code></td></tr>
 </tbody>
 </table>
 
@@ -298,7 +298,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>git -C packages/DIR commit -am "Bump to VERSION"</code>. Repository: the package branch. Optional: try the commit with <code>repoctl build DIR --from worktree</code>. That run is unpinned and never publishable.</li>
 <li>Run <code>git -C packages/DIR push origin BRANCH</code>.</li>
 <li>Run <code>repoctl pin DIR</code>.</li>
-<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>commit-changed</code> on each of its targets.</li>
 <li>Run <code>repoctl build</code>. Read the soname result of each node of DIR (<a href="build.html#soname">soname check</a>). "sonames unchanged" means that no dependent needs a rebuild. An advisory <code>soname.removed</code> names the dependents: follow the <a href="advisories.html#recovery">recovery path</a>.</li>
 <li>Run <code>repoctl publish</code>.</li>
@@ -312,7 +312,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Write or change the spec in <code>packages/DIR</code>. Commit there. Repository: the package branch.</li>
 <li>Run <code>git -C packages/DIR push origin BRANCH</code>.</li>
 <li>Run <code>repoctl pin DIR</code>.</li>
-<li>Run <code>git add repoctl.yaml repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>Run <code>git add repoctl.yaml repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>new-package</code> on each of its targets. When DIR provides a BuildRequires of a current node, the advisory <code>provider.changed</code> names the dependents (<a href="advisories.html#codes">codes</a>).</li>
 <li>Follow the advisory: <code>repoctl rebuild DEPENDENTS --reason "build against DIR"</code>, then pin, commit and push. Or dismiss it with a note (<a href="advisories.html#dismissals">dismissals</a>).</li>
 <li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
@@ -340,7 +340,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 
 <h3 id="some-targets">Build a package for some targets only</h3>
 <ol class="steps">
-<li>Add <code>targets: [el9]</code> to the entry. Commit and push. Repository: the builder branch.</li>
+<li>Add <code>targets: [el9]</code> to the entry. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: no node on the other targets. The advisory <code>retired.published</code> (info) names the RPMs that stay published there. A dependent on another target gets <code>dep.not-for-target</code> (warn, <a href="build.html#graph">graph per target</a>).</li>
 <li>The package is retired on the other targets, and its published RPMs there stay. To remove them, follow <a href="#retire">Retire a package</a> from step 5.</li>
 </ol>
@@ -350,7 +350,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>Delete the entry from <code>repoctl.yaml</code>.</li>
 <li>Run <code>repoctl pin --orphans</code>. It removes the orphaned lock entry and changes no other line.</li>
-<li>Run <code>git commit -am "feat!: remove DIR from the set" &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>Run <code>git commit -am "feat!: remove DIR from the set" &amp;&amp; git push</code>. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: no node for DIR. The advisory <code>retired.published/NAME</code> (info) gives the RPMs that stay published.</li>
 <li>Optional, explicit: run <code>repoctl repo prune --target T --package NAME --all</code>. This is a dry run. Read it. Then run it again with <code>--apply</code> (<a href="publish.html#retention">prune</a>).</li>
 <li>Optional, on the clients: remove the package through config management, or add Obsoletes to the release package.</li>
@@ -372,19 +372,19 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p>Rename a dir, for example <code>rocm-smi</code> to <code>rocm-smi-lib</code>. Nothing builds.</p>
 <ol class="steps">
 <li>Change <code>dir</code> in <code>repoctl.yaml</code>. Run <code>git worktree move packages/rocm-smi packages/rocm-smi-lib</code>.</li>
-<li>Run <code>repoctl pin</code>. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl pin</code>. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code> with the note "dir renamed from rocm-smi". plan matches manifest entries by commit, target and source package name, not by dir, branch or URL (<a href="model.html#manifest">match key</a>).</li>
 </ol>
 <p>Rename the RPM (<code>Name</code> in the spec). The new name builds.</p>
 <ol class="steps">
 <li>Change <code>Name</code> and add Obsoletes and Provides for the old name. Commit. Repository: the package branch.</li>
-<li>Push, pin, commit and push. Repository: the builder branch.</li>
+<li>Push, pin, commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>commit-changed</code>. The old source package name is retired (<a href="#retire">Retire a package</a>).</li>
 </ol>
 <p>Rename the branch. The commit stays the same, so nothing builds.</p>
 <ol class="steps">
 <li>Rename the local branch: <code>git -C packages/DIR branch -m OLD NEW</code>. Push it: <code>git -C packages/DIR push origin NEW</code>. Change <code>branch</code> in <code>repoctl.yaml</code>.</li>
-<li>Run <code>repoctl pin</code>. The worktree is <code>in-sync</code>, so pin writes only the new branch into the line. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl pin</code>. The worktree is <code>in-sync</code>, so pin writes only the new branch into the line. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 </ol>
 <p>repoctl does not rename a set or a target. The set name and the target id are in the OCI package name, so they never change after the first publish (<a href="config.html#rules">config rules</a>).</p>
@@ -408,7 +408,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>git rm -r packages/DIR</code>. In the entry, replace <code>path:</code> with <code>branch: BRANCH</code>. The package is now <code>unpinned</code>.</li>
 <li>Run <code>repoctl checkout DIR</code>. The worktree starts on the local branch at the tip of <code>origin/BRANCH</code>.</li>
 <li>Run <code>repoctl pin DIR</code>. Then run <code>repoctl rebuild DIR --reason "move to branch BRANCH"</code>.</li>
-<li>Run <code>git -C packages/DIR push origin BRANCH</code>. Then run <code>git commit -am "refactor: move DIR to branch BRANCH" &amp;&amp; git push</code>. Repository: the builder branch.</li>
+<li>Run <code>git -C packages/DIR push origin BRANCH</code>. Then run <code>git commit -am "refactor: move DIR to branch BRANCH" &amp;&amp; git push</code>. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: build with the reason <code>rebuild</code> on each target of DIR.</li>
 </ol>
 <p>Move a package from the set repository to an external server:</p>
@@ -417,7 +417,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Push the history: <code>git -C packages/DIR push URL BRANCH</code>. The commits stay the same.</li>
 <li>Run <code>git worktree remove packages/DIR</code>. Add <code>git: {url: URL}</code> to the entry.</li>
 <li>Run <code>repoctl checkout DIR</code>. The worktree now comes from the bare clone of URL (<a href="#clones">external package clones</a>).</li>
-<li>Run <code>repoctl pin DIR</code>. The worktree is <code>in-sync</code>, so pin writes only the URL into the line. Commit and push. Repository: the builder branch.</li>
+<li>Run <code>repoctl pin DIR</code>. The worktree is <code>in-sync</code>, so pin writes only the URL into the line. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 <li>Keep the old branch in the set repository, or delete it. The external server holds the same commits.</li>
 </ol>
@@ -426,7 +426,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <h3 id="targets">Add or retire a target</h3>
 <p>Add a target, for example el10:</p>
 <ol class="steps">
-<li>Add the entry to <code>targets</code>. Commit and push. Repository: the builder branch.</li>
+<li>Add the entry to <code>targets</code>. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each node of the target has the reason <code>new-target</code>.</li>
 <li>Run <code>repoctl build</code> and <code>repoctl publish</code>. The first publish makes the first snapshot of the target. Example: el10 has no import, so its first snapshot is <code>p-20260912-1403-c21</code>.</li>
 <li>Ask an organization owner to set the new OCI package to public and to turn on the inherited access. The mirror job pulls only a public package. <code>repoctl doctor</code> shows <code>registry.public</code> until it is done (<a href="publish.html#registry">registry access</a>).</li>
@@ -438,7 +438,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p>Gate 2 does not apply to the first publish, because no client uses the target yet (<a href="signing.html#gates">gates</a>). From the second publish, gate 2 needs the record of step 7 (<a href="signing.html#deployment-record">deployment record</a>).</p>
 <p>Retire a target, for example el9 when all its clients use el10. Do not delete the entry: the repo commands find the OCI package of the target through it.</p>
 <ol class="steps">
-<li>Add <code>state: retired</code> to the entry. Commit and push. Repository: the builder branch.</li>
+<li>Add <code>state: retired</code> to the entry. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: no node on that target.</li>
 <li>Run <code>repoctl status</code>. Expect: the target shows "retired" next to its latest, with no hint.</li>
 <li>To stop serving the target, first move its clients away (config management). Then remove the line of the target from the mirror job config. The next run of the job deletes the served tree of that line.</li>
@@ -465,8 +465,8 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run <code>repoctl rebuild '*' --reason "Rocky 9.8" --dry-run</code>. Expect: one new NVR per package. The glob leaves out each in-tree package with the warning <code>rebuild.in-tree</code>.</li>
 <li>Run the same command without <code>--dry-run</code>. repoctl makes one empty commit per package branch and pins it. Repository: each package branch.</li>
 <li>Push each package branch with the Next lines of the command.</li>
-<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the builder branch.</li>
-<li>To build an in-tree package again too, change a file below its path, for example its changelog. Commit it to the builder branch.</li>
+<li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the set branch.</li>
+<li>To build an in-tree package again too, change a file below its path, for example its changelog. Commit it to the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each node has the reason <code>rebuild</code> on each of its targets.</li>
 <li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
 </ol>
@@ -487,7 +487,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <text class="t-small t-muted" x="28" y="78">release of the next set</text>
 <rect class="box-accent" x="240" y="16" width="200" height="76" rx="8"/>
 <text class="t-title t-on" x="252" y="40">2 Retire the targets</text>
-<text class="t-small t-on" x="252" y="60">builder branch</text>
+<text class="t-small t-on" x="252" y="60">set branch</text>
 <text class="t-small t-on" x="252" y="78">state: retired</text>
 <rect class="box" x="464" y="16" width="200" height="76" rx="8"/>
 <text class="t-title" x="476" y="40">3 Stop serving</text>
@@ -501,7 +501,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <line class="edge" x1="440" y1="54" x2="462" y2="54" marker-end="url(#arrow)"/>
 <line class="edge" x1="664" y1="54" x2="686" y2="54" marker-end="url(#arrow)"/>
 <rect class="box-soft" x="16" y="120" width="868" height="64" rx="8"/>
-<text class="t-title" x="28" y="144">Stays: the OCI packages, the builder branch, the package branches</text>
+<text class="t-title" x="28" y="144">Stays: the OCI packages, the set branch, the package branches</text>
 <text class="t-small t-muted" x="28" y="166">the repo commands and the sign commands still act on a retired set; a key offboarding skips it</text>
 </svg>
 <figcaption>Each step names where it acts. The records of the set stay.</figcaption>
@@ -509,13 +509,13 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>Start the next set first (<a href="#help-new-set">help new-set</a>).</li>
 <li>Move the clients: config management installs the release package of the next set. It removes the release package of the old set. Its <code>.repo</code> file goes with it. Do the next steps only when no client uses the old set.</li>
-<li>Add <code>state: retired</code> to each entry of <code>targets</code>. Commit and push. Repository: the builder branch.</li>
+<li>Add <code>state: retired</code> to each entry of <code>targets</code>. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl status</code>. Expect: "set retired" and each target with its latest.</li>
 <li>On the HTTP server, remove the lines of the set from the mirror job config. The next run of the job deletes the served trees of these lines (<a href="publish.html#mirror">mirror job</a>). The URL then gives 404. To keep a frozen served tree, keep the lines.</li>
 <li>On each admin host, run <code>repoctl check --remove-timer</code> in the set directory. A retired set needs no check timer, and the check health signals do not apply to it.</li>
 <li>On each admin host, remove the package worktrees and the set directory with <code>git worktree remove</code>.</li>
 <li>Run <code>repoctl clean --set NAME</code>. It deletes the data and state directories of the set. It also removes the set from the web UI list (<a href="cli.html#cmd-clean">command block</a>). Remove <code>sets.NAME</code> from the user config by hand.</li>
-<li>Keep the builder branch and each package branch. They hold the history of the published NVRs, and another set can pin a package branch (shared branch, <a href="#init-from">init --from</a>).</li>
+<li>Keep the set branch and each package branch. They hold the history of the published NVRs, and another set can pin a package branch (shared branch, <a href="#init-from">init --from</a>).</li>
 <li>Keep the OCI packages public.</li>
 </ol>
 <p>Result: each target of the set acts as a <a href="#retired-target">retired target</a>, and:</p>
@@ -599,17 +599,17 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 Start set slurm-26.11 from slurm-26.05. Each step names the repository
 that gets the commit.
   1. git fetch origin
-     git worktree add -b builder/slurm-26.11 ../slurm-repo-26.11 origin/builder/slurm-26.05
+     git worktree add -b set/slurm-26.11 ../slurm-repo-26.11 origin/set/slurm-26.05
      cd ../slurm-repo-26.11
-  2. repoctl init --from builder/slurm-26.05 --name slurm-26.11
+  2. repoctl init --from set/slurm-26.05 --name slurm-26.11
   3. Set repo.url in repoctl.yaml. Edit the release package: Version 26.11.
      "repoctl release write" writes the key file and the .repo files.
-  4. git commit -am "feat: start set slurm-26.11"        builder branch
-  5. repoctl checkout --create --from-set builder/slurm-26.05
+  4. git commit -am "feat: start set slurm-26.11"        set branch
+  5. repoctl checkout --create --from-set set/slurm-26.05
   6. git push origin BRANCH...                          package branches
      (checkout prints the full command, also for external packages)
   7. repoctl pin
-     git commit repoctl.lock &amp;&amp; git push origin builder/slurm-26.11
+     git commit repoctl.lock &amp;&amp; git push origin set/slurm-26.11
   8. repoctl doctor
   9. repoctl plan           expect: every node "new-package"
  10. repoctl build
@@ -633,7 +633,7 @@ where it acts. The OCI packages and the branches stay.
   1. Move the clients (config management): install the release
      package of the next set, remove the release package of slurm-25.11.
   2. Add "state: retired" to each target in repoctl.yaml.
-     git commit -am "feat!: retire set slurm-25.11"; git push   builder branch
+     git commit -am "feat!: retire set slurm-25.11"; git push   set branch
   3. repoctl status         expect: set retired
      build and publish now stop with set.retired. The repo commands and
      the sign commands still work. A key offboarding skips this set.
@@ -644,7 +644,7 @@ where it acts. The OCI packages and the branches stay.
      repoctl check --remove-timer
      git worktree remove packages/DIR ...; git worktree remove SETDIR
      repoctl clean --set slurm-25.11
-  6. Keep the builder branch, the package branches and the OCI packages.</pre>
+  6. Keep the set branch, the package branches and the OCI packages.</pre>
 
 <h3 id="help-packages">repoctl help packages</h3>
 <pre class="term">PACKAGES
@@ -654,7 +654,7 @@ Change a spec or bump a version:
   2. edit the spec; git -C packages/DIR commit -am "Bump to X"   package branch
   3. git -C packages/DIR push origin BRANCH
   4. repoctl pin DIR
-  5. git commit repoctl.lock; git push                builder branch
+  5. git commit repoctl.lock; git push                set branch
   6. repoctl plan           expect: DIR "commit-changed"
   7. repoctl build          read the soname result of DIR
   8. repoctl publish; repoctl status    expect: served same
@@ -664,7 +664,7 @@ Add a package in this repository:
   3. write the spec; git -C packages/DIR commit          package branch
   4. git -C packages/DIR push origin BRANCH
   5. repoctl pin DIR
-  6. git commit repoctl.yaml repoctl.lock; git push    builder branch
+  6. git commit repoctl.yaml repoctl.lock; git push    set branch
   7. repoctl plan           expect: DIR "new-package"
      provider.changed names dependents to rebuild
   8. repoctl build; repoctl publish
