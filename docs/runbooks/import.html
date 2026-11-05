@@ -100,7 +100,7 @@
 <li>The registry has no snapshot of the set and target: <code>repoctl repo snapshots --target el9</code> lists nothing. The OCI package has no tag latest (else <code>import.not-empty</code>).</li>
 <li>The human has a byte copy of each served tree, or gives you its path. Example: <code>rsync -a HOST:/srv/packages/slurm-26.05/ DIR/</code>. A copy through HTTP is also correct when the repomd check of <a href="#copy">Copy</a> item 2 passes.</li>
 <li>The human who pushes (<a href="#push">Push</a>) holds the secret key of <code>hpc-repo</code>. The repoctl user config on that host selects it: <code>sign.key: hpc-repo</code>.</li>
-<li>The mirror job is installed on the HTTP server, and the bash-era release package is installed there. The <code>KEYRING</code> file of the job config holds <code>hpc-repo</code>, for example <code>/etc/pki/rpm-gpg/RPM-GPG-KEY-slurm</code> (<a href="../design/publish.html#mirror">mirror job</a>). The job verifies the import with it.</li>
+<li>The mirror job is installed on the HTTP server. The keyring path of the mirror line holds the key file of the bash-era release package, for example <code>/etc/repoctl-mirror/keys/slurm-26.05-el9.asc</code>. Config management puts it there (<a href="../design/publish.html#mirror-keyring">keyring of a mirror line</a>). This file holds <code>hpc-repo</code>, and the job verifies the import with it.</li>
 </ol>
 
 <h2 id="convert">Convert the builder branch to a set</h2>
@@ -263,17 +263,18 @@ git push origin builder/SET</code></pre>
 <h2 id="switch">Switch the HTTP server to the mirror job</h2>
 <p><span class="tag warn">human</span> The bash-era directory, for example <code>/srv/packages/slurm-26.05</code>, is a real directory. The served path of the <a href="../design/publish.html#mirror">mirror job</a> is a symlink that only the job writes. Thus the switch does not reuse the bash-era directory. It points the web server to the served path of the job, and it keeps the bash-era directory for the rollback.</p>
 <h3 id="switch-test">Test the job</h3>
+<p><span class="tag warn">human</span> The test runs on the HTTP server. Give the human these steps, and wait for the result:</p>
 <ol class="steps">
 <li>Run the mirror job once, with a config line whose served path is a test directory.</li>
 <li>Compare the test directory with the served tree. The RPM files must be byte-equal. Only <code>slurm/repodata/</code> and the new <code>repoctl-snapshot.json</code> differ.</li>
 <li>Find the files of the bash-era directory that are not in the snapshot. These are the link <code>slurm-release.rpm</code> and the <code>RPM-GPG-KEY</code> file of each repo. The served tree of the job does not have them. Read the access log of the web server for their paths. When a client or config management still reads them, stop. Config management must change first.</li>
-<li>Give the human the result and the steps of <a href="#switch-human">Switch</a>.</li>
+<li>Read the result with the human. When each check passes, give the human the steps of <a href="#switch-human">Switch</a>.</li>
 </ol>
 <h3 id="switch-human">Switch</h3>
 <p><span class="tag warn">human</span> The human switches the set and target on the HTTP server:</p>
 <ol class="steps">
 <li>Stop the bash-era copy to the HTTP server. From now on, only the mirror job writes the served tree.</li>
-<li>Remove the test line. Add the line of the set and target with its final served path, for example <code>slurm-26.05 el9 ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9 /srv/repos/slurm-repo/slurm-26.05/el9</code>. Start the service unit of the job once. Check that the served path is a symlink to a tree.</li>
+<li>Remove the test line. Add the line of the set and target with its final served path, for example <code>slurm-26.05 el9 ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9 /srv/repos/slurm-repo/slurm-26.05/el9 /etc/repoctl-mirror/keys/slurm-26.05-el9.asc</code>. Start the service unit of the job once. Check that the served path is a symlink to a tree.</li>
 <li>Change the web server: point the location of the URL (for example <code>/slurm-26.05/el9/</code>) to the served path of the job. It replaces the bash-era directory. Reload the web server. A reload changes the location for all clients at one time.</li>
 <li>Check the result: <code>curl -fsS URL/repoctl-snapshot.json</code> names the set, the target and <code>p-import-DATE</code>. <code>repoctl status</code> shows <code>served: same</code>. <code>repoctl repo verify --served --target el9</code> exits 0.</li>
 <li>Keep the bash-era directory without a change until the first publish with repoctl (<a href="#remove">Remove</a>).</li>

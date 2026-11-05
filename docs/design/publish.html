@@ -99,7 +99,7 @@
 slurm-26.05  el9     ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9   /srv/repos/slurm-repo/slurm-26.05/el9   /etc/repoctl-mirror/keys/slurm-26.05-el9.asc
 slurm-26.05  el10    ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el10  /srv/repos/slurm-repo/slurm-26.05/el10  /etc/repoctl-mirror/keys/slurm-26.05-el10.asc
 KEEP_TREES=2</code></pre>
-<p>The job reads the RepoManifest apiVersions of its release. A snapshot with another apiVersion fails step 4, so the job keeps the old tree. Thus the HTTP server gets the new release of the job before the first publish in a new apiVersion (<a href="contract.html#stored">stored files</a>).</p>
+<p>The job reads the RepoManifest apiVersions of its release. A snapshot with another apiVersion fails step 5 (verify), so the job keeps the old tree. Thus the HTTP server gets the new release of the job before the first publish in a new apiVersion (<a href="contract.html#stored">stored files</a>).</p>
 <h3 id="mirror-run">One run of the job</h3>
 <p>Each run takes the lock <code>/run/lock/repoctl-mirror.lock</code> with <code>flock</code>. A second run waits for the first, so a manual run and a timer run never write one tree at the same time. Then the job does these steps for each line:</p>
 <ol class="steps">
@@ -113,6 +113,7 @@ KEEP_TREES=2</code></pre>
       <li>Check the checksums in <code>repomd.xml</code>.</li>
       <li>Run <code>rpmkeys --checksig</code> on each RPM, with a temporary rpmdb.</li>
       <li>Check that the root key file has the sha256 of the key file in the root release RPM (<code>rpm -qp --dump</code>).</li>
+      <li>With jq, check that the RepoManifest has an apiVersion that this release of the job reads.</li>
       <li>With jq and sha256sum, check that each supply chain record has its sha256 in the RepoManifest.</li>
       <li>Check that each record subject has the sha256 of its file (<a href="supply-chain.html#verify">supply-chain.html#verify</a>).</li>
     </ul></li>
