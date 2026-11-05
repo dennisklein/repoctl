@@ -435,7 +435,7 @@ sets:
 <h2 id="targets">Many targets</h2>
 <p>Each entry of <code>targets</code> is one target (<a href="model.html#targets">model.html#targets</a>). repoctl builds the SRPM of a node in the mock chroot of its target, so each target has its own graph (<a href="build.html#graph">build.html#graph</a>).</p>
 <ul>
-  <li><b>Missing dependency for a target.</b> plan shows the gap before the build: "slurm@el10 needs rocm-smi-devel; rocm-smi is not built for el10" (<code>dep.not-for-target</code>, warn).</li>
+  <li><b>Missing dependency for a target.</b> plan shows the gap before the build: "slurm@el10 needs rocm-smi-devel; only rocm-smi@el9 provides it" (<code>dep.not-for-target</code>, warn).</li>
   <li><b>Extra RPM repos.</b> repoctl gives <code>targets[].repos</code> to mock as <code>--addrepo</code>. A change in these repos can change a build result, but it gives only the advisory <code>buildroot.drift</code> (<a href="model.html#identity">build identity</a>).</li>
   <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
   <li><b>One architecture per target.</b> The architecture of a target is the last part of its mock config name: <code>x86_64</code> in <code>rocky+epel-9-x86_64</code>. This release supports only <code>x86_64</code>. Another architecture, or a mock config name that does not end with one, gives <code>config.unsupported</code> (exit 1).</li>
