@@ -370,7 +370,7 @@
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN</code>, for example <code>/s/slurm-26.05/runs/r-20261102-1750-a3f</code>; publish runs use the same form</dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-runs"><code>repoctl runs RUN --follow</code></a>, <a href="cli.html#cmd-logs"><code>repoctl logs</code></a>, <a href="cli.html#cmd-cancel"><code>repoctl cancel</code></a>; frame <a href="terminal.html#build-failed">build failure</a></dd>
-  <dt>Live</dt><dd><code>run:RUN</code> (header, progress, failure cards, staging, events), <code>node:DIR@TARGET</code> (one tree row). A finished run opens no stream.</dd>
+  <dt>Live</dt><dd><code>run:RUN</code> (header, progress, failure cards, staging, events), <code>node:DIR@TARGET</code> (one tree row). A finished run sends no <code>run:RUN</code> events.</dd>
 </dl>
 
 <h2 id="node-log">Node log</h2>
@@ -440,7 +440,7 @@
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-runs"><code>repoctl runs RUN</code></a></dd>
-  <dt>Live</dt><dd><code>run:RUN</code> swaps in the summary card; then the server closes the stream.</dd>
+  <dt>Live</dt><dd><code>run:RUN</code> swaps in the summary card when the run ends. The stream stays open for the other events (<a href="ui.html#reconnect">ui.html#reconnect</a>).</dd>
 </dl>
 
 <h2 id="agent-panel">Agent panel</h2>

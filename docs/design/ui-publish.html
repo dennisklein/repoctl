@@ -74,7 +74,7 @@
 <ul>
   <li>A hash shows only where two values differ: pin, worktree HEAD, the commit in latest. NVRs have no epoch and no arch.</li>
   <li>Pin 4b1e9c2 opens the pin dialog; the CLI toggle holds <code>repoctl pin ucx</code>. Pin writes repoctl.lock and makes no commit. The lock banner then shows on Packages and in Needs you.</li>
-  <li>The Notes fold shows <code>packages[dir].notes</code> as text, and the UI does not edit it. The human edits repoctl.yaml and commits it, as for each other set input. Thus the CLI, the skills and the UI read the same committed text (<a href="ui.html#calm">R10</a>). The fold gives this hint with the key path.</li>
+  <li>The Notes fold shows <code>packages[dir].notes</code> as text, and the UI does not edit it. The human edits repoctl.yaml and commits it, as for each other set input. Thus the CLI, the skills and the UI read the same committed text (CLI parity, <a href="ui.html#principles">ui.html#principles</a>). The fold gives this hint with the key path.</li>
   <li><code>?target=el9</code> limits the page to one target. <code>tab=history|spec|upstream</code> opens that section.</li>
 </ul>
 <dl class="facts">
@@ -98,7 +98,7 @@
 <thead><tr><th>State</th><th>The page shows</th></tr></thead>
 <tbody>
 <tr><td>An RPM has no valid signature</td><td>Its group opens by default in the warn colour. The snapshot card counts it.</td></tr>
-<tr><td>The target has no snapshot</td><td>"el10 has no snapshot yet. The first publish makes it."</td></tr>
+<tr><td>The target has no snapshot</td><td>The empty state "Not published yet" with the button Publish… (<a href="ui.html#states">ui.html#states</a>).</td></tr>
 <tr><td>The local copy is behind latest</td><td>The line of <code>state.behind</code> with <code>repoctl repo pull</code>.</td></tr>
 </tbody>
 </table>
@@ -214,7 +214,7 @@
 <thead><tr><th>Check row (story)</th><th>Code</th></tr></thead>
 <tbody>
 <tr><td>base is current</td><td><code>state.behind</code></td></tr>
-<tr><td>inputs committed, pushed and pinned, set commit 9a0c4e2</td><td><code>lock.dirty</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code></td></tr>
+<tr><td>inputs committed, pushed and pinned, set commit 9a0c4e2</td><td><code>lock.dirty</code>, <code>lock.unpushed</code>, <code>lock.orphaned</code>, <code>lock.missing-package</code></td></tr>
 <tr><td>signer active, valid and in the right format</td><td>gate 1, gate 3</td></tr>
 <tr><td>signer deployed, slurm-release-26.05-2, confirmed by d.klein 2026-09-10</td><td>gate 2</td></tr>
 <tr><td>key file matches sign.keys</td><td><code>sign.keyfile-stale</code></td></tr>
