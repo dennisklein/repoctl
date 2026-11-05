@@ -14,7 +14,6 @@
   <li>Each published NVR maps to a commit. The map becomes the adopted entries of the RepoManifest.</li>
   <li>The human records the deployment of the bash-era key <code>hpc-repo</code> and pushes the first snapshot <code>p-import-YYYYMMDD</code>.</li>
   <li>The mirror job then serves the same RPM files at the same URL. No client changes.</li>
-  <li>A failed check is a stop. The agent reports it and waits.</li>
 </ul>
 <aside class="callout rule" id="rules">
 <p class="callout-title">Rules for the agent</p>
@@ -22,7 +21,7 @@
 <li>Do the steps in order. Do one set at a time: <code>slurm-26.05</code>, then <code>slurm-25.11</code>, then <code>slurm-25.11-testing</code>.</li>
 <li>Steps marked <span class="tag warn">human</span> are for the human. Stop, show the exact command and wait. Do not sign, do not push to git, do not push to the registry and do not change the HTTP server.</li>
 <li>Do not rebuild a package.</li>
-<li>When a check in this runbook fails, stop. Report the check, the output and the step. Do not find a way around it.</li>
+<li>When a check fails, stop. Report the check, the output and the step, and wait. Do not find a way around it.</li>
 <li>Keep a log of each command and its output in <code>$XDG_STATE_HOME/repoctl/import/SET.log</code>.</li>
 </ul>
 </aside>
@@ -92,16 +91,16 @@
 <tr><td><code>slurm-25.11-testing</code></td><td><code>builder/slurm-25.11-testing</code></td><td><code>https://repo.example.org/slurm-25.11-testing/el9/</code></td></tr>
 </tbody>
 </table>
-<p><code>repo.example.org</code> stands for the HTTP server that serves the bash-era repos. The import keeps the URL, so the clients need no change. Each served directory has three repos (<code>slurm</code>, <code>slurm-source</code>, <code>slurm-debuginfo</code>) and the link <code>slurm-release.rpm</code>. Each repo has <code>packages/</code>, <code>repodata/</code> with <code>repomd.xml.asc</code>, and <code>RPM-GPG-KEY</code>. The only target is <code>el9</code> (<code>rocky+epel-9-x86_64</code>).</p>
+<p><code>repo.example.org</code> stands for the HTTP server of the bash-era repos. Each served directory has three repos (<code>slurm</code>, <code>slurm-source</code>, <code>slurm-debuginfo</code>) and the link <code>slurm-release.rpm</code>. Each repo has <code>packages/</code>, <code>repodata/</code> with <code>repomd.xml.asc</code>, and <code>RPM-GPG-KEY</code>. The only target is <code>el9</code> (<code>rocky+epel-9-x86_64</code>).</p>
 <p>Check each precondition. When one is not true, stop and tell the human.</p>
 <ol class="steps">
-<li>The host runs Fedora. repoctl comes from the Fedora repo on GitHub Pages or from a release RPM (<a href="../design/decision.html#home">where the tool lives</a>). <code>repoctl version</code> supports <code>repo push --from</code>.</li>
+<li>The host runs Fedora. repoctl comes from the Fedora repo on GitHub Pages or a release RPM (<a href="../design/decision.html#home">where the tool lives</a>). <code>repoctl version</code> supports <code>repo push --from</code>.</li>
 <li>These tools are installed: <code>git</code>, <code>rpm</code>, <code>rpmkeys</code>, <code>rpmspec</code>, <code>rpmautospec</code>, <code>createrepo_c</code>, <code>modifyrepo_c</code>, <code>gpgv</code>, <code>jq</code>, <code>rsync</code>, <code>check-jsonschema</code>.</li>
 <li>The GitHub organisation and the GHCR namespace of <code>store.oci</code> are final (<a href="../design/delivery.html#open">open question</a>). The clone has all branches: <code>git fetch origin '+refs/heads/*:refs/remotes/origin/*'</code>.</li>
-<li>The registry has no snapshot of the set and target: <code>repoctl repo snapshots --target el9</code> lists nothing. The OCI package has no tag latest. <code>repo push --from</code> works only on a package without latest; otherwise it stops with <code>import.not-empty</code>.</li>
-<li>The human has a byte copy of each served tree, or gives you a path to one (for example, <code>rsync -a HOST:/srv/packages/slurm-26.05/ DIR/</code>). A copy through HTTP is also correct when the repomd check of <a href="#copy">Copy</a> item 2 passes.</li>
+<li>The registry has no snapshot of the set and target: <code>repoctl repo snapshots --target el9</code> lists nothing. The OCI package has no tag latest (else <code>import.not-empty</code>).</li>
+<li>The human has a byte copy of each served tree, or gives you its path. Example: <code>rsync -a HOST:/srv/packages/slurm-26.05/ DIR/</code>. A copy through HTTP is also correct when the repomd check of <a href="#copy">Copy</a> item 2 passes.</li>
 <li>The human who pushes (<a href="#push">Push</a>) holds the secret key of <code>hpc-repo</code>. The repoctl user config on that host selects it: <code>sign.key: hpc-repo</code>.</li>
-<li>The mirror job is installed on the HTTP server, and the bash-era release package is installed there. The <code>KEYRING</code> file of the job config holds <code>hpc-repo</code>, for example <code>/etc/pki/rpm-gpg/RPM-GPG-KEY-slurm</code> (<a href="../design/publish.html#mirror">mirror job</a>). The job verifies the import with it.</li>
+<li>The mirror job is installed on the HTTP server. The keyring path of the mirror line holds the key file of the bash-era release package, for example <code>/etc/repoctl-mirror/keys/slurm-26.05-el9.asc</code>. Config management puts it there (<a href="../design/publish.html#mirror-keyring">keyring of a mirror line</a>). This file holds <code>hpc-repo</code>, and the job verifies the import with it.</li>
 </ol>
 
 <h2 id="convert">Convert the builder branch to a set</h2>
@@ -110,18 +109,35 @@
 <li>Run <code>repoctl migrate --dry-run</code> (<a href="../design/cli.html#cmd-migrate">command block</a>). Read the findings. A difference between the hand order of <code>scripts/build</code> and the graph is not an error. Write it in the report.</li>
 <li>Run <code>repoctl migrate</code>. It writes <code>repoctl.yaml</code>, <code>repoctl.lock</code> and <code>rpm/macros</code>.</li>
 <li>Compare <code>repoctl.lock</code> with <code>packages.lock</code>: the same dirs, branches and commits. A difference is a stop.</li>
-<li>Edit <code>repoctl.yaml</code> (<a href="../design/config.html#set-config">keys</a>):
+<li>Edit these keys of <code>repoctl.yaml</code> (<a href="../design/config.html#set-config">keys</a>). Keep the other keys that migrate wrote.
+<pre><code class="language-yaml">name: slurm-26.05                            # SET
+repo:
+  name: slurm
+  url: https://repo.example.org/slurm-26.05  # the served URL without the target
+store:
+  oci: ghcr.io/gsi-hpc/slurm-repo
+sign:
+  keys:
+    - id: hpc-repo                           # the bash-era repo key
+      fingerprint: 9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2
+      state: active
+targets:                                     # one target only
+  - id: el9
+    mock: rocky+epel-9-x86_64
+    plugins: [rpmautospec]
+    macros: [rpm/macros]
+    path: el9
+packages:
+  - dir: slurm-release                       # the release package
+    path: packages/slurm-release
+    role: release</code></pre>
 <ul>
-<li><code>name: SET</code> and <code>repo.name: slurm</code>.</li>
-<li>One target <code>el9</code>: <code>mock: rocky+epel-9-x86_64</code>, <code>plugins: [rpmautospec]</code>, <code>macros: [rpm/macros]</code>, <code>path: el9</code>.</li>
-<li><code>repo.url</code>: the served URL without the target, for example <code>https://repo.example.org/slurm-26.05</code>.</li>
-<li><code>store.oci: ghcr.io/gsi-hpc/slurm-repo</code>.</li>
-<li>The release package: <code>dir: slurm-release</code>, <code>path: packages/slurm-release</code>, <code>role: release</code>.</li>
-<li>The bash-era repo key in <code>sign.keys</code> with id <code>hpc-repo</code> and state <code>active</code>. It must be active, because a retiring key makes no new signatures, also not on <code>repomd.xml</code>. It goes to <code>retiring</code> later, after the personal keys are deployed (<a href="../design/signing.html#offboarding">offboarding and rotation</a>). Compare the fingerprint with <code>gpg --show-keys --with-fingerprint packages/slurm-release/RPM-GPG-KEY-slurm</code>.</li>
+<li>The state of <code>hpc-repo</code> must be <code>active</code>, because a retiring key makes no new signatures, also not on <code>repomd.xml</code>. It goes to <code>retiring</code> later, after the personal keys are deployed (<a href="../design/signing.html#offboarding">offboarding and rotation</a>).</li>
+<li>Compare the fingerprint with <code>gpg --show-keys --with-fingerprint packages/slurm-release/RPM-GPG-KEY-slurm</code>.</li>
 <li>Keep a shared branch as it is. Example: <code>slurm-25.11</code> pins <code>pmix_v4</code> on <code>pmix/slurm-26.05-v4</code>.</li>
 </ul></li>
 <li>Run <code>repoctl status</code>. It must read the set without an error. An unknown key or a bad value is an error.</li>
-<li>Check that each pinned commit is on its remote branch: <code>git merge-base --is-ancestor COMMIT origin/BRANCH</code>. Publish refuses a commit that is not on the remote (<a href="../design/publish.html#checks">checks</a>). A commit that is not on the remote is a stop. The human must push it or change the pin.</li>
+<li>For each pinned commit, run <code>git merge-base --is-ancestor COMMIT origin/BRANCH</code>. A commit that is not on its remote branch is a stop: publish refuses it (<a href="../design/publish.html#checks">checks</a>). The human must push it or change the pin.</li>
 <li>Run <code>repoctl checkout</code>. Each package is <code>in-sync</code>.</li>
 <li>Update <code>CLAUDE.md</code>: replace the script commands with repoctl commands. Point to <code>repoctl help packages</code> and <code>repoctl help new-set</code> (<a href="../design/lifecycle.html#help">help topics</a>).</li>
 <li>Commit. Do not delete the old files yet (<a href="#remove">Remove</a>).
@@ -149,10 +165,10 @@ rpmkeys --dbpath $TMP/rpmdb --checksig $IMPORT/*/packages/*.rpm</code></pre></li
 </ol>
 
 <h2 id="map">Map each published NVR to a commit</h2>
-<p>rpmautospec gives each commit of a package branch its own release. Thus one commit gives one NVR. This step finds the commit of each published SRPM.</p>
+<p>rpmautospec gives each commit of a package branch its own release, so one commit gives one NVR.</p>
 <ol class="steps">
 <li>List the SRPMs of <code>slurm-source</code>: <code>rpm -qp --qf '%{NAME} %{VERSION} %{RELEASE}\n'</code>. Group the binary and debuginfo RPMs by their SRPM: <code>rpm -qp --qf '%{SOURCERPM}\n'</code>.</li>
-<li>For each dir in <code>repoctl.lock</code> (branch B, pinned commit C), get the source package name at C: <code>rpmspec --load=rpm/macros -q --srpm --qf '%{name}' SPEC</code>.</li>
+<li>Each dir in <code>repoctl.lock</code> has a branch B and a pinned commit C. Get the source package name at C: <code>rpmspec --load=rpm/macros -q --srpm --qf '%{name}' SPEC</code>.</li>
 <li>For each commit K in <code>git rev-list C</code> (newest first), compute the NVR. When the NVR equals a published SRPM, record (SRPM, K). Stop the walk when each published SRPM of the name has a commit.
 <pre><code class="language-bash">git worktree add --detach $TMP/k K
 rpmautospec process-distgit $TMP/k/NAME.spec $TMP/out.spec
@@ -176,7 +192,7 @@ git worktree remove $TMP/k</code></pre></li>
 
 <h2 id="manifest">Write the manifest</h2>
 <ol class="steps">
-<li>Write one RepoManifest for the target to <code>$XDG_STATE_HOME/repoctl/import/SET/el9.manifest.json</code>. The manifest is for the binary repo (<code>slurm/</code>). It lists the SRPM and the debuginfo RPMs of each build, so <code>slurm-source</code> and <code>slurm-debuginfo</code> get no manifest (<a href="../design/publish.html#format">snapshot format</a>). The fields of an adopted entry are in <a href="../design/lifecycle.html#adopted">adopted manifest entries</a>.
+<li>Write one RepoManifest for the binary repo (<code>slurm/</code>) of the target to <code>$XDG_STATE_HOME/repoctl/import/SET/el9.manifest.json</code>. Its entries list the SRPM and the debuginfo RPMs, so <code>slurm-source</code> and <code>slurm-debuginfo</code> get no manifest (<a href="../design/publish.html#format">snapshot format</a>). The fields are in <a href="../design/lifecycle.html#adopted">adopted manifest entries</a>.
 <pre><code class="language-json">{
   "apiVersion": "repoctl/v1alpha1", "kind": "RepoManifest",
   "set": "slurm-26.05", "target": "el9", "publish": "p-import-20260828",
@@ -194,23 +210,29 @@ git worktree remove $TMP/k</code></pre></li>
     "publish": "p-import-20260828", "signer": "9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2"
   }],
   "removed": []
-}</code></pre></li>
-<li><code>provides</code> and <code>requires</code>: the union of <code>rpm -qp --provides</code> and <code>rpm -qp --requires</code> of the binary RPMs of the build. Drop the <code>rpmlib(…)</code> entries.</li>
-<li><code>built</code>: <code>rpm -qp --qf '%{BUILDTIME}'</code> of the SRPM, in UTC.</li>
-<li><code>signer</code>: the full fingerprint of the <code>sign.keys</code> entry whose key ID is in <code>rpm -qp --qf '%{RSAHEADER:pgpsig}'</code>.</li>
-<li><code>removed</code> is empty for an import.</li>
+}</code></pre>
+The example values (dates, file lists) are illustrations. Use the values of <a href="#map">Map</a>.</li>
+<li>Get these values from the RPM headers.
+<table class="compact">
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td><code>provides</code>, <code>requires</code></td><td>The union of <code>rpm -qp --provides</code> and <code>rpm -qp --requires</code> of the binary RPMs of the build, without the <code>rpmlib(…)</code> entries.</td></tr>
+<tr><td><code>built</code></td><td><code>rpm -qp --qf '%{BUILDTIME}'</code> of the SRPM, in UTC.</td></tr>
+<tr><td><code>signer</code></td><td>The full fingerprint of the <code>sign.keys</code> entry whose key ID is in <code>rpm -qp --qf '%{RSAHEADER:pgpsig}'</code>.</td></tr>
+<tr><td><code>removed</code></td><td>Empty for an import.</td></tr>
+</tbody>
+</table></li>
 <li>Check the file against the schema: <code>repoctl schema manifest &gt; $TMP/m.schema.json</code>, then <code>check-jsonschema --schemafile $TMP/m.schema.json FILE</code>. A failure is a stop.</li>
 <li>Do not change the copy of the served tree. <code>repo push --from</code> adds the manifest and signs <code>repomd.xml</code> (<a href="#push">Push</a>).</li>
 </ol>
-<p>The example values (dates, file lists) are illustrations. Use the values of <a href="#map">Map</a>.</p>
 
 <h2 id="record-key">Record the deployed key</h2>
-<p><span class="tag warn">human</span> Clients of the bash-era repo exist. Thus gate 2 of publish applies to the import (<a href="../design/signing.html#gates">gates</a>). Gate 2 reads only the committed deployment record. The bash-era <code>slurm-release</code> with the <code>hpc-repo</code> key is on all clients. The target has no snapshot yet, so <code>--path</code> tells repoctl to read the release RPM from the copy. Give the human these commands, with the NVR of the served <code>slurm-release.rpm</code>:</p>
+<p><span class="tag warn">human</span> Clients of the bash-era repo exist, so gate 2 applies to the import (<a href="../design/publish.html#first-publish">first publish and import</a>). The bash-era <code>slurm-release</code> with the <code>hpc-repo</code> key is on all clients. The target has no snapshot yet, so <code>--path</code> names the copy. Give the human these commands, with the NVR of the served <code>slurm-release.rpm</code>:</p>
 <pre><code class="language-bash">repoctl sign deployed hpc-repo --release slurm-release-26.05-1 \
     --target el9 --path $IMPORT \
     --note "bash-era slurm-release on all clients"
 git push origin builder/SET</code></pre>
-<p><code>sign deployed</code> asks for the typed key id, writes <code>keys/deployed.yaml</code> and makes the set commit (<a href="../design/cli.html#cmd-sign-deployed">command block</a>). For <code>slurm-26.05</code> the record is:</p>
+<p><code>sign deployed</code> asks for the typed key id and makes the set commit (<a href="../design/cli.html#cmd-sign-deployed">command block</a>). For <code>slurm-26.05</code> the record in <code>keys/deployed.yaml</code> is:</p>
 <pre><code class="language-yaml">  - key: hpc-repo
     fingerprint: 9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2
     release: {el9: slurm-release-26.05-1.el9}
@@ -222,7 +244,12 @@ git push origin builder/SET</code></pre>
 <p><span class="tag warn">human</span> The holder of the <code>hpc-repo</code> key runs:</p>
 <pre><code class="language-bash">repoctl repo push --target el9 --from $IMPORT \
     --manifest $XDG_STATE_HOME/repoctl/import/SET/el9.manifest.json</code></pre>
-<p>repoctl verifies every RPM against <code>sign.keys</code> and keeps the RPM signatures. It adds the manifest to <code>slurm/repodata</code> with <code>modifyrepo_c</code> and signs the new <code>repomd.xml</code> with the key of the human (one signature). It runs verify and verify-el. Then it pushes the first snapshot with the publish id <code>p-import-DATE</code> and moves latest to it. It refuses when the registry already has a snapshot for the set and target (a tag latest). A try that stopped before the tag step left no snapshot. Run the same command again: it reuses the uploaded blobs and replaces the <code>p-import</code> tag of that try. The command asks for the typed set name (<a href="../design/cli.html#cmd-repo-push">command block</a>, <a href="../design/cli.html#safety">shared-state rules</a>). For <code>slurm-26.05</code>, the result is <code>p-import-20260828</code>: kind <code>import</code>, 48 RPMs, signer <code>hpc-repo</code>.</p>
+<ul>
+<li>The command asks for the typed set name (<a href="../design/cli.html#cmd-repo-push">command block</a>, <a href="../design/cli.html#safety">shared-state rules</a>).</li>
+<li>repoctl verifies every RPM, adds the manifest to <code>slurm/repodata</code> and signs the new <code>repomd.xml</code> with the key of the human. After verify and verify-el, it pushes <code>p-import-DATE</code> and moves latest to it (<a href="../design/publish.html#first-publish">first publish and import</a>).</li>
+<li>For <code>slurm-26.05</code>, the result is <code>p-import-20260828</code>: kind <code>import</code>, 48 RPMs, signer <code>hpc-repo</code>.</li>
+<li>A try that stops before the tag step leaves no snapshot (no tag latest). Run the same command again. It reuses the uploaded blobs and replaces the <code>p-import</code> tag of that try.</li>
+</ul>
 
 <h2 id="verify">Verify the import</h2>
 <ol class="steps">
@@ -230,27 +257,37 @@ git push origin builder/SET</code></pre>
 <li>Run <code>repoctl plan</code>. Each node that <a href="#map">Map</a> marked "current" shows <code>current</code>. Only the nodes that Map marked "not published" show <code>build</code>. Any other build is a stop.</li>
 <li>Run <code>repoctl check</code>. Write the advisories in the report. <code>retired.published</code> is expected for retired names. A <code>closure.broken</code> advisory is a fact of the published repo, not an import error. Write it in the report.</li>
 <li>Run <code>repoctl status</code>. "served: behind" or "served: unknown" is correct until the <a href="#switch">switch</a>.</li>
-<li>Do not run <code>repoctl build --force</code> on an adopted node. Publish refuses an NVR that is already published with other content (<a href="../design/build.html#force">build --force</a>).</li>
+<li>Do not run <code>repoctl build --force</code> on an adopted node. Publish refuses the new content of a published NVR (<a href="../design/build.html#force">build --force</a>).</li>
 </ol>
 
 <h2 id="switch">Switch the HTTP server to the mirror job</h2>
-<p><span class="tag warn">human</span> The mirror job pulls latest from GHCR, verifies it with the client keys and swaps the served tree (<a href="../design/publish.html#mirror">mirror job</a>). The bash-era directory, for example <code>/srv/packages/slurm-26.05</code>, is a real directory. The served path of the job is a symlink that only the job writes. Thus the switch does not reuse the bash-era directory. It points the web server to the served path of the job, and it keeps the bash-era directory for the rollback. Before the switch:</p>
+<p><span class="tag warn">human</span> The bash-era directory, for example <code>/srv/packages/slurm-26.05</code>, is a real directory. The served path of the <a href="../design/publish.html#mirror">mirror job</a> is a symlink that only the job writes. Thus the switch does not reuse the bash-era directory. It points the web server to the served path of the job, and it keeps the bash-era directory for the rollback.</p>
+<h3 id="switch-test">Test the job</h3>
+<p><span class="tag warn">human</span> The test runs on the HTTP server. Give the human these steps, and wait for the result:</p>
 <ol class="steps">
 <li>Run the mirror job once, with a config line whose served path is a test directory.</li>
 <li>Compare the test directory with the served tree. The RPM files must be byte-equal. Only <code>slurm/repodata/</code> and the new <code>repoctl-snapshot.json</code> differ.</li>
-<li>Find the files of the bash-era directory that are not in the snapshot: the link <code>slurm-release.rpm</code> and the <code>RPM-GPG-KEY</code> file of each repo. The served tree of the job does not have them. Read the access log of the web server for their paths. When a client or config management still reads them, stop. Config management must change first.</li>
-<li>Give the human the result and the steps below.</li>
+<li>Find the files of the bash-era directory that are not in the snapshot. These are the link <code>slurm-release.rpm</code> and the <code>RPM-GPG-KEY</code> file of each repo. The served tree of the job does not have them. Read the access log of the web server for their paths. When a client or config management still reads them, stop. Config management must change first.</li>
+<li>Read the result with the human. When each check passes, give the human the steps of <a href="#switch-human">Switch</a>.</li>
 </ol>
+<h3 id="switch-human">Switch</h3>
 <p><span class="tag warn">human</span> The human switches the set and target on the HTTP server:</p>
 <ol class="steps">
-<li>Stop the bash-era copy to the HTTP server. From now on, the old scripts must not copy to the server. Only the mirror job writes the served tree.</li>
-<li>Remove the test line. Add the line of the set and target with its final served path, for example <code>slurm-26.05 el9 ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9 /srv/repos/slurm-repo/slurm-26.05/el9</code>. Start the service unit of the job once. Check that the served path is a symlink to a tree.</li>
-<li>Change the web server: the location of the URL (for example <code>/slurm-26.05/el9/</code>) points to the served path of the job, in place of the bash-era directory. Reload the web server. A reload changes the location for all clients at one time.</li>
+<li>Stop the bash-era copy to the HTTP server. From now on, only the mirror job writes the served tree.</li>
+<li>Remove the test line. Add the line of the set and target with its final served path, for example <code>slurm-26.05 el9 ghcr.io/gsi-hpc/slurm-repo/slurm-26.05-el9 /srv/repos/slurm-repo/slurm-26.05/el9 /etc/repoctl-mirror/keys/slurm-26.05-el9.asc</code>. Start the service unit of the job once. Check that the served path is a symlink to a tree.</li>
+<li>Change the web server: point the location of the URL (for example <code>/slurm-26.05/el9/</code>) to the served path of the job. It replaces the bash-era directory. Reload the web server. A reload changes the location for all clients at one time.</li>
 <li>Check the result: <code>curl -fsS URL/repoctl-snapshot.json</code> names the set, the target and <code>p-import-DATE</code>. <code>repoctl status</code> shows <code>served: same</code>. <code>repoctl repo verify --served --target el9</code> exits 0.</li>
 <li>Keep the bash-era directory without a change until the first publish with repoctl (<a href="#remove">Remove</a>).</li>
 </ol>
 <p>Clients get the new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour). No package changes on a client.</p>
-<p><b>Rollback.</b> Before the first publish with repoctl, the human can go back: point the web server location back to the bash-era directory, reload the web server and remove the line from the job config. The next run of the job deletes its tree. Only then can the old scripts copy to the server again. After the first publish with repoctl, there is no rollback: fix forward (<a href="../design/publish.html#restore">restore and fix forward</a>).</p>
+<h3 id="rollback">Rollback</h3>
+<p>Before the first publish with repoctl, the human can go back:</p>
+<ol class="steps">
+<li>Point the web server location back to the bash-era directory, and reload the web server.</li>
+<li>Remove the line from the job config. The next run of the job deletes its tree.</li>
+<li>Only then can the old scripts copy to the server again.</li>
+</ol>
+<p>After the first publish with repoctl, there is no rollback: fix forward (<a href="../design/publish.html#restore">restore and fix forward</a>).</p>
 
 <h2 id="report">Report</h2>
 <p>At the end of each set, give the human one report with:</p>
@@ -265,7 +302,7 @@ git push origin builder/SET</code></pre>
 <p>After <a href="#verify">Verify</a> passes, delete the copy of the served tree: <code>rm -rf $IMPORT</code>. It holds a full copy of the repo, and nothing reads it again. Keep the manifest and the log. <code>repoctl clean --set SET</code> deletes them at the end of the set (<a href="../design/config.html#xdg">XDG directories</a>).</p>
 
 <h2 id="remove">Remove the bash-era files</h2>
-<p>Do this step after the first publish of the set with repoctl. For <code>slurm-26.05</code> this is <code>p-20260902-1010-4a7</code>. Until then, the old scripts are the fallback. To use them, first roll back the switch (<a href="#switch">Rollback</a>). They never write into the served path of the mirror job.</p>
+<p>Do this step after the first publish of the set with repoctl. For <code>slurm-26.05</code> this is <code>p-20260902-1010-4a7</code>. Until then, the old scripts are the fallback. To use them, first do the <a href="#rollback">rollback</a>. They never write into the served path of the mirror job.</p>
 <pre><code class="language-bash">git rm -r packages.lock scripts \
     .claude/skills/package-info .claude/skills/list-package-updates
 git commit -m "chore!: remove the bash-era build scripts" -m "- repoctl builds and publishes this set now"</code></pre>
@@ -279,12 +316,19 @@ git commit -m "chore!: remove the bash-era build scripts" -m "- repoctl builds a
 <tr><td><a href="#convert">Convert</a> items 4, 7</td><td>The lock differs from <code>packages.lock</code>, or a pinned commit is not on its remote.</td></tr>
 <tr><td><a href="#copy">Copy</a></td><td>The copy differs from the served repo, or a signature check fails.</td></tr>
 <tr><td><a href="#map">Map</a> item 5</td><td>The newest published NVR is not from an ancestor of the pin, or two SRPMs map to one commit.</td></tr>
-<tr><td><a href="#manifest">Manifest</a> item 6</td><td>The manifest does not pass the schema check.</td></tr>
+<tr><td><a href="#manifest">Manifest</a> item 3</td><td>The manifest does not pass the schema check.</td></tr>
 <tr><td><a href="#verify">Verify</a> item 2</td><td>plan wants to build a node that the map marked current.</td></tr>
-<tr><td><a href="#switch">Switch</a> item 2</td><td>An RPM file of the mirror job differs from the served one.</td></tr>
-<tr><td><a href="#switch">Switch</a> item 3</td><td>A client or config management still reads <code>slurm-release.rpm</code> or an <code>RPM-GPG-KEY</code> file of the bash-era directory.</td></tr>
+<tr><td><a href="#switch-test">Test the job</a> item 2</td><td>An RPM file of the mirror job differs from the served one.</td></tr>
+<tr><td><a href="#switch-test">Test the job</a> item 3</td><td>A client or config management still reads <code>slurm-release.rpm</code> or an <code>RPM-GPG-KEY</code> file of the bash-era directory.</td></tr>
 </tbody>
 </table>
-<p><b>Recovery after the push.</b> A stop in <a href="#verify">Verify</a> comes after the push. The registry then has a snapshot, so <code>repo push --from</code> refuses. Before the switch, no client reads the OCI package. Thus an organization owner deletes the OCI package of the target in its GitHub settings, and the agent starts again at <a href="#map">Map</a>. The deployment record stays correct. After the new push, the organization owner sets the new package to public again (<a href="../design/publish.html#registry">registry access</a>). After the switch, do not delete the package: fix forward with a normal publish.</p>
+<h3 id="recovery">Recovery after the push</h3>
+<p>A stop in <a href="#verify">Verify</a> comes after the push. The registry then has a snapshot, so <code>repo push --from</code> refuses. Before the switch, no client reads the OCI package. Thus:</p>
+<ol class="steps">
+<li>An organization owner deletes the OCI package of the target in its GitHub settings.</li>
+<li>The agent starts again at <a href="#map">Map</a>. The deployment record stays correct.</li>
+<li>After the new push, the organization owner sets the new package to public again (<a href="../design/publish.html#registry">registry access</a>).</li>
+</ol>
+<p>After the switch, do not delete the package: fix forward with a normal publish.</p>
 </body>
 </html>

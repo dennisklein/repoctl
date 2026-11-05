@@ -3,19 +3,18 @@
 <head>
 <meta charset="utf-8">
 <title>Web UI</title>
-<meta name="description" content="The frame of the local repoctl web UI: principles, the calm rules, the URL scheme, the app shell, live updates over SSE, sessions, shared components, accessibility and the theme.">
+<meta name="description" content="The frame of the local repoctl web UI: principles, the calm rules of the UI and the terminal, the URL scheme and endpoints, the app shell, the server and its sets, live updates over SSE, sessions, shared components, accessibility and the theme.">
 </head>
 <body>
 <h1>Web UI</h1>
-<p class="lede">This chapter specifies the frame of <code>repoctl ui</code>. It gives the principles, the calm rules for every page, the URL scheme, the app shell, live updates, sessions, the shared components and the theme. The pages are in <a href="ui-build.html">ui-build.html</a> and <a href="ui-publish.html">ui-publish.html</a>. The agent buttons and the agent panel are in <a href="agents.html#ui-agent">agents.html</a>.</p>
+<p class="lede">This chapter specifies the frame of <code>repoctl ui</code>: principles, calm rules, URLs, app shell, server, live updates, sessions, components and theme. The pages are in <a href="ui-build.html">ui-build.html</a> and <a href="ui-publish.html">ui-publish.html</a>. The agent buttons and the agent panel are in <a href="agents.html#ui-agent">agents.html</a>.</p>
 <ul class="keypoints">
-  <li>The UI is for the local user only. One server per user listens on loopback and serves all sets that the user opened.</li>
-  <li>The server renders the pages. htmx adds partial updates, and one SSE connection per tab brings the live state.</li>
-  <li>Every page shows the data of a CLI command, and every action has a CLI equivalent. The CLI toggle of the page head holds the commands of the page and of its dialogs.</li>
-  <li>No shortcut starts a build, a cancel or a publish. GET never changes state.</li>
-  <li>Thirteen calm rules keep the pages quiet: exceptions first, pills only for "look here", say it once, one primary button. Some items must always stay loud.</li>
+  <li>The UI is for the local user only. One server per user listens on loopback and serves all sets of the user. A one-time launch token gives a session cookie, without passwords.</li>
+  <li>The server renders the pages. htmx swaps fragments, and one SSE connection per tab brings the live state.</li>
+  <li>Each page shows the data of a CLI command. Each action has a CLI equivalent in the CLI toggle.</li>
+  <li>GET never changes state. No shortcut starts a build, a cancel or a publish.</li>
+  <li>Thirteen calm rules keep the pages and the terminal quiet: exceptions first, pills only for "look here", say it once, one primary button.</li>
   <li>On each connect the server sends a full snapshot of every live region. Only a log stream continues from a byte offset.</li>
-  <li>A one-time launch token gives a session cookie. There are no passwords.</li>
   <li>The theme is copper on warm grey, in light and dark. Every text pair meets WCAG 4.5:1.</li>
 </ul>
 
@@ -69,48 +68,60 @@
 <figcaption>The server renders all HTML. It starts the same commands as the CLI and watches the files, so a run from the CLI or an MCP client also shows live.</figcaption>
 </figure>
 <ul>
-  <li>Local user only. The server listens on a loopback address with a random port. There is no remote access: no socket for a remote browser, no TCP forward, no ssh recipe. <code>--listen</code> takes a loopback address only. pinentry shows on the local desktop (<a href="cli.html#cmd-ui">cli.html#cmd-ui</a>).</li>
-  <li>Server-rendered pages. Go templates render each page and each fragment. htmx swaps the fragments. The only scripts are htmx, its SSE extension and <code>shell.js</code> (theme, copy, keys, live state). The graph page adds <code>graph.js</code> (<a href="ui-build.html#graph">ui-build.html#graph</a>).</li>
-  <li>CLI parity. Each page shows the data of a CLI command. Each action has a CLI equivalent, and the CLI toggle of the page holds it (<a href="#calm">R10</a>). The browser never sends a command line. The server runs the command as a child, as the CLI would run it.</li>
-  <li>Detached children. Each repoctl child starts in its own session, with stdin from <code>/dev/null</code>. Its stdout and stderr go to files, never to pipes: <code>runs/&lt;run&gt;.out</code> and <code>runs/&lt;run&gt;.err</code> next to the journal for a child with a run, else <code>$XDG_RUNTIME_DIR/repoctl/ui/&lt;child&gt;.out</code> and <code>.err</code>. Thus Ctrl-C on the server terminal, <code>repoctl ui --stop</code> and a crash of the server never reach a child. A build continues, and a publish between push and tag completes (<a href="publish.html#complete">publish.html#complete</a>). Only Cancel or <code>repoctl cancel</code> stops a run.</li>
-  <li>Restart. After a restart, the server finds the active runs from their journals and the set lock and follows them as it follows a run of the CLI. It deletes the <code>.out</code> and <code>.err</code> files of each child without a run that ended.</li>
-  <li>GET never changes state. Each action is a POST with the CSRF header. The server accepts no other method.</li>
-  <li>Shared state needs a human. A shared-state action shows the summary, then asks for the typed set name. For a trust change, it first asks for the typed key id of each added key. The UI never passes <code>--yes</code> to a child. It gives the child a one-use UI confirmation with the typed values and the plan digest (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>).</li>
-  <li>No shortcut starts a build, a cancel or a publish.</li>
-  <li>Calm by default. Every page follows the calm rules below.</li>
+  <li><strong>Local user only.</strong> The server listens on a loopback address with a random port. There is no remote access: no socket for a remote browser, no TCP forward, no ssh recipe. pinentry shows on the local desktop.</li>
+  <li><strong>Server-rendered pages.</strong> Go templates render each page and each fragment. The only scripts are htmx, its SSE extension and <code>shell.js</code> (theme, copy, keys, live state). The graph page adds <code>graph.js</code> (<a href="ui-build.html#graph">ui-build.html#graph</a>).</li>
+  <li><strong>CLI parity.</strong> Each action has a CLI equivalent in the CLI toggle of the page (<a href="#calm">R10</a>). The browser never sends a command line. The server runs the command as a child, as the CLI would run it.</li>
+  <li><strong>Detached children.</strong> Each repoctl child starts in its own session, with stdin from <code>/dev/null</code>. Its stdout and stderr go to files, never to pipes. A child with a run writes <code>runs/&lt;run&gt;.out</code> and <code>runs/&lt;run&gt;.err</code> next to the journal; another child writes <code>$XDG_RUNTIME_DIR/repoctl/ui/&lt;child&gt;.out</code> and <code>.err</code>.</li>
+  <li><strong>A child outlives the server.</strong> Ctrl-C on the server terminal, <code>repoctl ui --stop</code> and a crash of the server never reach a child. A build continues, and a publish between push and tag completes (<a href="publish.html#complete">publish.html#complete</a>). Only Cancel or <code>repoctl cancel</code> stops a run.</li>
+  <li><strong>Restart.</strong> After a restart, the server follows the active runs that it finds from their journals and the set lock, as it follows a CLI run. It deletes the <code>.out</code> and <code>.err</code> files of each child without a run that ended.</li>
+  <li><strong>GET never changes state.</strong> Each action is a POST with the CSRF header (<a href="#auth">authentication</a>).</li>
+  <li><strong>Shared state needs a human.</strong> Publish shows the summary, then asks for the typed set name. For a trust change, it first asks for the typed key id of each added key. Sign-deployed asks for the typed key id (<a href="ui-publish.html#deployment-dialog">ui-publish.html#deployment-dialog</a>). The UI never passes <code>--yes</code> to a child. It gives the child a one-use UI confirmation with the typed values and the plan digest (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>).</li>
+  <li><strong>Recovery of shared state stays in the CLI.</strong> A failed push has no button. Its recovery is a CLI command (<a href="ui-publish.html#failed">ui-publish.html#failed</a>).</li>
 </ul>
 
 <h2 id="calm">Calm rules</h2>
-<p>A page shows the exceptions and the next step. Normal states are quiet, and a fold holds the text that a human reads once. The rules apply to every page and, where they fit, to the terminal output. The examples use run <code>r-20261102-1750-a3f</code> at 18:01 and the publish review of el9.</p>
+<p>A page shows the exceptions and the next step. Normal states are quiet, and a fold holds the text that a human reads once. The examples use run <code>r-20261102-1750-a3f</code> at 18:01 and the publish review of el9.</p>
 <table class="compact">
 <thead><tr><th>Rule</th><th>What to do</th><th>Example</th></tr></thead>
 <tbody>
-<tr><td>R1 One shell</td><td>Use the same frame on every page: the same top bar, sidebar and badges. The run chip has one format and is the only place that says "a run is active". A page body repeats the run state only when the page is that run.</td><td>The chip reads <code>r-…a3f 2/8 builds · 1 failed · 11m02s</code> on every page.</td></tr>
-<tr><td>R2 Exceptions first</td><td>Fold rows in the default state (current, ok, clean, same, up to date) into one row with a count. Show the rows that differ.</td><td>The Overview matrix shows ucx, slurm, openmpi and slurm-singularity-exec, then "▸ 7 packages current on all their targets".</td></tr>
-<tr><td>R3 Pills mean "look here"</td><td>Use a pill only for failed, blocked, required, running, accepted, retiring, revoked, behind and not ready. Show a normal state as quiet text, or leave the cell empty. Do not show zero counts.</td><td>"current" is quiet text. "canceled 0" shows nothing.</td></tr>
+<tr><td>R1 One shell</td><td>Use the same top bar, sidebar and badges on every page. Only the <a href="#run-chip">run chip</a> says "a run is active". A page body repeats the run state only when the page is that run.</td><td>The chip reads <code>r-…a3f 2/8 builds · 1 failed · 11m02s</code> on every page.</td></tr>
+<tr><td>R2 Exceptions first</td><td>Fold rows in the default state (current, ok, clean, same, up to date) into one row with a count. Show the rows that differ.</td><td>Overview matrix: ucx, slurm, openmpi, slurm-singularity-exec, then "▸ 7 packages current on all their targets".</td></tr>
+<tr><td>R3 Pills mean "look here"</td><td>Use a pill only for failed, blocked, required, running, accepted, retiring, revoked, behind and not ready. Show a normal state as quiet text or as an empty cell. Do not show zero counts.</td><td>"current" is quiet text. "canceled 0" shows nothing.</td></tr>
 <tr><td>R4 Say it once</td><td>Show each fact once, where the human acts on it. Do not repeat a card in a banner.</td><td><code>closure.broken/pmix@el9</code> shows once on the Overview, as Needs you item 2.</td></tr>
-<tr><td>R5 One primary</td><td>Use one filled button per page, for the real next step. A row has one visible button; the other actions go in a "⋯" menu. A long page keeps its primary button in a sticky footer. On a required advisory row, "Rebuild…" is the primary of its row only.</td><td>Run detail: "Review el9 publish ›" is the filled button, off until the el9 nodes end. "Retry failed" is in ⋯, off, with its reason.</td></tr>
-<tr><td>R6 Quiet agent button</td><td>The ✦ agent button is a quiet secondary button. Show one per row at most. Do not show it where the plain text already gives the answer.</td><td>The Overview has one outline "Explain failure". "Is a rebuild necessary?" is in the ⋯ menu of the advisory item.</td></tr>
+<tr><td>R5 One primary</td><td>Use one filled button per page, for the real next step. A row has one visible button and a "⋯" menu for the rest. A long page keeps its primary in a sticky footer.</td><td>Run detail: "Review el9 publish ›" is filled, off until the el9 nodes end. "Retry failed" is in ⋯, off, with its reason. On a required advisory row, "Rebuild…" is the primary of its row only.</td></tr>
+<tr><td>R6 Quiet agent button</td><td>The ✦ agent button is a quiet secondary button, one per row at most. Do not show it where the plain text already gives the answer.</td><td>The Overview has one outline "Explain failure". "Is a rebuild necessary?" is in the ⋯ menu of the advisory item.</td></tr>
 <tr><td>R7 Explain once</td><td>Put text that a human reads once behind a "?" or a fold with a one-line summary.</td><td>"What happens: 8 steps · latest does not change before step 7 ▸"</td></tr>
 <tr><td>R8 Words before codes</td><td>Start with a plain sentence. Problem codes, rule ids and exit codes come after it, small and muted, or in a fold.</td><td>"slurm@el10 failed: rocm-smi-devel is not available for el10", then <code>dep.not-for-target</code> in small muted text.</td></tr>
 <tr><td>R9 Short ids</td><td>Use a short id or a time as link text. Put the full id in the tooltip and the copy action.</td><td><code>r-20261102-1750-a3f</code> shows as "today 17:50 · a3f".</td></tr>
-<tr><td>R10 One CLI toggle</td><td>One "CLI" toggle in the page head holds the CLI commands of the page. No CLI chip on each card. A dialog shows its CLI command in the CLI toggle of the page that opens it. The publish confirm dialog has no CLI line; the review page shows <code>repoctl publish</code>.</td><td>The Overview toggle holds <code>repoctl status</code>, <code>repoctl advisories</code> and <code>repoctl runs</code>.</td></tr>
-<tr><td>R11 Red for this task only</td><td>Use red only for a blocker of the task on this page. Show facts outside the task in neutral colours.</td><td>Publish review of el9: "el10 is not in this publish: slurm@el10 failed. Why ▸" is neutral. <code>closure.broken/pmix@el9</code> is open, but this publish does not change its closure, so it is not red.</td></tr>
+<tr><td>R10 One CLI toggle</td><td>One "CLI" toggle in the page head holds the CLI commands of the page. No CLI chip on each card. A dialog shows its command in the CLI toggle of the page that opens it.</td><td>The Overview toggle holds <code>repoctl status</code>, <code>repoctl advisories</code> and <code>repoctl runs</code>. The publish confirm dialog has no CLI line; the review page shows <code>repoctl publish</code>.</td></tr>
+<tr><td>R11 Red for this task only</td><td>Use red only for a blocker of the task on this page. Show facts outside the task in neutral colours.</td><td>Publish review of el9: "el10 is not in this publish: slurm@el10 failed. Why ▸" is neutral. The open <code>closure.broken/pmix@el9</code> is not red: this publish does not change its closure.</td></tr>
 <tr><td>R12 Sans for words</td><td>Use the sans font for words and numbers. Use mono only for identifiers, commands, NVRs and logs.</td><td>Table labels are sans. <code>ucx-1.22.1-1.el9</code> is mono.</td></tr>
 <tr><td>R13 All-pass lists fold</td><td>A list where all items pass folds to one line. A failing item opens the fold and shows first.</td><td>"9 checks passed · gates 1–3 ok ▸"</td></tr>
 </tbody>
 </table>
-<p>In the terminal the same rules mean: print the exceptions and a totals line, and print all rows with <code>-v</code>. A <code>hint:</code> line follows from a finding in this output; static help goes to <code>repoctl help TOPIC</code>. A column with the same value on every row moves into the header line. Colour marks only the states that need action. Details: <a href="terminal.html#calm">terminal.html#calm</a> and <a href="cli.html#output">cli.html#output</a>.</p>
+<h3 id="calm-terminal">Calm rules in the terminal</h3>
+<p>Six rules have a terminal form. The terminal-only rules are in <a href="terminal.html#calm">terminal.html#calm</a>.</p>
+<table class="compact">
+<thead><tr><th>Rule</th><th>In the terminal</th><th>Frames</th></tr></thead>
+<tbody>
+<tr><td>R2 Exceptions first</td><td>Show the rows that differ from the default state (current, ok, in-sync, in-tree, same, up-to-date). Fold the other rows into the totals line. <code>-v</code> shows all rows.</td><td><a href="terminal.html#status">status</a>, <a href="terminal.html#upstream">upstream</a>, <a href="terminal.html#checkout">checkout</a></td></tr>
+<tr><td>R4 Say it once</td><td>A column with one value on all rows goes into the header line. Rows with the same action and reason on all targets merge. Each fact shows in the one command where the human acts on it.</td><td><a href="terminal.html#publish">publish</a>, <a href="terminal.html#plan">plan</a></td></tr>
+<tr><td>R7 Explain once</td><td>No tutorial hints: a <code>hint:</code> line follows from a finding in this output (<a href="terminal.html#next">hints</a>). Static help, a legend or an explanation goes into <code>repoctl help TOPIC</code>.</td><td><a href="terminal.html#graph">graph</a>: <code>repoctl help graph</code></td></tr>
+<tr><td>R8 Words before codes</td><td>The error line starts with the node and a plain cause. Problem codes and exit codes are in <code>--json</code> and in the help.</td><td><a href="terminal.html#build-failed">build-failed</a></td></tr>
+<tr><td>R11 Red for this task only</td><td>Colour only the states that need action, and red only a failure or the blocker of this task. A required advisory that does not block this publish has no colour.</td><td><a href="terminal.html#publish">publish</a></td></tr>
+<tr><td>R13 All-pass lists fold</td><td>Passed checks that stay visible are dim.</td><td><a href="terminal.html#publish">publish</a> steps, <a href="terminal.html#doctor">doctor</a></td></tr>
+</tbody>
+</table>
 
 <h2 id="loud">What must stay loud</h2>
 <p>Calm must not hide a risk. These items always stay visible:</p>
 <ul>
-  <li>The one blocker of a publish is the only red item, and it is above the fold. A blocker is a required advisory whose closure the publish changes, a removed package, a trust change or an unsigned file. A failing check opens the checks fold and shows first.</li>
+  <li>The one blocker of a publish is the only red item, and it is above the fold. A blocker is a required advisory whose closure the publish changes, a removed package, a trust change or an unsigned file.</li>
   <li>The signer name and the short key stay on the signing summary line of the publish review. The confirm dialog keeps all five bullets, also the accepted advisory.</li>
-  <li>Each fold has a count. "▸ 7 packages current" is not the same as no rows. Without the count, "all fine" and "skipped" look the same, in the web UI and in the terminal.</li>
+  <li>Each fold has a count: "▸ 7 packages current" is not the same as no rows. Without the count, "all fine" and "skipped" look the same, in the UI and in the terminal. A terminal fold also gives the names when they fit (<a href="terminal.html#plan">plan</a>: <code>7 current: munge rocm-smi …</code>).</li>
   <li>A group with an exception opens by default: a source package with another signer, a node that is not current, a check that fails.</li>
   <li>The plain diagnosis stays when no agent is set. An agent button never replaces the deterministic hint.</li>
-  <li>Push stays a numbered step after a rebuild. Occasional users forget it.</li>
+  <li>Push stays a numbered step after a rebuild. A human who seldom uses repoctl forgets it.</li>
   <li><code>upstream.release</code> stays as a count on the Plan page and the Overview, so a human sees that a new Slurm release exists.</li>
 </ul>
 
@@ -138,15 +149,16 @@
 <tr><td><a href="#auth">Session ended</a></td><td><code>/-/session?next=&lt;path&gt;</code></td><td><code>repoctl ui</code></td><td><a href="mockups/ui/session.html">session</a></td></tr>
 </tbody>
 </table>
-<p>The pages without a mockup show the output of their CLI command as a table. There is no snapshot page. The Overview and the publish result show the snapshot ref with a copy button. List and restore stay in the CLI (<code>repoctl repo snapshots</code>, <code>repoctl repo restore</code>), because restore changes shared state. The agent panel is a drawer on any set page: <code>?agent=&lt;id&gt;</code> opens it (<a href="agents.html#agent-panel">agents.html#agent-panel</a>).</p>
+<p>A page without a mockup shows the output of its CLI command as a table. There is no snapshot page: the Overview and the publish result show the snapshot ref with a copy button. List and restore stay in the CLI (<code>repoctl repo snapshots</code>, <code>repoctl repo restore</code>), because restore changes shared state.</p>
 <p>URL rules:</p>
 <ul>
-  <li><code>&lt;set&gt;</code> is the name in <code>repoctl.yaml</code>. It must match <code>^[a-z0-9][a-z0-9._-]*$</code>. The name <code>-</code> is not possible, so <code>/-/…</code> and <code>/s/&lt;set&gt;/-/…</code> are free for server endpoints.</li>
-  <li>A node id is <code>&lt;dir&gt;@&lt;target&gt;</code> in paths, in SSE event names, in the jump box and in the page text, for example <code>slurm@el10</code>.</li>
-  <li>An advisory row has the element id <code>adv-</code> plus the advisory id with <code>/</code> and <code>@</code> changed to <code>-</code>, for example <code>adv-closure.broken-pmix-el9</code>. The full id is in <code>data-advisory-id</code>.</li>
-  <li>Per-target pages take <code>?target=</code>. The repository takes the target in the path, because a target is one repository tree. Without a target, a page uses the first target of the set (el9).</li>
-  <li>The URL holds all state that a human wants to share or bookmark: set, target, run, node, package and filters. Dialog steps are not in the URL.</li>
-  <li>Pages are full server pages. Sidebar and in-page links use <code>hx-boost</code> with <code>hx-push-url</code>. Back and reload give the same page.</li>
+  <li><code>&lt;set&gt;</code> is the name in <code>repoctl.yaml</code> and matches <code>^[a-z0-9][a-z0-9._-]*$</code>. No set can have the name <code>-</code>, so <code>/-/…</code> and <code>/s/&lt;set&gt;/-/…</code> are free for server endpoints.</li>
+  <li>A node id is <code>&lt;dir&gt;@&lt;target&gt;</code> in paths, SSE event names, the jump box and the page text, for example <code>slurm@el10</code>.</li>
+  <li>An advisory row has the element id <code>adv-</code> plus the advisory id with <code>/</code> and <code>@</code> changed to <code>-</code>, for example <code>adv-closure.broken-pmix-el9</code>. <code>data-advisory-id</code> holds the full id.</li>
+  <li>Per-target pages take <code>?target=</code>. Without a target, a page uses the first target of the set (el9). The repository takes the target in the path, because a target is one repository tree.</li>
+  <li>The URL holds all state that a human wants to share or bookmark: set, target, run, node, package and filters, but no dialog step.</li>
+  <li>Pages are full server pages. Sidebar and in-page links use <code>hx-boost</code> with <code>hx-push-url</code>, so back and reload give the same page.</li>
+  <li><code>?agent=&lt;id&gt;</code> on any set page opens the agent panel drawer (<a href="agents.html#agent-panel">agents.html#agent-panel</a>).</li>
 </ul>
 <h3 id="endpoints">Endpoints that are not pages</h3>
 <table class="compact">
@@ -154,18 +166,18 @@
 <tbody>
 <tr><td><code>/-/auth?t=TOKEN&amp;next=&lt;path&gt;</code></td><td>GET</td><td>Trade a launch token for the session cookie, then 303 to <code>next</code> (<a href="#auth">authentication</a>).</td></tr>
 <tr><td><code>/-/ping</code></td><td>GET</td><td>204 with a valid session, else 401. <code>shell.js</code> calls it after an SSE error.</td></tr>
-<tr><td><code>/-/static/&lt;hash&gt;/…</code></td><td>GET</td><td>Embedded assets with a content hash: htmx, the SSE extension, <code>shell.js</code>, CSS, fonts. Cached forever.</td></tr>
+<tr><td><code>/-/static/&lt;hash&gt;/…</code></td><td>GET</td><td>Embedded assets with a content hash, cached forever: htmx, the SSE extension, <code>shell.js</code>, CSS, fonts.</td></tr>
 <tr><td><code>/-/events?page=sets</code></td><td>GET (SSE)</td><td>Stream for the pages outside a set (Sets, Doctor).</td></tr>
 <tr><td><code>/s/&lt;set&gt;/-/events?page=&lt;page&gt;[&amp;run=][&amp;node=][&amp;target=][&amp;agent=]</code></td><td>GET (SSE)</td><td>Stream for a set page (<a href="#live">live updates</a>).</td></tr>
 <tr><td><code>/s/&lt;set&gt;/-/frag/&lt;region&gt;</code></td><td>GET</td><td>One region as HTML, the same HTML as its SSE event.</td></tr>
-<tr><td><code>/s/&lt;set&gt;/-/dialog/&lt;name&gt;</code></td><td>GET</td><td>A dialog into <code>#modal</code>: build, cancel, checkout, pin, rebuild, dismiss, publish, sign-deployed. The CLI toggle of the page that opens it holds its command.</td></tr>
-<tr><td><code>/s/&lt;set&gt;/-/actions/&lt;verb&gt;</code></td><td>POST</td><td>Verbs: build, cancel, check, checkout, pin, rebuild, publish, advisory-dismiss, advisory-undismiss, advisory-accept, sign-deployed. The CSRF header is required. The answer is <code>HX-Location</code> or a fragment, with an <code>HX-Trigger</code> toast. A verb that takes the set lock does not wait: when another command holds the lock, the answer is 409 with the text of <code>set.busy</code> (<a href="#states">states</a>). <code>advisory-accept</code> holds the accept state in the publish form and writes nothing to the set.</td></tr>
+<tr><td><code>/s/&lt;set&gt;/-/dialog/&lt;name&gt;</code></td><td>GET</td><td>A dialog into <code>#modal</code>: build, cancel, checkout, pin, rebuild, dismiss, publish, sign-deployed.</td></tr>
+<tr><td><code>/s/&lt;set&gt;/-/actions/&lt;verb&gt;</code></td><td>POST</td><td>Verbs: build, cancel, check, checkout, pin, rebuild, publish, advisory-dismiss, advisory-undismiss, advisory-accept, sign-deployed. The answer is <code>HX-Location</code> or a fragment, with an <code>HX-Trigger</code> toast.</td></tr>
 <tr><td><code>/s/&lt;set&gt;/-/agent/&lt;task&gt;</code>, <code>…/-/agent/&lt;id&gt;/stop</code></td><td>POST</td><td>Start or stop an agent (<a href="agents.html#agent-buttons">agents.html#agent-buttons</a>).</td></tr>
 <tr><td><code>/-/frag/set-menu</code>, <code>/-/go?set=&lt;set&gt;&amp;from=&lt;path&gt;</code></td><td>GET</td><td>Contents of the set switcher. Switch the set and keep the page kind.</td></tr>
-<tr><td><code>/-/sets/&lt;set&gt;/remove</code></td><td>POST</td><td>Remove a set from the list. The files stay. CLI: <code>repoctl ui --remove SET</code>. The CSRF header is required.</td></tr>
+<tr><td><code>/-/sets/&lt;set&gt;/remove</code></td><td>POST</td><td>Remove a set from the list. The files stay. CLI: <code>repoctl ui --remove SET</code>.</td></tr>
 </tbody>
 </table>
-<p>A shared-state verb (publish, sign-deployed) needs the typed confirmation of its dialog. A failed push has no button. Its recovery is a CLI command, because it changes shared state (<a href="ui-publish.html#failed">ui-publish.html#failed</a>).</p>
+<p>Each POST needs the CSRF header. A verb that takes the set lock does not wait: when another command holds the lock, the answer is 409 (<a href="#states">states</a>). <code>advisory-accept</code> holds the accept state in the publish form and writes nothing to the set.</p>
 
 <h2 id="shell">App shell</h2>
 <figure class="diagram">
@@ -181,16 +193,17 @@
 <text class="t-small" x="656" y="43">live</text>
 <text class="t-small" x="696" y="43">d.klein@hpc-a1 · ? · theme</text>
 <rect class="box" x="16" y="60" width="180" height="224" rx="8"/>
-<text class="t-small t-muted" x="32" y="82">Set</text>
-<text class="t-small" x="32" y="98">Overview · Graph · Plan</text>
-<text class="t-small" x="32" y="114">Runs · Packages</text>
-<text class="t-small" x="32" y="130">Advisories · Upstream</text>
-<text class="t-small t-muted" x="32" y="156">Repository</text>
-<text class="t-small" x="32" y="172">el9 · el10</text>
-<text class="t-small" x="32" y="188">Publish · Signing</text>
-<text class="t-small t-muted" x="32" y="214">Host</text>
+<text class="t-small t-muted" x="32" y="80">Set</text>
+<text class="t-small" x="32" y="95">Overview · Advisories</text>
+<text class="t-small t-muted" x="32" y="115">Build</text>
+<text class="t-small" x="32" y="130">Graph · Plan</text>
+<text class="t-small" x="32" y="145">Runs · Packages</text>
+<text class="t-small t-muted" x="32" y="165">Repository</text>
+<text class="t-small" x="32" y="180">el9 · el10</text>
+<text class="t-small" x="32" y="195">Publish · Signing</text>
+<text class="t-small t-muted" x="32" y="215">Host</text>
 <text class="t-small" x="32" y="230">Config and lock</text>
-<text class="t-small" x="32" y="246">Doctor · All sets</text>
+<text class="t-small" x="32" y="245">Doctor · All sets</text>
 <text class="t-small t-muted" x="32" y="270">? shortcuts · v0.4.0</text>
 <rect class="box-muted" x="212" y="72" width="636" height="28" rx="8"/>
 <text class="t-small" x="228" y="90">offline banner (only while the stream is down)</text>
@@ -204,30 +217,49 @@
 <text class="t-small" x="644" y="220">toast stack, bottom right</text>
 <text class="t-small" x="644" y="240">newest on top, at most 3</text>
 </svg>
-<figcaption>The shell is the same on every page (R1). The run chip is the only place that says that a run is active.</figcaption>
+<figcaption>The shell is the same on every page (R1).</figcaption>
 </figure>
 <p>Top bar, left to right (sticky, 52 px):</p>
 <ul>
   <li>Brand "rc repoctl ui". It links to <code>/</code>.</li>
   <li>Set switcher: a <code>&lt;details&gt;</code> menu that works without JavaScript. Each set shows its path and its state; only a "look here" state is a pill. "All sets" and the line "Add a set: run repoctl ui in its directory." are at the end. A pick goes through <code>/-/go</code>: <code>/s/A/runs</code> becomes <code>/s/B/runs</code>. A run, node or package that B does not have falls back to the list page. The SSE event <code>sets</code> updates the menu.</li>
   <li>Jump box (<kbd>/</kbd>): packages, nodes (<code>slurm@el10</code>), runs (prefix match on the id) and pages. Results come from <code>/s/&lt;set&gt;/-/frag/jump?q=</code>.</li>
-  <li>Run chip (below).</li>
+  <li>Run chip (<a href="#run-chip">below</a>).</li>
   <li>Live indicator: "live" or "offline", from <code>shell.js</code>.</li>
   <li>User and host (<code>d.klein@hpc-a1</code>), <kbd>?</kbd> for the shortcut help, and the theme button (<a href="#theme">theme</a>).</li>
 </ul>
 <h3 id="run-chip">Run chip</h3>
-<p>The run chip has one format on every page. It gives the short run id, the builds that ended ok of the builds in the plan, the failed count when it is not zero, and the elapsed time. Example: <code>r-…a3f 2/8 builds · 1 failed · 11m02s</code>. A publish run counts its steps in place of builds.</p>
+<p>The run chip has one format on every page: <code>r-…a3f 2/8 builds · 1 failed · 11m02s</code>. It gives the short run id, the ok builds of the plan, the failed count (not zero) and the elapsed time. A publish run counts its steps in place of builds.</p>
 <ul>
   <li>The chip links to the run page. It shows the run of the current set first, else the run of another set with the set name.</li>
   <li>When runs are active in two or more sets, the chip shows "2 running" and links to <code>/</code>. With no active run, the chip is not shown.</li>
   <li>The chip uses neutral colours (R11). The SSE event <code>chip</code> updates it on every stream.</li>
 </ul>
 <h3 id="sidebar">Sidebar</h3>
-<p>The sidebar has four groups. Set: Overview and Advisories. Build: Graph, Plan, Runs and Packages. Repository: one entry per target (el9, el10), Publish and Signing. Host: Config and lock, Doctor and All sets. A live count on the right of an entry shows only when it is not zero. It is quiet text, for example Plan "8 build", Runs "1 running" and Advisories "1 required" (the count of required advisories). The foot gives the repoctl version. Below 760 px the sidebar is a drawer that the menu button opens.</p>
-<p>The sidebar uses the domains of the <a href="glossary.html">glossary</a>. The label of the Build group has the build icon in teal, and the label of the Repository group has the snapshot icon in copper. The icon of each entry has the colour of its domain: Advisories amber with the flag icon, the Build entries teal, the targets and Publish copper, Signing plum with the key icon. Overview and the Host entries stay neutral. The active entry has a tint and a left bar in its domain colour. The colour is a second cue only: the label and the icon shape also tell the domain.</p>
+<p>The sidebar has four groups. The icons and colours are the domains of the <a href="glossary.html">glossary</a> (<a href="#theme">theme</a>).</p>
+<table class="compact">
+<thead><tr><th>Group</th><th>Entries</th><th>Domain icon and colour</th></tr></thead>
+<tbody>
+<tr><td>Set</td><td>Overview, Advisories</td><td>Overview neutral. Advisories amber with the flag icon.</td></tr>
+<tr><td>Build</td><td>Graph, Plan, Runs, Packages</td><td>Group label: build icon in teal. Entries teal.</td></tr>
+<tr><td>Repository</td><td>one entry per target (el9, el10), Publish, Signing</td><td>Group label: snapshot icon in copper. Targets and Publish copper. Signing plum with the key icon.</td></tr>
+<tr><td>Host</td><td>Config and lock, Doctor, All sets</td><td>neutral</td></tr>
+</tbody>
+</table>
+<ul>
+  <li>A live count on the right of an entry shows only when it is not zero. It is quiet text, for example Plan "8 build", Runs "1 running" and Advisories "1 required" (the count of required advisories).</li>
+  <li>The active entry has a tint and a left bar in its domain colour. The colour is a second cue only: the label and the icon shape also tell the domain.</li>
+  <li>The Upstream page has no entry. The shortcut <kbd>g u</kbd> and the jump box open it (<a href="#keyboard">keyboard shortcuts</a>).</li>
+  <li>The foot gives the repoctl version. Below 760 px the sidebar is a drawer that the menu button opens.</li>
+</ul>
 <h3 id="glossary-terms">Glossary terms</h3>
-<p>The UI marks the project words as the design record does. In each card, section and dialog, the first use of a word in descriptive text has a dotted copper underline and is a link to its glossary entry. Buttons, headings, chips, pills, tables, code and identifiers stay plain. When the pointer or the focus is on a word, a card shows the domain with its icon and colour, the word, its kind and the definition. Esc closes the card. The card is a tooltip: it has no controls, and the link itself goes to the entry.</p>
-<p>The server renders the links from the glossary data that ships with repoctl. The mockups get them from <code>tools/site/glossary.py mockups</code>, with the same data (<code>docs/assets/glossary-data.js</code>).</p>
+<p>The UI marks the project words as the design record does:</p>
+<ul>
+  <li>The first use of a word in the descriptive text of a card, section or dialog links to its glossary entry. It has a dotted copper underline.</li>
+  <li>Buttons, headings, chips, pills, tables, code and identifiers stay plain.</li>
+  <li>Pointer or focus on a word shows a card: the domain with its icon and colour, the word, its kind and the definition. The card is a tooltip: it has no controls, and Esc closes it. The link itself goes to the entry.</li>
+  <li>The server renders the links from the glossary data that ships with repoctl. The mockups get them from <code>tools/site/glossary.py mockups</code>, with the same data (<code>docs/assets/glossary-data.js</code>).</li>
+</ul>
 <h3 id="skeleton">Page skeleton</h3>
 <pre><code class="language-html">&lt;body data-set="slurm-26.05" data-target="el9" hx-ext="sse"
       sse-connect="/s/slurm-26.05/-/events?page=overview"
@@ -239,21 +271,61 @@
 &lt;/body&gt;</code></pre>
 <p>A page marks its sidebar entry as active, names itself in the SSE URL and puts its regions in <code>&lt;main&gt;</code>. Page CSS loads after the shell CSS and defines no new state colours.</p>
 
-<h2 id="sets">Multi-set handling and the Sets page</h2>
+<h2 id="sets">Server and sets</h2>
+<p>One server serves all sets of the user. Each set has its own set lock, so runs in different sets can run at the same time. They share the host mock lock: <code>repoctl mock update</code> waits until no repoctl mock runs (<a href="build.html#mock">build.html#mock</a>).</p>
+<h3 id="server">Start, stop and upgrade</h3>
+<p><code>repoctl ui</code> in a set directory reads <code>ui.json</code> and connects to the control socket <code>ui.sock</code>. It asks the server to add the set and to issue a launch token. Then it opens <code>/-/auth?t=TOKEN&amp;next=/s/&lt;set&gt;/</code> in the browser.</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>What <code>repoctl ui</code> does</th></tr></thead>
+<tbody>
+<tr><td>A server runs</td><td>Exit 0 after the browser opens.</td></tr>
+<tr><td>The server has another version than the binary</td><td>Ask on a terminal: "The UI server runs repoctl 0.4.0. Restart it with 0.5.0? [y/N]". Yes: stop the old server and start a new one. No, or no terminal: exit 9 with <code>host.stale-server</code>.</td></tr>
+<tr><td>The connect fails, and the flock on <code>ui.json</code> (tried without a wait) is free</td><td>No server runs. Remove the stale <code>ui.sock</code> and <code>ui.json</code> and become the server. The server runs in the foreground until Ctrl-C.</td></tr>
+<tr><td>The connect fails, and another process holds the flock</td><td>A server starts at this moment. Try the connect again for up to 5 s, then exit 1.</td></tr>
+</tbody>
+</table>
+<table class="compact">
+<thead><tr><th>Flag</th><th>Behaviour</th></tr></thead>
+<tbody>
+<tr><td><code>--listen ADDR</code></td><td>A loopback address only. Default <code>127.0.0.1:0</code>, also <code>REPOCTL_UI_LISTEN</code>.</td></tr>
+<tr><td><code>--no-browser</code></td><td>Print the launch URL in place of opening the browser.</td></tr>
+<tr><td><code>--stop</code></td><td>Send SIGTERM to the pid in <code>ui.json</code>, so also a server of another release stops. Print each active run of a UI child (run id, set, kind) with the note that it continues; <code>repoctl cancel RUN</code> stops one.</td></tr>
+<tr><td><code>--remove SET</code></td><td>Remove a set from the set list, as "Remove from list" on the Sets page does; the files stay. Without a server, change <code>sets.yaml</code> directly.</td></tr>
+</tbody>
+</table>
+<p>Before it starts a child, the server checks its own executable. When a <code>dnf upgrade</code> replaced it (<code>/proc/self/exe</code> ends with "(deleted)"), the server starts no child. Each action then fails with <code>host.stale-server</code>. Each page shows the banner "repoctl was upgraded. Restart the UI server: repoctl ui". <code>repoctl ui</code> of the new binary offers the restart.</p>
+<h3 id="server-files">Server files and the set list</h3>
+<table class="compact">
+<thead><tr><th>File</th><th>Holds</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td><code>$XDG_RUNTIME_DIR/repoctl/ui.sock</code></td><td>the control socket</td><td>Private: mode 0600 in a directory of mode 0700. One JSON request per connection and one JSON answer, both with <code>"v": 1</code>. Requests: add a set, remove a set, issue a launch token, stop.</td></tr>
+<tr><td><code>$XDG_RUNTIME_DIR/repoctl/ui.json</code></td><td>pid, listen address, port, repoctl version, start time, server session id</td><td>The server writes it at its start and holds an exclusive flock on it while it runs. A run that a UI child starts records the session id in <code>origin.session</code>.</td></tr>
+<tr><td><code>$XDG_STATE_HOME/repoctl/-ui/sets.yaml</code></td><td>the set list: name and path of each set</td><td>The list is the same after a restart. A set name cannot start with <code>-</code>, so the directory <code>-ui</code> is never the state directory of a set.</td></tr>
+</tbody>
+</table>
 <ul>
-  <li><code>repoctl ui</code> in a set directory asks the running server, over the control socket <code>$XDG_RUNTIME_DIR/repoctl/ui.sock</code>, to add the set and to issue a launch token. If no server runs, it starts one. Then it opens <code>/-/auth?t=TOKEN&amp;next=/s/&lt;set&gt;/</code>.</li>
-  <li>The control socket is private: mode 0600 in a directory of mode 0700. It takes one JSON request per connection and gives one JSON answer, both with <code>"v": 1</code>. The requests are: add a set, remove a set, issue a launch token, stop. The answer to stop lists the active runs of UI children. Each answer names the repoctl version of the server. When it differs from the version of the client, the client prints a note with both versions and <code>repoctl ui --stop</code>.</li>
-  <li>At its start the server writes <code>$XDG_RUNTIME_DIR/repoctl/ui.json</code>: pid, listen address, port, repoctl version, start time and the server session id. It holds an exclusive flock on <code>ui.json</code> while it runs. A run that a UI child starts records the session id in <code>origin.session</code>.</li>
-  <li>Start race and stale files: when the connect to <code>ui.sock</code> fails, <code>repoctl ui</code> tries the flock on <code>ui.json</code> without a wait. If it gets the flock, no server runs. It removes the stale <code>ui.sock</code> and <code>ui.json</code> and becomes the server. If another process holds the flock, a server starts at this moment. The client tries the connect again for up to 5 s, then stops with exit 1.</li>
-  <li>The server keeps the list of sets in <code>$XDG_STATE_HOME/repoctl/-ui/sets.yaml</code> (name, path). After a restart the list is the same. A set name cannot start with <code>-</code>, so the directory <code>-ui</code> is never the state directory of a set.</li>
-  <li>The server watches each set: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, git HEAD and status of the set and its worktrees, and <code>runs/*.jsonl</code> in the state directory. Runs that the CLI or an MCP client starts show live in the UI too.</li>
+  <li>The answer to stop lists the active runs of UI children. Each answer names the repoctl version of the server. When it differs from the version of the client, the launch asks for the restart (<a href="#server">cases above</a>). <code>--remove</code> prints a note with both versions and <code>repoctl ui --stop</code>.</li>
+  <li>The server watches each set: <code>repoctl.yaml</code>, <code>repoctl.lock</code>, git HEAD and status of the set and its worktrees, and <code>runs/*.jsonl</code> in the state directory.</li>
   <li>The server refuses a second set with the same name from another path. <code>repoctl ui</code> prints the path of the set that has the name. To move a set directory, remove the set from the list first (<a href="lifecycle.html#move-set">move a set directory</a>).</li>
-  <li>Before it starts a child, the server checks its own executable. When a <code>dnf upgrade</code> replaced it (<code>/proc/self/exe</code> ends with "(deleted)"), the server starts no child. Each action then fails with <code>host.stale-server</code>, and each page shows the banner "repoctl was upgraded. Restart the UI server: repoctl ui". <code>repoctl ui</code> of the new binary offers the restart (<a href="cli.html#cmd-ui">cli.html#cmd-ui</a>).</li>
-  <li>If a set directory is gone, the set stays in the list with an error. Its pages show an error banner and offer "Remove from list" (<code>repoctl ui --remove SET</code>).</li>
-  <li>Each set has its own set lock. Runs in different sets can run at the same time. They share the host mock lock, so <code>repoctl mock update</code> waits until no repoctl mock runs (<a href="build.html#mock">build.html#mock</a>).</li>
 </ul>
-<figure class="shot"><a href="mockups/ui/sets.html"><img src="img/ui-sets.webp" alt="Sets page with three set cards: slurm-26.05 running, slurm-25.11 ok, slurm-25.11-testing not published, and a host line." loading="lazy"></a><figcaption>Sets page on hpc-a1 during run a3f.</figcaption></figure>
-<p>The Sets page (<code>/</code>) has one card per set: name, state, path, branch, targets, node count, the newest run, the last publish with its age, and a Needs you summary. Example: <code>slurm-26.05</code> (<code>~/src/slurm-repo</code>) is running, <code>slurm-25.11</code> is ok, and <code>slurm-25.11-testing</code> has an ok run that is not published. The state of a card follows one rule. It is running if a run is active, and failed if the newest run failed. It is amber if Needs you has a lock, doctor or "not published" item. It is retired, as quiet text, if each target has <code>state: retired</code>; its pages then have no build or publish button (<a href="lifecycle.html#end-set">end of a set</a>). Else it is ok, as quiet text. The snapshot ref of latest per target, with the states of the local copy and the served tree, is in a fold. "Remove from list" is in the ⋯ menu. A set with no packages or no targets shows an empty state with the steps of <code>repoctl help new-set</code> (<a href="lifecycle.html#help">lifecycle.html#help</a>). The SSE event <code>set:&lt;set&gt;</code> replaces one card. A host line gives host and user, the sizes of the data and cache directories, and the server address. Its details are in a fold.</p>
+<h3 id="sets-page">Sets page</h3>
+<figure class="shot"><a href="mockups/ui/sets.html"><img src="img/ui-sets.webp" alt="Sets page with three set cards: slurm-26.05 running, slurm-25.11 ok, slurm-25.11-testing not published, and a host line." loading="lazy"></a><figcaption>Sets page on hpc-a1 during run a3f: <code>slurm-26.05</code> (<code>~/src/slurm-repo</code>) is running, <code>slurm-25.11</code> is ok, and <code>slurm-25.11-testing</code> has an ok run that is not published.</figcaption></figure>
+<p>The Sets page (<code>/</code>) has one card per set. A card gives name, state, path, branch, targets, node count, the newest run, the last publish with its age, and a Needs you summary. The first row that matches gives the state of the card:</p>
+<table class="compact">
+<thead><tr><th>Condition</th><th>Card state</th></tr></thead>
+<tbody>
+<tr><td>A run is active</td><td>running</td></tr>
+<tr><td>The newest run failed</td><td>failed</td></tr>
+<tr><td>Needs you has a lock, doctor or "not published" item</td><td>amber</td></tr>
+<tr><td>Each target has <code>state: retired</code></td><td>retired, as quiet text. Its pages have no build or publish button (<a href="lifecycle.html#end-set">end of a set</a>).</td></tr>
+<tr><td>Else</td><td>ok, as quiet text</td></tr>
+</tbody>
+</table>
+<ul>
+  <li>A fold holds the snapshot ref of latest per target, with the states of the local copy and the served tree. "Remove from list" is in the ⋯ menu.</li>
+  <li>A set with no packages or no targets shows an empty state with the steps of <code>repoctl help new-set</code> (<a href="lifecycle.html#help">lifecycle.html#help</a>).</li>
+  <li>A host line gives host and user, the sizes of the data and cache directories, and the server address. Its details are in a fold.</li>
+</ul>
 
 <h2 id="keyboard">Keyboard shortcuts</h2>
 <table class="compact">
@@ -274,7 +346,8 @@
 <tr><td><kbd>Esc</kbd></td><td>Close a dialog or the agent panel, or leave an input</td></tr>
 </tbody>
 </table>
-<p>Keys do nothing while the focus is in an input, or with Ctrl, Alt or Meta. A page can add keys, for example <kbd>j</kbd> and <kbd>k</kbd> in a log, and lists them in the same help dialog. No key starts a build, a cancel or a publish. The Plan and Publish pages have no key on purpose.</p>
+<p>Keys do nothing while the focus is in an input, or with Ctrl, Alt or Meta. A page can add keys, for example <kbd>j</kbd> and <kbd>k</kbd> in a log, and lists them in the same help dialog.</p>
+<aside class="callout rule"><p class="callout-title">Rule</p><p>No key starts a build, a cancel or a publish. The Plan and Publish pages have no key on purpose.</p></aside>
 
 <h2 id="live">Live updates</h2>
 <figure class="diagram">
@@ -301,7 +374,14 @@
 <figcaption>A reconnect heals the page with a new snapshot. The client needs no logic to catch up.</figcaption>
 </figure>
 <h3 id="stream">One stream per tab</h3>
-<p>Each tab opens one EventSource, with <code>sse-connect</code> on <code>&lt;body&gt;</code>. This keeps the HTTP/1.1 limit of 6 connections per host free for other tabs. A set page connects to <code>/s/&lt;set&gt;/-/events?page=&lt;page&gt;</code>. Extra parameters add events: <code>run=&lt;run&gt;</code> for the run regions, <code>node=&lt;dir&gt;@&lt;target&gt;</code> for a log stream, <code>target=&lt;id&gt;</code> for a per-target page and <code>agent=&lt;id&gt;</code> for the agent panel. The event payload is HTML that the server renders for the page in the connect URL. Example: <code>node:slurm@el9</code> is a matrix cell on the Overview, a card on the Graph and a tree row on the run page.</p>
+<p>Each tab opens one EventSource, with <code>sse-connect</code> on <code>&lt;body&gt;</code>. Thus the HTTP/1.1 limit of 6 connections per host stays free for other tabs. A set page connects to <code>/s/&lt;set&gt;/-/events?page=&lt;page&gt;</code>. Extra parameters add events:</p>
+<ul>
+  <li><code>run=&lt;run&gt;</code> for the run regions;</li>
+  <li><code>node=&lt;dir&gt;@&lt;target&gt;</code> for a log stream;</li>
+  <li><code>target=&lt;id&gt;</code> for a per-target page;</li>
+  <li><code>agent=&lt;id&gt;</code> for the agent panel.</li>
+</ul>
+<p>The event payload is HTML that the server renders for the page in the connect URL. Example: <code>node:slurm@el9</code> is a matrix cell on the Overview, a card on the Graph and a tree row on the run page.</p>
 <table class="compact">
 <thead><tr><th>Scope</th><th>Events</th></tr></thead>
 <tbody>
@@ -312,7 +392,7 @@
 <tr><td>With <code>agent=</code></td><td><code>agent:&lt;id&gt;</code> (tool calls, text, final state)</td></tr>
 </tbody>
 </table>
-<p><code>graph:&lt;target&gt;</code> and <code>plan:&lt;target&gt;</code> tell a page that its graph or plan is stale. The page shows a one-line banner, and Start build stays off until the page loads again. A new commit, a pin, a publish or a change of <code>repoctl.yaml</code> sends them.</p>
+<p><code>graph:&lt;target&gt;</code> and <code>plan:&lt;target&gt;</code> tell a page that its graph or plan is stale. A new commit, a pin, a publish or a change of <code>repoctl.yaml</code> sends them. The page shows a one-line banner, and Start build stays off until the page loads again.</p>
 <h3 id="regions">Regions and fragments</h3>
 <ul>
   <li>Each live region has <code>data-live</code>, an <code>hx-get</code> to its fragment and <code>hx-trigger="refresh"</code>. The offline state dims every <code>[data-live]</code> region.</li>
@@ -331,7 +411,7 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
   <li>The server sends <code>retry: 5000</code>. EventSource connects again by itself.</li>
   <li>On connect and on every reconnect, the server first sends the current HTML of each region of the page. A state region needs no <code>Last-Event-ID</code>.</li>
   <li>The server sends <code>hb</code> every 15 s. <code>shell.js</code> marks the page offline after 30 s without a message, or after an SSE error. A new snapshot removes the offline state.</li>
-  <li>When the stream gets 401, <code>shell.js</code> calls <code>/-/ping</code> and goes to <code>/-/session</code>.</li>
+  <li>A 401 on the stream sends the page to <code>/-/session</code> (<a href="#auth">authentication</a>).</li>
   <li>When a run ends, the server sends the final state of its regions. The stream stays open for the other events.</li>
 </ul>
 <h3 id="log-stream">Log streams</h3>
@@ -345,7 +425,7 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
 <h2 id="toasts">Toasts</h2>
 <ul>
   <li>Toasts show at the bottom right, newest on top, at most 3. They come from the SSE event <code>toast</code> or from the <code>HX-Trigger</code> header of an action.</li>
-  <li>Ok and info toasts close after 6 s. Error toasts stay until the human closes them, and they use <code>role="alert"</code>.</li>
+  <li>Ok and info toasts close after 6 s. Error toasts stay until the human closes them.</li>
   <li>Toasts tell: run started, run done (ok or failed), node failed, publish done or failed, check done, and a new <code>repoctl.lock</code> or <code>repoctl.yaml</code> on disk. Each toast links to the object.</li>
   <li>A toast never holds the only copy of a fact. The same fact is on a page, for example in Needs you or on the run page.</li>
 </ul>
@@ -357,17 +437,17 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
 <tr><td>No runs yet</td><td>Overview, Runs</td><td>Empty state "No runs yet" with <code>repoctl build</code> and a Build… button.</td></tr>
 <tr><td>Never published</td><td>Overview, Publish, Repository</td><td>Empty state "Not published yet": a publish signs the staged nodes, makes the first snapshot and moves latest. Button Publish….</td></tr>
 <tr><td>No upstream configured</td><td>Upstream</td><td>Muted line "1 has no upstream source". Not in Needs you.</td></tr>
-<tr><td>Action sent, no answer</td><td>Dialogs</td><td>The server stopped after it started the child. The dialog shows the offline banner. The child continues. After <code>repoctl ui</code> again, the run shows on Runs and in the run chip. The human does not send the action again: Runs shows if it started.</td></tr>
+<tr><td>Action sent, no answer</td><td>Dialogs</td><td>The server stopped after it started the child. The dialog shows the offline banner; the child continues. After <code>repoctl ui</code> again, Runs and the run chip show the run. The human does not send the action again.</td></tr>
 <tr><td>A build while a run is active</td><td>Build dialog</td><td>The dialog names the active run and links to it. Start stays off. There is no queue (<code>set.busy</code>, <a href="build.html#lock">build.html#lock</a>).</td></tr>
-<tr><td>Another action while the set is busy</td><td>Dialogs of checkout, pin, rebuild, publish and sign-deployed; a second tab</td><td>The dialog names the holder of the set lock (command, run, user, start time) and links to the run. Its confirm button stays off. When the set becomes busy after the dialog opened, the POST answers 409 with the text of <code>set.busy</code> and starts nothing. The dialog shows that text. There is no queue.</td></tr>
+<tr><td>Another action while the set is busy</td><td>Dialogs of checkout, pin, rebuild, publish and sign-deployed; a second tab</td><td>The dialog names the holder of the set lock (command, run, user, start time) and links to the run. Its confirm button stays off. There is no queue.</td></tr>
+<tr><td>The set becomes busy after the dialog opened</td><td>The same dialogs</td><td>The POST answers 409 with the text of <code>set.busy</code> and starts nothing. The dialog shows that text.</td></tr>
 <tr><td><code>repoctl.yaml</code> not valid</td><td>All set pages</td><td>Red banner with <code>file:line: message</code>. Pages show the last valid config. Build and publish are off.</td></tr>
-<tr><td>Set directory not found</td><td>Set pages, Sets</td><td>Red banner. Only "Remove from list" works.</td></tr>
+<tr><td>Set directory not found</td><td>Set pages, Sets</td><td>The set stays in the list with an error. Red banner. Only "Remove from list" (<code>repoctl ui --remove SET</code>) works.</td></tr>
 <tr><td>Unknown set, run, node or package</td><td>Any URL</td><td>404 page in the shell with a link to the parent list.</td></tr>
 <tr><td>Stream down, server answers</td><td>All pages</td><td>Sticky banner "Offline. The connection to repoctl ui was lost. The page shows old data. Live parts are dimmed. The page tries again every 5 s." with Reload. The indicator says "offline".</td></tr>
 <tr><td>Server does not answer</td><td>All pages</td><td>The same banner with "The repoctl ui server does not answer. It stopped." The event <code>bye</code> also gives this text.</td></tr>
 <tr><td>Session not valid</td><td>Any request</td><td>Redirect to <code>/-/session</code> (<a href="#auth">authentication</a>).</td></tr>
-<tr><td>No agent configured</td><td>Pages with agent buttons</td><td>No agent buttons (<a href="agents.html#no-agent">agents.html#no-agent</a>).</td></tr>
-<tr><td>Agent configured, but it cannot run</td><td>Pages with agent buttons</td><td>No agent buttons. The Advisories foot names the cause, for example "Agent buttons are off: claude not found. Run repoctl doctor" (check <code>agent.command</code>, <a href="agents.html#no-agent">agents.html#no-agent</a>).</td></tr>
+<tr><td>No agent configured, or the agent cannot run</td><td>Pages with agent buttons</td><td>No agent buttons. The Advisories foot names the cause (check <code>agent.command</code>, <a href="agents.html#no-agent">agents.html#no-agent</a>).</td></tr>
 </tbody>
 </table>
 
@@ -399,17 +479,25 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
 </figure>
 <ul>
   <li><code>repoctl ui</code> gets a launch token from the server: 32 random bytes, one use, valid for 60 s. The browser gets the URL through a private file, not on the command line.</li>
-  <li>The browser opens <code>http://127.0.0.1:&lt;port&gt;/-/auth?t=TOKEN&amp;next=/s/&lt;set&gt;/</code>. <code>repoctl ui --no-browser</code> prints this URL in place of opening the browser.</li>
-  <li>The server sets the cookie <code>repoctl_session</code> (HttpOnly, SameSite=Strict, Path=/, no Max-Age) and answers 303 to <code>next</code>. The token is not in the browser history. All pages send <code>Referrer-Policy: no-referrer</code>.</li>
+  <li>The browser opens <code>http://127.0.0.1:&lt;port&gt;/-/auth?t=TOKEN&amp;next=/s/&lt;set&gt;/</code>.</li>
+  <li>The server sets the cookie <code>repoctl_session</code> (HttpOnly, SameSite=Strict, Path=/, no Max-Age) and answers 303 to <code>next</code>. Thus the token is not in the browser history. All pages send <code>Referrer-Policy: no-referrer</code>.</li>
   <li>Sessions live in the server memory. They end when the server stops, or after 7 days.</li>
-  <li>Each request checks <code>Host</code>: loopback and the port of the server only. Each request with a method other than GET also checks <code>Origin</code> and the CSRF header. The server accepts only GET and POST and answers 405 to each other method. The CSRF token is in <code>&lt;meta name="csrf-token"&gt;</code> and in <code>hx-headers</code> on <code>&lt;body&gt;</code>.</li>
-  <li>Without a valid session, a page GET gets 303 to <code>/-/session?next=…</code>, which answers 401. An htmx request gets 401 and <code>HX-Redirect</code>. An SSE stream gets 401; <code>shell.js</code> calls <code>/-/ping</code> and redirects.</li>
+  <li>Each request checks <code>Host</code>: loopback and the port of the server only. Each request with a method other than GET also checks <code>Origin</code> and the CSRF header. The CSRF token is in <code>&lt;meta name="csrf-token"&gt;</code> and in <code>hx-headers</code> on <code>&lt;body&gt;</code>.</li>
+  <li>The server accepts only GET and POST and answers 405 to each other method.</li>
 </ul>
+<table class="compact">
+<thead><tr><th>Request without a valid session</th><th>Answer</th></tr></thead>
+<tbody>
+<tr><td>Page GET</td><td>303 to <code>/-/session?next=…</code>, which answers 401</td></tr>
+<tr><td>htmx request</td><td>401 and <code>HX-Redirect</code></td></tr>
+<tr><td>SSE stream</td><td>401. <code>shell.js</code> calls <code>/-/ping</code> and redirects.</td></tr>
+</tbody>
+</table>
 <figure class="shot"><a href="mockups/ui/session.html"><img src="img/ui-session.webp" alt="Session ended page: This session has ended, with the command repoctl ui and a copy button." loading="lazy"></a><figcaption>Session page. It shows no shell and no set data.</figcaption></figure>
-<p>The session page says why the session ended, for example "The server restarted at 18:21. Sessions do not live longer than the server." It tells the human to run <code>repoctl ui</code> in a terminal on this host, with a copy button. It says that the UI uses a one-time launch token and a session cookie, and no passwords.</p>
+<p>The session page says why the session ended, for example: "The server restarted at 18:21. Sessions do not live longer than the server." It gives <code>repoctl ui</code> with a copy button, to run in a terminal on this host. It says that the UI uses a one-time launch token and a session cookie, and no passwords.</p>
 
 <h2 id="components">Component sheet</h2>
-<p>The component sheet shows every shared part of the UI. Pages use these classes and define no new state colours.</p>
+<p>The component sheet shows every shared part of the UI. Pages use these classes.</p>
 <figure class="shot"><a href="mockups/ui/components.html"><img src="img/ui-components.webp" alt="Component sheet: state pills, quiet states, node chips, target badges, NVRs, hashes, buttons, folds, banners, toasts, run progress, empty states and dialogs." loading="lazy"></a><figcaption>Component sheet (light).</figcaption></figure>
 <table class="compact">
 <thead><tr><th>Component</th><th>Markup</th><th>Rule</th></tr></thead>
@@ -420,16 +508,16 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
 <tr><td>Node chip</td><td><code>&lt;a class="node-chip st-running"&gt;&lt;b&gt;slurm&lt;/b&gt;@el9&lt;/a&gt;</code></td><td>The square has the state colour. The text stays in text colours. It links to the node in its run.</td></tr>
 <tr><td>Target badge</td><td><code>.target</code></td><td>Long form in headers (<code>el9</code> <code>rocky+epel-9-x86_64</code>), short form in tables.</td></tr>
 <tr><td>NVR</td><td><code>.nvr</code></td><td>The version is bold, dist and arch are muted. Epoch 0 and <code>.x86_64</code> do not show; <code>noarch</code> shows. Never cut an NVR: the table scrolls.</td></tr>
-<tr><td>Hash and short id</td><td><code>.hashc</code>, <code>.id</code> + copy</td><td>7 characters for a commit, 12 for a digest, the last two groups for a key fingerprint (<code>…41D8 0B6E</code>). A run shows as "today 17:50 · a3f". The full value is in the tooltip and in the copy action (R9).</td></tr>
+<tr><td>Hash and short id</td><td><code>.hashc</code>, <code>.id</code> + copy</td><td>7 characters for a commit, 12 for a digest, the last two groups for a key fingerprint (<code>…41D8 0B6E</code>). Runs and the full value: R9.</td></tr>
 <tr><td>Command</td><td><code>.cmd &gt; code</code> + copy</td><td>In the CLI toggle of the page head (R10), in an empty state and in a recovery box.</td></tr>
-<tr><td>Fold and rest row</td><td><code>details.fold</code>, <code>.rest</code></td><td>The summary has a count or a one-line result (R2, R7, R13). A fold with an exception opens by default.</td></tr>
+<tr><td>Fold and rest row</td><td><code>details.fold</code>, <code>.rest</code></td><td>The summary has a count or a one-line result (R2, R7, R13).</td></tr>
 <tr><td>Help and more</td><td><code>.help</code>, <code>.more</code></td><td>"?" opens one paragraph next to a term (R7). "⋯" holds the actions after the first one of a row (R5).</td></tr>
-<tr><td>Agent button</td><td><code>.btn-agent</code></td><td>Quiet secondary button with ✦ (R6, <a href="agents.html#agent-buttons">agents.html#agent-buttons</a>).</td></tr>
+<tr><td>Agent button</td><td><code>.btn-agent</code></td><td>R6, <a href="agents.html#agent-buttons">agents.html#agent-buttons</a>.</td></tr>
 <tr><td>Run progress</td><td><code>.progress</code>, <code>role="progressbar"</code></td><td>Segments in a fixed order: ok, current, failed, blocked, canceled, running, then the rest. One sentence gives the counts, for example "17 of 21 nodes settled · 1 failed · 3 running". No legend pills.</td></tr>
 <tr><td>Banner</td><td><code>.banner.info|warn|err</code></td><td>One sentence of what, one of what to do. Never a repeat of a card (R4).</td></tr>
-<tr><td>Toast</td><td><code>.toast.ok|err|info</code></td><td>See <a href="#toasts">toasts</a>.</td></tr>
+<tr><td>Toast</td><td><code>.toast.ok|err|info</code></td><td><a href="#toasts">Toasts</a>.</td></tr>
 <tr><td>Empty state</td><td><code>.empty</code></td><td>Says what the thing is and how to make the first one, with the CLI command.</td></tr>
-<tr><td>Dialog</td><td><code>&lt;dialog class="dlg"&gt;</code></td><td>Head, body, foot. The CLI toggle of the page that opens the dialog holds its command (R10). The safe button is on the left, the action on the right. The body scrolls, so the title and the action stay on screen at 720 px. The page behind is inert. Only the publish confirmation uses the solid danger button.</td></tr>
+<tr><td>Dialog</td><td><code>&lt;dialog class="dlg"&gt;</code></td><td>Head, body, foot. Safe button left, action right. The body scrolls, so the title and the action stay on screen at 720 px. The page behind is inert. Only the publish confirmation has the solid danger button.</td></tr>
 </tbody>
 </table>
 
@@ -439,7 +527,7 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
   <li>Colour is never the only signal. Pills have words, chips have the node id, bars have titles, the matrix has text, and steps have the marks ✓ ✗ ● ○.</li>
   <li>A skip link goes to <code>#main</code>. The landmarks are <code>header</code>, <code>nav</code> and <code>main</code>. Each card has <code>aria-labelledby</code> on its heading.</li>
   <li>The toast stack is <code>role="status"</code> with <code>aria-live="polite"</code>. Error toasts and the offline banner use <code>role="alert"</code>. The live indicator is a polite status. A polite status line announces a change of an advisory.</li>
-  <li>The run progress bar has <code>aria-valuenow</code> and a label, for example "2 of 8 builds ok". The run state and the failure cards are in a polite live region. The log view is not a live region, because it changes too often. It is a focusable region with a label.</li>
+  <li>The run progress bar has <code>aria-valuenow</code> and a label, for example "2 of 8 builds ok". The run state and the failure cards are a polite live region. The log view changes too often for a live region: it is a focusable region with a label.</li>
   <li>An SSE swap of a whole region does not move the focus.</li>
   <li>Dialogs are native <code>&lt;dialog&gt;</code> elements with <code>showModal()</code>. The browser gives the focus trap, Esc and the backdrop.</li>
   <li>Motion (pulse, spinner, stripes, new-line flash) stops with <code>prefers-reduced-motion</code>. In <code>forced-colors</code> mode pills get a border.</li>
@@ -448,12 +536,11 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
 </ul>
 
 <h2 id="theme">Theme</h2>
-<p>repoctl has its own identity: copper on warm grey. The theme has a light and a dark mode. IBM Plex Sans is the font for words and IBM Plex Mono for identifiers (R12). The server embeds the fonts under <code>/-/static/</code>, so the UI loads nothing from a CDN.</p>
+<p>repoctl has its own identity: copper on warm grey, in a light and a dark mode. IBM Plex Sans is the font for words and IBM Plex Mono for identifiers (R12). The server embeds the fonts under <code>/-/static/</code>, so the UI loads nothing from a CDN.</p>
 <ul>
   <li>The theme button cycles auto → light → dark. The cookie <code>repoctl_theme</code> stores the choice, so the server renders <code>&lt;html data-theme&gt;</code> and the page does not flash.</li>
   <li><code>color-scheme</code> follows <code>data-theme</code>, so scroll bars and native controls match the mode.</li>
   <li>The muted text token <code>--c-text-3</code> is dark enough for small text: 5.35:1 on white, 5.58:1 on the dark surface.</li>
-  <li>Text inputs and checkboxes use <code>--c-border-control</code> (3:1).</li>
 </ul>
 <table class="compact">
 <thead><tr><th>Token</th><th>Use</th><th>Light</th><th>Dark</th></tr></thead>
@@ -463,7 +550,7 @@ data: &lt;li hx-swap-oob="afterbegin:#run-feed ul"&gt;…slurm@el10 → failed&l
 <tr><td><code>--c-primary-soft</code></td><td>active sidebar background</td><td><code>#f6e3d6</code></td><td><code>#3a2516</code></td></tr>
 <tr><td><code>--c-bg</code></td><td>page</td><td><code>#faf8f6</code></td><td><code>#15120f</code></td></tr>
 <tr><td><code>--c-surface</code>, <code>--c-surface-2</code></td><td>cards; table heads and hover</td><td><code>#ffffff</code>, <code>#f2eeea</code></td><td><code>#1c1814</code>, <code>#241f1a</code></td></tr>
-<tr><td><code>--c-border</code>, <code>--c-border-control</code></td><td>card borders; inputs</td><td><code>#ddd5cd</code>, <code>#a3907e</code></td><td><code>#352d26</code>, <code>#736355</code></td></tr>
+<tr><td><code>--c-border</code>, <code>--c-border-control</code></td><td>card borders; text inputs and checkboxes (3:1)</td><td><code>#ddd5cd</code>, <code>#a3907e</code></td><td><code>#352d26</code>, <code>#736355</code></td></tr>
 <tr><td><code>--c-text</code>, <code>--c-text-2</code>, <code>--c-text-3</code></td><td>body, secondary, muted text</td><td><code>#231d18</code>, <code>#5d534a</code>, <code>#74695e</code></td><td><code>#efe9e3</code>, <code>#bfb4a9</code>, <code>#9a8f84</code></td></tr>
 <tr><td><code>--c-focus</code></td><td>focus ring</td><td><code>#c4682c</code></td><td><code>#f0a36d</code></td></tr>
 </tbody>

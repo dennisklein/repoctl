@@ -26,7 +26,7 @@
           "path": "design/decision.html",
           "title": "Why a Go tool",
           "short": "Why a Go tool",
-          "description": "The build graph of today, its problems, the options and why repoctl is one Go tool.",
+          "description": "The build graph of today, its problems, the options, the choice of one Go tool and its layers.",
           "anchors": ["scripts", "graph", "problems", "criteria", "options", "scores", "choice", "layers", "run", "home", "name", "sources"]
         },
         {
@@ -57,7 +57,7 @@
     },
     {
       "number": "II",
-      "title": "How it works",
+      "title": "Build and publish",
       "pages": [
         {
           "number": 4,
@@ -82,7 +82,13 @@
           "short": "Publish and snapshots",
           "description": "GHCR as the authority, the mirror job, the publish order, prune, restore and gc.",
           "anchors": ["topology", "paths", "mirror", "records", "freshness", "order", "checks", "takes", "admins", "summary", "format", "storage", "retention", "restore", "gc", "registry", "disaster"]
-        },
+        }
+      ]
+    },
+    {
+      "number": "III",
+      "title": "Trust and security",
+      "pages": [
         {
           "number": 7,
           "path": "design/signing.html",
@@ -105,20 +111,20 @@
           "title": "Supply chain records",
           "short": "Supply chain records",
           "description": "SLSA provenance and CycloneDX SBOMs in the snapshot, covered by the repository signature, and the records of the tool.",
-          "anchors": ["question", "terms", "value", "choice", "format", "design", "flow", "capture", "provenance", "sbom-record", "layout", "verify", "commands", "tool", "not-used", "regulation", "sources"]
+          "anchors": ["question", "terms", "value", "choice", "format", "design", "flow", "capture", "provenance", "sbom-record", "layout", "verify", "commands", "not-used", "regulation", "sources"]
         },
         {
           "number": 10,
-          "path": "design/lifecycle.html",
-          "title": "Sets and packages",
-          "short": "Sets and packages",
-          "description": "Package and lock states, a new set, and the steps for each package change.",
-          "anchors": ["states", "lock-states", "new-set", "setup", "testing", "changes", "bump", "add", "add-external", "stream", "some-targets", "retire", "rename", "move", "targets", "mass-rebuild", "end-set", "move-set", "clones", "adopted", "help"]
+          "path": "design/tool.html",
+          "title": "Tool releases",
+          "short": "Tool releases",
+          "description": "The RPM repo of repoctl on GitHub Pages, the tool repository key, install, upgrade, key rotation and compromise, a bad release and the records of the tool.",
+          "anchors": ["pages", "tool-key", "tool-bootstrap", "upgrade", "tool-rotation", "tool-compromise", "tool-yank", "tool-records"]
         }
       ]
     },
     {
-      "number": "III",
+      "number": "IV",
       "title": "Interfaces",
       "pages": [
         {
@@ -126,16 +132,16 @@
           "path": "design/cli.html",
           "title": "CLI reference",
           "short": "CLI reference",
-          "description": "The command tree, global flags, output rules, exit codes and one block per command.",
-          "anchors": ["principles", "tree", "help", "global", "selectors", "output", "exit", "commands", "safety", "topics", "completion", "migration", "errors", "cmd-init", "cmd-migrate", "cmd-status", "cmd-list", "cmd-show", "cmd-checkout", "cmd-pin", "cmd-rebuild", "cmd-graph", "cmd-plan", "cmd-build", "cmd-runs", "cmd-logs", "cmd-cancel", "cmd-publish", "cmd-repo-ls", "cmd-repo-diff", "cmd-repo-verify", "cmd-repo-provenance", "cmd-repo-sbom", "cmd-repo-pull", "cmd-repo-push", "cmd-repo-snapshots", "cmd-repo-restore", "cmd-repo-prune", "cmd-repo-gc", "cmd-repo-resign", "cmd-sign-ls", "cmd-sign-onboard", "cmd-sign-offboard", "cmd-sign-add", "cmd-sign-retire", "cmd-sign-activate", "cmd-sign-remove", "cmd-sign-revoke", "cmd-sign-deployed", "cmd-sign-keyfile", "cmd-release-write", "cmd-check", "cmd-advisories", "cmd-upstream", "cmd-ui", "cmd-mcp", "cmd-skills", "cmd-doctor", "cmd-clean", "cmd-mock", "cmd-config", "cmd-schema", "cmd-version", "cmd-completion"]
+          "description": "The command tree, global flags, selectors, exit codes and one block per command.",
+          "anchors": ["principles", "tree", "help", "global", "selectors", "exit", "commands", "safety", "topics", "completion", "migration", "errors", "cmd-init", "cmd-migrate", "cmd-status", "cmd-list", "cmd-show", "cmd-checkout", "cmd-pin", "cmd-rebuild", "cmd-graph", "cmd-plan", "cmd-build", "cmd-runs", "cmd-logs", "cmd-cancel", "cmd-publish", "cmd-repo-ls", "cmd-repo-diff", "cmd-repo-verify", "cmd-repo-provenance", "cmd-repo-sbom", "cmd-repo-pull", "cmd-repo-push", "cmd-repo-snapshots", "cmd-repo-restore", "cmd-repo-prune", "cmd-repo-gc", "cmd-repo-resign", "cmd-sign-ls", "cmd-sign-onboard", "cmd-sign-offboard", "cmd-sign-add", "cmd-sign-retire", "cmd-sign-activate", "cmd-sign-remove", "cmd-sign-revoke", "cmd-sign-deployed", "cmd-sign-keyfile", "cmd-release-write", "cmd-check", "cmd-advisories", "cmd-upstream", "cmd-ui", "cmd-mcp", "cmd-skills", "cmd-doctor", "cmd-clean", "cmd-mock", "cmd-config", "cmd-schema", "cmd-version", "cmd-completion"]
         },
         {
           "number": 12,
           "path": "design/terminal.html",
           "title": "Terminal output",
           "short": "Terminal output",
-          "description": "Marks, colours, streams and layout of the terminal, with one frame per command.",
-          "anchors": ["conventions", "marks", "streams", "layout", "calm", "status", "plan", "graph", "build-live", "build-plain", "build-failed", "logs", "publish", "check", "upstream", "doctor", "ui", "checkout"]
+          "description": "Output rules, marks, colours, streams and layout of the terminal, with one frame per command.",
+          "anchors": ["conventions", "marks", "streams", "layout", "output", "next", "calm", "status", "plan", "graph", "build-live", "build-plain", "build-failed", "logs", "publish", "check", "upstream", "doctor", "ui", "checkout"]
         },
         {
           "number": 13,
@@ -188,11 +194,19 @@
       ]
     },
     {
-      "number": "IV",
+      "number": "V",
       "title": "Operations",
       "pages": [
         {
           "number": 18,
+          "path": "design/lifecycle.html",
+          "title": "Sets and packages",
+          "short": "Sets and packages",
+          "description": "Package and lock states, a new set, and the steps for each package change.",
+          "anchors": ["states", "lock-states", "new-set", "setup", "testing", "changes", "bump", "add", "add-external", "stream", "some-targets", "retire", "rename", "move", "targets", "mass-rebuild", "end-set", "move-set", "clones", "adopted", "help"]
+        },
+        {
+          "number": 19,
           "path": "runbooks/import.html",
           "title": "Import the existing repositories",
           "short": "Import runbook",
@@ -200,7 +214,7 @@
           "anchors": ["inputs", "convert", "copy", "map", "manifest", "record-key", "push", "verify", "switch", "report", "remove", "stop"]
         },
         {
-          "number": 19,
+          "number": 20,
           "path": "runbooks/key-compromise.html",
           "title": "Key compromise or lost key",
           "short": "Key compromise runbook",
@@ -208,7 +222,7 @@
           "anchors": ["trigger", "decide", "compromise", "lost", "last-signer", "stop", "done"]
         },
         {
-          "number": 20,
+          "number": 21,
           "path": "runbooks/bad-publish.html",
           "title": "A bad publish reached the clients",
           "short": "Bad publish runbook",
@@ -216,7 +230,7 @@
           "anchors": ["trigger", "assess", "fix-forward", "restore", "stop", "done"]
         },
         {
-          "number": 21,
+          "number": 22,
           "path": "runbooks/registry-loss.html",
           "title": "Registry outage or loss",
           "short": "Registry loss runbook",
@@ -224,7 +238,7 @@
           "anchors": ["trigger", "outage", "loss", "reseed", "stop", "done"]
         },
         {
-          "number": 22,
+          "number": 23,
           "path": "runbooks/mirror-job.html",
           "title": "Failed mirror job",
           "short": "Mirror job runbook",
@@ -232,15 +246,21 @@
           "anchors": ["trigger", "find", "causes", "stop", "done"]
         },
         {
-          "number": 23,
+          "number": 24,
           "path": "runbooks/host-loss.html",
           "title": "Lost admin host",
           "short": "Host loss runbook",
           "description": "A runbook for a human: stop the access of a lost admin host, make its lost commits again and set up a new host.",
           "anchors": ["trigger", "decide", "access", "commits", "publish", "new-host", "stop", "done"]
-        },
+        }
+      ]
+    },
+    {
+      "number": "VI",
+      "title": "Delivery",
+      "pages": [
         {
-          "number": 24,
+          "number": 25,
           "path": "design/delivery.html",
           "title": "Delivery and verification",
           "short": "Delivery and verification",
