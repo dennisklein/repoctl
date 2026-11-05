@@ -108,7 +108,7 @@
 <li>Make a worktree: <code>git worktree add DIR origin/set/SET -B set/SET</code>, for example <code>~/src/slurm-repo-25.11</code> for <code>slurm-25.11</code>. Work in DIR.</li>
 <li>Run <code>repoctl migrate --dry-run</code> (<a href="../design/cli.html#cmd-migrate">command block</a>). Read the findings. A difference between the hand order of <code>scripts/build</code> and the graph is not an error. Write it in the report.</li>
 <li>Run <code>repoctl migrate</code>. It writes <code>repoctl.yaml</code>, <code>repoctl.lock</code> and <code>rpm/macros</code>.</li>
-<li>Compare <code>repoctl.lock</code> with <code>packages.lock</code>: the same dirs, branches and commits. A difference is a stop.</li>
+<li>Compare <code>repoctl.lock</code> with <code>packages.lock</code>: the same packages, branches and commits. A difference is a stop.</li>
 <li>Edit these keys of <code>repoctl.yaml</code> (<a href="../design/config.html#set-config">keys</a>). Keep the other keys that migrate wrote.
 <pre><code class="language-yaml">name: slurm-26.05                            # SET
 repo:
@@ -128,7 +128,7 @@ targets:                                     # one target only
     macros: [rpm/macros]
     path: el9
 packages:
-  - dir: slurm-release                       # the release package
+  - id: slurm-release                       # the release package
     path: packages/slurm-release
     role: release</code></pre>
 <ul>
@@ -168,14 +168,14 @@ rpmkeys --dbpath $TMP/rpmdb --checksig $IMPORT/*/packages/*.rpm</code></pre></li
 <p>rpmautospec gives each commit of a package branch its own release, so one commit gives one NVR.</p>
 <ol class="steps">
 <li>List the SRPMs of <code>slurm-source</code>: <code>rpm -qp --qf '%{NAME} %{VERSION} %{RELEASE}\n'</code>. Group the binary and debuginfo RPMs by their SRPM: <code>rpm -qp --qf '%{SOURCERPM}\n'</code>.</li>
-<li>Each dir in <code>repoctl.lock</code> has a branch B and a pinned commit C. Get the source package name at C: <code>rpmspec --load=rpm/macros -q --srpm --qf '%{name}' SPEC</code>.</li>
+<li>Each package in <code>repoctl.lock</code> has a branch B and a pinned commit C. Get the source package name at C: <code>rpmspec --load=rpm/macros -q --srpm --qf '%{name}' SPEC</code>.</li>
 <li>For each commit K in <code>git rev-list C</code> (newest first), compute the NVR. When the NVR equals a published SRPM, record (SRPM, K). Stop the walk when each published SRPM of the name has a commit.
 <pre><code class="language-bash">git worktree add --detach $TMP/k K
 rpmautospec process-distgit $TMP/k/NAME.spec $TMP/out.spec
 rpmspec --load=rpm/macros --define 'dist .el9' -q --srpm --qf '%{nvr}' $TMP/out.spec
 git worktree remove $TMP/k</code></pre></li>
 <li>For the in-tree release package (<code>packages/slurm-release</code>), walk the set branch: <code>git log --format=%H -- packages/slurm-release</code>. Compute the NVR at each commit as in item 3. Its build identity is the last set commit that changed its path (<a href="../design/signing.html#release">release package</a>).</li>
-<li>Check the result for each dir:
+<li>Check the result for each package:
 <table>
 <thead><tr><th>Result</th><th>Action</th></tr></thead>
 <tbody>
@@ -184,10 +184,10 @@ git worktree remove $TMP/k</code></pre></li>
 <tr><td>The newest published NVR comes from a commit that is not an ancestor of C.</td><td>Stop. The lock does not match the repo. Ask the human.</td></tr>
 <tr><td>An older SRPM has no commit.</td><td>Entry with <code>reason: adopted-unmapped</code> and <code>commit: null</code>.</td></tr>
 <tr><td>Two published SRPMs map to the same commit.</td><td>Stop. Ask the human.</td></tr>
-<tr><td>A published SRPM name has no dir in <code>repoctl.yaml</code>.</td><td>Correct. The name is retired (<a href="../design/lifecycle.html#retire">retire</a>). Entry with <code>dir: null</code> and <code>reason: adopted-unmapped</code>.</td></tr>
+<tr><td>A published SRPM name has no package in <code>repoctl.yaml</code>.</td><td>Correct. The name is retired (<a href="../design/lifecycle.html#retire">retire</a>). Entry with <code>package: null</code> and <code>reason: adopted-unmapped</code>.</td></tr>
 </tbody>
 </table></li>
-<li>Write the map as a table in the report: dir, SRPM NVR, commit, reason.</li>
+<li>Write the map as a table in the report: package, SRPM NVR, commit, reason.</li>
 </ol>
 
 <h2 id="manifest">Write the manifest</h2>
@@ -197,7 +197,7 @@ git worktree remove $TMP/k</code></pre></li>
   "apiVersion": "repoctl/v1alpha1", "kind": "RepoManifest",
   "set": "slurm-26.05", "target": "el9", "publish": "p-import-20260828",
   "builds": [{
-    "dir": "munge", "commit": "3a244fd4728f94342beba4a7634c463370a7b877", "url": null,
+    "package": "munge", "commit": "3a244fd4728f94342beba4a7634c463370a7b877", "url": null,
     "branch": "munge/slurm-26.05",
     "srpm": "munge-0.5.18-1.el9.src.rpm",
     "rpms": ["munge-0.5.18-1.el9.x86_64.rpm", "munge-libs-0.5.18-1.el9.x86_64.rpm",

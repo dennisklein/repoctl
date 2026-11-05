@@ -75,16 +75,16 @@
     {
       "name": "repoctl_show",
       "title": "Show packages",
-      "description": "Show packages of the set: source branch or external URL, locked commit, worktree HEAD and state, per target the NVR, dependencies, dependents, published build and plan action, version and release per target, upstream settings and the notes from repoctl.yaml. Read the notes before you propose a version change: they hold rules such as 'upstream 4.x is frozen'. Returns kind Package, one item per dir. Maps to repoctl list (all) and repoctl show <dir>.",
+      "description": "Show packages of the set: source branch or external URL, locked commit, worktree HEAD and state, per target the NVR, dependencies, dependents, published build and plan action, version and release per target, upstream settings and the notes from repoctl.yaml. Read the notes before you propose a version change: they hold rules such as 'upstream 4.x is frozen'. Returns kind Package, one item per package. Maps to repoctl list (all) and repoctl show <package>.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "dirs": {
+          "packages": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Package dirs, e.g. [\"ucx\"]. Empty or absent: all packages."
+            "description": "Packages, e.g. [\"ucx\"]. Empty or absent: all packages."
           }
         },
         "additionalProperties": false
@@ -129,12 +129,12 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "dirs": {
+          "packages": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Limit to these package dirs. Absent: all."
+            "description": "Limit to these packages. Absent: all."
           },
           "targets": {
             "type": "array",
@@ -159,12 +159,12 @@
           "withDeps": {
             "type": "boolean",
             "default": false,
-            "description": "Also select the transitive dependencies of dirs."
+            "description": "Also select the transitive dependencies of packages."
           },
           "rdeps": {
             "type": "boolean",
             "default": false,
-            "description": "Also select the packages that depend on dirs."
+            "description": "Also select the packages that depend on packages."
           },
           "check": {
             "type": "boolean",
@@ -189,7 +189,7 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "dirs": {
+          "packages": {
             "type": "array",
             "items": {
               "type": "string"
@@ -331,7 +331,7 @@
         "properties": {
           "node": {
             "type": "string",
-            "description": "Node id <dir>@<target>, e.g. slurm@el10."
+            "description": "Node id <package>@<target>, e.g. slurm@el10."
           },
           "run": {
             "type": "string",
@@ -495,7 +495,7 @@
     {
       "name": "repoctl_repo_provenance",
       "title": "Provenance of a build",
-      "description": "Show the SLSA provenance record of one build: commit, run, builder, subjects, source archives and the buildroot changes since the previous build of the same dir. The default source is the local copy of latest. Use it to answer how an RPM was built, or which builds used a buildroot package. Returns kind Provenance.",
+      "description": "Show the SLSA provenance record of one build: commit, run, builder, subjects, source archives and the buildroot changes since the previous build of the same package. The default source is the local copy of latest. Use it to answer how an RPM was built, or which builds used a buildroot package. Returns kind Provenance.",
       "inputSchema": {
         "type": "object",
         "required": [
@@ -504,7 +504,7 @@
         "properties": {
           "build": {
             "type": "string",
-            "description": "An NVR, or DIR@TARGET for the newest build of that node."
+            "description": "An NVR, or PKG@TARGET for the newest build of that node."
           },
           "snapshot": {
             "type": "string",
@@ -864,7 +864,7 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "dirs": {
+          "packages": {
             "type": "array",
             "items": {
               "type": "string"
@@ -905,12 +905,12 @@
           "withDeps": {
             "type": "boolean",
             "default": false,
-            "description": "Also select the transitive dependencies of dirs. It changes the result only with force."
+            "description": "Also select the transitive dependencies of packages. It changes the result only with force."
           },
           "rdeps": {
             "type": "boolean",
             "default": false,
-            "description": "Also build the packages that depend on dirs."
+            "description": "Also build the packages that depend on packages."
           }
         },
         "additionalProperties": false
@@ -957,11 +957,11 @@
     {
       "name": "repoctl_checkout",
       "title": "Check out locked commits",
-      "description": "Create or update package worktrees at the commits in repoctl.lock, and fetch the clones of external packages. Each worktree is attached to its local branch (the branch of the package entry); checkout moves a local branch only forward. It never discards changes: a dirty worktree or a worktree with commits that are not in the lock stays as it is, with a row and the warning worktree.dirty (exit 0, as in the CLI). With more than one dir it continues after a failed dir and exits 1. With create, it makes a new package branch from the source that you name (fromSet, from or orphan). It never pushes; the result names the push command. Returns kind Lock.",
+      "description": "Create or update package worktrees at the commits in repoctl.lock, and fetch the clones of external packages. Each worktree is attached to its local branch (the branch of the package entry); checkout moves a local branch only forward. It never discards changes: a dirty worktree or a worktree with commits that are not in the lock stays as it is, with a row and the warning worktree.dirty (exit 0, as in the CLI). With more than one package it continues after a failed package and exits 1. With create, it makes a new package branch from the source that you name (fromSet, from or orphan). It never pushes; the result names the push command. Returns kind Lock.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "dirs": {
+          "packages": {
             "type": "array",
             "items": {
               "type": "string"
@@ -970,7 +970,7 @@
           "create": {
             "type": "boolean",
             "default": false,
-            "description": "Create the package branch of each dir from the start point that you name."
+            "description": "Create the package branch of each package from the start point that you name."
           },
           "from": {
             "type": "string",
@@ -1000,14 +1000,14 @@
     {
       "name": "repoctl_pin",
       "title": "Pin worktree commits",
-      "description": "Write the HEAD commit of the named package worktrees into repoctl.lock. Use it after you commit a spec change in packages/<dir>. It does not commit repoctl.lock and does not push. It writes a line only when the worktree is ahead of it or the package is unpinned. It refuses a dirty worktree (code lock.dirty, with a humanAction), a diverged worktree (lock.diverged) and a worktree that is behind the lock (lock.behind: run repoctl_checkout; an agent never pins an older commit). When one dir is refused, it writes nothing. It warns when the commit is not on the remote (lock.unpushed). Returns kind Lock with previous and new commits.",
+      "description": "Write the HEAD commit of the named package worktrees into repoctl.lock. Use it after you commit a spec change in packages/<package>. It does not commit repoctl.lock and does not push. It writes a line only when the worktree is ahead of it or the package is unpinned. It refuses a dirty worktree (code lock.dirty, with a humanAction), a diverged worktree (lock.diverged) and a worktree that is behind the lock (lock.behind: run repoctl_checkout; an agent never pins an older commit). When one package is refused, it writes nothing. It warns when the commit is not on the remote (lock.unpushed). Returns kind Lock with previous and new commits.",
       "inputSchema": {
         "type": "object",
         "required": [
-          "dirs"
+          "packages"
         ],
         "properties": {
-          "dirs": {
+          "packages": {
             "type": "array",
             "minItems": 1,
             "items": {
@@ -1029,11 +1029,11 @@
     {
       "name": "repoctl_rebuild",
       "title": "Rebuild with a new release",
-      "description": "Make an empty commit in the package branch so that rpmautospec raises the release, and let the next plan show the reason rebuild. Use it when an advisory says that a dependent needs a rebuild, or when the build must run again for the same version. It pins the new commit in repoctl.lock, as repoctl rebuild does. It does not push and does not build: the result names the push command and the commit of repoctl.lock. It refuses a worktree that is not in-sync (lock.dirty) and an in-tree package (rebuild.in-tree): to build an in-tree package again, the human changes a file below its path. It checks every dir before the first commit: when one dir fails, it makes no commit. Returns kind Lock.",
+      "description": "Make an empty commit in the package branch so that rpmautospec raises the release, and let the next plan show the reason rebuild. Use it when an advisory says that a dependent needs a rebuild, or when the build must run again for the same version. It pins the new commit in repoctl.lock, as repoctl rebuild does. It does not push and does not build: the result names the push command and the commit of repoctl.lock. It refuses a worktree that is not in-sync (lock.dirty) and an in-tree package (rebuild.in-tree): to build an in-tree package again, the human changes a file below its path. It checks every package before the first commit: when one package fails, it makes no commit. Returns kind Lock.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "dirs": {
+          "packages": {
             "type": "array",
             "minItems": 1,
             "items": {
@@ -1048,7 +1048,7 @@
         },
         "additionalProperties": false,
         "required": [
-          "dirs",
+          "packages",
           "reason"
         ]
       },

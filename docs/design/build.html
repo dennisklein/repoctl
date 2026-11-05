@@ -19,8 +19,8 @@
 </ul>
 
 <h2 id="graph">Graph per target</h2>
-<p>repoctl makes one graph for each target, with the nodes <code>DIR@TARGET</code> (<a href="model.html#nodes">nodes</a>). An edge from A to B means: B needs a package of A to build. Both nodes of an edge are on the same target.</p>
-<p>For the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It uses a detached worktree of the commit, never <code>packages/DIR</code> (<a href="#run">the run</a>).</p>
+<p>repoctl makes one graph for each target, with the nodes <code>PKG@TARGET</code> (<a href="model.html#nodes">nodes</a>). An edge from A to B means: B needs a package of A to build. Both nodes of an edge are on the same target.</p>
+<p>For the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It uses a detached worktree of the commit, never <code>packages/PKG</code> (<a href="#run">the run</a>).</p>
 <p>repoctl then matches the requires of the SRPM against the Provides of the other set packages on the same target. <code>rpmspec</code> reads the Provides in the same chroot. Thus <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives the correct edges for each target.</p>
 <p>The SRPM cache <code>~/.cache/repoctl/srpm/</code> keeps each result. All sets share it, and it is safe to delete.</p>
 <ul>
@@ -32,7 +32,7 @@
 <svg viewBox="0 0 960 276" role="img" aria-labelledby="fig-graph-t"><title id="fig-graph-t">How repoctl makes the graph of one target</title>
 <rect class="box" x="16" y="40" width="184" height="72" rx="8"/>
 <text class="t-title" x="28" y="60">spec + commit</text>
-<text class="t-small" x="28" y="77">packages/DIR, commit</text>
+<text class="t-small" x="28" y="77">packages/PKG, commit</text>
 <text class="t-small" x="28" y="92">from repoctl.lock</text>
 <rect class="box-accent" x="232" y="40" width="200" height="72" rx="8"/>
 <text class="t-title t-on" x="244" y="60">SRPM in the target chroot</text>
@@ -315,7 +315,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 </table>
 <p>Step srpm makes the worktree in the work directory of the run. Its source is the repository of the package: the set repository, or the bare clone of an external package. An in-tree package gets a worktree of the set repository at its commit.</p>
 <p>Step stage runs for one node of a target at a time, under an in-process lock of the run and the target. <code>createrepo_c</code> writes the new repodata into a temporary directory, and repoctl renames it into place. Thus a mock that reads the staging through <code>--addrepo</code> sees the old or the new repodata, never a part of it.</p>
-<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/DIR</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the worktrees in it at the end of the run.</p></aside>
+<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/PKG</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the worktrees in it at the end of the run.</p></aside>
 <p>Each mock call gets:</p>
 <ul>
   <li><code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots (<a href="#mock">mock roots</a>);</li>
@@ -659,7 +659,7 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
 <h2 id="soname">Soname check after a node build</h2>
 <p>At the end of step rpm, repoctl compares the sonames that the new RPMs provide with those of the newest published build of the node. These come from the <code>provides</code> list of the node in the RepoManifest of latest.</p>
 <ul>
-  <li>A soname is gone, and a kept set package requires it: repoctl writes the required advisory <code>soname.removed/DIR@TARGET</code> (<a href="advisories.html#codes">advisory codes</a>). The publish gate decides if it blocks (<a href="advisories.html#gate">publish gate</a>).</li>
+  <li>A soname is gone, and a kept set package requires it: repoctl writes the required advisory <code>soname.removed/PKG@TARGET</code> (<a href="advisories.html#codes">advisory codes</a>). The publish gate decides if it blocks (<a href="advisories.html#gate">publish gate</a>).</li>
   <li>No soname is gone: repoctl writes <code>checks.soname: unchanged</code> into the node record. This is a result, not an advisory.</li>
 </ul>
 <p>A kept set package is a package whose newest NVR in latest plus the staging of the run is not rebuilt yet. A dependent that builds later in the same run counts until then. At the end of the run, repoctl checks the advisory again (<a href="advisories.html#states">advisory states</a>).</p>
@@ -680,15 +680,15 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
 <aside class="callout why"><p class="callout-title">Why a result and not an advisory</p><p>An advisory asks the human for a step. An unchanged soname asks for nothing. The record shows that the check ran. Thus "no advisory" and "not checked" do not look the same.</p></aside>
 
 <h2 id="rebuild">Rebuild</h2>
-<p><code>repoctl rebuild DIR... --reason TEXT</code> prepares a new build of a package with the same version. It does not start a build. For each package, repoctl adds an empty commit <code>Rebuild: TEXT</code> to the package branch and pins it in <code>repoctl.lock</code>.</p>
+<p><code>repoctl rebuild PKG... --reason TEXT</code> prepares a new build of a package with the same version. It does not start a build. For each package, repoctl adds an empty commit <code>Rebuild: TEXT</code> to the package branch and pins it in <code>repoctl.lock</code>.</p>
 <p>rpmautospec counts commits, so the release goes up by one, and the changelog shows the reason. The commit is per package, so the next plan gives the action build with the reason rebuild on all its targets.</p>
 <ul>
   <li>The reason is required, with at least 8 characters. The UI dialog has the same rule.</li>
-  <li>The worktree of each DIR must be in-sync: its HEAD is the lock commit, and no tracked file has a change (<a href="lifecycle.html#lock-states">lock states</a>). Else repoctl stops with exit 5 and <code>lock.dirty</code>.</li>
+  <li>The worktree of each PKG must be in-sync: its HEAD is the lock commit, and no tracked file has a change (<a href="lifecycle.html#lock-states">lock states</a>). Else repoctl stops with exit 5 and <code>lock.dirty</code>.</li>
   <li>repoctl adds the commit on HEAD: the local branch of the package (<a href="cli.html#local-branch">local branch</a>), or the detached HEAD of a shared branch of another worktree. After the pin, the worktree is in-sync at the new commit.</li>
-  <li>All or nothing: repoctl checks every DIR before the first commit. When a check fails, it makes no commit and does not write the lock. When a commit fails, repoctl resets each branch of this call to its lock commit. Thus the same command again after a failure gives one new release, not two.</li>
+  <li>All or nothing: repoctl checks every PKG before the first commit. When a check fails, it makes no commit and does not write the lock. When a commit fails, repoctl resets each branch of this call to its lock commit. Thus the same command again after a failure gives one new release, not two.</li>
   <li>repoctl fetches the remote branch first and warns when it has new commits. It never pushes: the Next lines give the push of each package branch and the commit of the lock.</li>
-  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A DIR that names one stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before any commit. A glob that matches one leaves it out, with the same code as a warning. To build it again, change a file below its path, for example its changelog, and commit to the set branch.</li>
+  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A PKG that names one stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before any commit. A glob that matches one leaves it out, with the same code as a warning. To build it again, change a file below its path, for example its changelog, and commit to the set branch.</li>
   <li><code>--dry-run</code> shows the new NVRs and commits nothing.</li>
 </ul>
 <pre class="term">$ repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"
@@ -789,7 +789,7 @@ repoctl builds each node of one identity once.
             (a run --from worktree never stages a node)
   build     no build of this commit for this target. The reason says why:
               commit-changed  the package commit changed
-              rebuild         "repoctl rebuild DIR" made an empty commit
+              rebuild         "repoctl rebuild PKG" made an empty commit
               new-package     the package is new in the set
               new-target      the target is new for the package
               forced          --force (for tests; a forced build of a
@@ -802,7 +802,7 @@ need a rebuild of its dependents. An advisory says so (soname.removed,
 closure.broken, provider.changed). You decide.
 
 To build again with the same version:
-  repoctl rebuild DIR --reason TEXT
+  repoctl rebuild PKG --reason TEXT
 This makes an empty commit "Rebuild: TEXT" in the package branch and
 pins it. rpmautospec raises the release. Push the package branch, then
 commit and push repoctl.lock.

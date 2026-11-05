@@ -50,7 +50,7 @@
 <h2 id="fix-forward">Fix forward</h2>
 <ol class="steps">
 <li>Fix the package on its branch: revert the bad commit, or fix the spec. Commit and push the package branch. The NVR of the fix must be higher than the bad NVR.</li>
-<li>Run <code>repoctl pin DIR</code>, commit <code>repoctl.lock</code> and push the set commit.</li>
+<li>Run <code>repoctl pin PKG</code>, commit <code>repoctl.lock</code> and push the set commit.</li>
 <li>Run <code>repoctl plan</code>, then <code>repoctl build</code>. Test the staged node.</li>
 <li>Run <code>repoctl publish --target el9</code> and confirm.</li>
 <li>When the clients must not wait for the next <code>dnf upgrade</code>, config management updates the package on the clients.</li>
@@ -62,7 +62,7 @@
 <li>Run <code>repoctl repo restore p-20260912-1403-c21</code> and type the set name. latest moves to a new snapshot with the files of the older snapshot. The NVRs that leave go into <code>removed[]</code>.</li>
 <li>Run <code>repoctl status</code> until it shows <code>served: same</code>.</li>
 <li>When a removed NVR must leave the clients before the fix, config management runs <code>dnf downgrade NAME</code> on the clients.</li>
-<li><a href="#fix-forward">Fix forward</a>. Run <code>repoctl rebuild DIR --reason TEXT</code> for a new release. Else publish refuses a removed NVR with new content (<code>nvr.removed</code>).</li>
+<li><a href="#fix-forward">Fix forward</a>. Run <code>repoctl rebuild PKG --reason TEXT</code> for a new release. Else publish refuses a removed NVR with new content (<code>nvr.removed</code>).</li>
 </ol>
 
 <h2 id="stop">Stop conditions</h2>

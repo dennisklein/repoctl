@@ -18,7 +18,7 @@
 </ul>
 
 <h2 id="states">Package states</h2>
-<p>A package has two kinds of state. The <dfn>lock state</dfn> compares <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the worktree in <code>packages/DIR</code>. The <dfn>publish state</dfn> compares the set with the staging of the runs and with latest of each target. repoctl computes both states and stores neither.</p>
+<p>A package has two kinds of state. The <dfn>lock state</dfn> compares <code>repoctl.yaml</code>, <code>repoctl.lock</code> and the worktree in <code>packages/PKG</code>. The <dfn>publish state</dfn> compares the set with the staging of the runs and with latest of each target. repoctl computes both states and stores neither.</p>
 <figure class="diagram wide">
 <svg viewBox="0 0 900 290" role="img" aria-labelledby="pkg-states-t">
 <title id="pkg-states-t">Life of a package: declared, pinned, staged, published, retired, pruned</title>
@@ -62,11 +62,11 @@
 <text class="t-small t-muted" x="40" y="260">lock entry without a repoctl.yaml entry; repoctl pin removes it</text>
 <rect class="box-soft" x="460" y="220" width="416" height="52" rx="8"/>
 <text class="t-title" x="476" y="242">retired: computed, not stored</text>
-<text class="t-small t-muted" x="476" y="260">a source package name in latest that no dir builds</text>
+<text class="t-small t-muted" x="476" y="260">a source package name in latest that no package builds</text>
 </svg>
 <figcaption>The life of one package. A new commit or a rebuild commit takes a published package back to pinned, and plan builds it again. Retired and orphaned are computed.</figcaption>
 </figure>
-<p>A source package name is <dfn>retired</dfn> on a target when no dir in <code>repoctl.yaml</code> builds it for that target. Latest of the target still holds its RPMs. The plan actions and plan reasons are in <a href="build.html#actions">Build</a>. The RepoManifest in latest says which commit gives a published NVR (<a href="model.html#manifest">Core model</a>).</p>
+<p>A source package name is <dfn>retired</dfn> on a target when no package in <code>repoctl.yaml</code> builds it for that target. Latest of the target still holds its RPMs. The plan actions and plan reasons are in <a href="build.html#actions">Build</a>. The RepoManifest in latest says which commit gives a published NVR (<a href="model.html#manifest">Core model</a>).</p>
 
 <h2 id="lock-states">Lock states</h2>
 <p>For each package, repoctl compares the commit in <code>repoctl.lock</code> with the worktree. The contract enum <code>LockState</code> has nine values. <code>repoctl status</code> lists each package that is not <code>in-sync</code> or <code>in-tree</code> and prints the hint of the first problem (<a href="terminal.html#status">terminal frame</a>).</p>
@@ -75,12 +75,12 @@
 <tbody>
 <tr><td><code>in-sync</code></td><td>The worktree HEAD is the lock commit. No tracked file has a change.</td><td>Keeps the commit. Writes a new branch or URL.</td><td>none</td></tr>
 <tr><td><code>in-tree</code></td><td>An in-tree package (<code>path:</code>) with no change under its path. It has no lock line and no worktree. Its commit is the last set commit that changes its path.</td><td>Writes nothing.</td><td>none</td></tr>
-<tr><td><code>ahead</code></td><td>The worktree HEAD is a descendant of the lock commit. A commit is not pinned yet.</td><td>Writes the HEAD commit.</td><td><code>repoctl pin DIR</code></td></tr>
-<tr><td><code>behind</code></td><td>The worktree HEAD is an ancestor of the lock commit, for example after a colleague pinned a newer commit.</td><td>Keeps the line.</td><td><code>repoctl checkout DIR</code></td></tr>
-<tr><td><code>diverged</code></td><td>The worktree and the lock commit both have commits that the other does not have.</td><td>Stops.</td><td>rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code></td></tr>
-<tr><td><code>dirty</code></td><td>A tracked file has an uncommitted change. For an in-tree package (<code>path:</code>), a file under its path has a change.</td><td>Stops.</td><td>commit in <code>packages/DIR</code>, then <code>repoctl pin DIR</code></td></tr>
-<tr><td><code>missing</code></td><td>The package has no worktree.</td><td>Keeps the line.</td><td><code>repoctl checkout DIR</code></td></tr>
-<tr><td><code>unpinned</code></td><td>The package is in <code>repoctl.yaml</code>. It has no entry in <code>repoctl.lock</code>.</td><td>Writes the HEAD commit.</td><td><code>repoctl pin DIR</code></td></tr>
+<tr><td><code>ahead</code></td><td>The worktree HEAD is a descendant of the lock commit. A commit is not pinned yet.</td><td>Writes the HEAD commit.</td><td><code>repoctl pin PKG</code></td></tr>
+<tr><td><code>behind</code></td><td>The worktree HEAD is an ancestor of the lock commit, for example after a colleague pinned a newer commit.</td><td>Keeps the line.</td><td><code>repoctl checkout PKG</code></td></tr>
+<tr><td><code>diverged</code></td><td>The worktree and the lock commit both have commits that the other does not have.</td><td>Stops.</td><td>rebase <code>packages/PKG</code> on the lock commit, then <code>repoctl pin PKG</code></td></tr>
+<tr><td><code>dirty</code></td><td>A tracked file has an uncommitted change. For an in-tree package (<code>path:</code>), a file under its path has a change.</td><td>Stops.</td><td>commit in <code>packages/PKG</code>, then <code>repoctl pin PKG</code></td></tr>
+<tr><td><code>missing</code></td><td>The package has no worktree.</td><td>Keeps the line.</td><td><code>repoctl checkout PKG</code></td></tr>
+<tr><td><code>unpinned</code></td><td>The package is in <code>repoctl.yaml</code>. It has no entry in <code>repoctl.lock</code>.</td><td>Writes the HEAD commit.</td><td><code>repoctl pin PKG</code></td></tr>
 <tr><td><code>orphaned</code></td><td>The package is in <code>repoctl.lock</code>. It is not in <code>repoctl.yaml</code>.</td><td>Without arguments: removes the line and lists it.</td><td><code>repoctl pin --orphans</code> (removes it)</td></tr>
 </tbody>
 </table>
@@ -90,10 +90,10 @@
 <ul>
 <li><code>LockEntry.commit</code> is required, except for state <code>unpinned</code>.</li>
 <li>plan shows an unpinned node with the note "not pinned" and the action <code>skip</code>. With <code>--from worktree</code>, the action is <code>build</code>.</li>
-<li><code>build --from lock</code> with a selected unpinned node stops: exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin DIR</code>.</li>
+<li><code>build --from lock</code> with a selected unpinned node stops: exit 5, <code>lock.missing-package</code>, hint <code>repoctl pin PKG</code>.</li>
 <li>publish stops with exit 5 before the first signature (<a href="publish.html#checks">checks</a>): <code>lock.missing-package</code> when a selected target has an unpinned package, <code>lock.orphaned</code> for an orphaned entry. The lock and <code>repoctl.yaml</code> must agree, so that the set commit fixes the output.</li>
-<li><code>checkout</code> without <code>--create</code> puts the worktree of an unpinned package at the tip of the remote branch, on its <a href="cli.html#local-branch">local branch</a>. It prints "not pinned: run repoctl pin DIR". Thus a human checks out the new package of a colleague.</li>
-<li><code>pin DIR</code> for a dir that is not in <code>repoctl.yaml</code> is a usage error.</li>
+<li><code>checkout</code> without <code>--create</code> puts the worktree of an unpinned package at the tip of the remote branch, on its <a href="cli.html#local-branch">local branch</a>. It prints "not pinned: run repoctl pin PKG". Thus a human checks out the new package of a colleague.</li>
+<li><code>pin PKG</code> for a package that is not in <code>repoctl.yaml</code> is a usage error.</li>
 </ul>
 </aside>
 
@@ -158,12 +158,12 @@
 <p>init ends with a Next list. With <code>--from</code>, the list is <code>repoctl help new-set</code> from step 3. Without <code>--from</code>, the list is the steps of <code>repoctl help packages</code> for the first package (<a href="#help">help topics</a>).</p>
 
 <h3 id="checkout-create">repoctl checkout --create</h3>
-<p><code>repoctl checkout [DIR...] --create</code> makes the branch and the worktree of each package whose branch does not exist (<a href="cli.html#cmd-checkout">command block</a>). It needs exactly one start point:</p>
+<p><code>repoctl checkout [PKG...] --create</code> makes the branch and the worktree of each package whose branch does not exist (<a href="cli.html#cmd-checkout">command block</a>). It needs exactly one start point:</p>
 <table>
 <thead><tr><th>Flag</th><th>Start point of the new branch</th></tr></thead>
 <tbody>
-<tr><td><code>--from-set SET</code></td><td>For each DIR: the commit of the same dir in the <code>repoctl.lock</code> of <code>SET</code>. This is the published state, not the branch tip. A dir that is not in <code>SET</code> fails with <code>branch.start-missing</code>.</td></tr>
-<tr><td><code>--from REF</code></td><td>Any git revision, for example <code>pmix/slurm-26.05</code> or a commit. For one DIR, or for a second stream such as <code>pmix_v4</code>.</td></tr>
+<tr><td><code>--from-set SET</code></td><td>For each PKG: the commit of the same package in the <code>repoctl.lock</code> of <code>SET</code>. This is the published state, not the branch tip. A package that is not in <code>SET</code> fails with <code>branch.start-missing</code>.</td></tr>
+<tr><td><code>--from REF</code></td><td>Any git revision, for example <code>pmix/slurm-26.05</code> or a commit. For one PKG, or for a second stream such as <code>pmix_v4</code>.</td></tr>
 <tr><td><code>--from fedora[:BRANCH]</code></td><td>The dist-git history of <code>upstream.fedora</code> on src.fedoraproject.org, branch <code>rawhide</code> by default. repoctl fetches it into a temporary ref. The new branch keeps the Fedora layout: spec, patches and sources file (<a href="build.html#sources">sources</a>).</td></tr>
 <tr><td><code>--orphan</code></td><td>A new branch without history. Only on request.</td></tr>
 </tbody>
@@ -173,9 +173,9 @@
 <thead><tr><th>Case</th><th>Result</th></tr></thead>
 <tbody>
 <tr><td>No start point</td><td>exit 2, "say --from-set, --from, --from fedora or --orphan"</td></tr>
-<tr><td>The branch exists on the remote</td><td>No new branch. exit 1, <code>branch.exists-remote</code>, hint <code>repoctl checkout DIR</code></td></tr>
+<tr><td>The branch exists on the remote</td><td>No new branch. exit 1, <code>branch.exists-remote</code>, hint <code>repoctl checkout PKG</code></td></tr>
 <tr><td>External package: <code>ls-remote</code> fails, because the server repository must exist</td><td>exit 1, <code>git.unreachable</code>, hint "create the project on the git server first"</td></tr>
-<tr><td>The branch is new</td><td>repoctl makes it as a local branch at the start point and attaches the worktree to it (<a href="cli.html#local-branch">local branch</a>). A commit in <code>packages/DIR</code> goes to that branch.</td></tr>
+<tr><td>The branch is new</td><td>repoctl makes it as a local branch at the start point and attaches the worktree to it (<a href="cli.html#local-branch">local branch</a>). A commit in <code>packages/PKG</code> goes to that branch.</td></tr>
 </tbody>
 </table>
 <p>The output gives the start point of each branch: "forked from pmix/slurm-26.05 at 6644bdf" or "orphan". repoctl does not push. The output ends with one push command for all new branches, then <code>repoctl pin</code>.</p>
@@ -254,9 +254,9 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <p>Move a change with git. Never copy RPMs between the sets.</p>
 <ol class="steps">
 <li>In the testing set: commit the change on the testing package branch, push, pin, build and publish. Test it on the test clients.</li>
-<li>In the production set: run <code>git -C packages/DIR merge --ff-only origin/TESTING-BRANCH</code>. When git refuses, the production branch has commits that the testing branch does not have. Merge the production branch into the testing branch, publish and test that in the testing set, then try again.</li>
-<li>Run <code>git -C packages/DIR push origin BRANCH</code> and <code>repoctl pin DIR</code>. Commit and push. Repository: the set branch of the production set.</li>
-<li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>commit-changed</code>. Its release is the release of the testing build, without <code>~testing</code>.</li>
+<li>In the production set: run <code>git -C packages/PKG merge --ff-only origin/TESTING-BRANCH</code>. When git refuses, the production branch has commits that the testing branch does not have. Merge the production branch into the testing branch, publish and test that in the testing set, then try again.</li>
+<li>Run <code>git -C packages/PKG push origin BRANCH</code> and <code>repoctl pin PKG</code>. Commit and push. Repository: the set branch of the production set.</li>
+<li>Run <code>repoctl plan</code>. Expect: PKG has the reason <code>commit-changed</code>. Its release is the release of the testing build, without <code>~testing</code>.</li>
 <li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
 </ol>
 <aside class="callout rule">
@@ -270,7 +270,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </aside>
 
 <h2 id="changes">Package changes</h2>
-<p>A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/DIR</code>) or the <dfn>set branch</dfn> (the set directory). <code>repoctl help packages</code> prints the short form of these steps (<a href="#help-packages">text</a>).</p>
+<p>A commit goes to one of two repositories: the <dfn>package branch</dfn> (in <code>packages/PKG</code>) or the <dfn>set branch</dfn> (the set directory). <code>repoctl help packages</code> prints the short form of these steps (<a href="#help-packages">text</a>).</p>
 <table class="compact">
 <thead><tr><th>Change</th><th>Commits in</th><th>plan shows</th></tr></thead>
 <tbody>
@@ -280,7 +280,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tr><td><a href="#stream">Add a second stream</a></td><td>package branch, set branch</td><td><code>new-package</code></td></tr>
 <tr><td><a href="#some-targets">Some targets only</a></td><td>set branch</td><td>no node on the other targets; <code>retired.published</code></td></tr>
 <tr><td><a href="#retire">Retire a package</a></td><td>set branch</td><td>no node; <code>retired.published</code></td></tr>
-<tr><td><a href="#rename">Rename a dir or a branch</a></td><td>set branch</td><td><code>current</code></td></tr>
+<tr><td><a href="#rename">Rename a package id or a branch</a></td><td>set branch</td><td><code>current</code></td></tr>
 <tr><td><a href="#rename">Rename the RPM</a></td><td>package branch, set branch</td><td><code>commit-changed</code></td></tr>
 <tr><td><a href="#move">Move to a branch</a></td><td>package branch, set branch</td><td><code>rebuild</code></td></tr>
 <tr><td><a href="#move">Move to an external server</a></td><td>external server, set branch</td><td><code>current</code></td></tr>
@@ -293,28 +293,28 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <h3 id="bump">Change a spec or bump a version</h3>
 <p>This is the most frequent change. Example: ucx 1.22.0 to 1.22.1 in the story (<a href="build.html#story">story run</a>).</p>
 <ol class="steps">
-<li>Run <code>repoctl status</code>. The worktree of DIR must be <code>in-sync</code> on its local branch. If not, run <code>repoctl checkout DIR</code> first.</li>
-<li>Change the spec in <code>packages/DIR</code>, for example <code>Version</code>. Do not change <code>Release</code>: <code>%autorelease</code> computes it.</li>
-<li>Run <code>git -C packages/DIR commit -am "Bump to VERSION"</code>. Repository: the package branch. Optional: try the commit with <code>repoctl build DIR --from worktree</code>. That run is unpinned and never publishable.</li>
-<li>Run <code>git -C packages/DIR push origin BRANCH</code>.</li>
-<li>Run <code>repoctl pin DIR</code>.</li>
+<li>Run <code>repoctl status</code>. The worktree of PKG must be <code>in-sync</code> on its local branch. If not, run <code>repoctl checkout PKG</code> first.</li>
+<li>Change the spec in <code>packages/PKG</code>, for example <code>Version</code>. Do not change <code>Release</code>: <code>%autorelease</code> computes it.</li>
+<li>Run <code>git -C packages/PKG commit -am "Bump to VERSION"</code>. Repository: the package branch. Optional: try the commit with <code>repoctl build PKG --from worktree</code>. That run is unpinned and never publishable.</li>
+<li>Run <code>git -C packages/PKG push origin BRANCH</code>.</li>
+<li>Run <code>repoctl pin PKG</code>.</li>
 <li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the set branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>commit-changed</code> on each of its targets.</li>
-<li>Run <code>repoctl build</code>. Read the soname result of each node of DIR (<a href="build.html#soname">soname check</a>). "sonames unchanged" means that no dependent needs a rebuild. An advisory <code>soname.removed</code> names the dependents: follow the <a href="advisories.html#recovery">recovery path</a>.</li>
+<li>Run <code>repoctl plan</code>. Expect: PKG has the reason <code>commit-changed</code> on each of its targets.</li>
+<li>Run <code>repoctl build</code>. Read the soname result of each node of PKG (<a href="build.html#soname">soname check</a>). "sonames unchanged" means that no dependent needs a rebuild. An advisory <code>soname.removed</code> names the dependents: follow the <a href="advisories.html#recovery">recovery path</a>.</li>
 <li>Run <code>repoctl publish</code>.</li>
 <li>Run <code>repoctl status</code>. Expect: "served same" after the next run of the <a href="publish.html#mirror">mirror job</a>.</li>
 </ol>
 
 <h3 id="add">Add a package in this repository</h3>
 <ol class="steps">
-<li>Add the entry to <code>repoctl.yaml</code>: <code>dir</code>, <code>branch</code>, <code>upstream</code>. The package is now <code>unpinned</code>.</li>
-<li>Run <code>repoctl checkout --create DIR --from fedora</code> (or <code>--orphan</code>).</li>
-<li>Write or change the spec in <code>packages/DIR</code>. Commit there. Repository: the package branch.</li>
-<li>Run <code>git -C packages/DIR push origin BRANCH</code>.</li>
-<li>Run <code>repoctl pin DIR</code>.</li>
+<li>Add the entry to <code>repoctl.yaml</code>: <code>id</code>, <code>branch</code>, <code>upstream</code>. The package is now <code>unpinned</code>.</li>
+<li>Run <code>repoctl checkout --create PKG --from fedora</code> (or <code>--orphan</code>).</li>
+<li>Write or change the spec in <code>packages/PKG</code>. Commit there. Repository: the package branch.</li>
+<li>Run <code>git -C packages/PKG push origin BRANCH</code>.</li>
+<li>Run <code>repoctl pin PKG</code>.</li>
 <li>Run <code>git add repoctl.yaml repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the set branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: DIR has the reason <code>new-package</code> on each of its targets. When DIR provides a BuildRequires of a current node, the advisory <code>provider.changed</code> names the dependents (<a href="advisories.html#codes">codes</a>).</li>
-<li>Follow the advisory: <code>repoctl rebuild DEPENDENTS --reason "build against DIR"</code>, then pin, commit and push. Or dismiss it with a note (<a href="advisories.html#dismissals">dismissals</a>).</li>
+<li>Run <code>repoctl plan</code>. Expect: PKG has the reason <code>new-package</code> on each of its targets. When PKG provides a BuildRequires of a current node, the advisory <code>provider.changed</code> names the dependents (<a href="advisories.html#codes">codes</a>).</li>
+<li>Follow the advisory: <code>repoctl rebuild DEPENDENTS --reason "build against PKG"</code>, then pin, commit and push. Or dismiss it with a note (<a href="advisories.html#dismissals">dismissals</a>).</li>
 <li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
 </ol>
 
@@ -323,16 +323,16 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>Create the project on the git server first. repoctl cannot do this.</li>
 <li>Add the entry with <code>git: {url: URL}</code>, <code>branch</code> and <code>upstream</code>.</li>
-<li>Run <code>repoctl checkout --create DIR --from fedora</code> (or <code>--orphan</code>). The worktree comes from the bare clone of the URL (<a href="#clones">external package clones</a>).</li>
-<li>Commit the spec in <code>packages/DIR</code>. Repository: the package branch on the external server.</li>
-<li>Run <code>git -C packages/DIR push origin BRANCH</code>. The push goes to the external server.</li>
+<li>Run <code>repoctl checkout --create PKG --from fedora</code> (or <code>--orphan</code>). The worktree comes from the bare clone of the URL (<a href="#clones">external package clones</a>).</li>
+<li>Commit the spec in <code>packages/PKG</code>. Repository: the package branch on the external server.</li>
+<li>Run <code>git -C packages/PKG push origin BRANCH</code>. The push goes to the external server.</li>
 <li>Continue with step 5 of <a href="#add">Add a package</a>. Expect: <code>new-package</code>.</li>
 </ol>
 
 <h3 id="stream">Add a second stream</h3>
 <p>Example: <code>pmix_v4</code> next to <code>pmix</code>. The second stream forks from the history of the first stream.</p>
 <ol class="steps">
-<li>Add the entry, for example <code>dir: pmix_v4</code>, <code>branch: pmix/slurm-26.05-v4</code>, <code>upstream: {github: openpmix/openpmix, tags: '^v4'}</code>.</li>
+<li>Add the entry, for example <code>id: pmix_v4</code>, <code>branch: pmix/slurm-26.05-v4</code>, <code>upstream: {github: openpmix/openpmix, tags: '^v4'}</code>.</li>
 <li>Run <code>repoctl checkout --create pmix_v4 --from pmix/slurm-26.05</code>.</li>
 <li>Change the spec: rename the package. Its Provides must not conflict with the Provides of the first stream. Commit in <code>packages/pmix_v4</code>. Repository: the package branch.</li>
 <li>Continue with step 4 of <a href="#add">Add a package</a>. Expect: <code>new-package</code>.</li>
@@ -350,11 +350,11 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <ol class="steps">
 <li>Delete the entry from <code>repoctl.yaml</code>.</li>
 <li>Run <code>repoctl pin --orphans</code>. It removes the orphaned lock entry and changes no other line.</li>
-<li>Run <code>git commit -am "feat!: remove DIR from the set" &amp;&amp; git push</code>. Repository: the set branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: no node for DIR. The advisory <code>retired.published/NAME</code> (info) gives the RPMs that stay published.</li>
+<li>Run <code>git commit -am "feat!: remove PKG from the set" &amp;&amp; git push</code>. Repository: the set branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: no node for PKG. The advisory <code>retired.published/NAME</code> (info) gives the RPMs that stay published.</li>
 <li>Optional, explicit: run <code>repoctl repo prune --target T --package NAME --all</code>. This is a dry run. Read it. Then run it again with <code>--apply</code> (<a href="publish.html#retention">prune</a>).</li>
 <li>Optional, on the clients: remove the package through config management, or add Obsoletes to the release package.</li>
-<li>Run <code>git worktree remove packages/DIR</code>. Keep the package branch. It holds the history of the published NVRs.</li>
+<li>Run <code>git worktree remove packages/PKG</code>. Keep the package branch. It holds the history of the published NVRs.</li>
 </ol>
 <p>Result: the RPMs stay in the repo by default, and clients that installed them keep them. publish never removes a file. Thus the publish summary has no "removed" count. It shows "retired: N packages still published". <code>repo diff</code> between two snapshots still marks a removed file with <code>-</code>.</p>
 <aside class="callout rule" id="prune-retired">
@@ -369,11 +369,11 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </aside>
 
 <h3 id="rename">Rename</h3>
-<p>Rename a dir, for example <code>rocm-smi</code> to <code>rocm-smi-lib</code>. Nothing builds.</p>
+<p>Rename a package id, for example <code>rocm-smi</code> to <code>rocm-smi-lib</code>. Nothing builds.</p>
 <ol class="steps">
-<li>Change <code>dir</code> in <code>repoctl.yaml</code>. Run <code>git worktree move packages/rocm-smi packages/rocm-smi-lib</code>.</li>
+<li>Change <code>id</code> in <code>repoctl.yaml</code>. Run <code>git worktree move packages/rocm-smi packages/rocm-smi-lib</code>.</li>
 <li>Run <code>repoctl pin</code>. Commit and push. Repository: the set branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: <code>current</code> with the note "dir renamed from rocm-smi". plan matches manifest entries by commit, target and source package name, not by dir, branch or URL (<a href="model.html#manifest">match key</a>).</li>
+<li>Run <code>repoctl plan</code>. Expect: <code>current</code> with the note "id renamed from rocm-smi". plan matches manifest entries by commit, target and source package name, not by package id, branch or URL (<a href="model.html#manifest">match key</a>).</li>
 </ol>
 <p>Rename the RPM (<code>Name</code> in the spec). The new name builds.</p>
 <ol class="steps">
@@ -383,7 +383,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </ol>
 <p>Rename the branch. The commit stays the same, so nothing builds.</p>
 <ol class="steps">
-<li>Rename the local branch: <code>git -C packages/DIR branch -m OLD NEW</code>. Push it: <code>git -C packages/DIR push origin NEW</code>. Change <code>branch</code> in <code>repoctl.yaml</code>.</li>
+<li>Rename the local branch: <code>git -C packages/PKG branch -m OLD NEW</code>. Push it: <code>git -C packages/PKG push origin NEW</code>. Change <code>branch</code> in <code>repoctl.yaml</code>.</li>
 <li>Run <code>repoctl pin</code>. The worktree is <code>in-sync</code>, so pin writes only the new branch into the line. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 </ol>
@@ -404,20 +404,20 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 </aside>
 <p>Move an in-tree package to a branch. The release package stays in-tree (<a href="signing.html#release">release package</a>).</p>
 <ol class="steps">
-<li>In the set directory, run <code>git subtree split --prefix packages/DIR -b BRANCH</code>. The new branch holds each commit that changes the path, with new commit ids. Run <code>git push origin BRANCH</code>.</li>
-<li>Run <code>git rm -r packages/DIR</code>. In the entry, replace <code>path:</code> with <code>branch: BRANCH</code>. The package is now <code>unpinned</code>.</li>
-<li>Run <code>repoctl checkout DIR</code>. The worktree starts on the local branch at the tip of <code>origin/BRANCH</code>.</li>
-<li>Run <code>repoctl pin DIR</code>. Then run <code>repoctl rebuild DIR --reason "move to branch BRANCH"</code>.</li>
-<li>Run <code>git -C packages/DIR push origin BRANCH</code>. Then run <code>git commit -am "refactor: move DIR to branch BRANCH" &amp;&amp; git push</code>. Repository: the set branch.</li>
-<li>Run <code>repoctl plan</code>. Expect: build with the reason <code>rebuild</code> on each target of DIR.</li>
+<li>In the set directory, run <code>git subtree split --prefix packages/PKG -b BRANCH</code>. The new branch holds each commit that changes the path, with new commit ids. Run <code>git push origin BRANCH</code>.</li>
+<li>Run <code>git rm -r packages/PKG</code>. In the entry, replace <code>path:</code> with <code>branch: BRANCH</code>. The package is now <code>unpinned</code>.</li>
+<li>Run <code>repoctl checkout PKG</code>. The worktree starts on the local branch at the tip of <code>origin/BRANCH</code>.</li>
+<li>Run <code>repoctl pin PKG</code>. Then run <code>repoctl rebuild PKG --reason "move to branch BRANCH"</code>.</li>
+<li>Run <code>git -C packages/PKG push origin BRANCH</code>. Then run <code>git commit -am "refactor: move PKG to branch BRANCH" &amp;&amp; git push</code>. Repository: the set branch.</li>
+<li>Run <code>repoctl plan</code>. Expect: build with the reason <code>rebuild</code> on each target of PKG.</li>
 </ol>
 <p>Move a package from the set repository to an external server:</p>
 <ol class="steps">
 <li>Create the project on the git server. repoctl cannot do this.</li>
-<li>Push the history: <code>git -C packages/DIR push URL BRANCH</code>. The commits stay the same.</li>
-<li>Run <code>git worktree remove packages/DIR</code>. Add <code>git: {url: URL}</code> to the entry.</li>
-<li>Run <code>repoctl checkout DIR</code>. The worktree now comes from the bare clone of URL (<a href="#clones">external package clones</a>).</li>
-<li>Run <code>repoctl pin DIR</code>. The worktree is <code>in-sync</code>, so pin writes only the URL into the line. Commit and push. Repository: the set branch.</li>
+<li>Push the history: <code>git -C packages/PKG push URL BRANCH</code>. The commits stay the same.</li>
+<li>Run <code>git worktree remove packages/PKG</code>. Add <code>git: {url: URL}</code> to the entry.</li>
+<li>Run <code>repoctl checkout PKG</code>. The worktree now comes from the bare clone of URL (<a href="#clones">external package clones</a>).</li>
+<li>Run <code>repoctl pin PKG</code>. The worktree is <code>in-sync</code>, so pin writes only the URL into the line. Commit and push. Repository: the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: <code>current</code>.</li>
 <li>Keep the old branch in the set repository, or delete it. The external server holds the same commits.</li>
 </ol>
@@ -533,7 +533,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>In the old directory, run <code>repoctl check --remove-timer</code>.</li>
 <li>In the web UI, choose "Remove from list" in the ⋯ menu of the set card. The server refuses a second set with the same name from another path.</li>
 <li>Move the directory. When it is a linked worktree, run <code>git worktree move OLD NEW</code>. When it is the main worktree of the clone, use <code>mv OLD NEW</code>.</li>
-<li>In NEW, run <code>git worktree repair packages/*</code>. It repairs the links of the package worktrees of this repository. For an external package, run <code>git -C CLONE worktree repair NEW/packages/DIR</code>. <code>repoctl config paths</code> gives CLONE.</li>
+<li>In NEW, run <code>git worktree repair packages/*</code>. It repairs the links of the package worktrees of this repository. For an external package, run <code>git -C CLONE worktree repair NEW/packages/PKG</code>. <code>repoctl config paths</code> gives CLONE.</li>
 <li>In NEW, run <code>repoctl status</code>. Expect: no package is <code>missing</code>, and each package has its old lock state.</li>
 <li>In NEW, run <code>repoctl check --install-timer</code>, then <code>repoctl ui</code>. The UI adds the set with the new path.</li>
 </ol>
@@ -565,7 +565,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <dt>Path</dt><dd><code>$XDG_DATA_HOME/repoctl/git/HASH.git</code>. HASH is the first 10 hex digits of the sha256 of the normalized URL. The clone can hold commits that are not pushed, so it is data and not cache (<a href="config.html#xdg">XDG directories</a>). Thus the whole cache is safe to delete.</dd>
 <dt>Normalized URL</dt><dd>Lower-case scheme and host, no trailing <code>/</code>, no trailing <code>.git</code>. An scp-like URL <code>USER@HOST:PATH</code> becomes <code>ssh://USER@HOST/PATH</code>. Thus two spellings of one URL give one clone. The lock and the clone keep the URL as <code>repoctl.yaml</code> gives it.</dd>
 <dt>Clone lock</dt><dd>A set lock protects one set only, but all sets of the user on the host share the clone. Thus each git step on the clone also takes the <dfn>clone lock</dfn> <code>$XDG_RUNTIME_DIR/repoctl/git-HASH.lock</code>, for that step only. A git step fetches into the clone, adds or removes a worktree, or deletes the clone. A second command waits up to <code>--lock-wait</code>, and at least 60 s. Then it stops with exit 7 and <code>git.busy</code>.</dd>
-<dt>Remote</dt><dd><code>git clone --bare URL</code> with the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>, without <code>remote.origin.mirror</code>. Thus <code>git -C packages/DIR push origin BRANCH</code> works as in a normal clone.</dd>
+<dt>Remote</dt><dd><code>git clone --bare URL</code> with the fetch refspec <code>+refs/heads/*:refs/remotes/origin/*</code>, without <code>remote.origin.mirror</code>. Thus <code>git -C packages/PKG push origin BRANCH</code> works as in a normal clone.</dd>
 <dt>Local branches</dt><dd>The <code>refs/heads/*</code> of the clone. <code>git clone --bare</code> copies each remote branch there one time, and the refspec does not update them. checkout uses them as in the set repository: it creates <code>BRANCH</code> at the lock commit, or fast-forwards a stale copy to it (<a href="cli.html#local-branch">local branch</a>).</dd>
 <dt>Clean</dt><dd><a href="cli.html#cmd-clean"><code>repoctl clean</code></a> does not touch <code>$XDG_DATA_HOME/repoctl/git</code>. <code>repoctl clean --git</code> first runs <code>git worktree prune</code> in the clone, so that the record of a deleted worktree does not keep it. Then it deletes a clone only when it has no worktree and no commit that is not on the remote. Otherwise it lists the clone and keeps it (<code>git.mirror-unpushed</code>).</dd>
 <dt>Checks and hints</dt><dd><code>repoctl doctor</code> warns about a clone with commits that are not pushed, and checks that each external URL is reachable. The pin warning "not on origin" and the rebuild banner print the push command for the package.</dd>
@@ -579,7 +579,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <tbody>
 <tr><td><code>reason</code></td><td><code>adopted</code> when a commit of the branch gives the NVR. <code>adopted-unmapped</code> when no commit gives it.</td></tr>
 <tr><td><code>commit</code></td><td>The commit, or <code>null</code> for <code>adopted-unmapped</code>.</td></tr>
-<tr><td><code>dir</code></td><td>The dir that builds the name, or <code>null</code> when no dir in <code>repoctl.yaml</code> builds it (a retired name).</td></tr>
+<tr><td><code>package</code></td><td>The package that builds the name, or <code>null</code> when no package in <code>repoctl.yaml</code> builds it (a retired name).</td></tr>
 <tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code>, <code>buildrootFile</code>, <code>run</code></td><td><code>null</code>. The bash-era scripts did not record them.</td></tr>
 <tr><td><code>provides</code>, <code>requires</code></td><td>From the RPM headers.</td></tr>
 <tr><td><code>records</code></td><td><code>provenance</code> is <code>null</code>: the build facts are lost. <code>repo push --from</code> writes the SBOM of each adopted build from the RPM headers and the SRPM (<a href="supply-chain.html#layout">record layout</a>).</td></tr>
@@ -642,7 +642,7 @@ where it acts. The OCI packages and the branches stay.
      keep a frozen tree.
   5. On each admin host:
      repoctl check --remove-timer
-     git worktree remove packages/DIR ...; git worktree remove SETDIR
+     git worktree remove packages/PKG ...; git worktree remove SETDIR
      repoctl clean --set slurm-25.11
   6. Keep the set branch, the package branches and the OCI packages.</pre>
 
@@ -650,27 +650,27 @@ where it acts. The OCI packages and the branches stay.
 <pre class="term">PACKAGES
 
 Change a spec or bump a version:
-  1. repoctl status         DIR is in-sync; else repoctl checkout DIR
-  2. edit the spec; git -C packages/DIR commit -am "Bump to X"   package branch
-  3. git -C packages/DIR push origin BRANCH
-  4. repoctl pin DIR
+  1. repoctl status         PKG is in-sync; else repoctl checkout PKG
+  2. edit the spec; git -C packages/PKG commit -am "Bump to X"   package branch
+  3. git -C packages/PKG push origin BRANCH
+  4. repoctl pin PKG
   5. git commit repoctl.lock; git push                set branch
-  6. repoctl plan           expect: DIR "commit-changed"
-  7. repoctl build          read the soname result of DIR
+  6. repoctl plan           expect: PKG "commit-changed"
+  7. repoctl build          read the soname result of PKG
   8. repoctl publish; repoctl status    expect: served same
 Add a package in this repository:
-  1. add dir, branch, upstream to repoctl.yaml
-  2. repoctl checkout --create DIR --from fedora      (or --orphan)
-  3. write the spec; git -C packages/DIR commit          package branch
-  4. git -C packages/DIR push origin BRANCH
-  5. repoctl pin DIR
+  1. add id, branch, upstream to repoctl.yaml
+  2. repoctl checkout --create PKG --from fedora      (or --orphan)
+  3. write the spec; git -C packages/PKG commit          package branch
+  4. git -C packages/PKG push origin BRANCH
+  5. repoctl pin PKG
   6. git commit repoctl.yaml repoctl.lock; git push    set branch
-  7. repoctl plan           expect: DIR "new-package"
+  7. repoctl plan           expect: PKG "new-package"
      provider.changed names dependents to rebuild
   8. repoctl build; repoctl publish
 Add an external package: create the project on the git server first.
   Then the same steps, with git: {url: ...} in the entry.
-Add a second stream: repoctl checkout --create DIR --from FIRST-BRANCH
+Add a second stream: repoctl checkout --create PKG --from FIRST-BRANCH
 Some targets only: targets: [el9] in the entry.
 Remove a package:
   1. delete the entry; repoctl pin --orphans; commit and push
@@ -678,7 +678,7 @@ Remove a package:
   3. optional: repoctl repo prune --target T --package NAME --all
      (dry run), then again with --apply
   4. optional: remove it on the clients (config management or Obsoletes)
-Rename: a dir or branch rename does not build. An RPM rename is a
+Rename: a package id or branch rename does not build. An RPM rename is a
   spec change; add Obsoletes, then the old name is retired.
 Move to an external server: push the history there, add git: {url: ...},
   then checkout and pin. plan shows current. A move from the set tree
@@ -689,7 +689,7 @@ Rebuild the set: repoctl mock update; repoctl rebuild '*' --reason TEXT;
   push the package branches; commit and push repoctl.lock;
   repoctl build; repoctl publish. In-tree packages: change a file.
 Two admins pinned in the same week and git reports a conflict in
-  repoctl.lock: keep both lines when they name two dirs. For one dir,
+  repoctl.lock: keep both lines when they name two packages. For one package,
   keep the line with the newer commit NEW, where
   git merge-base --is-ancestor OLD NEW is true. Then run repoctl checkout.
   A pin without arguments never writes an older commit back.</pre>

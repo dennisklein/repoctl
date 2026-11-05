@@ -125,18 +125,18 @@
 <thead><tr><th>Skill</th><th>Purpose</th><th>Input</th><th>Result</th><th>Stops at</th></tr></thead>
 <tbody>
 <tr><td><code>repoctl</code></td><td>How to use the CLI, the config schema and the safety rules. The base skill for a terminal session.</td><td>a question or a task in the set</td><td>Answers from Status, Plan, Run, AdvisoryList, SnapshotList, the problem codes and <code>repoctl://schema/config</code>. It can start a build into staging.</td><td>every humanAction and every publish. It never calls mock, rpmsign or createrepo_c and never pushes.</td></tr>
-<tr><td><code>package-updates</code></td><td>Which packages have a new upstream version, and what changed.</td><td>optional dirs; in the UI one dir and its upstream version</td><td>A table (Package, Current, Upstream, Released, Fedora, Status), then a summary of the release notes from the current to the latest version of each package. It reads Upstream (status incl. frozen, latest, newer, releaseNotesUrl, fedora) and Package.notes.</td><td>the report. It writes nothing else.</td></tr>
-<tr><td><code>bump-package</code> draft</td><td>Propose a version bump of one package.</td><td><code>DIR [VERSION] --draft</code></td><td>A unified diff of the spec change, the changelog text and the commands that apply it.</td><td>the report. It does not edit, commit, pin or build.</td></tr>
-<tr><td><code>bump-package</code> apply</td><td>Bump one package in the terminal, step by step.</td><td><code>DIR [VERSION]</code></td><td>It edits the spec, commits in <code>packages/&lt;dir&gt;</code>, pins and builds into staging. Then it shows the repo diff (Run: state, publishable, next; RepoDiff).</td><td>push (humanAction <code>push</code>), the commit of <code>repoctl.lock</code> and publish. On a failed node it hands over to <code>triage-build</code>. When an advisory says that a dependent needs a rebuild, it asks first, then runs <code>repoctl rebuild</code>.</td></tr>
+<tr><td><code>package-updates</code></td><td>Which packages have a new upstream version, and what changed.</td><td>optional packages; in the UI one package and its upstream version</td><td>A table (Package, Current, Upstream, Released, Fedora, Status), then a summary of the release notes from the current to the latest version of each package. It reads Upstream (status incl. frozen, latest, newer, releaseNotesUrl, fedora) and Package.notes.</td><td>the report. It writes nothing else.</td></tr>
+<tr><td><code>bump-package</code> draft</td><td>Propose a version bump of one package.</td><td><code>PKG [VERSION] --draft</code></td><td>A unified diff of the spec change, the changelog text and the commands that apply it.</td><td>the report. It does not edit, commit, pin or build.</td></tr>
+<tr><td><code>bump-package</code> apply</td><td>Bump one package in the terminal, step by step.</td><td><code>PKG [VERSION]</code></td><td>It edits the spec, commits in <code>packages/&lt;pkg&gt;</code>, pins and builds into staging. Then it shows the repo diff (Run: state, publishable, next; RepoDiff).</td><td>push (humanAction <code>push</code>), the commit of <code>repoctl.lock</code> and publish. On a failed node it hands over to <code>triage-build</code>. When an advisory says that a dependent needs a rebuild, it asks first, then runs <code>repoctl rebuild</code>.</td></tr>
 <tr><td><code>triage-build</code></td><td>Find the cause of a failed node and propose a fix.</td><td><code>[RUN | RUN/NODE]</code></td><td>A report: cause, evidence (log lines with line numbers), the fix as a diff and the command that applies it. It reads NodeResult.error (class, excerpt, missing), NodeLog, Graph.unresolved, Package.targets and the spec file.</td><td>the report. It edits nothing. For class <code>host</code> it says that a retry can help after the host fix.</td></tr>
-<tr><td><code>rebuild-check</code></td><td>Answer "is a rebuild necessary?" for one advisory.</td><td><code>ADVISORY-ID</code></td><td>Yes, no or unknown for each dependent, with evidence. If yes, the command <code>repoctl rebuild DIR --reason "…"</code>. It reads Advisory (facts, closure), Plan, Graph and RepoDiff.</td><td>the answer. It edits nothing and never runs the command.</td></tr>
+<tr><td><code>rebuild-check</code></td><td>Answer "is a rebuild necessary?" for one advisory.</td><td><code>ADVISORY-ID</code></td><td>Yes, no or unknown for each dependent, with evidence. If yes, the command <code>repoctl rebuild PKG --reason "…"</code>. It reads Advisory (facts, closure), Plan, Graph and RepoDiff.</td><td>the answer. It edits nothing and never runs the command.</td></tr>
 </tbody>
 </table>
 <h3 id="bump-modes">The two modes of bump-package</h3>
 <table class="compact">
 <thead><tr><th>Mode</th><th>Draft</th><th>Apply</th></tr></thead>
 <tbody>
-<tr><td>Started by</td><td>The UI button "Draft version bump", or <code>/bump-package DIR VERSION --draft</code> in a terminal</td><td>A terminal only, for example <code>/bump-package ucx 1.22.1</code></td></tr>
+<tr><td>Started by</td><td>The UI button "Draft version bump", or <code>/bump-package PKG VERSION --draft</code> in a terminal</td><td>A terminal only, for example <code>/bump-package ucx 1.22.1</code></td></tr>
 <tr><td>Steps</td><td>It reads and plans only.</td><td>The skill edits <code>ucx.spec</code>, commits "Bump to 1.22.1" on <code>ucx/slurm-26.05</code> and pins the commit. The human sees every step and gives each OK. The push of the package branch and the commit of <code>repoctl.lock</code> stay with the human.</td></tr>
 <tr><td>Tool list</td><td>No frontmatter of its own. With <code>--draft</code>, the skill text tells the agent to use only the draft list. The web UI enforces this list with <code>--allowedTools</code> and the read-only MCP server.</td><td>The frontmatter of <code>bump-package</code> grants the tools of mode apply.</td></tr>
 </tbody>
@@ -257,7 +257,7 @@ metadata:
 <tr><td>git</td><td>The command has <code>-c</code>, <code>--git-dir</code>, <code>--work-tree</code> or <code>--namespace</code>, or sets <code>GIT_DIR</code>, <code>GIT_WORK_TREE</code> or <code>GIT_INDEX_FILE</code>.</td></tr>
 <tr><td>git</td><td>The subcommand is <code>push</code>, in any work tree.</td></tr>
 <tr><td>git in the set directory</td><td>The subcommand is not <code>status</code>, <code>diff</code>, <code>log</code> or <code>show</code>. The guard finds the work tree from each <code>-C DIR</code> and the working directory, with symlinks and <code>..</code> resolved.</td></tr>
-<tr><td>git in a package worktree</td><td>The work tree is <code>packages/DIR</code> of a package of the set, and the subcommand is not <code>status</code>, <code>diff</code>, <code>log</code>, <code>show</code>, <code>add</code> or <code>commit</code>.</td></tr>
+<tr><td>git in a package worktree</td><td>The work tree is <code>packages/PKG</code> of a package of the set, and the subcommand is not <code>status</code>, <code>diff</code>, <code>log</code>, <code>show</code>, <code>add</code> or <code>commit</code>.</td></tr>
 <tr><td>Edit, Write, NotebookEdit; in Bash a redirection and the paths of <code>tee</code>, <code>cp</code>, <code>mv</code>, <code>rm</code>, <code>ln</code> and <code>sed -i</code></td><td>The resolved path is a set input, or it is in <code>.repoctl/</code>, <code>.claude/</code>, <code>.git/</code>, <code>.mcp.json</code>, <code>CLAUDE.md</code>, <code>~/.claude/</code> or the repoctl user config directory.</td></tr>
 </tbody>
 </table>
@@ -325,10 +325,10 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tbody>
 <tr><td><code>repoctl_status</code></td><td>-</td><td>Status</td><td><span class="tag read">read</span></td><td>Call first in a new session. Lock states, latest, local copy, served tree, open setup steps.</td></tr>
 <tr><td><code>repoctl_doctor</code></td><td>-</td><td>DoctorReport</td><td><span class="tag read">read</span></td><td>Network. Host checks, also <code>sign.*</code>, <code>registry.*</code>, <code>check.*</code> and the skill versions.</td></tr>
-<tr><td><code>repoctl_show</code></td><td>dirs</td><td>Package</td><td><span class="tag read">read</span></td><td>One item per dir, with the notes of <code>repoctl.yaml</code>. Read the notes before a version change.</td></tr>
+<tr><td><code>repoctl_show</code></td><td>packages</td><td>Package</td><td><span class="tag read">read</span></td><td>One item per package, with the notes of <code>repoctl.yaml</code>. Read the notes before a version change.</td></tr>
 <tr><td><code>repoctl_graph</code></td><td>targets</td><td>Graph</td><td><span class="tag read">read</span></td><td><code>unresolved</code> lists requires that only a node of another target provides.</td></tr>
-<tr><td><code>repoctl_plan</code></td><td>dirs, targets, force, from, withDeps, rdeps, check</td><td>Plan</td><td><span class="tag read">read</span></td><td>Plan actions and reasons. The first plan of a target can take minutes (SRPMs).</td></tr>
-<tr><td><code>repoctl_upstream</code></td><td>dirs, refresh</td><td>Upstream</td><td><span class="tag read">read</span></td><td>Network. Answers are cached for one hour unless <code>refresh</code>.</td></tr>
+<tr><td><code>repoctl_plan</code></td><td>packages, targets, force, from, withDeps, rdeps, check</td><td>Plan</td><td><span class="tag read">read</span></td><td>Plan actions and reasons. The first plan of a target can take minutes (SRPMs).</td></tr>
+<tr><td><code>repoctl_upstream</code></td><td>packages, refresh</td><td>Upstream</td><td><span class="tag read">read</span></td><td>Network. Answers are cached for one hour unless <code>refresh</code>.</td></tr>
 <tr><td><code>repoctl_runs</code></td><td>limit, state, kind</td><td>Run</td><td><span class="tag read">read</span></td><td>Build, publish, check and gc runs, newest first, without nodes.</td></tr>
 <tr><td><code>repoctl_run_get</code></td><td>run*, artifacts</td><td>Run</td><td><span class="tag read">read</span></td><td>Every node. <code>publishable</code>, <code>publishBlockers</code>, <code>next</code>.</td></tr>
 <tr><td><code>repoctl_run_wait</code></td><td>run*, timeoutSeconds, artifacts</td><td>Run</td><td><span class="tag read">read</span></td><td>Waits up to 600 s per call. Sends progress.</td></tr>
@@ -348,11 +348,11 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tr><td><code>repoctl_sign_keyfile</code></td><td>targets, tree, checksum</td><td>File</td><td><span class="tag read">read</span></td><td>Network. The key file in latest of each target, or its sha256: the pin of the client bootstrap.</td></tr>
 <tr><td><code>repoctl_config_show</code></td><td>key</td><td>Config</td><td><span class="tag read">read</span></td><td>Each value with the layer that gave it.</td></tr>
 <tr><td><code>repoctl_schema</code></td><td>name*</td><td>schema</td><td><span class="tag read">read</span></td><td><code>config</code>, <code>output</code> or <code>events</code>. The result is the schema, not an envelope.</td></tr>
-<tr><td><code>repoctl_build</code></td><td>dirs, targets, force, jobs, from, failFast, withDeps, rdeps</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Network. Returns at <code>plan.ready</code>. <code>set.busy</code> when a build runs (<a href="#mcp-exec">execution model</a>).</td></tr>
+<tr><td><code>repoctl_build</code></td><td>packages, targets, force, jobs, from, failFast, withDeps, rdeps</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Network. Returns at <code>plan.ready</code>. <code>set.busy</code> when a build runs (<a href="#mcp-exec">execution model</a>).</td></tr>
 <tr><td><code>repoctl_run_cancel</code></td><td>run*, force</td><td>Run</td><td><span class="tag staging">staging</span></td><td>Destructive. Only a run that this server started (<a href="#mcp-safety">safety</a>).</td></tr>
-<tr><td><code>repoctl_checkout</code></td><td>dirs, create, from, fromSet, orphan</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Network. Never discards changes, never pushes. A kept worktree is the warning <code>worktree.dirty</code>, exit 0, as in the CLI.</td></tr>
-<tr><td><code>repoctl_pin</code></td><td>dirs*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Does not commit <code>repoctl.lock</code>. Warns <code>lock.unpushed</code>. Refuses a behind worktree (<code>lock.behind</code>): an agent never pins an older commit.</td></tr>
-<tr><td><code>repoctl_rebuild</code></td><td>dirs*, reason*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Empty commit (<a href="build.html#rebuild">build.html#rebuild</a>). Reason of 8 characters or more. Pins, as the CLI does. No push or build. An in-tree package gives <code>rebuild.in-tree</code>.</td></tr>
+<tr><td><code>repoctl_checkout</code></td><td>packages, create, from, fromSet, orphan</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Network. Never discards changes, never pushes. A kept worktree is the warning <code>worktree.dirty</code>, exit 0, as in the CLI.</td></tr>
+<tr><td><code>repoctl_pin</code></td><td>packages*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Does not commit <code>repoctl.lock</code>. Warns <code>lock.unpushed</code>. Refuses a behind worktree (<code>lock.behind</code>): an agent never pins an older commit.</td></tr>
+<tr><td><code>repoctl_rebuild</code></td><td>packages*, reason*</td><td>Lock</td><td><span class="tag local">local write</span></td><td>Empty commit (<a href="build.html#rebuild">build.html#rebuild</a>). Reason of 8 characters or more. Pins, as the CLI does. No push or build. An in-tree package gives <code>rebuild.in-tree</code>.</td></tr>
 </tbody>
 </table>
 <p>Annotations follow the class. Read tools have <code>readOnlyHint</code>. Of the other five, only <code>repoctl_run_cancel</code> has <code>destructiveHint</code>. "Network" means <code>openWorldHint</code>. A client asks the human before a call that is not read-only, unless the human allowed it.</p>
@@ -391,7 +391,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <p>A Run also lists suggested steps in <code>next</code>. A step with <code>human: true</code>, for example publish, is for the human only. Example (the human changed <code>slurm.spec</code> and did not commit it):</p>
 <pre><code class="language-json">"content": [{"type": "text", "text": "NEEDS HUMAN: worktree packages/slurm has uncommitted changes. repoctl never builds uncommitted files. Ask the human to commit or discard the changes."}],
 "structuredContent": {"apiVersion": "repoctl/v1alpha1", "kind": "Run", "items": [], "errors": [{
-  "code": "lock.dirty", "exitCode": 5, "dir": "slurm",
+  "code": "lock.dirty", "exitCode": 5, "package": "slurm",
   "message": "Worktree packages/slurm has uncommitted changes (slurm.spec).",
   "hint": "Commit the change, then run repoctl pin slurm.",
   "humanAction": {"action": "commit-worktree", "reason": "A build input must be a commit.",
@@ -481,8 +481,8 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <tbody>
 <tr><td>Explain failure</td><td>Needs you item of a failed node, failure card of the run page, node log page</td><td><code>triage-build</code></td><td>run id, node id</td><td><code>explain-failure</code></td></tr>
 <tr><td>Is a rebuild necessary?</td><td>Advisory rows of <code>soname.removed</code>, <code>closure.broken</code>, <code>provider.changed</code>, <code>abi.changed</code>, <code>buildroot.drift</code></td><td><code>rebuild-check</code></td><td>advisory id</td><td><code>rebuild-check</code></td></tr>
-<tr><td>Summarize upstream release</td><td>Advisory row of <code>upstream.release</code>, package page</td><td><code>package-updates</code></td><td>package dir, upstream version</td><td><code>release-notes</code></td></tr>
-<tr><td>Draft version bump</td><td>Package page</td><td><code>bump-package</code> draft</td><td>package dir, version</td><td><code>draft-bump</code></td></tr>
+<tr><td>Summarize upstream release</td><td>Advisory row of <code>upstream.release</code>, package page</td><td><code>package-updates</code></td><td>package, upstream version</td><td><code>release-notes</code></td></tr>
+<tr><td>Draft version bump</td><td>Package page</td><td><code>bump-package</code> draft</td><td>package, version</td><td><code>draft-bump</code></td></tr>
 </tbody>
 </table>
 <ul>
@@ -548,7 +548,7 @@ $ claude mcp add repoctl -- repoctl -C ~/src/slurm-repo mcp start</pre>
 <ul>
   <li>The panel is read only. repoctl never applies a diff. "Copy diff" copies it, and the human applies it in the package worktree.</li>
   <li>A proposed action is a normal UI action with its normal dialog and confirmation.</li>
-  <li>"Pin fix and build…" is off until the package branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog. The dialog selects the dirs of the failed nodes of the run and the dirs of the nodes that they block, for example <code>slurm slurm-singularity-exec</code>.</li>
+  <li>"Pin fix and build…" is off until the package branch has a new commit. The server watches the worktree HEAD and turns the button on over SSE. The button then pins the commit and opens the build dialog. The dialog selects the packages of the failed nodes of the run and the packages of the nodes that they block, for example <code>slurm slurm-singularity-exec</code>.</li>
   <li>"Continue in terminal" copies <code>claude --resume &lt;session&gt;</code> for the set directory. The conversation stays in the agent tool, and repoctl keeps no copy.</li>
   <li>A "?" next to the link gives a note before the click. The terminal session has the permissions of the human's own agent setup, not the read-only tool list of the panel. Mode apply of <code>bump-package</code> runs only there.</li>
   <li>While the agent runs, the head line has the elapsed time and Stop. "Tools used" lists each call with a short argument, and a spinner marks the call that runs now.</li>

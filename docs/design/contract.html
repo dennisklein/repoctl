@@ -230,12 +230,12 @@
 <table class="compact">
 <thead><tr><th>Name</th><th>Schema</th><th>Form</th><th>Example</th></tr></thead>
 <tbody>
-<tr><td>package dir</td><td><code>Dir</code></td><td>the <code>dir</code> of a package in repoctl.yaml</td><td><code>pmix_v5</code></td></tr>
+<tr><td>package</td><td><code>PackageId</code></td><td>a package id of repoctl.yaml</td><td><code>pmix_v5</code></td></tr>
 <tr><td>target</td><td><code>TargetId</code></td><td>a target id of repoctl.yaml</td><td><code>el9</code></td></tr>
-<tr><td>node</td><td><code>NodeId</code></td><td><code>DIR@TARGET</code></td><td><code>slurm@el10</code></td></tr>
+<tr><td>node</td><td><code>NodeId</code></td><td><code>PKG@TARGET</code></td><td><code>slurm@el10</code></td></tr>
 <tr><td>run</td><td><code>RunId</code></td><td><code>r-YYYYMMDD-HHMM-xxx</code> (build, check, gc), <code>p-YYYYMMDD-HHMM-xxx</code> (publish)</td><td><code>r-20261102-1750-a3f</code></td></tr>
 <tr><td>publish id</td><td><code>Snapshot.publish</code></td><td>the id of the publish run; an import has <code>p-import-YYYYMMDD</code>, a re-seed <code>p-reseed-YYYYMMDD</code></td><td><code>p-20261103-1412-5e1</code></td></tr>
-<tr><td>advisory</td><td><code>Advisory.id</code></td><td><code>CODE/SUBJECT</code>; the subject is a node, a dir or a key id</td><td><code>closure.broken/pmix@el9</code>, <code>sign.expiring/d.klein</code></td></tr>
+<tr><td>advisory</td><td><code>Advisory.id</code></td><td><code>CODE/SUBJECT</code>; the subject is a node, a package or a key id</td><td><code>closure.broken/pmix@el9</code>, <code>sign.expiring/d.klein</code></td></tr>
 <tr><td>key</td><td><code>Signer.keyId</code></td><td>an id in <code>sign.keys</code></td><td><code>d.klein</code></td></tr>
 <tr><td>fingerprint</td><td><code>Signer.fingerprint</code></td><td>OpenPGP v4, 40 upper-case hex digits</td><td><code>4E7A0C93…41D80B6E</code></td></tr>
 </tbody>
@@ -274,8 +274,8 @@
 <thead><tr><th>Kind</th><th>Commands</th><th>Items</th></tr></thead>
 <tbody>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Status">Status</a></td><td><code>status</code></td><td>1</td></tr>
-<tr><td><a href="contract/schema/output.schema.json#/$defs/Package">Package</a></td><td><code>list</code>, <code>show</code></td><td>1 per dir</td></tr>
-<tr><td><a href="contract/schema/output.schema.json#/$defs/LockEntry">Lock</a></td><td><code>checkout</code>, <code>pin</code>, <code>rebuild</code></td><td>1 per dir</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/Package">Package</a></td><td><code>list</code>, <code>show</code></td><td>1 per package</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/LockEntry">Lock</a></td><td><code>checkout</code>, <code>pin</code>, <code>rebuild</code></td><td>1 per package</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Graph">Graph</a></td><td><code>graph</code></td><td>1 per target</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Plan">Plan</a></td><td><code>plan</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Run">Run</a></td><td><code>build</code>, <code>cancel</code>, <code>runs</code>, <code>publish</code>, <code>repo push</code>, <code>repo restore</code>, <code>repo prune</code>, <code>repo resign</code></td><td>1 per run</td></tr>
@@ -291,7 +291,7 @@
 <tr><td><a href="contract/schema/output.schema.json#/$defs/SignerList">SignerList</a></td><td><code>sign ls</code>, <code>sign add</code>, <code>sign retire</code>, <code>sign activate</code>, <code>sign remove</code>, <code>sign revoke</code>, <code>sign deployed</code>, <code>sign removed</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/OnboardReport">OnboardReport</a></td><td><code>sign onboard</code>, <code>sign offboard</code></td><td>1</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/DoctorReport">DoctorReport</a></td><td><code>doctor</code>, <code>repo verify</code></td><td>1</td></tr>
-<tr><td><a href="contract/schema/output.schema.json#/$defs/Upstream">Upstream</a></td><td><code>upstream</code></td><td>1 per dir</td></tr>
+<tr><td><a href="contract/schema/output.schema.json#/$defs/Upstream">Upstream</a></td><td><code>upstream</code></td><td>1 per package</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/File">File</a></td><td><code>init</code>, <code>migrate</code>, <code>sign keyfile</code>, <code>release write</code></td><td>1 per file</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Clean">Clean</a></td><td><code>clean</code></td><td>1 per path</td></tr>
 <tr><td><a href="contract/schema/output.schema.json#/$defs/Config">Config</a></td><td><code>config show</code></td><td>1 per key</td></tr>
@@ -302,7 +302,7 @@
 </table>
 <p><code>ui</code>, <code>mock</code>, <code>mcp</code> and <code>completion</code> have no <code>--json</code>.</p>
 <ul>
-  <li>The <code>Next:</code> line of a command (<a href="terminal.html#next">Terminal: hint and Next lines</a>) is the field <code>next</code>, a list of NextStep objects. A kind with one item holds it in the item: Status, Run and SignerList. A kind with one item per dir or per file holds it in <code>metadata.next</code>: Lock and File.</li>
+  <li>The <code>Next:</code> line of a command (<a href="terminal.html#next">Terminal: hint and Next lines</a>) is the field <code>next</code>, a list of NextStep objects. A kind with one item holds it in the item: Status, Run and SignerList. A kind with one item per package or per file holds it in <code>metadata.next</code>: Lock and File.</li>
   <li>Status also gives each line of <code>repoctl status</code>: <code>set.git.pushed</code>, <code>lockHolder</code>, <code>upstream</code> and <code>signing</code>.</li>
   <li>Each item of <code>Package.targets[]</code> gives the columns of <code>repoctl show</code> for one target: <code>nvr</code>, <code>dependsOn</code>, <code>usedBy</code>, <code>published</code>, <code>action</code> and <code>reasons</code>.</li>
 </ul>
@@ -347,7 +347,7 @@
 <p>A schema also holds rules between fields. Example: a PlanNode with the action <code>build</code> has at least one reason, and a node with the action <code>staged</code> names its run in <code>fromRun</code>.</p>
 
 <h2 id="problems">Problem codes</h2>
-<p><code>errors[]</code> and <code>warnings[]</code> hold the same Problem object: <code>code</code>, <code>message</code>, optional <code>node</code>, <code>dir</code>, <code>target</code>, <code>run</code>, <code>path</code>, <code>hint</code>, <code>humanAction</code>, and for errors <code>exitCode</code>. The same code goes into <code>Run.publishBlockers[]</code>, the journal event <code>warning</code> and the MCP result. The exit code also goes into <code>Run.exitCode</code> and the MCP <code>_meta["repoctl/exitCode"]</code>. <a href="cli.html#exit">Exit codes</a> gives the meaning of each exit code.</p>
+<p><code>errors[]</code> and <code>warnings[]</code> hold the same Problem object: <code>code</code>, <code>message</code>, optional <code>node</code>, <code>package</code>, <code>target</code>, <code>run</code>, <code>path</code>, <code>hint</code>, <code>humanAction</code>, and for errors <code>exitCode</code>. The same code goes into <code>Run.publishBlockers[]</code>, the journal event <code>warning</code> and the MCP result. The exit code also goes into <code>Run.exitCode</code> and the MCP <code>_meta["repoctl/exitCode"]</code>. <a href="cli.html#exit">Exit codes</a> gives the meaning of each exit code.</p>
 <ul>
   <li>The list is open. A consumer treats an unknown code as a generic error or warning.</li>
   <li><code>hint</code> is one sentence: what to do next. The terminal prints it as <code>hint: WHAT TO DO. run: CMD</code> (<a href="cli.html#errors">Error messages</a>). The registry below gives the hint of each code.</li>
@@ -365,8 +365,8 @@
 <tr><td><a href="advisories.html#dismissals"><code>advisory.not-dismissable</code></a></td><td>1</td><td>A required advisory cannot be dismissed.</td><td><code>repoctl publish --accept-advisory ID --reason TEXT</code></td></tr>
 <tr><td><a href="advisories.html#gate"><code>advisory.open</code></a></td><td>12</td><td>A required advisory is open, and the publish changes its closure.</td><td>Fix it, or accept it for one publish (<code>accept-advisory</code>).</td></tr>
 <tr><td><a href="advisories.html#dismissals"><code>advisory.unknown</code></a></td><td>1</td><td>No advisory has this id.</td><td><code>repoctl advisories ls</code></td></tr>
-<tr><td><a href="lifecycle.html#checkout-create"><code>branch.exists-remote</code></a></td><td>1</td><td><code>checkout --create</code>: the branch is on the remote.</td><td><code>repoctl checkout DIR</code></td></tr>
-<tr><td><a href="lifecycle.html#checkout-create"><code>branch.start-missing</code></a></td><td>1</td><td><code>checkout --create --from-set SET</code>: SET has no such dir.</td><td>Name another start point.</td></tr>
+<tr><td><a href="lifecycle.html#checkout-create"><code>branch.exists-remote</code></a></td><td>1</td><td><code>checkout --create</code>: the branch is on the remote.</td><td><code>repoctl checkout PKG</code></td></tr>
+<tr><td><a href="lifecycle.html#checkout-create"><code>branch.start-missing</code></a></td><td>1</td><td><code>checkout --create --from-set SET</code>: SET has no such package.</td><td>Name another start point.</td></tr>
 <tr><td><a href="agents.html#mcp-safety"><code>cancel.foreign-run</code></a></td><td>1</td><td>MCP: the server cancels only the runs that it started (its session id is in <code>origin.session</code>).</td><td>The human runs <code>repoctl cancel RUN</code> (<code>cancel-foreign-run</code>).</td></tr>
 <tr><td><a href="build.html#cancel"><code>cancel.not-holder</code></a></td><td>1</td><td>CLI, web UI: the process of the run is on another host or belongs to another user.</td><td>Cancel the run on its host, as its user.</td></tr>
 <tr><td><a href="advisories.html#health"><code>check.failed</code></a></td><td>warning</td><td>The last check failed.</td><td><code>repoctl check</code></td></tr>
@@ -401,10 +401,10 @@
 <tr><td><a href="agents.html#mcp-exec"><code>host.stale-server</code></a></td><td>9; warning in doctor</td><td>A UI or MCP server runs a binary that an upgrade replaced. It starts no child.</td><td>Restart the server: <code>repoctl ui</code>, or a new agent session.</td></tr>
 <tr><td><a href="publish.html#per-kind"><code>import.not-empty</code></a></td><td>13</td><td><code>repo push --from</code> (an import): the registry has a snapshot of the target.</td><td><code>repoctl repo snapshots --target ID</code>; publish on top of latest, or import into a new target.</td></tr>
 <tr><td><a href="#writing"><code>journal.sampling-stopped</code></a></td><td>warning</td><td>The journal is 32 MiB. No more <code>node.log</code> lines come.</td><td>The node log has the full text.</td></tr>
-<tr><td><a href="lifecycle.html#lock-states"><code>lock.behind</code></a></td><td>5 in <code>pin DIR</code>; warning in <code>pin</code></td><td>The worktree HEAD is an ancestor of the lock commit. pin does not write the older commit back.</td><td><code>repoctl checkout DIR</code>; <code>repoctl pin DIR --older</code> pins the older commit on purpose.</td></tr>
+<tr><td><a href="lifecycle.html#lock-states"><code>lock.behind</code></a></td><td>5 in <code>pin PKG</code>; warning in <code>pin</code></td><td>The worktree HEAD is an ancestor of the lock commit. pin does not write the older commit back.</td><td><code>repoctl checkout PKG</code>; <code>repoctl pin PKG --older</code> pins the older commit on purpose.</td></tr>
 <tr><td><a href="build.html#run-states"><code>lock.dirty</code></a></td><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed.</td><td>The exact git commands (<code>commit-worktree</code>, <code>commit-lock</code>).</td></tr>
-<tr><td><a href="lifecycle.html#lock-states"><code>lock.diverged</code></a></td><td>5</td><td>pin: the worktree and the lock commit both have commits that the other does not have.</td><td>Rebase <code>packages/DIR</code> on the lock commit, then <code>repoctl pin DIR</code>.</td></tr>
-<tr><td><a href="lifecycle.html#lock-states"><code>lock.missing-package</code></a></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line, or publish takes a target that has one.</td><td><code>repoctl pin DIR</code></td></tr>
+<tr><td><a href="lifecycle.html#lock-states"><code>lock.diverged</code></a></td><td>5</td><td>pin: the worktree and the lock commit both have commits that the other does not have.</td><td>Rebase <code>packages/PKG</code> on the lock commit, then <code>repoctl pin PKG</code>.</td></tr>
+<tr><td><a href="lifecycle.html#lock-states"><code>lock.missing-package</code></a></td><td>5</td><td><code>build --from lock</code> selects a package without a lock line, or publish takes a target that has one.</td><td><code>repoctl pin PKG</code></td></tr>
 <tr><td><a href="lifecycle.html#lock-states"><code>lock.orphaned</code></a></td><td>5</td><td>The lock has a line for a package that repoctl.yaml does not have.</td><td><code>repoctl pin --orphans</code></td></tr>
 <tr><td><a href="publish.html#checks"><code>lock.unpushed</code></a></td><td>5</td><td>The set commit or a pinned commit is not on its remote branch.</td><td>The exact <code>git push</code> commands (<code>push</code>).</td></tr>
 <tr><td><a href="model.html#manifest"><code>manifest.invalid</code></a></td><td>1</td><td>The RepoManifest of a snapshot does not agree with the schema <code>manifest</code>.</td><td>The message names the field.</td></tr>
@@ -416,8 +416,8 @@
 <tr><td><a href="build.html#states"><code>node.blocked</code></a></td><td>3</td><td>A dependency failed. The node did not run.</td><td>Repair the failed dependency.</td></tr>
 <tr><td><a href="build.html#failures"><code>node.failed</code></a></td><td>3</td><td>The node failed in a step.</td><td><code>repoctl logs RUN NODE</code>, or the skill triage-build.</td></tr>
 <tr><td><a href="publish.html#restore"><code>nvr.older</code></a></td><td>12</td><td>A new NVR is not newer than the newest NVR of its source package name in the base or in <code>removed[]</code>.</td><td>Raise <code>Epoch</code> or the version (<a href="publish.html#restore">Restore and fix forward</a>).</td></tr>
-<tr><td><a href="publish.html#restore"><code>nvr.removed</code></a></td><td>12</td><td>A prune or a restore removed this NVR, and the new build has other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
-<tr><td><a href="build.html#force"><code>nvr.reused</code></a></td><td>12</td><td>latest holds this NVR with other content.</td><td><code>repoctl rebuild DIR --reason TEXT</code></td></tr>
+<tr><td><a href="publish.html#restore"><code>nvr.removed</code></a></td><td>12</td><td>A prune or a restore removed this NVR, and the new build has other content.</td><td><code>repoctl rebuild PKG --reason TEXT</code></td></tr>
+<tr><td><a href="build.html#force"><code>nvr.reused</code></a></td><td>12</td><td>latest holds this NVR with other content.</td><td><code>repoctl rebuild PKG --reason TEXT</code></td></tr>
 <tr><td><a href="publish.html#retention"><code>prune.breaks-closure</code></a></td><td>12</td><td>The prune gives a broken requirement that the base does not have.</td><td>Keep the NVR that the message names; prune the requirer first.</td></tr>
 <tr><td><a href="lifecycle.html#retire"><code>prune.not-retired</code></a></td><td>1</td><td><code>repo prune --package NAME --all</code>: NAME is not retired.</td><td>Retire it first (<a href="lifecycle.html#retire">Retire</a>).</td></tr>
 <tr><td><a href="publish.html#retention"><code>prune.unsafe</code></a></td><td>12</td><td>A prune selects a protected NVR: the newest NVR of a kept package or a release NVR of a deployment record.</td><td>The message names the rule. Select other NVRs.</td></tr>
@@ -486,7 +486,7 @@
 <tr><td><a href="signing.html#verify-el"><code>verify.el-failed</code></a></td><td>10</td><td>The check in the EL chroot with the client trust set fails.</td><td>The message names the files.</td></tr>
 <tr><td><a href="publish.html#order"><code>verify.failed</code></a></td><td>10</td><td>A signature, a checksum or the repodata is wrong.</td><td>The message names the files.</td></tr>
 <tr><td><a href="build.html#plan"><code>worktree.dirty</code></a></td><td>warning</td><td>A worktree is not in-sync with the lock (status, checkout, and plan for a worktree that no selected node uses).</td><td>Commit and pin.</td></tr>
-<tr><td><a href="lifecycle.html#lock-states"><code>worktree.missing</code></a></td><td>warning</td><td>The worktree of a package is not there.</td><td><code>repoctl checkout DIR</code></td></tr>
+<tr><td><a href="lifecycle.html#lock-states"><code>worktree.missing</code></a></td><td>warning</td><td>The worktree of a package is not there.</td><td><code>repoctl checkout PKG</code></td></tr>
 </tbody>
 </table>
 </details>
@@ -583,7 +583,7 @@
 
 <h3 id="excerpt">Story excerpt</h3>
 <p>Dennis ran <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code> and <code>repoctl pin</code>, then <code>repoctl build</code> with <code>jobs: 3</code>. The listing shows lines of <code>runs/r-20261102-1750-a3f.jsonl</code> up to 18:01:06, the time of the live frames, and the last line. Gaps in <code>seq</code> are lines that the listing leaves out; <a href="contract/examples/journal.jsonl">journal.jsonl</a> has more lines.</p>
-<pre><code class="language-json">{"v":1,"run":"r-20261102-1750-a3f","seq":1,"time":"2026-11-02T17:50:04.112Z","type":"run.started","span":"c71e0a94b25d3f10","set":"slurm-26.05","kind":"build","trace":"4bf92f3577b34da6a3ce929d0e0e4736","origin":{"via":"cli","user":"dklein","host":"hpc-a1","pid":48213},"selection":{"dirs":[],"targets":["el9","el10"],"from":"lock","force":false,"failFast":false,"jobs":3},"setCommit":"5d81c3e09f7a2b64c1e8d0f3a6b9c27e41d5f803","lockDigest":"sha256:b9002aaaed380dd0704b6bd8a3d1b987544b32c0e1938d60c563d931b1eb26f4","repoctl":"v0.4.0"}
+<pre><code class="language-json">{"v":1,"run":"r-20261102-1750-a3f","seq":1,"time":"2026-11-02T17:50:04.112Z","type":"run.started","span":"c71e0a94b25d3f10","set":"slurm-26.05","kind":"build","trace":"4bf92f3577b34da6a3ce929d0e0e4736","origin":{"via":"cli","user":"dklein","host":"hpc-a1","pid":48213},"selection":{"packages":[],"targets":["el9","el10"],"from":"lock","force":false,"failFast":false,"jobs":3},"setCommit":"5d81c3e09f7a2b64c1e8d0f3a6b9c27e41d5f803","lockDigest":"sha256:b9002aaaed380dd0704b6bd8a3d1b987544b32c0e1938d60c563d931b1eb26f4","repoctl":"v0.4.0"}
 {"v":1,"run":"r-20261102-1750-a3f","seq":5,"time":"2026-11-02T17:50:08.312Z","type":"warning","span":"c71e0a94b25d3f11","node":"slurm@el10","code":"dep.not-for-target","target":"el10","message":"slurm@el10 requires rocm-smi-devel. Only rocm-smi@el9 provides it; rocm-smi is not built for el10."}
 {"v":1,"run":"r-20261102-1750-a3f","seq":44,"time":"2026-11-02T17:54:13.330Z","type":"node.state","node":"ucx@el9","span":"5a0e3b7c9d1f2a01","parent":"c71e0a94b25d3f12","state":"ok","prev":"running","durationMs":245000,"nvrs":["ucx-1.22.1-1.el9.x86_64","ucx-cma-1.22.1-1.el9.x86_64","ucx-devel-1.22.1-1.el9.x86_64","ucx-examples-1.22.1-1.el9.x86_64","ucx-ib-1.22.1-1.el9.x86_64","ucx-ib-efa-1.22.1-1.el9.x86_64","ucx-ib-mlx5-1.22.1-1.el9.x86_64","ucx-knem-1.22.1-1.el9.x86_64","ucx-mad-1.22.1-1.el9.x86_64","ucx-rdmacm-1.22.1-1.el9.x86_64","ucx-rocm-1.22.1-1.el9.x86_64","ucx-static-1.22.1-1.el9.x86_64","ucx-vfs-1.22.1-1.el9.x86_64","ucx-xpmem-1.22.1-1.el9.x86_64"],"checks":{"soname":"unchanged"}}
 {"v":1,"run":"r-20261102-1750-a3f","seq":77,"time":"2026-11-02T17:58:52.027Z","type":"node.state","node":"openmpi@el10","span":"5a0e3b7c9d1f2a04","parent":"c71e0a94b25d3f12","state":"queued","prev":"waiting"}

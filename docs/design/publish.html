@@ -469,9 +469,9 @@ held     slurm@el10 keeps 26.05.4-1.el10 · slurm-singularity-exec@el10 keeps 3.
 <pre class="term">URGENT
 
 Publish a fix fast, while another node of the target is not ready.
-  1. Commit the fix in packages/DIR and push the package branch.
-  2. repoctl pin DIR, then commit and push repoctl.lock.
-  3. repoctl build DIR --target TARGET
+  1. Commit the fix in packages/PKG and push the package branch.
+  2. repoctl pin PKG, then commit and push repoctl.lock.
+  3. repoctl build PKG --target TARGET
   4. repoctl publish --target TARGET --dry-run
      A node that is not current or staged stops it: publish.not-ready.
   5. repoctl publish --target TARGET --hold NODE --reason "TEXT"
@@ -669,7 +669,7 @@ Next: repoctl status</pre>
 <p>Restore is a publish run of kind restore: the eight steps with the checks of its kind (<a href="#per-kind">checks per kind</a>). The advisory gate also runs (<a href="advisories.html#gate-kinds">gate per publish kind</a>). The rules of restore:</p>
 <ul>
   <li>The summary lists each NVR that leaves the repository. It says that clients keep these NVRs, because dnf does not downgrade.</li>
-  <li>These NVRs go into <code>removed[]</code>. Then publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild DIR --reason "…"</code>.</li>
+  <li>These NVRs go into <code>removed[]</code>. Then publish refuses a build that gives one of them again with other content (<code>nvr.removed</code>, exit 12). The hint is <code>repoctl rebuild PKG --reason "…"</code>.</li>
   <li>RPMs in REF that a key in state removed or revoked signed get a new signature from the human who restores (<a href="signing.html#resign">re-sign rules</a>).</li>
   <li>The new snapshot keeps each release NVR that a deployment record names for the target, also when REF does not hold it. Thus gate 2 and verify-el still find the key file of each signer. The summary lists these NVRs as "kept: deployment record". For example, a restore of el9 to <code>p-import-20260828</code> keeps slurm-release-26.05-2, the release of the record of d.klein; REF holds only slurm-release-26.05-1.</li>
   <li>REF can have a RepoManifest of an older apiVersion. Restore reads it and writes the new RepoManifest in the apiVersion of <code>repoctl.yaml</code> (<a href="contract.html#stored">stored files</a>).</li>
@@ -677,8 +677,8 @@ Next: repoctl status</pre>
 <h3 id="after-restore">After a restore</h3>
 <p>The lock still pins the commits of the builds that left. plan shows these nodes with the action build, and each build gives a removed NVR again: publish refuses it with <code>nvr.removed</code>. Before the next publish, do one of these steps for each package that the summary names:</p>
 <ul>
-  <li>Run <code>repoctl rebuild DIR --reason TEXT</code>. The release goes up, so the new NVR is newer than the removed one.</li>
-  <li>Or move the worktree to the commit of the build in REF and run <code>repoctl pin DIR --older</code>, because that commit is behind the branch. plan then shows the node as current.</li>
+  <li>Run <code>repoctl rebuild PKG --reason TEXT</code>. The release goes up, so the new NVR is newer than the removed one.</li>
+  <li>Or move the worktree to the commit of the build in REF and run <code>repoctl pin PKG --older</code>, because that commit is behind the branch. plan then shows the node as current.</li>
 </ul>
 <p>The summary counts these packages, and <code>Run.publish[TARGET].rebuild</code> lists them. A variant of the story, not the story: the repodata of <code>p-20261103-1412-5e1</code> is bad, and d.klein restores el9 to the snapshot before it:</p>
 <pre class="term">$ repoctl repo restore p-20260912-1403-c21 --target el9
