@@ -1,0 +1,17 @@
+# /etc/systemd/system/repoctl-mirror-failed.service
+# Runs NOTIFY failed of /etc/repoctl-mirror.conf with the last 50 journal
+# lines of the job on its standard input. Without NOTIFY it does nothing.
+[Unit]
+Description=repoctl mirror job: notify a failure
+
+[Service]
+Type=oneshot
+User=repoctl-mirror
+Group=repoctl-mirror
+# Read the journal of repoctl-mirror.service.
+SupplementaryGroups=systemd-journal
+ExecStart=/usr/libexec/repoctl-mirror/mirror --notify-failed /etc/repoctl-mirror.conf
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=yes

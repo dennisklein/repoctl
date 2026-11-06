@@ -1,0 +1,95 @@
+repoctl mirror job
+==================
+
+The mirror job serves the snapshot "latest" of each set and target on the
+HTTP server behind repo.url. It is a bash script with systemd units; repoctl
+does not run on the HTTP server. The design is in
+docs/design/publish.html#mirror, the runbook in docs/runbooks/mirror-job.html.
+
+Files
+
+  mirror                         the job: /usr/libexec/repoctl-mirror/mirror
+  repoctl-mirror.conf            an example of /etc/repoctl-mirror.conf
+  repoctl-mirror.service         one run of the job (Type=oneshot)
+  repoctl-mirror.timer           starts the service every 5 minutes
+  repoctl-mirror-failed.service  OnFailure: runs NOTIFY failed
+  repoctl-mirror.sysusers        the system user repoctl-mirror
+  repoctl-mirror.tmpfiles        the lock file /run/lock/repoctl-mirror.lock
+
+Needs: bash, coreutils, curl, jq, gnupg2 (gpgv), rpm (rpm, rpmkeys), gzip
+(the RepoManifest in the repodata is gzip), util-linux (flock) and systemd.
+
+Install
+
+  install -D -m 0755 mirror /usr/libexec/repoctl-mirror/mirror
+  install -D -m 0644 repoctl-mirror.sysusers /usr/lib/sysusers.d/repoctl-mirror.conf
+  install -D -m 0644 repoctl-mirror.tmpfiles /usr/lib/tmpfiles.d/repoctl-mirror.conf
+  install -m 0644 repoctl-mirror*.service repoctl-mirror.timer /etc/systemd/system/
+  install -m 0644 repoctl-mirror.conf /etc/repoctl-mirror.conf   # then edit it
+  systemd-sysusers; systemd-tmpfiles --create
+  systemctl daemon-reload; systemctl enable --now repoctl-mirror.timer
+
+Config
+
+  One mirror line per set and target, with five fields:
+
+    SET TARGET OCI-PACKAGE SERVED-PATH KEYRING
+
+  The keyring is the key file of the release package that the clients of
+  the set and target have. Config management puts it at the keyring path in
+  the same rollout as these clients. Do not change it by hand to make a
+  snapshot pass.
+
+  Settings, one KEY=VALUE per line:
+
+    KEEP_TREES  old trees to keep per line besides the served one (2)
+    NOTIFY      a command: "NOTIFY served SET TARGET" after each swap, with
+                the annotations of the new latest as JSON on stdin;
+                "NOTIFY failed" from repoctl-mirror-failed.service, with the
+                last 50 journal lines on stdin (none)
+    STATE_DIR   the base of .objects/sha256/ and .trees/ (/var/lib/repoctl-mirror)
+    LOCK        the lock of a run (/run/lock/repoctl-mirror.lock)
+
+  A change of the config takes effect at the next run. A line that leaves
+  the config loses its symlink, its trees and the objects that no tree uses.
+
+State and the served path
+
+  STATE_DIR/.objects/sha256/HEX        one file per blob, checked by sha256
+  STATE_DIR/.trees/SET-TARGET/DIGEST/  one tree of hard links per snapshot
+  STATE_DIR/.trees/SET-TARGET/served-path
+
+  The served path of a line is a symlink to the tree that it serves; the job
+  replaces it in one rename and never writes into another file there. The
+  system user must own the directory of each served path. STATE_DIR must be
+  one file system, and the HTTP server must read it and follow the symlink
+  (Apache: Options FollowSymLinks; SELinux: the type httpd_sys_content_t on
+  STATE_DIR).
+
+  Each served tree holds repoctl-snapshot.json (set, target, digest, publish,
+  pulled) for repoctl status, and the heartbeat repoctl-mirror.json (checked,
+  result same|swapped|failed, served, latest, behindSince, error).
+
+One run, per line
+
+  1 an anonymous pull token and the manifest of latest; stop when the
+    digest is the served digest
+  2 the manifest checks: set and target annotations, safe and unique titles
+  3 the missing blobs into .objects/sha256/, each checked by sha256
+  4 a new tree of hard links
+  5 verify with the keyring of the line: gpgv on each repomd.xml.asc (one
+    signature), the checksums of repomd.xml, rpmkeys --checksig on each RPM,
+    the root key file against the root release RPM, the apiVersion of the
+    RepoManifest, the sha256 of each record and the subjects of the records
+  6 the revision of each repomd.xml does not go back
+  7 repoctl-snapshot.json and the heartbeat into the tree
+  8 the swap of the symlink, KEEP_TREES, the objects that no tree uses
+
+  A failed step keeps the old tree, writes the error to the journal and the
+  heartbeat, and the job exits with 1 after it tried all lines.
+
+Test hook
+
+  MIRROR_TEST_PLAIN_HTTP=1 talks plain HTTP to the registry. The end-to-end
+  test internal/e2e/mirror_test.go uses it for its in-process registry.
+  Never set it on an HTTP server.
