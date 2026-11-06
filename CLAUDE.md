@@ -61,7 +61,7 @@ RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packa
 
 ## Working with Packages
 
-Each package has its own branch `<pkg>/slurm-<version>[-<variant>]` with its own
+Each package has its own branch `<project>/slurm-<version>[-<variant>]` with its own
 history. The spec file is at the root of the branch, so rpmautospec reads the
 package history unchanged.
 
@@ -101,6 +101,6 @@ gpg --list-secret-keys
 
 Branch names: `<component>/slurm-<version>[-<variant>]`
 
-- `builder/slurm-<version>[-testing]`: build scripts and `packages.lock`
-- `<pkg>/slurm-<version>[-<variant>]`: one package, e.g. `slurm/slurm-26.05`, `pmix/slurm-26.05-v5`
-- Package branches do not share history with the builder or with other packages
+- `set/slurm-<version>[-testing]`: build scripts and `packages.lock`
+- `<project>/slurm-<version>[-<variant>]`: one package, e.g. `slurm/slurm-26.05`, `pmix/slurm-26.05-v5`
+- Package branches do not share history with the set branch or with other packages
