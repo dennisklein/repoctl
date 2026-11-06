@@ -1,0 +1,5302 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gsi-hpc.github.io/repoctl/schema/v1alpha1/output.json",
+  "title": "repoctl --json output, v1alpha1",
+  "$ref": "#/$defs/Envelope",
+  "$defs": {
+    "Envelope": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "metadata",
+        "items",
+        "warnings",
+        "errors"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "apiVersion": {
+          "const": "repoctl/v1alpha1"
+        },
+        "kind": {
+          "$ref": "#/$defs/Kind"
+        },
+        "metadata": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "items": {
+          "type": "array"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Problem"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Problem"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Status"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Status"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Package"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Package"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Graph"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Graph"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Plan"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Plan"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Run"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Run"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "NodeLog"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/NodeLog"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "RepoContents"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/RepoContents"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "RepoDiff"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/RepoDiff"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Provenance"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Provenance"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Sbom"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Sbom"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Upstream"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Upstream"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "DoctorReport"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/DoctorReport"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Lock"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/LockEntry"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Version"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Version"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "File"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/File"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Clean"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Clean"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Config"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Config"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Path"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Path"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Skill"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Skill"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Advisory"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Advisory"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "AdvisoryList"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/AdvisoryList"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Snapshot"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/Snapshot"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SnapshotList"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/SnapshotList"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SignerList"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/SignerList"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "OnboardReport"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/$defs/OnboardReport"
+                },
+                "maxItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Kind": {
+      "description": "The kind of every element of items. Closed: each kind belongs to a command result. Status embeds Target objects; Target is not a kind. AdvisoryList and SignerList are one item that holds a list and the facts about it (the check, the key of this host). SnapshotList is one such item per target (the chain).",
+      "enum": [
+        "Status",
+        "Package",
+        "Graph",
+        "Plan",
+        "Run",
+        "NodeLog",
+        "RepoContents",
+        "RepoDiff",
+        "Provenance",
+        "Sbom",
+        "Upstream",
+        "DoctorReport",
+        "Lock",
+        "Version",
+        "File",
+        "Clean",
+        "Config",
+        "Path",
+        "Skill",
+        "Advisory",
+        "AdvisoryList",
+        "Snapshot",
+        "SnapshotList",
+        "SignerList",
+        "OnboardReport"
+      ]
+    },
+    "Metadata": {
+      "type": "object",
+      "required": [
+        "command",
+        "generatedAt",
+        "repoctl"
+      ],
+      "properties": {
+        "set": {
+          "type": "string",
+          "description": "Set name from repoctl.yaml. Absent for commands that run outside a set (version, schema)."
+        },
+        "setDir": {
+          "type": "string",
+          "description": "Absolute path of the set directory."
+        },
+        "command": {
+          "type": "string",
+          "description": "The command path, e.g. \"repo diff\". Not the argument vector."
+        },
+        "generatedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "repoctl": {
+          "type": "object",
+          "required": [
+            "version"
+          ],
+          "properties": {
+            "version": {
+              "type": "string"
+            },
+            "commit": {
+              "type": "string"
+            }
+          }
+        },
+        "run": {
+          "$ref": "#/$defs/RunId"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetId"
+          },
+          "description": "Targets the command looked at, after --target filters."
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "description": "Lock and File: the next steps of the command (the Next: lines). Status, Run and SignerList hold next in their item."
+        },
+        "trace": {
+          "$ref": "#/$defs/TraceRef"
+        }
+      }
+    },
+    "Problem": {
+      "description": "One error or warning. code is the stable part. message and hint are for humans and can change in any release. A problem with humanAction names a step that only a human can take.",
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ProblemCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "node": {
+          "$ref": "#/$defs/NodeId"
+        },
+        "package": {
+          "$ref": "#/$defs/PackageId"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "run": {
+          "$ref": "#/$defs/RunId"
+        },
+        "path": {
+          "type": "string"
+        },
+        "hint": {
+          "type": "string",
+          "description": "One sentence: what to do next."
+        },
+        "humanAction": {
+          "$ref": "#/$defs/HumanAction"
+        },
+        "exitCode": {
+          "type": "integer",
+          "description": "Errors only: the exit code that this problem gives the command."
+        }
+      }
+    },
+    "ProblemCode": {
+      "description": "Open enum: a reader treats an unknown code as a generic error or warning. Form: area.condition. The contract chapter lists every code with its exit code and hint.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+      "examples": [
+        "advisories.invalid",
+        "advisory.gate-unavailable",
+        "advisory.not-blocking",
+        "advisory.not-dismissable",
+        "advisory.open",
+        "advisory.unknown",
+        "branch.exists-remote",
+        "branch.start-missing",
+        "cancel.foreign-run",
+        "cancel.not-holder",
+        "check.failed",
+        "check.incomplete",
+        "check.never",
+        "check.no-linger",
+        "check.outdated",
+        "check.stale",
+        "check.timer-off",
+        "check.timer-orphan",
+        "check.timer-unit",
+        "config.invalid",
+        "config.unknown-key",
+        "config.unknown-set",
+        "config.unsupported",
+        "contract.newer-file",
+        "contract.old-file",
+        "dep.not-for-target",
+        "deprecated",
+        "gc.failed",
+        "git.busy",
+        "git.fetch-failed",
+        "git.mirror-unpushed",
+        "git.protection",
+        "git.signing",
+        "git.unreachable",
+        "graph.ambiguous-provider",
+        "graph.cycle",
+        "graph.dynamic-buildrequires",
+        "graph.srpm-failed",
+        "host.not-ready",
+        "host.stale-server",
+        "import.not-empty",
+        "journal.sampling-stopped",
+        "lock.behind",
+        "lock.dirty",
+        "lock.diverged",
+        "lock.missing-package",
+        "lock.orphaned",
+        "lock.unpushed",
+        "manifest.invalid",
+        "mcp.tool-not-allowed",
+        "mock.busy",
+        "mock.config-differs",
+        "mock.config-missing",
+        "mock.unavailable",
+        "node.blocked",
+        "node.failed",
+        "nvr.older",
+        "nvr.removed",
+        "nvr.reused",
+        "prune.breaks-closure",
+        "prune.not-retired",
+        "prune.unsafe",
+        "publish.needs-confirmation",
+        "publish.not-ready",
+        "publish.not-verified",
+        "publish.nothing-to-publish",
+        "publish.plan-changed",
+        "publish.served-exists",
+        "publish.unattended-refused",
+        "rebuild.in-tree",
+        "records.mismatch",
+        "records.missing",
+        "registry.denied",
+        "registry.unreachable",
+        "run.abandoned",
+        "run.not-finished",
+        "run.not-found",
+        "run.staging-missing",
+        "run.unpinned",
+        "served.stale",
+        "set.busy",
+        "set.lock-lost",
+        "set.renamed",
+        "set.retired",
+        "sign.card-absent",
+        "sign.expired-signer",
+        "sign.failed",
+        "sign.key-exists",
+        "sign.key-expiring",
+        "sign.key-format",
+        "sign.key-in-use",
+        "sign.keyfile-stale",
+        "sign.last-signer",
+        "sign.locked",
+        "sign.no-key",
+        "sign.no-pinentry",
+        "sign.not-active",
+        "sign.not-deployed",
+        "sign.not-removed",
+        "sign.removed-signer",
+        "sign.repofile-stale",
+        "sign.retiring",
+        "sign.self-confirm",
+        "sign.trust-behind",
+        "sign.trust-change",
+        "sign.trust-unverified",
+        "sign.unknown-signer",
+        "sign.wrong-state",
+        "skills.guard",
+        "skills.version-mismatch",
+        "snapshot.diverged",
+        "snapshot.exists",
+        "snapshot.missing",
+        "snapshot.not-found",
+        "snapshot.orphaned",
+        "snapshot.push-failed",
+        "source.in-tree-autorelease",
+        "source.mismatch",
+        "source.unlisted",
+        "source.unreachable",
+        "state.behind",
+        "state.unpushed",
+        "upstream.no-match",
+        "upstream.rate-limited",
+        "upstream.unreachable",
+        "verify.el-failed",
+        "verify.failed",
+        "worktree.dirty",
+        "worktree.missing"
+      ]
+    },
+    "HumanAction": {
+      "description": "A step that repoctl, the MCP server and the skills do not take. The agent stops and shows the step to the human.",
+      "type": "object",
+      "required": [
+        "action",
+        "reason"
+      ],
+      "properties": {
+        "action": {
+          "enum": [
+            "publish",
+            "push",
+            "commit-worktree",
+            "resolve-dirty-worktree",
+            "commit-lock",
+            "confirm",
+            "edit-config",
+            "install-tool",
+            "cancel-foreign-run",
+            "unlock",
+            "repo-pull",
+            "repo-push",
+            "restore",
+            "prune",
+            "gc",
+            "resign",
+            "sign-deployed",
+            "sign-removed",
+            "trust-change",
+            "accept-advisory",
+            "dismiss-advisory"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string",
+          "description": "The exact command the human can run."
+        },
+        "ui": {
+          "type": "string",
+          "description": "Path in the web UI, e.g. /s/slurm-26.05/publish."
+        }
+      }
+    },
+    "Time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339, UTC, Z suffix, millisecond precision."
+    },
+    "DurationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "A duration in milliseconds."
+    },
+    "PackageId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]*$",
+      "description": "Package id: the id of a package in repoctl.yaml, e.g. pmix_v5."
+    },
+    "TargetId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Target id from repoctl.yaml, e.g. el9."
+    },
+    "NodeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]*@[a-z0-9][a-z0-9._-]*$",
+      "description": "<package>@<target>, e.g. slurm@el9."
+    },
+    "RunId": {
+      "type": "string",
+      "pattern": "^[rp]-[0-9]{8}-[0-9]{4}-[0-9a-z]{3}$",
+      "description": "r-YYYYMMDD-HHMM-xxx for a build or check run, p-YYYYMMDD-HHMM-xxx for a publish run. xxx is random."
+    },
+    "Commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Full git commit id, 40 hex digits. A UI shortens it; the contract does not."
+    },
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of a file, 64 hex digits."
+    },
+    "TraceRef": {
+      "type": "object",
+      "required": [
+        "traceId"
+      ],
+      "properties": {
+        "traceId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "spanId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "parentSpanId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        }
+      }
+    },
+    "NodeState": {
+      "enum": [
+        "waiting",
+        "queued",
+        "running",
+        "ok",
+        "current",
+        "staged",
+        "failed",
+        "blocked",
+        "canceled"
+      ],
+      "description": "waiting: a dependency of the node is not done. queued: all dependencies are done, and the node waits for a free job slot. blocked: a dependency failed. canceled: a human, a signal or failFast stopped the node. current and staged are plan states: plan.ready gives them, and a run never changes them."
+    },
+    "Step": {
+      "enum": [
+        "srpm",
+        "rpm",
+        "stage"
+      ],
+      "description": "Steps of a running node. stage: copy to staging and createrepo_c --update."
+    },
+    "PlanAction": {
+      "enum": [
+        "build",
+        "current",
+        "staged",
+        "skip"
+      ],
+      "description": "build: no build of this commit for this target is in latest or staging. current: the commit is in latest. staged: built for this lock and not published, in a run from the lock; fromRun names the newest such run. skip: not selected, or the target is not in the package."
+    },
+    "PlanReasonCode": {
+      "enum": [
+        "commit-changed",
+        "rebuild",
+        "new-package",
+        "new-target",
+        "forced",
+        "staging-missing"
+      ],
+      "description": "Why a node has the action build. staging-missing: an earlier run staged the node, but a file of its staging is gone or has another size; the node keeps its other reasons. repoctl never adds a dependent by itself: advisories say that a rebuild can be necessary, and the human makes it with repoctl rebuild."
+    },
+    "RunState": {
+      "enum": [
+        "planning",
+        "running",
+        "ok",
+        "failed",
+        "canceled",
+        "abandoned"
+      ],
+      "description": "abandoned: the journal has no run.finished line, and the set lock is free or held by another process. A reader gives this state; no writer writes it."
+    },
+    "RunOrigin": {
+      "enum": [
+        "cli",
+        "ui",
+        "mcp",
+        "ci"
+      ],
+      "description": "Where the run started. ci when CI=true."
+    },
+    "FailureClass": {
+      "enum": [
+        "srpm",
+        "builddep",
+        "build",
+        "stage",
+        "mock",
+        "host",
+        "timeout",
+        "canceled",
+        "internal"
+      ],
+      "description": "From the records of repoctl, the exit code of mock (30 builddep, 11 timeout, 1 srpm or build), the step and patterns in the mock logs. host: the host failed, not the package (mock cannot start, no disk space, the user is not in the group mock). A retry can help after the host is fixed. ENOSPC in any step is host. internal: a fault of repoctl, for example a failed write of the journal. timeout: build.timeout.srpm, .rpm, .stage or .idle of the user config ended; repoctl ran mock --orphanskill on the root of the node, or mock --rpmbuild_timeout stopped rpmbuild."
+    },
+    "RepoKind": {
+      "enum": [
+        "binary",
+        "source",
+        "debuginfo"
+      ]
+    },
+    "UpstreamStatus": {
+      "enum": [
+        "up-to-date",
+        "update-available",
+        "ahead",
+        "frozen",
+        "unknown",
+        "none"
+      ],
+      "description": "The CLI chapter (repoctl upstream) defines each value. frozen: packages[].upstream.frozen is set and reached; repoctl never reads it from notes. none: the package has no upstream key."
+    },
+    "LockState": {
+      "enum": [
+        "in-sync",
+        "in-tree",
+        "ahead",
+        "behind",
+        "diverged",
+        "dirty",
+        "missing",
+        "unpinned",
+        "orphaned"
+      ],
+      "description": "Package worktree HEAD against repoctl.lock. in-tree: an in-tree package (path:) without a change under its path; it has no lock line, and its commit is the last set commit that changes its path. dirty also covers a change under an in-tree path. unpinned: the package is in repoctl.yaml and has no lock line. orphaned: the lock line has no package in repoctl.yaml."
+    },
+    "CheckStatus": {
+      "enum": [
+        "ok",
+        "warning",
+        "failed"
+      ],
+      "description": "The three words of go-clikit doctor.Status."
+    },
+    "Status": {
+      "type": "object",
+      "required": [
+        "set",
+        "targets",
+        "packages",
+        "lastRun",
+        "activeRun",
+        "snapshots"
+      ],
+      "properties": {
+        "set": {
+          "type": "object",
+          "required": [
+            "name",
+            "package",
+            "config"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "package": {
+              "type": "string"
+            },
+            "config": {
+              "type": "string",
+              "description": "Path of repoctl.yaml."
+            },
+            "git": {
+              "type": "object",
+              "properties": {
+                "branch": {
+                  "type": "string"
+                },
+                "commit": {
+                  "$ref": "#/$defs/Commit"
+                },
+                "dirty": {
+                  "type": "boolean"
+                },
+                "pushed": {
+                  "type": "boolean",
+                  "description": "The set commit is on the remote branch of the set branch."
+                }
+              }
+            }
+          }
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Target"
+          }
+        },
+        "packages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "package",
+              "lock"
+            ],
+            "properties": {
+              "package": {
+                "$ref": "#/$defs/PackageId"
+              },
+              "lock": {
+                "$ref": "#/$defs/LockState"
+              },
+              "lockCommit": {
+                "$ref": "#/$defs/Commit"
+              },
+              "headCommit": {
+                "$ref": "#/$defs/Commit"
+              }
+            }
+          }
+        },
+        "lastRun": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/RunSummary"
+            }
+          ]
+        },
+        "activeRun": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/RunSummary"
+            }
+          ]
+        },
+        "lockHolder": {
+          "description": "The holder of the set lock, or null when no process holds it.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "command",
+                "pid",
+                "host",
+                "user",
+                "started"
+              ],
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "The command path, e.g. build."
+                },
+                "pid": {
+                  "type": "integer"
+                },
+                "host": {
+                  "type": "string"
+                },
+                "user": {
+                  "type": "string"
+                },
+                "started": {
+                  "$ref": "#/$defs/Time"
+                },
+                "run": {
+                  "$ref": "#/$defs/RunId"
+                }
+              }
+            }
+          ]
+        },
+        "staging": {
+          "type": "array",
+          "description": "Staging repos still on disk.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "run": {
+                "$ref": "#/$defs/RunId"
+              },
+              "path": {
+                "type": "string"
+              },
+              "sizeBytes": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "inFlight": {
+          "type": "object",
+          "description": "Nodes whose locked commit latest does not hold: staged on this host, or to build here (for example after the pin of another admin).",
+          "properties": {
+            "nodes": {
+              "type": "integer"
+            },
+            "staged": {
+              "type": "integer"
+            },
+            "build": {
+              "type": "integer"
+            }
+          }
+        },
+        "snapshots": {
+          "type": "array",
+          "description": "Per target: latest in the registry, the local copy, and the HTTP server.",
+          "items": {
+            "type": "object",
+            "required": [
+              "target",
+              "latest",
+              "local",
+              "served"
+            ],
+            "properties": {
+              "target": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "latest": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "publish",
+                      "digest"
+                    ],
+                    "properties": {
+                      "publish": {
+                        "type": "string"
+                      },
+                      "digest": {
+                        "$ref": "#/$defs/Digest"
+                      },
+                      "kind": {
+                        "enum": [
+                          "publish",
+                          "restore",
+                          "prune",
+                          "resign",
+                          "import",
+                          "reseed"
+                        ]
+                      },
+                      "user": {
+                        "type": "string"
+                      },
+                      "host": {
+                        "type": "string"
+                      },
+                      "at": {
+                        "$ref": "#/$defs/Time"
+                      }
+                    }
+                  }
+                ]
+              },
+              "local": {
+                "enum": [
+                  "same",
+                  "behind",
+                  "unpushed",
+                  "none"
+                ]
+              },
+              "served": {
+                "enum": [
+                  "same",
+                  "behind",
+                  "unknown"
+                ]
+              },
+              "mirror": {
+                "type": "object",
+                "description": "repoctl-mirror.json of the served tree: the heartbeat of the mirror line. Absent when status cannot read it.",
+                "required": [
+                  "checked",
+                  "result"
+                ],
+                "properties": {
+                  "checked": {
+                    "$ref": "#/$defs/Time",
+                    "description": "Time of the last run of the mirror job for this line."
+                  },
+                  "result": {
+                    "enum": [
+                      "same",
+                      "swapped",
+                      "failed"
+                    ]
+                  },
+                  "behindSince": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/Time"
+                      }
+                    ],
+                    "description": "First run that saw a latest other than the served digest."
+                  },
+                  "error": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Message of the failed step."
+                  },
+                  "stale": {
+                    "type": "boolean",
+                    "description": "true: status gives the warning served.stale for this target."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "check": {
+          "type": "object",
+          "description": "The last repoctl check.",
+          "properties": {
+            "at": {
+              "$ref": "#/$defs/Time"
+            },
+            "stale": {
+              "type": "boolean"
+            },
+            "outdated": {
+              "type": "boolean",
+              "description": "latest of a target differs from the digest that the check used."
+            },
+            "required": {
+              "type": "integer"
+            },
+            "warn": {
+              "type": "integer"
+            },
+            "info": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Problem"
+              },
+              "description": "The failures of the last check, as in AdvisoryList.check.failed. Empty when it passed."
+            },
+            "timer": {
+              "enum": [
+                "active",
+                "off",
+                "unknown"
+              ],
+              "description": "The timer instance of this set on this host."
+            }
+          }
+        },
+        "upstream": {
+          "type": "object",
+          "description": "The open upstream.release advisories.",
+          "properties": {
+            "updates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "package",
+                  "version"
+                ],
+                "properties": {
+                  "package": {
+                    "$ref": "#/$defs/PackageId"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "signing": {
+          "type": "array",
+          "description": "Keys that need attention: a retiring or removed key that RPMs in latest carry, or a key that expires soon.",
+          "items": {
+            "type": "object",
+            "required": [
+              "keyId",
+              "state"
+            ],
+            "properties": {
+              "keyId": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "retiring",
+                  "removed"
+                ]
+              },
+              "target": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "rpms": {
+                "type": "integer",
+                "description": "RPMs in latest of the target that carry the key."
+              },
+              "expires": {
+                "$ref": "#/$defs/Time"
+              }
+            }
+          }
+        },
+        "open": {
+          "type": "array",
+          "description": "Steps of new-set or onboarding that are not done yet.",
+          "items": {
+            "type": "object",
+            "required": [
+              "step",
+              "done"
+            ],
+            "properties": {
+              "step": {
+                "type": "string"
+              },
+              "done": {
+                "type": "boolean"
+              },
+              "command": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "description": "The Next: step of status, computed from the state."
+        }
+      }
+    },
+    "Target": {
+      "type": "object",
+      "required": [
+        "id",
+        "mock"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "mock": {
+          "type": "string",
+          "description": "mock config name, e.g. rocky+epel-9-x86_64."
+        },
+        "mockConfigDigest": {
+          "$ref": "#/$defs/Sha256",
+          "description": "Hash of the resolved mock config (mock --debug-config). Not part of the build identity: a change needs build --force."
+        },
+        "plugins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "macros": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256"
+              }
+            }
+          }
+        },
+        "repos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "path": {
+          "type": "string",
+          "description": "Directory of the target in the snapshot and below repo.url, e.g. el9."
+        },
+        "dist": {
+          "type": "string",
+          "description": "%{dist} in this chroot, e.g. .el9."
+        },
+        "packages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageId"
+          }
+        },
+        "store": {
+          "type": "string",
+          "description": "OCI package of the target: <store.oci>/<set>-<target>."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "repo.url for this target, as written in the .repo file of the release package."
+        },
+        "state": {
+          "enum": [
+            "active",
+            "retired"
+          ],
+          "default": "active",
+          "description": "targets[].state. A retired target has no nodes; its published repo stays, and the repo commands still act on it."
+        }
+      }
+    },
+    "Package": {
+      "type": "object",
+      "required": [
+        "package",
+        "role",
+        "source",
+        "targets"
+      ],
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/PackageId"
+        },
+        "name": {
+          "type": "string",
+          "description": "Spec Name: tag."
+        },
+        "role": {
+          "enum": [
+            "package",
+            "release"
+          ]
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "branch",
+                "external",
+                "tree"
+              ]
+            },
+            "branch": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "mirror": {
+              "type": "string",
+              "description": "Bare clone path in $XDG_DATA_HOME/repoctl/git/ (external only)."
+            }
+          }
+        },
+        "lock": {
+          "type": "object",
+          "properties": {
+            "commit": {
+              "$ref": "#/$defs/Commit"
+            }
+          }
+        },
+        "worktree": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "head": {
+              "$ref": "#/$defs/Commit"
+            },
+            "state": {
+              "$ref": "#/$defs/LockState"
+            },
+            "spec": {
+              "type": "string"
+            }
+          }
+        },
+        "targets": {
+          "type": "array",
+          "description": "One object per target of the package, as repoctl show prints it.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "nvr": {
+                "type": "string",
+                "description": "The NVR of the pinned commit in this chroot."
+              },
+              "dependsOn": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/PackageId"
+                },
+                "description": "Set packages that this package needs to build on the target."
+              },
+              "usedBy": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/PackageId"
+                },
+                "description": "Set packages that need this package to build on the target."
+              },
+              "published": {
+                "description": "The build in latest of the target, or null.",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "nvr",
+                      "commit",
+                      "publish"
+                    ],
+                    "properties": {
+                      "nvr": {
+                        "type": "string"
+                      },
+                      "commit": {
+                        "$ref": "#/$defs/Commit"
+                      },
+                      "publish": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              },
+              "action": {
+                "$ref": "#/$defs/PlanAction"
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/PlanReason"
+                }
+              }
+            }
+          }
+        },
+        "versions": {
+          "type": "object",
+          "description": "Per target id: the version and release rpmspec evaluates in that chroot.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "release": {
+                "type": "string"
+              },
+              "nvr": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "upstream": {
+          "type": "object",
+          "description": "The upstream block of repoctl.yaml, as written.",
+          "properties": {
+            "github": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "string"
+            },
+            "fedora": {
+              "type": "string"
+            }
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "Graph": {
+      "description": "One target's graph. repoctl graph --json gives one item per target.",
+      "type": "object",
+      "required": [
+        "target",
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "package",
+              "depth"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/NodeId"
+              },
+              "package": {
+                "$ref": "#/$defs/PackageId"
+              },
+              "evr": {
+                "type": "string"
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "role": {
+                "enum": [
+                  "package",
+                  "release"
+                ]
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to",
+              "via"
+            ],
+            "description": "from must be built before to.",
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/NodeId"
+              },
+              "to": {
+                "$ref": "#/$defs/NodeId"
+              },
+              "via": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                },
+                "description": "BuildRequires of to that a Provides of from matched."
+              }
+            }
+          }
+        },
+        "unresolved": {
+          "type": "array",
+          "description": "BuildRequires that no node of this target provides but a node of another target does. Not an error: base or EPEL repos may provide them.",
+          "items": {
+            "type": "object",
+            "required": [
+              "node",
+              "require"
+            ],
+            "properties": {
+              "node": {
+                "$ref": "#/$defs/NodeId"
+              },
+              "require": {
+                "type": "string"
+              },
+              "providedOn": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/NodeId"
+                }
+              }
+            }
+          }
+        },
+        "dynamic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NodeId"
+          },
+          "description": "Nodes with %generate_buildrequires: their edges may be missing."
+        }
+      }
+    },
+    "Plan": {
+      "type": "object",
+      "required": [
+        "targets",
+        "summary",
+        "nodes"
+      ],
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetId"
+          }
+        },
+        "selection": {
+          "$ref": "#/$defs/Selection"
+        },
+        "baseline": {
+          "enum": [
+            "latest",
+            "none"
+          ],
+          "description": "What the plan compares the commits with: latest of each target, or none when the target has no snapshot yet."
+        },
+        "summary": {
+          "type": "object",
+          "required": [
+            "build",
+            "current",
+            "staged",
+            "skip"
+          ],
+          "properties": {
+            "build": {
+              "type": "integer"
+            },
+            "current": {
+              "type": "integer"
+            },
+            "staged": {
+              "type": "integer"
+            },
+            "skip": {
+              "type": "integer"
+            },
+            "byTarget": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "build": {
+                    "type": "integer"
+                  },
+                  "current": {
+                    "type": "integer"
+                  },
+                  "staged": {
+                    "type": "integer"
+                  },
+                  "skip": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanNode"
+          }
+        },
+        "advisories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Advisory"
+          },
+          "description": "Advisories that the plan computes. A required advisory blocks the publish of its closure."
+        }
+      }
+    },
+    "Selection": {
+      "type": "object",
+      "properties": {
+        "packages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageId"
+          },
+          "description": "Selectors given on the command line; empty is all."
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetId"
+          }
+        },
+        "from": {
+          "enum": [
+            "lock",
+            "worktree"
+          ],
+          "description": "Where package commits come from. worktree: the run is unpinned and never publishable."
+        },
+        "force": {
+          "type": "boolean"
+        },
+        "withDeps": {
+          "type": "boolean"
+        },
+        "rdeps": {
+          "type": "boolean"
+        },
+        "failFast": {
+          "type": "boolean",
+          "description": "Keep going is the default; failFast stops after the first failure."
+        },
+        "jobs": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "PlanNode": {
+      "type": "object",
+      "required": [
+        "node",
+        "action"
+      ],
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/NodeId"
+        },
+        "action": {
+          "$ref": "#/$defs/PlanAction"
+        },
+        "evr": {
+          "type": "string"
+        },
+        "deps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NodeId"
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanReason"
+          },
+          "description": "Present and non-empty when action is build."
+        },
+        "skipBecause": {
+          "enum": [
+            "not-selected",
+            "target-excluded",
+            "unpinned"
+          ],
+          "description": "Present when action is skip."
+        },
+        "commit": {
+          "$ref": "#/$defs/Commit",
+          "description": "The package commit that this node builds. Absent when skipBecause is unpinned: the lock has no commit for the package."
+        },
+        "previousCommit": {
+          "$ref": "#/$defs/Commit",
+          "description": "The commit of the node in latest."
+        },
+        "snapshot": {
+          "type": "string",
+          "description": "action current: the publish id of latest, which holds the build of the commit."
+        },
+        "fromRun": {
+          "$ref": "#/$defs/RunId",
+          "description": "action staged: the newest build run from the lock that made the node and ended it ok. A run with from worktree never stages a node."
+        },
+        "checks": {
+          "$ref": "#/$defs/NodeChecks"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "build"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reasons"
+            ],
+            "properties": {
+              "reasons": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "skip"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "skipBecause"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "staged"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "fromRun"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "skipBecause"
+            ],
+            "properties": {
+              "skipBecause": {
+                "const": "unpinned"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "commit"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "commit"
+            ]
+          }
+        }
+      ]
+    },
+    "PlanReason": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/PlanReasonCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string",
+          "description": "Old value: the commit in latest."
+        },
+        "to": {
+          "type": "string",
+          "description": "New value: the commit of the node."
+        },
+        "subject": {
+          "type": "string",
+          "description": "commit-changed, rebuild: subject line of the new commit."
+        },
+        "commits": {
+          "type": "integer",
+          "description": "commit-changed: number of commits between from and to."
+        },
+        "text": {
+          "type": "string",
+          "description": "rebuild: the reason that the human gave to repoctl rebuild (--reason)."
+        },
+        "run": {
+          "$ref": "#/$defs/RunId",
+          "description": "staging-missing: the run whose staging is gone."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "commit-changed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "from",
+              "to"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "rebuild"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "from",
+              "to",
+              "text"
+            ]
+          }
+        }
+      ]
+    },
+    "NodeChecks": {
+      "type": "object",
+      "description": "Checks after a node build. A soname check that finds no removed soname is not an advisory; it is this record.",
+      "properties": {
+        "soname": {
+          "enum": [
+            "pending",
+            "unchanged",
+            "removed",
+            "skipped",
+            "none"
+          ],
+          "description": "pending: the node has no end state yet. unchanged: every soname of the newest published build is still provided. removed: see the advisory soname.removed/<node>. skipped: the node ended failed, canceled or blocked, or its run is abandoned. none: no published build with a shared library to compare."
+        },
+        "abi": {
+          "enum": [
+            "pending",
+            "unchanged",
+            "changed",
+            "skipped",
+            "none",
+            "off"
+          ],
+          "description": "The optional ABI check. changed: see the advisory abi.changed/<node>. off: libabigail is not installed. The other values as for soname."
+        }
+      }
+    },
+    "RunSummary": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "state",
+        "startedAt"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/RunId"
+        },
+        "kind": {
+          "enum": [
+            "build",
+            "publish",
+            "check"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/RunState"
+        },
+        "origin": {
+          "$ref": "#/$defs/RunOrigin"
+        },
+        "by": {
+          "type": "string"
+        },
+        "startedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "finishedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "counts": {
+          "$ref": "#/$defs/StateCounts"
+        },
+        "publishKind": {
+          "enum": [
+            "publish",
+            "restore",
+            "prune",
+            "resign",
+            "import",
+            "reseed"
+          ]
+        }
+      }
+    },
+    "StateCounts": {
+      "type": "object",
+      "description": "Nodes per state. Every NodeState is a key, zero included.",
+      "required": [
+        "waiting",
+        "queued",
+        "running",
+        "ok",
+        "current",
+        "staged",
+        "failed",
+        "blocked",
+        "canceled"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "waiting": {
+          "type": "integer"
+        },
+        "queued": {
+          "type": "integer"
+        },
+        "running": {
+          "type": "integer"
+        },
+        "ok": {
+          "type": "integer"
+        },
+        "current": {
+          "type": "integer"
+        },
+        "staged": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        },
+        "blocked": {
+          "type": "integer"
+        },
+        "canceled": {
+          "type": "integer"
+        }
+      }
+    },
+    "Run": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "set",
+        "state",
+        "origin",
+        "startedAt",
+        "counts",
+        "nodes",
+        "files"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/RunId"
+        },
+        "kind": {
+          "enum": [
+            "build",
+            "publish",
+            "check",
+            "gc"
+          ]
+        },
+        "set": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/RunState"
+        },
+        "origin": {
+          "type": "object",
+          "required": [
+            "via",
+            "user",
+            "host"
+          ],
+          "properties": {
+            "via": {
+              "$ref": "#/$defs/RunOrigin"
+            },
+            "user": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "pid": {
+              "type": "integer"
+            },
+            "client": {
+              "type": "string",
+              "description": "MCP clientInfo.name, or the prefix of the UI browser session id."
+            },
+            "session": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$",
+              "description": "via mcp or ui: the random id that the MCP server or the web UI server picks at its start, one per server process. repoctl_run_cancel compares it with its own id."
+            }
+          }
+        },
+        "trace": {
+          "$ref": "#/$defs/TraceRef"
+        },
+        "selection": {
+          "$ref": "#/$defs/Selection"
+        },
+        "setCommit": {
+          "$ref": "#/$defs/Commit"
+        },
+        "lockDigest": {
+          "$ref": "#/$defs/Digest",
+          "description": "sha256 of the bytes of repoctl.lock that the run read (run.started)."
+        },
+        "startedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "finishedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "durationMs": {
+          "$ref": "#/$defs/DurationMs"
+        },
+        "exitCode": {
+          "type": "integer"
+        },
+        "plan": {
+          "type": "object",
+          "properties": {
+            "build": {
+              "type": "integer"
+            },
+            "current": {
+              "type": "integer"
+            },
+            "staged": {
+              "type": "integer"
+            },
+            "skip": {
+              "type": "integer"
+            }
+          }
+        },
+        "counts": {
+          "$ref": "#/$defs/StateCounts"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NodeResult"
+          }
+        },
+        "staging": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "$XDG_DATA_HOME/repoctl/<set>/staging/<run>."
+            },
+            "targets": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "publishable": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetId"
+          },
+          "description": "Targets whose nodes are all current or staged. Publish checks the set inputs again in its step check."
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "description": "Suggested next steps. A step with human: true is for a human only."
+        },
+        "files": {
+          "type": "object",
+          "required": [
+            "journal"
+          ],
+          "properties": {
+            "journal": {
+              "type": "string",
+              "description": "runs/<run>.jsonl, repoctl events."
+            },
+            "progress": {
+              "type": "string",
+              "description": "runs/<run>.progress.jsonl, go-clikit event log v1."
+            },
+            "logs": {
+              "type": "string",
+              "description": "logs/<run>/ directory."
+            }
+          }
+        },
+        "publishBlockers": {
+          "type": "array",
+          "description": "Why a target is not publishable.",
+          "items": {
+            "type": "object",
+            "required": [
+              "target",
+              "code"
+            ],
+            "properties": {
+              "target": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "code": {
+                "$ref": "#/$defs/ProblemCode"
+              },
+              "exitCode": {
+                "type": "integer"
+              },
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/NodeId"
+                }
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "unpinned": {
+          "type": "boolean",
+          "description": "Built with --from worktree. Such a run is never publishable."
+        },
+        "cancelRequested": {
+          "type": "object",
+          "description": "From the last run.cancel-requested event. Present while the run is interrupting and after a cancel.",
+          "required": [
+            "by",
+            "at"
+          ],
+          "properties": {
+            "by": {
+              "$ref": "#/$defs/RunOrigin"
+            },
+            "user": {
+              "type": "string"
+            },
+            "reason": {
+              "enum": [
+                "signal",
+                "ui",
+                "mcp",
+                "deadline"
+              ]
+            },
+            "force": {
+              "type": "boolean"
+            },
+            "at": {
+              "$ref": "#/$defs/Time"
+            }
+          }
+        },
+        "signer": {
+          "$ref": "#/$defs/Signer",
+          "description": "Publish runs only."
+        },
+        "planDigest": {
+          "$ref": "#/$defs/Digest",
+          "description": "Publish runs only: the sha256 of the publish summary (per target the base digest and the NVRs to sign, the signer fingerprint, the trust block, the accepted advisory ids). The web UI sends it back in the UI confirmation; publish compares it under the set lock (publish.plan-changed)."
+        },
+        "publish": {
+          "type": "object",
+          "description": "Publish runs only: the result per target.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "enum": [
+                  "ok",
+                  "failed",
+                  "canceled",
+                  "skipped"
+                ],
+                "description": "Result of this target. A partial publish has ok for the tagged targets and failed, canceled or skipped for the others."
+              },
+              "store": {
+                "type": "string"
+              },
+              "base": {
+                "$ref": "#/$defs/Digest",
+                "description": "latest when the publish started."
+              },
+              "snapshot": {
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string"
+                  },
+                  "digest": {
+                    "$ref": "#/$defs/Digest"
+                  },
+                  "parent": {
+                    "$ref": "#/$defs/Digest"
+                  }
+                }
+              },
+              "served": {
+                "enum": [
+                  "same",
+                  "behind",
+                  "unknown"
+                ]
+              },
+              "gate": {
+                "type": "array",
+                "description": "Advisories that the step check looked at.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "blocks",
+                    "accepted"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "blocks": {
+                      "type": "boolean"
+                    },
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "affected": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "soname.removed only: the requirer NVRs in the result tree. A client that has one of them installed cannot update the provider until the requirer has a new build in latest."
+                    }
+                  }
+                }
+              },
+              "held": {
+                "type": "array",
+                "description": "The held nodes of this publish: each keeps its build in the base (publish --hold).",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "node",
+                    "reason"
+                  ],
+                  "properties": {
+                    "node": {
+                      "$ref": "#/$defs/NodeId"
+                    },
+                    "nvr": {
+                      "type": "string",
+                      "description": "The NVR that the node keeps; absent when the base has no build of it."
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "sign": {
+                "type": "object",
+                "properties": {
+                  "new": {
+                    "type": "integer"
+                  },
+                  "keep": {
+                    "type": "integer"
+                  },
+                  "resign": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "step": {
+                      "enum": [
+                        "check",
+                        "sign",
+                        "repodata",
+                        "verify",
+                        "verify-el",
+                        "push",
+                        "tag",
+                        "cache"
+                      ]
+                    },
+                    "state": {
+                      "enum": [
+                        "ok",
+                        "failed",
+                        "canceled",
+                        "skipped"
+                      ]
+                    },
+                    "durationMs": {
+                      "$ref": "#/$defs/DurationMs"
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "pushable": {
+                "type": "boolean",
+                "description": "The kept tree of this target passed verify and verify-el, and step 8 is not done. repo push completes it. The state file publishes/<publish>/state.json holds the same Run."
+              },
+              "rebuild": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/PackageId"
+                },
+                "description": "Restore only: the packages whose locked commit built an NVR that left the repository. Each needs repoctl rebuild or an older pin before the next publish, else nvr.removed."
+              }
+            }
+          }
+        },
+        "publishKind": {
+          "enum": [
+            "publish",
+            "restore",
+            "prune",
+            "resign",
+            "import",
+            "reseed"
+          ],
+          "description": "Publish runs only."
+        },
+        "fromRuns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RunId"
+          },
+          "description": "Publish runs only: the build runs whose staged nodes the publish takes."
+        },
+        "advisories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Advisory"
+          }
+        }
+      }
+    },
+    "NodeResult": {
+      "type": "object",
+      "required": [
+        "node",
+        "package",
+        "target",
+        "state",
+        "commit"
+      ],
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/NodeId"
+        },
+        "package": {
+          "$ref": "#/$defs/PackageId"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "state": {
+          "$ref": "#/$defs/NodeState"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanReasonCode"
+          }
+        },
+        "commit": {
+          "$ref": "#/$defs/Commit"
+        },
+        "startedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "finishedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "durationMs": {
+          "$ref": "#/$defs/DurationMs"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "step",
+              "state"
+            ],
+            "properties": {
+              "step": {
+                "$ref": "#/$defs/Step"
+              },
+              "state": {
+                "enum": [
+                  "running",
+                  "ok",
+                  "failed",
+                  "canceled"
+                ]
+              },
+              "startedAt": {
+                "$ref": "#/$defs/Time"
+              },
+              "durationMs": {
+                "$ref": "#/$defs/DurationMs"
+              },
+              "exitCode": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "srpm": {
+          "type": "string",
+          "description": "SRPM file name."
+        },
+        "root": {
+          "type": "string",
+          "description": "The mock root of the node: the mock config plus --uniqueext repoctl-UID-SET-RUN-SLOT."
+        },
+        "nvrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "NVRA of every binary RPM of the node in the binary repo, sorted. The SRPM and the debuginfo RPMs are in artifacts."
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          }
+        },
+        "checks": {
+          "$ref": "#/$defs/NodeChecks"
+        },
+        "logs": {
+          "type": "object",
+          "properties": {
+            "node": {
+              "type": "string",
+              "description": "logs/<run>/<node>.log: all output of all steps, with step markers."
+            },
+            "mock": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "root.log, build.log, state.log, hw_info.log of the failing or last step, in logs/<run>/<node>/."
+            }
+          }
+        },
+        "error": {
+          "$ref": "#/$defs/NodeError"
+        },
+        "blockedBy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NodeId"
+          },
+          "description": "blocked: failed nodes upstream of this one."
+        },
+        "waitingFor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NodeId"
+          },
+          "description": "waiting: dependencies not yet done."
+        }
+      }
+    },
+    "Artifact": {
+      "type": "object",
+      "required": [
+        "kind",
+        "file",
+        "path",
+        "sizeBytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "rpm",
+            "srpm",
+            "debuginfo",
+            "debugsource"
+          ]
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repo name: slurm, slurm-source or slurm-debuginfo."
+        },
+        "nvra": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "description": "Absolute path in the staging repo of the run."
+        },
+        "sizeBytes": {
+          "type": "integer"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256"
+        }
+      }
+    },
+    "NodeError": {
+      "type": "object",
+      "required": [
+        "class",
+        "step",
+        "message"
+      ],
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/FailureClass"
+        },
+        "step": {
+          "$ref": "#/$defs/Step"
+        },
+        "message": {
+          "type": "string",
+          "description": "One line."
+        },
+        "exitCode": {
+          "type": "integer"
+        },
+        "excerpt": {
+          "type": "object",
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "firstLine": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "lines": {
+              "type": "array",
+              "maxItems": 40,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "builddep: the requires that could not be installed."
+        },
+        "code": {
+          "$ref": "#/$defs/ProblemCode",
+          "description": "The problem code of the cause, when repoctl knows one, for example source.mismatch."
+        }
+      }
+    },
+    "NodeLog": {
+      "type": "object",
+      "required": [
+        "run",
+        "node",
+        "path",
+        "lines"
+      ],
+      "properties": {
+        "run": {
+          "$ref": "#/$defs/RunId"
+        },
+        "node": {
+          "$ref": "#/$defs/NodeId"
+        },
+        "state": {
+          "$ref": "#/$defs/NodeState"
+        },
+        "path": {
+          "type": "string"
+        },
+        "sizeBytes": {
+          "type": "integer"
+        },
+        "firstLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "error": {
+          "$ref": "#/$defs/NodeError"
+        }
+      }
+    },
+    "RepoContents": {
+      "type": "object",
+      "required": [
+        "target",
+        "repo",
+        "kind",
+        "source",
+        "path",
+        "packages"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/RepoKind"
+        },
+        "source": {
+          "enum": [
+            "local",
+            "staging",
+            "snapshot"
+          ],
+          "description": "local: the local copy of latest. staging: the staging repo of a run. snapshot: a snapshot in the registry."
+        },
+        "run": {
+          "$ref": "#/$defs/RunId"
+        },
+        "path": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string",
+          "description": "repomd.xml revision."
+        },
+        "signed": {
+          "type": "boolean"
+        },
+        "packages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "nvra",
+              "sizeBytes"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "epoch": {
+                "type": "integer"
+              },
+              "version": {
+                "type": "string"
+              },
+              "release": {
+                "type": "string"
+              },
+              "arch": {
+                "type": "string"
+              },
+              "nvra": {
+                "type": "string"
+              },
+              "sourcerpm": {
+                "type": "string"
+              },
+              "sizeBytes": {
+                "type": "integer"
+              },
+              "buildTime": {
+                "$ref": "#/$defs/Time"
+              },
+              "signature": {
+                "type": "string",
+                "description": "Key id of the signature, or empty for unsigned staging RPMs."
+              },
+              "node": {
+                "$ref": "#/$defs/NodeId"
+              }
+            }
+          }
+        },
+        "snapshot": {
+          "type": "string",
+          "description": "source snapshot: the publish id or digest."
+        },
+        "removed": {
+          "type": "array",
+          "description": "repo ls --removed: the entries of removed[] in the RepoManifest. packages is then empty.",
+          "items": {
+            "type": "object",
+            "required": [
+              "nvr",
+              "publish",
+              "reason"
+            ],
+            "properties": {
+              "nvr": {
+                "type": "string"
+              },
+              "publish": {
+                "type": "string",
+                "description": "The publish that removed the NVR."
+              },
+              "reason": {
+                "enum": [
+                  "prune",
+                  "restore"
+                ]
+              },
+              "rpms": {
+                "type": "integer",
+                "description": "RPMs of the NVR in removed[]."
+              }
+            }
+          }
+        }
+      }
+    },
+    "RepoDiff": {
+      "type": "object",
+      "required": [
+        "target",
+        "repo",
+        "from",
+        "to",
+        "added",
+        "removed",
+        "changed",
+        "rebuilt"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "from": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "enum": [
+                "local",
+                "staging",
+                "snapshot"
+              ]
+            },
+            "run": {
+              "$ref": "#/$defs/RunId"
+            },
+            "path": {
+              "type": "string"
+            },
+            "snapshot": {
+              "type": "string"
+            }
+          }
+        },
+        "to": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "enum": [
+                "local",
+                "staging",
+                "snapshot"
+              ]
+            },
+            "run": {
+              "$ref": "#/$defs/RunId"
+            },
+            "path": {
+              "type": "string"
+            },
+            "snapshot": {
+              "type": "string"
+            }
+          }
+        },
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "NVRA only in to."
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "NVRA only in from."
+        },
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "from",
+              "to"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "arch": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Same name and arch, other EVR."
+        },
+        "rebuilt": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Same NVRA, other payload digest. Publish refuses these (nvr.reused)."
+        },
+        "unchanged": {
+          "type": "integer"
+        }
+      }
+    },
+    "RecordFile": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "description": "A supply chain record file in the snapshot, as the RepoManifest lists it.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path in the binary repository, e.g. records/ucx-1.22.1-1.el9/provenance.json."
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256"
+        }
+      }
+    },
+    "Provenance": {
+      "type": "object",
+      "description": "repo provenance: the provenance record of one build, checked against the RepoManifest, and a summary of it. The supply chain chapter specifies the stored record.",
+      "required": [
+        "target",
+        "nvr",
+        "publish",
+        "record",
+        "source",
+        "run",
+        "builder",
+        "subjects",
+        "statement"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "node": {
+          "$ref": "#/$defs/NodeId"
+        },
+        "nvr": {
+          "type": "string",
+          "description": "NVR of the SRPM of the build."
+        },
+        "publish": {
+          "type": "string",
+          "description": "The publish that added the build."
+        },
+        "record": {
+          "$ref": "#/$defs/RecordFile"
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "commit"
+          ],
+          "properties": {
+            "branch": {
+              "type": "string"
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Set only for an external package."
+            },
+            "commit": {
+              "$ref": "#/$defs/Commit"
+            },
+            "reason": {
+              "type": "string",
+              "description": "The plan reason of the build."
+            }
+          }
+        },
+        "run": {
+          "type": "object",
+          "required": [
+            "id",
+            "startedOn",
+            "finishedOn"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/RunId"
+            },
+            "user": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "startedOn": {
+              "$ref": "#/$defs/Time"
+            },
+            "finishedOn": {
+              "$ref": "#/$defs/Time"
+            }
+          }
+        },
+        "builder": {
+          "type": "object",
+          "required": [
+            "id",
+            "repoctl",
+            "mock"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "runDetails.builder.id of the record."
+            },
+            "repoctl": {
+              "type": "string"
+            },
+            "mock": {
+              "type": "string"
+            },
+            "mockConfig": {
+              "type": "string",
+              "description": "Name of the mock config of the target."
+            },
+            "mockConfigSha256": {
+              "$ref": "#/$defs/Sha256"
+            }
+          }
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "sha256",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256"
+              },
+              "match": {
+                "type": "boolean",
+                "description": "true when the file in the repository has this sha256."
+              }
+            }
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "sha256"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uri": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256"
+              }
+            }
+          }
+        },
+        "buildroot": {
+          "type": "object",
+          "properties": {
+            "rpms": {
+              "type": "integer"
+            },
+            "since": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "NVR of the previous build of the same package and target."
+            },
+            "changed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Names of buildroot RPMs with another version than in the previous build."
+            }
+          }
+        },
+        "statement": {
+          "type": "object",
+          "description": "The stored in-toto Statement v1 with predicateType https://slsa.dev/provenance/v1. Its own specification applies; repoctl does not change it."
+        }
+      }
+    },
+    "Sbom": {
+      "type": "object",
+      "description": "repo sbom: the SBOM of one target or one build, checked against the RepoManifest, as a component list. --raw gives the stored CycloneDX 1.6 file.",
+      "required": [
+        "target",
+        "publish",
+        "record",
+        "components"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "build": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "NVR of the SRPM for a build SBOM; null for the repository SBOM."
+        },
+        "publish": {
+          "type": "string",
+          "description": "The publish of the snapshot that holds the record."
+        },
+        "record": {
+          "$ref": "#/$defs/RecordFile"
+        },
+        "specVersion": {
+          "const": "1.6"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "version",
+              "purl",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "purl": {
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "upstream",
+                  "srpm",
+                  "rpm",
+                  "debuginfo",
+                  "bundled"
+                ]
+              },
+              "license": {
+                "type": "string",
+                "description": "SPDX expression, or the License tag when it is not one."
+              },
+              "sha256": {
+                "$ref": "#/$defs/Sha256"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Upstream": {
+      "type": "object",
+      "required": [
+        "package",
+        "current",
+        "status"
+      ],
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/PackageId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "current": {
+          "type": "object",
+          "required": [
+            "version"
+          ],
+          "properties": {
+            "version": {
+              "type": "string"
+            },
+            "commit": {
+              "$ref": "#/$defs/Commit"
+            }
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/UpstreamStatus"
+        },
+        "latest": {
+          "type": "string",
+          "description": "Best upstream version, from github if set, else fedora."
+        },
+        "github": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "date": {
+              "$ref": "#/$defs/Time"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "releaseNotesUrl": {
+              "type": "string",
+              "format": "uri"
+            },
+            "newer": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Tags between current and latest, oldest first."
+            }
+          }
+        },
+        "fedora": {
+          "type": "object",
+          "properties": {
+            "package": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        },
+        "notes": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "$ref": "#/$defs/Time"
+        },
+        "fromCache": {
+          "type": "boolean",
+          "description": "The answer comes from the upstream cache (1 h)."
+        }
+      }
+    },
+    "DoctorReport": {
+      "type": "object",
+      "required": [
+        "worst",
+        "counts",
+        "checks"
+      ],
+      "properties": {
+        "worst": {
+          "$ref": "#/$defs/CheckStatus"
+        },
+        "counts": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "integer"
+            },
+            "warning": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            }
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "status"
+            ],
+            "description": "go-clikit doctor.Check, with group added.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Check id. The CLI chapter lists the ids of repoctl doctor.",
+                "examples": [
+                  "sign.keyfile",
+                  "sign.release",
+                  "sign.retiring",
+                  "release.url",
+                  "release.repo",
+                  "check.stale",
+                  "sbom.license"
+                ]
+              },
+              "group": {
+                "enum": [
+                  "host",
+                  "mock",
+                  "target",
+                  "git",
+                  "set",
+                  "sign",
+                  "registry",
+                  "check",
+                  "xdg",
+                  "skills"
+                ]
+              },
+              "status": {
+                "$ref": "#/$defs/CheckStatus"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "remediation": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "LockEntry": {
+      "type": "object",
+      "required": [
+        "package",
+        "state"
+      ],
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/PackageId"
+        },
+        "url": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string",
+          "description": "A package with a branch: the branch of the lock line."
+        },
+        "path": {
+          "type": "string",
+          "description": "An in-tree package: its path in the set. commit is the last set commit that changes the path."
+        },
+        "commit": {
+          "$ref": "#/$defs/Commit"
+        },
+        "previous": {
+          "$ref": "#/$defs/Commit"
+        },
+        "state": {
+          "$ref": "#/$defs/LockState"
+        },
+        "changed": {
+          "type": "boolean",
+          "description": "pin: the lock line was written by this call."
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "branch"
+          ]
+        },
+        {
+          "required": [
+            "path"
+          ]
+        }
+      ]
+    },
+    "Version": {
+      "type": "object",
+      "required": [
+        "version",
+        "apiVersions"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "go": {
+          "type": "string"
+        },
+        "clikit": {
+          "type": "string",
+          "description": "go-clikit module version."
+        },
+        "apiVersions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "apiVersions this binary can write, e.g. [\"repoctl/v1alpha1\"]. A command writes a stored file in the apiVersion that the file has."
+        },
+        "readApiVersions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "apiVersions of the stored files that this binary can read, oldest first, e.g. [\"repoctl/v1alpha1\"]. Restore reads old RepoManifests with them."
+        },
+        "journal": {
+          "type": "integer",
+          "description": "Run journal format version (v)."
+        },
+        "eventLog": {
+          "type": "integer",
+          "description": "go-clikit progress.LogVersion of the progress log."
+        }
+      }
+    },
+    "Signer": {
+      "type": "object",
+      "required": [
+        "uid",
+        "fingerprint",
+        "keyId"
+      ],
+      "description": "Who signed. UIs show uid + fingerprint tail.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "e.g. Dennis Klein <d.klein@gsi.de>"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$",
+          "description": "Full OpenPGP v4 fingerprint, upper-case hex, no spaces."
+        },
+        "keyId": {
+          "type": "string",
+          "description": "id of the key in sign.keys[] of repoctl.yaml."
+        },
+        "backend": {
+          "type": "string",
+          "description": "sign.backend of the user config, e.g. gpg."
+        },
+        "state": {
+          "enum": [
+            "active",
+            "retiring",
+            "removed",
+            "revoked"
+          ],
+          "description": "Key state."
+        },
+        "deployed": {
+          "type": "boolean",
+          "description": "Gate 2 passes: keys/deployed.yaml has a record of the key for each target in scope that has a latest snapshot. The scope is the selected targets of a publish, or the targets of the command."
+        }
+      }
+    },
+    "NextStep": {
+      "type": "object",
+      "required": [
+        "action",
+        "human",
+        "reason"
+      ],
+      "properties": {
+        "action": {
+          "enum": [
+            "triage",
+            "fix-spec",
+            "rebuild",
+            "pin",
+            "commit",
+            "push",
+            "build",
+            "publish",
+            "cancel",
+            "checkout",
+            "other"
+          ],
+          "description": "Open enum. other: any other step; command holds it."
+        },
+        "human": {
+          "type": "boolean",
+          "description": "true: only a human takes this step (for example commit-lock or publish). An agent shows it and stops."
+        },
+        "reason": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        },
+        "ui": {
+          "type": "string"
+        }
+      }
+    },
+    "File": {
+      "type": "object",
+      "required": [
+        "path",
+        "action"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "created",
+            "updated",
+            "unchanged",
+            "skipped",
+            "would-create",
+            "would-update"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "config",
+            "lock",
+            "macros",
+            "gitignore",
+            "skill",
+            "settings",
+            "keyfile",
+            "repofile",
+            "other"
+          ]
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256",
+          "description": "sign keyfile --checksum: the sha256 of the file."
+        }
+      }
+    },
+    "Clean": {
+      "type": "object",
+      "required": [
+        "path",
+        "kind",
+        "bytes",
+        "action"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "staging",
+            "state",
+            "git",
+            "upstream-cache",
+            "srpm-cache",
+            "source-cache",
+            "mock",
+            "publish"
+          ]
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "action": {
+          "enum": [
+            "deleted",
+            "kept",
+            "would-delete"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "description": "kept: why, for example staged, publishable or running."
+        },
+        "run": {
+          "$ref": "#/$defs/RunId"
+        }
+      }
+    },
+    "Config": {
+      "type": "object",
+      "required": [
+        "key",
+        "value",
+        "source"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Dotted key, e.g. sign.key."
+        },
+        "value": {},
+        "source": {
+          "enum": [
+            "flag",
+            "env",
+            "user",
+            "set",
+            "default"
+          ]
+        },
+        "file": {
+          "type": "string"
+        },
+        "env": {
+          "type": "string"
+        }
+      }
+    },
+    "Path": {
+      "type": "object",
+      "required": [
+        "name",
+        "path",
+        "exists"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "e.g. cache, state, staging, git, local copy, runtime."
+        },
+        "path": {
+          "type": "string"
+        },
+        "exists": {
+          "type": "boolean"
+        },
+        "bytes": {
+          "type": "integer"
+        }
+      }
+    },
+    "Skill": {
+      "type": "object",
+      "required": [
+        "name",
+        "source",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "builtin",
+            "set"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "apiVersion": {
+          "type": "string",
+          "description": "Output apiVersion the skill reads."
+        },
+        "installed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scope": {
+                "enum": [
+                  "user",
+                  "project",
+                  "plugin",
+                  "system"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "same",
+                  "older",
+                  "newer",
+                  "changed"
+                ],
+                "description": "The copy against the binary: the same version, an older or a newer version (skills.version-mismatch), or a file that differs from the sha256 in .repoctl-skills.json."
+              }
+            }
+          }
+        },
+        "conflict": {
+          "type": "boolean",
+          "description": "A set skill has the name of a builtin skill. Set skills can only add skills."
+        }
+      }
+    },
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "OCI digest: sha256: and 64 hex digits. Snapshots (manifest digest) and advisory facts use it."
+    },
+    "AdvisoryCode": {
+      "enum": [
+        "soname.removed",
+        "closure.broken",
+        "provider.changed",
+        "abi.changed",
+        "sign.expiring",
+        "buildroot.drift",
+        "mock.drift",
+        "upstream.release",
+        "retired.published"
+      ],
+      "description": "Open enum. The advisories chapter defines each code, its level and its check."
+    },
+    "AdvisoryLevel": {
+      "enum": [
+        "info",
+        "warn",
+        "required"
+      ],
+      "description": "Only required blocks a publish, and only a publish that changes its closure."
+    },
+    "AdvisoryState": {
+      "enum": [
+        "pending",
+        "open",
+        "dismissed"
+      ],
+      "description": "pending: the check needs a build that is not done. dismissed: a dismissal with the same id and factsDigest exists, and the level is not required."
+    },
+    "Advisory": {
+      "type": "object",
+      "required": [
+        "id",
+        "code",
+        "level",
+        "subject",
+        "targets",
+        "state",
+        "facts",
+        "factsDigest",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+\\.[a-z-]+/[A-Za-z0-9][A-Za-z0-9_.+-]*(@[a-z0-9][a-z0-9._-]*)?$",
+          "description": "CODE/SUBJECT. SUBJECT is a node, a package or, for sign.expiring, a key id: closure.broken/pmix@el9, sign.expiring/d.klein."
+        },
+        "code": {
+          "$ref": "#/$defs/AdvisoryCode"
+        },
+        "level": {
+          "$ref": "#/$defs/AdvisoryLevel"
+        },
+        "subject": {
+          "type": "string",
+          "description": "PKG@TARGET, PKG (upstream.release), a source package name (retired.published), NAME@TARGET (closure.broken of a retired package), or a key id (sign.expiring)."
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetId"
+          }
+        },
+        "state": {
+          "$ref": "#/$defs/AdvisoryState"
+        },
+        "title": {
+          "type": "string",
+          "description": "One line for humans."
+        },
+        "facts": {
+          "type": "object",
+          "description": "Code-specific facts with a fixed shape per code (allOf). Lists are sorted. factsDigest is the SHA-256 of their RFC 8785 (JCS) form."
+        },
+        "factsDigest": {
+          "$ref": "#/$defs/Digest",
+          "description": "sha256: plus the hex SHA-256 of the JCS form (RFC 8785) of facts. No other field goes into it."
+        },
+        "hostFacts": {
+          "type": "object",
+          "description": "Values of this host that explain the advisory, for example the mock config hash of mock.drift. Not in factsDigest."
+        },
+        "closure": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageId"
+          },
+          "description": "Level required only: the packages whose publish this advisory blocks."
+        },
+        "suggestion": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "command": {
+              "type": "string"
+            }
+          }
+        },
+        "source": {
+          "enum": [
+            "plan",
+            "build",
+            "check",
+            "upstream",
+            "publish"
+          ],
+          "description": "Where repoctl computed the advisory."
+        },
+        "seen": {
+          "$ref": "#/$defs/Time",
+          "description": "When a check first found these facts."
+        },
+        "carriedFrom": {
+          "$ref": "#/$defs/Time",
+          "description": "Set when the last check failed for this code and target: the time of the last good result, which repoctl kept."
+        },
+        "dismissal": {
+          "type": "object",
+          "properties": {
+            "by": {
+              "type": "string",
+              "description": "git user.email of the human."
+            },
+            "at": {
+              "$ref": "#/$defs/Time"
+            },
+            "note": {
+              "type": "string"
+            },
+            "stale": {
+              "type": "boolean",
+              "description": "The facts are different now; the advisory is open again."
+            }
+          },
+          "description": "The matching entry of .repoctl/advisories.yaml."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "soname.removed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsSonameRemoved"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "closure.broken"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsClosureBroken"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "provider.changed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsProviderChanged"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "abi.changed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsAbiChanged"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "sign.expiring"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsSignExpiring"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "buildroot.drift"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsBuildrootDrift"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "mock.drift"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsMockDrift"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "upstream.release"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsUpstreamRelease"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "const": "retired.published"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "$ref": "#/$defs/FactsRetiredPublished"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "FactsSonameRemoved": {
+      "description": "Facts of soname.removed.",
+      "type": "object",
+      "required": [
+        "removed",
+        "requiredBy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "removed": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "The sonames that the new build no longer provides, sorted."
+        },
+        "requiredBy": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "nvra",
+              "requires"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nvra": {
+                "type": "string"
+              },
+              "requires": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "The newest NVRs of kept set packages that require a removed soname, sorted by nvra, then requires."
+        }
+      }
+    },
+    "FactsClosureBroken": {
+      "description": "Facts of closure.broken.",
+      "type": "object",
+      "required": [
+        "broken"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "broken": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "nvra",
+              "requires"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "nvra": {
+                "type": "string"
+              },
+              "requires": {
+                "type": "string"
+              },
+              "newest": {
+                "type": "string",
+                "description": "The newest NVRA in the closure repos of the package that provided the requirement before, if one exists."
+              },
+              "newestRepo": {
+                "type": "string",
+                "description": "The repo id of newest."
+              },
+              "newestProvides": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "What newest provides instead, sorted."
+              }
+            }
+          },
+          "description": "One entry per broken requirement of the node, sorted by nvra, then requires."
+        }
+      }
+    },
+    "FactsProviderChanged": {
+      "description": "Facts of provider.changed.",
+      "type": "object",
+      "required": [
+        "changes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "capability",
+              "recorded",
+              "provider"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "capability": {
+                "type": "string"
+              },
+              "recorded": {
+                "type": "string",
+                "description": "NVRA of the provider in the recorded buildroot."
+              },
+              "provider": {
+                "$ref": "#/$defs/PackageId",
+                "description": "The set package that provides the capability now."
+              }
+            }
+          },
+          "description": "Sorted by capability."
+        }
+      }
+    },
+    "FactsAbiChanged": {
+      "description": "Facts of abi.changed.",
+      "type": "object",
+      "required": [
+        "libraries"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "libraries": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "soname",
+              "old",
+              "new",
+              "status"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "soname": {
+                "type": "string"
+              },
+              "old": {
+                "type": "string",
+                "description": "NVRA of the published build."
+              },
+              "new": {
+                "type": "string",
+                "description": "NVRA of the new build."
+              },
+              "status": {
+                "type": "integer",
+                "description": "The exit status of abidiff."
+              }
+            }
+          },
+          "description": "Sorted by soname."
+        }
+      }
+    },
+    "FactsSignExpiring": {
+      "description": "Facts of sign.expiring.",
+      "type": "object",
+      "required": [
+        "fingerprint",
+        "expires"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$"
+        },
+        "expires": {
+          "type": "string",
+          "format": "date",
+          "description": "The expiry date of the key, YYYY-MM-DD."
+        }
+      }
+    },
+    "FactsBuildrootDrift": {
+      "description": "Facts of buildroot.drift.",
+      "type": "object",
+      "required": [
+        "drift"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "drift": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "package",
+              "recorded",
+              "available",
+              "repo"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "package": {
+                "type": "string"
+              },
+              "recorded": {
+                "type": "string",
+                "description": "Version in the recorded buildroot."
+              },
+              "available": {
+                "type": "string",
+                "description": "Newest version in the closure repos."
+              },
+              "repo": {
+                "type": "string",
+                "description": "Repo id of available."
+              }
+            }
+          },
+          "description": "Sorted by package."
+        }
+      }
+    },
+    "FactsMockDrift": {
+      "description": "Facts of mock.drift. The hash of this host is in hostFacts.current.",
+      "type": "object",
+      "required": [
+        "recorded"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "recorded": {
+          "$ref": "#/$defs/Digest",
+          "description": "The hash of the mock config and the macros in the manifest entry of the node."
+        }
+      }
+    },
+    "FactsUpstreamRelease": {
+      "description": "Facts of upstream.release.",
+      "type": "object",
+      "required": [
+        "current",
+        "upstream",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "current": {
+          "type": "string"
+        },
+        "upstream": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "github",
+            "fedora"
+          ]
+        },
+        "tag": {
+          "type": "string",
+          "description": "The upstream tag, for source github."
+        }
+      }
+    },
+    "FactsRetiredPublished": {
+      "description": "Facts of retired.published.",
+      "type": "object",
+      "required": [
+        "nvrs",
+        "rpms",
+        "sizeBytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "nvrs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "The NVRs of the retired package in latest, sorted."
+        },
+        "rpms": {
+          "type": "integer"
+        },
+        "sizeBytes": {
+          "type": "integer"
+        }
+      }
+    },
+    "AdvisoryList": {
+      "type": "object",
+      "required": [
+        "advisories",
+        "check"
+      ],
+      "properties": {
+        "advisories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Advisory"
+          }
+        },
+        "check": {
+          "type": "object",
+          "properties": {
+            "at": {
+              "$ref": "#/$defs/Time"
+            },
+            "by": {
+              "enum": [
+                "timer",
+                "human",
+                "ui",
+                "mcp"
+              ]
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "failed": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Problem"
+              }
+            },
+            "stale": {
+              "type": "boolean"
+            },
+            "outdated": {
+              "type": "boolean",
+              "description": "latest of a target differs from the digest of its result (check.outdated)."
+            },
+            "timer": {
+              "enum": [
+                "active",
+                "off",
+                "unknown"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "description": "One entry per code and target in check.json. A narrowed check replaces only its entries.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "at",
+                  "ok"
+                ],
+                "properties": {
+                  "code": {
+                    "$ref": "#/$defs/AdvisoryCode"
+                  },
+                  "target": {
+                    "$ref": "#/$defs/TargetId",
+                    "description": "Absent for upstream.release, which has one result for all targets."
+                  },
+                  "at": {
+                    "$ref": "#/$defs/Time"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "latest": {
+                    "$ref": "#/$defs/Digest",
+                    "description": "The digest of latest of the target that this result used."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Snapshot": {
+      "type": "object",
+      "description": "One OCI manifest: all files of one set and one target. The fields come from its annotations. The cache file snapshot.json of the local copy holds one Snapshot without local, served and gc.",
+      "required": [
+        "target",
+        "publish",
+        "digest",
+        "kind"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "store": {
+          "type": "string",
+          "description": "OCI package: <store.oci>/<set>-<target>."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "latest and the publish id."
+        },
+        "publish": {
+          "type": "string",
+          "description": "Publish id, e.g. p-20261103-1412-5e1."
+        },
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "parent": {
+          "$ref": "#/$defs/Digest",
+          "description": "Digest of the base snapshot. The first snapshot of a target has none."
+        },
+        "kind": {
+          "enum": [
+            "publish",
+            "restore",
+            "prune",
+            "resign",
+            "import",
+            "reseed"
+          ]
+        },
+        "setCommit": {
+          "$ref": "#/$defs/Commit",
+          "description": "The set commit of the publish."
+        },
+        "signer": {
+          "type": "object",
+          "required": [
+            "fingerprint"
+          ],
+          "description": "The key that signed the new RPMs of this snapshot.",
+          "properties": {
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9A-F]{40}$"
+            },
+            "keyId": {
+              "type": "string",
+              "description": "Key id in sign.keys, when the key is there."
+            }
+          }
+        },
+        "user": {
+          "type": "string",
+          "description": "The human who made the snapshot."
+        },
+        "host": {
+          "type": "string",
+          "description": "The host of the publish."
+        },
+        "created": {
+          "$ref": "#/$defs/Time"
+        },
+        "repoctl": {
+          "type": "string"
+        },
+        "rpms": {
+          "type": "integer",
+          "description": "All RPM files of the snapshot: the binary, source and debuginfo RPMs of the three repositories of the target."
+        },
+        "added": {
+          "type": "integer",
+          "description": "Binary RPMs that the parent does not hold."
+        },
+        "removed": {
+          "type": "integer",
+          "description": "Entries in removed[] of the RepoManifest."
+        },
+        "blobs": {
+          "type": "object",
+          "properties": {
+            "new": {
+              "type": "integer"
+            },
+            "known": {
+              "type": "integer"
+            },
+            "bytes": {
+              "type": "integer"
+            }
+          },
+          "description": "Blobs of the push: new (uploaded), known (already in the registry), bytes (uploaded)."
+        },
+        "local": {
+          "enum": [
+            "same",
+            "behind",
+            "unpushed",
+            "none"
+          ],
+          "description": "The local copy against this snapshot."
+        },
+        "served": {
+          "enum": [
+            "same",
+            "behind",
+            "unknown"
+          ],
+          "description": "The served tree against this snapshot."
+        },
+        "unattended": {
+          "type": "boolean"
+        },
+        "accepted": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "factsDigest",
+              "reason",
+              "user",
+              "host"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "factsDigest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 8
+              },
+              "user": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "The acceptances of this publish, from io.repoctl.advisories.accepted: the same fields as the journal event advisory.accepted."
+        },
+        "acceptances": {
+          "type": "array",
+          "description": "With --history: the acceptances of this publish from history[] of the RepoManifest of latest.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "factsDigest": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "held": {
+          "type": "array",
+          "description": "The held nodes of this publish: each keeps its build in the base (publish --hold).",
+          "items": {
+            "type": "object",
+            "required": [
+              "node",
+              "reason"
+            ],
+            "properties": {
+              "node": {
+                "$ref": "#/$defs/NodeId"
+              },
+              "nvr": {
+                "type": "string",
+                "description": "The NVR that the node keeps; absent when the base has no build of it."
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "trust": {
+          "type": "object",
+          "description": "The trust change of this publish: the fingerprints that the key file added and removed.",
+          "properties": {
+            "added": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9A-F]{40}$"
+              }
+            },
+            "removed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9A-F]{40}$"
+              }
+            }
+          }
+        },
+        "deleted": {
+          "type": "boolean",
+          "description": "With --history: gc deleted this snapshot. The fields come from history[] of the RepoManifest of latest."
+        },
+        "gc": {
+          "enum": [
+            "delete",
+            "keep"
+          ],
+          "description": "repo gc only: what gc does with this snapshot. The dry run gives the same value."
+        }
+      }
+    },
+    "SnapshotList": {
+      "type": "object",
+      "required": [
+        "target",
+        "snapshots"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "snapshots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Snapshot"
+          },
+          "description": "Newest first, along the parent chain of latest."
+        }
+      }
+    },
+    "SignerList": {
+      "type": "object",
+      "required": [
+        "keys"
+      ],
+      "properties": {
+        "current": {
+          "type": "string",
+          "description": "sign.key of the user on this host."
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/Signer"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "expires": {
+                    "$ref": "#/$defs/Time"
+                  },
+                  "deployments": {
+                    "type": "object",
+                    "description": "Per target: the record of keys/deployed.yaml that covers the target. A target without a record is absent. Gate 2 needs a record for each selected target that has a latest snapshot.",
+                    "propertyNames": {
+                      "$ref": "#/$defs/TargetId"
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/$defs/KeyDeployment"
+                    }
+                  },
+                  "rpms": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "integer"
+                    },
+                    "description": "Per target: RPMs in latest that this key signed."
+                  },
+                  "removals": {
+                    "type": "object",
+                    "description": "Removed keys only. Per target: the removal record. A target without a record is absent; sign ls shows it as clients: unconfirmed.",
+                    "propertyNames": {
+                      "$ref": "#/$defs/TargetId"
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/$defs/KeyRemoval"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NextStep"
+          },
+          "description": "sign add, sign deployed: the next steps."
+        }
+      }
+    },
+    "KeyDeployment": {
+      "type": "object",
+      "description": "A record of keys/deployed.yaml for one target: a human confirmed that all clients of the target have the release NVR with the key (a release record), or the key file with this sha256 that config management installed without a release package (a key file record).",
+      "required": [
+        "confirmedBy",
+        "at"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "release"
+          ]
+        },
+        {
+          "required": [
+            "keyfile",
+            "commit"
+          ]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "release": {
+          "type": "string",
+          "description": "NVR of the release package, e.g. slurm-release-26.05-2.el9."
+        },
+        "keyfile": {
+          "$ref": "#/$defs/Sha256",
+          "description": "Key file record: the sha256 of the key file that config management installed (repoctl sign keyfile --checksum)."
+        },
+        "commit": {
+          "$ref": "#/$defs/Commit",
+          "description": "Key file record: the set commit of that key file. Gate 2 reads the key file at this commit."
+        },
+        "confirmedBy": {
+          "type": "string",
+          "description": "Key id of the human who ran repoctl sign deployed. The set commit of the record has a valid signature of this key. It is not the key of the record, unless no other key was active."
+        },
+        "at": {
+          "$ref": "#/$defs/Time"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "KeyDeployments": {
+      "type": "object",
+      "description": "File schema of keys/deployed.yaml (repoctl schema deployments). repoctl writes one entry per key and target, sorted by key, then target. When two entries have one key and target, the entry with the newest at wins. The list removals holds the removal records.",
+      "required": [
+        "apiVersion",
+        "kind",
+        "deployments"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "apiVersion": {
+          "const": "repoctl/v1alpha1"
+        },
+        "kind": {
+          "const": "KeyDeployments"
+        },
+        "deployments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KeyDeploymentEntry"
+          }
+        },
+        "removals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KeyRemovalEntry"
+          },
+          "description": "repoctl sign removed: one entry per key and target, sorted by key, then target."
+        }
+      }
+    },
+    "KeyDeploymentEntry": {
+      "type": "object",
+      "description": "One entry of keys/deployed.yaml: a human confirmed that all clients of the target, and the keyring of its mirror line, have the key. A release record gives the release NVR with the key; a key file record gives the sha256 and the set commit of a key file that config management installed without a release package (signing.html#record-forms).",
+      "required": [
+        "key",
+        "target",
+        "fingerprint",
+        "confirmedBy",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Key id in sign.keys."
+        },
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$",
+          "description": "Full fingerprint. It must equal the fingerprint of the key in sign.keys."
+        },
+        "release": {
+          "type": "string",
+          "description": "Release record: NVR of the release package with the dist tag, e.g. slurm-release-26.05-3.el9."
+        },
+        "keyfile": {
+          "$ref": "#/$defs/Sha256",
+          "description": "Key file record: the sha256 of the key file, as repoctl sign keyfile --checksum prints it."
+        },
+        "commit": {
+          "$ref": "#/$defs/Commit",
+          "description": "Key file record: the set commit of the key file."
+        },
+        "confirmedBy": {
+          "type": "string",
+          "description": "Key id of the human who ran repoctl sign deployed."
+        },
+        "at": {
+          "$ref": "#/$defs/Time"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "release"
+          ]
+        },
+        {
+          "required": [
+            "keyfile",
+            "commit"
+          ]
+        }
+      ]
+    },
+    "KeyRemoval": {
+      "type": "object",
+      "description": "A removal record for one target: a human confirmed that config management removed the key from all clients of the target.",
+      "required": [
+        "confirmedBy",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "confirmedBy": {
+          "type": "string",
+          "description": "Key id of the human who ran repoctl sign removed."
+        },
+        "at": {
+          "$ref": "#/$defs/Time"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "KeyRemovalEntry": {
+      "type": "object",
+      "description": "One entry of removals in keys/deployed.yaml.",
+      "required": [
+        "key",
+        "target",
+        "fingerprint",
+        "confirmedBy",
+        "at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Key id in sign.keys, state removed."
+        },
+        "target": {
+          "$ref": "#/$defs/TargetId"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}$"
+        },
+        "confirmedBy": {
+          "type": "string",
+          "description": "Key id of the human who ran repoctl sign removed."
+        },
+        "at": {
+          "$ref": "#/$defs/Time"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "OnboardReport": {
+      "type": "object",
+      "required": [
+        "key",
+        "steps"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "n",
+              "name",
+              "ok"
+            ],
+            "properties": {
+              "n": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "next": {
+          "type": "string",
+          "description": "The command that the human runs next."
+        },
+        "signedSnapshots": {
+          "type": "array",
+          "description": "sign offboard of a revoked key: each snapshot in the registry with a file that the key signed, newest first.",
+          "items": {
+            "type": "object",
+            "required": [
+              "target",
+              "publish",
+              "digest",
+              "rpms",
+              "repomd",
+              "latest"
+            ],
+            "properties": {
+              "target": {
+                "$ref": "#/$defs/TargetId"
+              },
+              "publish": {
+                "type": "string",
+                "description": "Publish id of the snapshot."
+              },
+              "digest": {
+                "$ref": "#/$defs/Digest"
+              },
+              "user": {
+                "type": "string"
+              },
+              "host": {
+                "type": "string"
+              },
+              "rpms": {
+                "type": "integer",
+                "description": "RPMs in the snapshot that the key signed."
+              },
+              "repomd": {
+                "type": "boolean",
+                "description": "The key signed the repomd.xml.asc of the snapshot."
+              },
+              "latest": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "clientCommands": {
+          "type": "array",
+          "description": "sign offboard only: the commands that config management runs on each client, after the upgrade of the release package.",
+          "items": {
+            "type": "object",
+            "required": [
+              "os",
+              "command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "os": {
+                "type": "string",
+                "description": "The client OS of the command, e.g. EL9, EL10, both."
+              },
+              "command": {
+                "type": "string",
+                "description": "e.g. rpm -e gpg-pubkey-7c3a19f2."
+              },
+              "note": {
+                "type": "string",
+                "description": "e.g. EL10.1 and later."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
