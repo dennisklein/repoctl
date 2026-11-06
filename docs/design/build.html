@@ -20,7 +20,7 @@
 
 <h2 id="graph">Graph per target</h2>
 <p>repoctl makes one graph for each target, with the nodes <code>PKG@TARGET</code> (<a href="model.html#nodes">nodes</a>). An edge from A to B means: B needs a package of A to build. Both nodes of an edge are on the same target.</p>
-<p>For the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It uses a detached worktree of the commit, never <code>packages/PKG</code> (<a href="#run">the run</a>).</p>
+<p>For the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It uses a source clone of the commit, never <code>packages/PKG</code> (<a href="#source-clone">source clone</a>).</p>
 <p>repoctl then matches the requires of the SRPM against the Provides of the other set packages on the same target. <code>rpmspec</code> reads the Provides in the same chroot. Thus <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives the correct edges for each target.</p>
 <p>The SRPM cache <code>~/.cache/repoctl/srpm/</code> keeps each result. All sets share it, and it is safe to delete.</p>
 <ul>
@@ -98,7 +98,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <p>A package branch has the layout of Fedora dist-git. The spec, the patches and the small source files are in git. The large source archives are not: <code>.gitignore</code> names them, and the <dfn>sources file</dfn> <code>sources</code> gives the SHA-512 of each, one line per file.</p>
 <p>Each package branch of the story has this layout, also rocm-smi and slurm-singularity-exec, which do not come from Fedora. An in-tree package has it below its path. The sources file of slurm at <code>d42f66a</code>:</p>
 <pre><code class="language-plaintext">SHA512 (slurm-26.05.4.tar.bz2) = 9ad6e078a6be67d8ad1dbcdd7e07d97af56c30c2e058a49ce3db3073ee77e26a29d6c12843e65605f1223ccbbfe778895ae53e3826dbf7037ac97b9b0147ed7e</code></pre>
-<p>repoctl reads the <code>Source</code> and <code>Patch</code> lines of the spec in the chroot of the target, as <code>spectool</code> does: one file per line. It puts the files into one directory for <code>mock --buildsrpm --sources</code>.</p>
+<p>repoctl reads the <code>Source</code> and <code>Patch</code> lines of the spec in the chroot of the target, as <code>spectool</code> does: one file per line. It puts the files into the source clone of the node, next to the spec, and gives that directory to <code>mock --buildsrpm --sources</code> (<a href="#source-clone">source clone</a>).</p>
 <table class="compact">
 <thead><tr><th>File of a Source or Patch line</th><th>Where repoctl gets it</th><th>Check</th></tr></thead>
 <tbody>
@@ -308,14 +308,13 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <table class="compact">
 <thead><tr><th>Step</th><th>What it does</th></tr></thead>
 <tbody>
-<tr><td><code>srpm</code></td><td>Makes a detached git worktree of the commit of the node, with the full history that rpmautospec reads. Builds the SRPM (<code>mock --buildsrpm</code>).</td></tr>
+<tr><td><code>srpm</code></td><td>Makes the source clone of the commit of the node, with the full history that rpmautospec reads, and puts the sources into it (<a href="#source-clone">source clone</a>). Builds the SRPM (<code>mock --buildsrpm</code>).</td></tr>
 <tr><td><code>rpm</code></td><td>Builds the SRPM of step srpm (<code>mock --rebuild</code>). <code>artifact.added</code> records the sha256 of that SRPM. The soname check runs at the end of the step (<a href="#soname">soname check</a>).</td></tr>
 <tr><td><code>stage</code></td><td>Copies the RPMs into the staging and runs <code>createrepo_c --update</code>, so that the next node sees them. The node becomes ok after the <code>staging.updated</code> event of this step. Only then does a dependent start.</td></tr>
 </tbody>
 </table>
-<p>Step srpm makes the worktree in the work directory of the run. Its source is the repository of the package: the set repository, or the bare clone of an external package. An in-tree package gets a worktree of the set repository at its commit.</p>
 <p>Step stage runs for one node of a target at a time, under an in-process lock of the run and the target. <code>createrepo_c</code> writes the new repodata into a temporary directory, and repoctl renames it into place. Thus a mock that reads the staging through <code>--addrepo</code> sees the old or the new repodata, never a part of it.</p>
-<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/PKG</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the worktrees in it at the end of the run.</p></aside>
+<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/PKG</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the source clones in it at the end of the run.</p></aside>
 <p>Each mock call gets:</p>
 <ul>
   <li><code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots (<a href="#mock">mock roots</a>);</li>
@@ -323,6 +322,13 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <li>the macros and plugins of the target (<a href="config.html#targets">targets</a>);</li>
   <li><code>--addrepo</code> with the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>.</li>
 </ul>
+<h3 id="source-clone">Source clone</h3>
+<p>Step srpm makes the <dfn>source clone</dfn> of the node in the work directory of the run. It runs <code>git clone --local --no-checkout</code> of the package repository, then a detached checkout of the node commit. The package repository is the set repository, or the bare clone of an external package.</p>
+<p>repoctl puts the sources of the node into the source clone (<a href="#sources">sources</a>) and gives its root to <code>mock --buildsrpm --sources</code>. <code>--local</code> hard-links the git objects on one file system, so a source clone needs little disk.</p>
+<aside class="callout rule"><p class="callout-title">Rule: the source clone is a full clone</p><p>The rpmautospec plugin of mock runs before the SRPM build. It computes <code>%autorelease</code> and <code>%autochangelog</code> only when the sources directory has a <code>.git</code> directory with the full history of the package. Else it does nothing and writes no message, and the fallback macros give release 1.</p><p>Thus the source clone is never a git worktree, because the <code>.git</code> of a worktree is a file. It is never a shallow clone. It is never a clone with <code>--shared</code>, because a human can change the objects of the source repository during the run.</p></aside>
+<p>An in-tree package is a path below the root of the set repository. repoctl gives that path in the source clone to <code>--sources</code>. The path has no <code>.git</code>, so the rpmautospec plugin does nothing for it.</p>
+<p>Thus the spec of an in-tree package has a plain <code>Release</code> and <code>%changelog</code>, and a human raises the release with each change. An in-tree spec with <code>%autorelease</code> or <code>%autochangelog</code> gives <code>source.in-tree-autorelease</code>. It is a warning in plan and graph, and a failed node in build (class srpm).</p>
+
 
 <h3 id="jobs">Jobs and order</h3>
 <p>The job count is the maximum number of nodes in mock at the same time. It comes from <code>-j</code>, then <code>REPOCTL_JOBS</code>, then <code>jobs</code> in the user config, else 2 (<a href="config.html#user-config">user config</a>). When more nodes are ready than slots are free, the node with the most dependents starts first, then the oldest.</p>
@@ -688,7 +694,7 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
   <li>repoctl adds the commit on HEAD: the local branch of the package (<a href="cli.html#local-branch">local branch</a>), or the detached HEAD of a shared branch of another worktree. After the pin, the worktree is in-sync at the new commit.</li>
   <li>All or nothing: repoctl checks every PKG before the first commit. When a check fails, it makes no commit and does not write the lock. When a commit fails, repoctl resets each branch of this call to its lock commit. Thus the same command again after a failure gives one new release, not two.</li>
   <li>repoctl fetches the remote branch first and warns when it has new commits. It never pushes: the Next lines give the push of each package branch and the commit of the lock.</li>
-  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A PKG that names one stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before any commit. A glob that matches one leaves it out, with the same code as a warning. To build it again, change a file below its path, for example its changelog, and commit to the set branch.</li>
+  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A PKG that names one stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before any commit. A glob that matches one leaves it out, with the same code as a warning. To build it again, raise the <code>Release</code> in its spec, add a <code>%changelog</code> entry, and commit to the set branch (<a href="#source-clone">source clone</a>).</li>
   <li><code>--dry-run</code> shows the new NVRs and commits nothing.</li>
 </ul>
 <pre class="term">$ repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"

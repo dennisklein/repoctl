@@ -12,7 +12,7 @@
   <li>Eight phases, 0 to 7. Each phase gives a tool that works on its own and ends with a "done when" in the terms of the data story.</li>
   <li>The bash-era scripts stay on the set branches until the first publish with repoctl.</li>
   <li>Each requirement gives a value from the data story and a design limit for scale, time or disk.</li>
-  <li>Tests V1 to V34 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
+  <li>Tests V1 to V36 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
   <li>Each open question names the phase that needs the answer.</li>
 </ul>
 
@@ -30,7 +30,7 @@
 <rect class="box" x="488" y="24" width="208" height="72" rx="8"/>
 <text class="t-title" x="504" y="48">2 Build</text>
 <text class="t-small t-muted" x="504" y="68">plan, staging, manifest</text>
-<text class="t-small t-mono" x="504" y="86">V6 V19 V20 V22 V23</text>
+<text class="t-small t-mono" x="504" y="86">V6 V19 V20 V22 V23 V35 V36</text>
 <rect class="box" x="720" y="24" width="208" height="72" rx="8"/>
 <text class="t-title" x="736" y="48">3 Publish</text>
 <text class="t-small t-muted" x="736" y="68">GHCR, mirror job, gates</text>
@@ -279,7 +279,7 @@
 <tr id="v3"><td>V3</td><td>Push with a fine-grained token.</td><td>Shows if GHCR accepts it. If not, the docs say "classic token".</td><td>3</td></tr>
 <tr id="v4"><td>V4</td><td>Fedora host: mock verify root for EL9 and EL10, bind_mount, <code>rpmkeys --checksig</code>, <code>dnf makecache</code> with <code>repo_gpgcheck=1</code>.</td><td>Pass with the right key. Fail with a missing key.</td><td>3</td></tr>
 <tr id="v5"><td>V5</td><td><code>rpmsign --resign</code> on Fedora (rpm 6) of v4 packages. Install on EL9 and EL10.</td><td>One v4 signature. EL9 and EL10 install the packages.</td><td>3</td></tr>
-<tr id="v6"><td>V6</td><td>rpmautospec on an in-tree package in the set repo: which commits it counts.</td><td>The release goes up for a commit on the path. The record notes the effect of other set commits.</td><td>2</td></tr>
+<tr id="v6"><td>V6</td><td>Build an in-tree package with a plain <code>Release</code> from a source clone of the set repository. Then the same spec with <code>%autorelease</code>.</td><td>The first build gives the release of the spec. The second gives <code>source.in-tree-autorelease</code>, and no SRPM with release 1.</td><td>2</td></tr>
 <tr id="v7"><td>V7</td><td>An RPM and a <code>repomd.xml.asc</code>, signed by a key that expired after the signature. Check them on an EL9 client, an EL10 client, the Fedora signer host (<code>rpmkeys --checksig</code>) and the mirror host (<code>gpgv</code>, <code>rpmkeys</code>).</td><td>EL10 refuses both (F6). The test gives the result of EL9, Fedora and the mirror host. <code>repoctl repo verify</code> accepts the RPM with <code>sign.expired-signer</code>. After <code>repo resign</code> with a valid key, all hosts accept it (<a href="signing.html#after-expiry">after the expiry</a>).</td><td>3</td></tr>
 <tr id="v8"><td>V8</td><td>Time of <code>repo resign</code> for a full target (about 300 RPMs, debuginfo included) with a YubiKey, touch policy cached.</td><td>A number for the estimate in the resign summary.</td><td>3</td></tr>
 <tr id="v9"><td>V9</td><td>Signer probe with pinentry-gnome3 and pinentry-curses. Then the probe of a UI Review load with a YubiKey.</td><td>One PIN prompt at the start, none in the sign step. The touch count per Review load decides when the UI probes.</td><td>3, 7</td></tr>
@@ -310,6 +310,8 @@
 <tr id="v33"><td rowspan="2">V33</td><td>Client bootstrap of a new Rocky 9 and Rocky 10 client from a served tree: the root key file with a pinned sha256, <code>rpmkeys --checksig</code> and <code>dnf install</code> of the root <code>slurm-release.rpm</code>, then <code>dnf makecache</code>.</td><td>The client reads the repository with <code>repo_gpgcheck=1</code>.</td><td rowspan="2">3</td></tr>
 <tr><td>Then the same with a wrong pin.</td><td>The wrong pin stops before <code>rpm --import</code>.</td></tr>
 <tr id="v34"><td>V34</td><td>Fedora host: <code>dnf repoclosure --newest</code> with <code>--repofrompath</code> on a local el9 and el10 repo plus the Rocky and EPEL closure repos of each target. Repeat in <code>rocky:9</code> and <code>rocky:10</code>. Add one RPM with a requirement that no repo provides.</td><td>The same broken requirements on the Fedora host and in the EL container, and the added RPM is in both lists. If not, the check runs repoclosure in the verify root.</td><td>5</td></tr>
+<tr id="v35"><td>V35</td><td><code>mock --buildsrpm</code> after an empty commit, with a git worktree, a shallow clone and a source clone in <code>--sources</code>.</td><td>Only the source clone gives the release plus one. The worktree and the shallow clone give release 1, and the plugin writes no message.</td><td>2</td></tr>
+<tr id="v36"><td>V36</td><td>For each package of the import: the release from the clone of the bash scripts and from the source clone, with <code>rpmautospec calculate-release</code>.</td><td>The same release for each package. git ignores <code>--depth</code> for a local path, so the clones of the bash scripts have the full history.</td><td>2</td></tr>
 </tbody>
 </table>
 
@@ -324,7 +326,7 @@
 <tr><td>The mirror job runs every 5 minutes. A shorter interval only adds HEAD requests. Clients read a new <code>repomd.xml</code> after <code>metadata_expire</code> (one hour).</td><td><a href="publish.html#mirror">mirror job</a></td><td>—</td></tr>
 <tr><td>GHCR has no tag compare-and-swap. The race window between the checks of latest in step 1 and step 7 is acceptable, because the team coordinates in its own channel.</td><td><a href="publish.html#admins">two admins</a></td><td>—</td></tr>
 <tr><td>The GHCR packages are public, so the mirror job pulls without a token. A push needs a classic token with <code>write:packages</code> and a team with write access.</td><td><a href="publish.html#registry">registry access</a></td><td>V2, V3</td></tr>
-<tr><td>rpmautospec raises the release for each commit, also for an empty one. For an in-tree package, V6 shows which commits count.</td><td><a href="build.html#rebuild">rebuild</a></td><td>V19, V6</td></tr>
+<tr><td>rpmautospec raises the release for each commit of a package branch, also for an empty one, when the sources directory is a full clone. It does nothing for an in-tree package or a git worktree.</td><td><a href="build.html#source-clone">source clone</a></td><td>V19, V35, V6</td></tr>
 <tr><td>go-clikit gives the span id (<code>Span.TraceContext()</code>), the doctor format and the progress log. repoctl needs no change in go-clikit for the journal.</td><td><a href="contract.html#journal">journal</a></td><td>—</td></tr>
 <tr><td>The UI agent is Claude Code (<code>agent: {command: claude}</code>). repoctl reads its stream-json output.</td><td><a href="agents.html#agent-config">agent config</a></td><td>—</td></tr>
 <tr><td>mock exits with 30 when <code>dnf builddep</code> fails.</td><td>—</td><td>V20</td></tr>

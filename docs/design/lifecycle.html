@@ -466,7 +466,7 @@ Next: git push origin munge/slurm-26.11 pmix/slurm-26.11 pmix/slurm-26.11-v4 …
 <li>Run the same command without <code>--dry-run</code>. repoctl makes one empty commit per package branch and pins it. Repository: each package branch.</li>
 <li>Push each package branch with the Next lines of the command.</li>
 <li>Run <code>git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</code>. Repository: the set branch.</li>
-<li>To build an in-tree package again too, change a file below its path, for example its changelog. Commit it to the set branch.</li>
+<li>To build an in-tree package again too, raise the <code>Release</code> in its spec and add a <code>%changelog</code> entry. Commit it to the set branch.</li>
 <li>Run <code>repoctl plan</code>. Expect: each node has the reason <code>rebuild</code> on each of its targets.</li>
 <li>Run <code>repoctl build</code>, then <code>repoctl publish</code>.</li>
 </ol>
