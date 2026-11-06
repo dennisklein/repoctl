@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gsi-hpc.github.io/repoctl/schema/v1alpha1/lock.json",
+  "title": "repoctl.lock",
+  "description": "The pinned commit of each package with a branch (config.html#lock). Only pin, rebuild, init and migrate write it. An in-tree package has no line.",
+  "type": "object",
+  "required": ["apiVersion", "packages"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "const": "repoctl/v1alpha1"
+    },
+    "packages": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Entry"
+      }
+    }
+  },
+  "$defs": {
+    "Entry": {
+      "type": "object",
+      "required": ["branch", "commit"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "description": "git.url of an external package, as repoctl.yaml gives it."
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Full git commit id, 40 hex digits."
+        }
+      }
+    }
+  }
+}

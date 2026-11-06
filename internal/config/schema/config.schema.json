@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gsi-hpc.github.io/repoctl/schema/v1alpha1/config.json",
+  "title": "repoctl.yaml",
+  "description": "The set config: what to build. It is committed on the set branch (config.html#set-config). repoctl reads apiVersion and minRepoctl before the other keys.",
+  "type": "object",
+  "required": ["apiVersion", "name", "repo", "targets"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "const": "repoctl/v1alpha1"
+    },
+    "name": {
+      "$ref": "#/$defs/Name",
+      "description": "Set id: in all local paths and OCI package names. It never changes after the first publish."
+    },
+    "minRepoctl": {
+      "type": "string",
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+([-+].*)?$",
+      "description": "The oldest repoctl release that can work on the set. An older binary stops with contract.newer-file."
+    },
+    "repo": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/Name",
+          "description": "Gives the repositories NAME, NAME-source and NAME-debuginfo."
+        },
+        "debuginfo": {
+          "type": "boolean",
+          "default": true
+        },
+        "source": {
+          "type": "boolean",
+          "default": true
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The URL that the clients use; needed to publish."
+        }
+      }
+    },
+    "store": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "oci": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The registry path. One OCI package STORE/SET-TARGET per target; needed to publish."
+        }
+      }
+    },
+    "sign": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "type": "array",
+          "description": "The keys that the clients trust; repoctl sign add writes them.",
+          "items": {
+            "$ref": "#/$defs/Key"
+          }
+        },
+        "release": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keyfile": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The name of the key file in the release package."
+            }
+          }
+        },
+        "checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "key_expiry_warn": {
+              "$ref": "#/$defs/Duration",
+              "description": "Default 180d."
+            },
+            "key_min_validity": {
+              "$ref": "#/$defs/Duration",
+              "description": "Default 30d. Gate 1 refuses a signer that expires sooner."
+            }
+          }
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "snapshots": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Rules for repoctl repo gc.",
+          "properties": {
+            "keep": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            },
+            "keep_days": {
+              "$ref": "#/$defs/Duration",
+              "description": "Default 90d."
+            },
+            "keep_removed": {
+              "$ref": "#/$defs/Duration",
+              "description": "Default 1y."
+            }
+          }
+        }
+      }
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One mock chroot each.",
+      "items": {
+        "$ref": "#/$defs/Target"
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "git": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "remote": {
+              "type": "string",
+              "minLength": 1,
+              "default": "origin",
+              "description": "The remote of the package branches."
+            }
+          }
+        }
+      }
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Package"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "Directories with set-local skills.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "Name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]*$",
+      "description": "Lowercase letters, digits, . and -."
+    },
+    "PackageId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]*$"
+    },
+    "Duration": {
+      "description": "A Go duration (10m, 1h30m) or a number of days, weeks or years (90d, 2w, 1y). 0 is zero.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(0|[0-9]+[dwy]|([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$"
+        },
+        {
+          "const": 0
+        }
+      ]
+    },
+    "Key": {
+      "type": "object",
+      "required": ["id", "fingerprint", "state"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The public key file in the set, for example keys/d.klein.asc; needed to publish."
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{40}([0-9A-Fa-f]{24})?$",
+          "description": "The full OpenPGP fingerprint, hex, no spaces."
+        },
+        "state": {
+          "enum": ["active", "retiring", "removed", "revoked"]
+        }
+      }
+    },
+    "Target": {
+      "type": "object",
+      "required": ["id", "mock", "plugins"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Name",
+          "description": "The target id. It never changes after the first publish."
+        },
+        "mock": {
+          "type": "string",
+          "pattern": "-x86_64$",
+          "description": "The mock config name. This release supports only x86_64 (config.unsupported)."
+        },
+        "plugins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contains": {
+            "const": "rpmautospec"
+          },
+          "description": "Must contain rpmautospec: without it, a rebuild commit gives no new NVR."
+        },
+        "macros": {
+          "type": "array",
+          "description": "Macro files in the set, in list order.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The client path below repo.url. Default: the target id."
+        },
+        "repos": {
+          "type": "array",
+          "description": "Extra RPM repos for build dependencies (mock --addrepo).",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "state": {
+          "enum": ["active", "retired"],
+          "default": "active"
+        },
+        "closure_repos": {
+          "type": "array",
+          "description": "The RPM repos that the clients of the target have.",
+          "items": {
+            "type": "object",
+            "required": ["id", "url"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "Upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The input of repoctl upstream.",
+      "properties": {
+        "github": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "description": "The GitHub repository OWNER/REPO."
+        },
+        "tags": {
+          "type": "string",
+          "description": "The tag filter, a regular expression."
+        },
+        "version": {
+          "type": "string",
+          "description": "A regular expression whose capture groups, joined with ., give the version of a tag."
+        },
+        "frozen": {
+          "type": "string",
+          "description": "The frozen version of the stream."
+        },
+        "fedora": {
+          "type": "string",
+          "description": "The Fedora package name."
+        }
+      }
+    },
+    "Package": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/PackageId",
+          "description": "The worktree name below packages/ and the PKG of PKG@TARGET."
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The package branch."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "^(/|\\.\\.(/|$))"
+          },
+          "description": "The path of an in-tree package, relative to the set directory."
+        },
+        "git": {
+          "type": "object",
+          "required": ["url"],
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string",
+              "minLength": 1,
+              "description": "An external repository."
+            }
+          }
+        },
+        "targets": {
+          "type": "array",
+          "description": "The targets of this package. Default: all.",
+          "items": {
+            "$ref": "#/$defs/Name"
+          }
+        },
+        "role": {
+          "enum": ["release"],
+          "description": "release: the release package. At most one package, with path."
+        },
+        "upstream": {
+          "$ref": "#/$defs/Upstream"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Free text for humans and skills."
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["branch"],
+          "not": {
+            "required": ["path"]
+          }
+        },
+        {
+          "required": ["path"],
+          "not": {
+            "anyOf": [
+              {
+                "required": ["branch"]
+              },
+              {
+                "required": ["git"]
+              }
+            ]
+          }
+        }
+      ],
+      "if": {
+        "required": ["role"]
+      },
+      "then": {
+        "required": ["path"]
+      }
+    }
+  }
+}

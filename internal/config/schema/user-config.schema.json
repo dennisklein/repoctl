@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gsi-hpc.github.io/repoctl/schema/v1alpha1/user-config.json",
+  "title": "repoctl user config",
+  "description": "The values of one human on one host, ~/.config/repoctl/config.yaml (config.html#user-config). It never says what to build: a key of repoctl.yaml is config.unknown-key.",
+  "type": "object",
+  "$ref": "#/$defs/Keys",
+  "properties": {
+    "sets": {
+      "type": "object",
+      "description": "The same keys for one set, by set name. They win over the top-level keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9.-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Settings"
+      }
+    }
+  },
+  "unevaluatedProperties": false,
+  "$defs": {
+    "Duration": {
+      "description": "A Go duration (10m, 1h30m) or a number of days, weeks or years (90d, 2w, 1y). 0 is zero.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(0|[0-9]+[dwy]|([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+)$"
+        },
+        {
+          "const": 0
+        }
+      ]
+    },
+    "Settings": {
+      "type": "object",
+      "description": "The keys of one set below sets.",
+      "$ref": "#/$defs/Keys",
+      "unevaluatedProperties": false
+    },
+    "Keys": {
+      "properties": {
+        "jobs": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "The maximum number of nodes in mock at the same time."
+        },
+        "lock_wait": {
+          "$ref": "#/$defs/Duration",
+          "description": "How long a command waits for a busy set lock. Default 0."
+        },
+        "progress": {
+          "enum": ["auto", "tree", "counter", "plain", "none"],
+          "default": "auto"
+        },
+        "sign": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "The signing key of this human: an id from sign.keys or a full fingerprint."
+            },
+            "gpg_name": {
+              "type": "string",
+              "deprecated": true,
+              "description": "Alias of sign.key."
+            },
+            "backend": {
+              "enum": ["gpg"],
+              "default": "gpg"
+            },
+            "gpg": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "homedir": {
+                  "type": "string",
+                  "description": "The GnuPG home directory. Default GNUPGHOME, else ~/.gnupg."
+                }
+              }
+            }
+          }
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "listen": {
+              "type": "string",
+              "default": "127.0.0.1:0",
+              "description": "The loopback address of the web UI."
+            },
+            "open": {
+              "type": "boolean",
+              "default": true,
+              "description": "repoctl ui opens a browser."
+            }
+          }
+        },
+        "agent": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "The local agent of the agent buttons."
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "timeout": {
+              "$ref": "#/$defs/Duration",
+              "description": "The time limit of one agent run. Default 10m."
+            }
+          }
+        },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "timeout": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "The time limits of a build step, of a mock child without output, and of a whole run; 0 is no limit.",
+              "properties": {
+                "srpm": {
+                  "$ref": "#/$defs/Duration"
+                },
+                "rpm": {
+                  "$ref": "#/$defs/Duration"
+                },
+                "stage": {
+                  "$ref": "#/$defs/Duration"
+                },
+                "idle": {
+                  "$ref": "#/$defs/Duration"
+                },
+                "run": {
+                  "$ref": "#/$defs/Duration"
+                }
+              }
+            }
+          }
+        },
+        "mock": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "nosync": {
+              "type": "boolean",
+              "default": false
+            },
+            "tmpfs": {
+              "type": "string",
+              "pattern": "^[0-9]+[kmgKMG]?$",
+              "description": "A size, for example 32g: the mock root is a tmpfs of this maximum size."
+            }
+          }
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keep_runs": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 50
+            },
+            "keep_publishes": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 100
+            },
+            "keep_checks": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 30
+            },
+            "keep_agent": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 50
+            }
+          }
+        }
+      }
+    }
+  }
+}

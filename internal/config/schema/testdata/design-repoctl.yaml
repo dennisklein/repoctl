@@ -1,0 +1,90 @@
+apiVersion: repoctl/v1alpha1
+name: slurm-26.05                  # set id: in all local paths and OCI package names
+minRepoctl: 0.4.0                  # optional: an older repoctl stops on this set
+
+repo:
+  name: slurm                      # gives slurm, slurm-source, slurm-debuginfo
+  debuginfo: true
+  source: true
+  url: https://repo.example.org/slurm-26.05   # what the clients use; needed to publish
+
+store:
+  oci: ghcr.io/gsi-hpc/slurm-repo  # one OCI package SET-TARGET per target; needed to publish
+
+sign:                              # trusted keys; "repoctl sign add" writes them
+  keys:
+    - id: d.klein
+      file: keys/d.klein.asc
+      fingerprint: 4E7A0C93B85D21F69A0E3C47D1B266F041D80B6E
+      state: active
+    - id: hpc-repo
+      file: keys/hpc-repo.asc
+      fingerprint: 9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2
+      state: retiring
+  release:
+    keyfile: RPM-GPG-KEY-slurm     # key file in the release package
+  checks:
+    key_expiry_warn: 180d
+    key_min_validity: 30d          # gate 1 refuses a signer that expires sooner
+
+retention:
+  snapshots: {keep: 10, keep_days: 90d, keep_removed: 1y}   # rules for "repoctl repo gc"
+
+targets:                           # one mock chroot each
+  - id: el9
+    mock: rocky+epel-9-x86_64
+    plugins: [rpmautospec]         # required: a rebuild commit needs it
+    macros: [rpm/macros]
+    path: el9                      # client path below repo.url
+  - id: el10
+    mock: rocky+epel-10-x86_64
+    plugins: [rpmautospec]
+    macros: [rpm/macros]
+    path: el10
+    repos:                         # extra RPM repos for build dependencies (mock --addrepo)
+      - https://repo.example.org/el10/extra
+
+defaults:
+  git:
+    remote: origin                 # the package branches are in this repository
+
+packages:
+  - id: munge
+    branch: munge/slurm-26.05
+    upstream: {github: dun/munge, fedora: munge}
+  - id: ucx
+    branch: ucx/slurm-26.05
+    upstream: {github: openucx/ucx, fedora: ucx}
+  - id: rocm-smi
+    git: {url: https://git.gsi.de/SDE/packages/rocm-smi.git}   # external repository
+    branch: slurm-26.05
+    targets: [el9]                 # build only for these targets
+    upstream: {github: ROCm/rocm-systems, tags: '^therock-[0-9]'}
+    notes: Follow the TheRock stream. rocm-X.Y.Z is frozen at 7.2.4.
+  - id: pmix
+    branch: pmix/slurm-26.05
+    upstream: {github: openpmix/openpmix, tags: '^v6', fedora: pmix}
+  - id: pmix_v5
+    branch: pmix/slurm-26.05-v5
+    upstream: {github: openpmix/openpmix, tags: '^v5'}
+  - id: pmix_v4
+    branch: pmix/slurm-26.05-v4
+    upstream: {github: openpmix/openpmix, tags: '^v4', frozen: 4.2.9}
+    notes: Upstream 4.x is frozen at 4.2.9.
+  - id: prrte
+    branch: prrte/slurm-26.05
+    upstream: {github: openpmix/prrte, fedora: prrte}
+  - id: slurm
+    branch: slurm/slurm-26.05
+    upstream: {github: SchedMD/slurm, tags: '^slurm-', version: '^slurm-(\d+)-(\d+)-(\d+)', fedora: slurm}
+  - id: openmpi
+    branch: openmpi/slurm-26.05
+    upstream: {github: open-mpi/ompi, tags: '^v5\.', fedora: openmpi}
+  - id: slurm-singularity-exec
+    branch: slurm-singularity-exec/slurm-26.05
+    upstream: {github: GSI-HPC/slurm-singularity-exec}
+  - id: slurm-release
+    path: packages/slurm-release   # in-tree: no branch, a plain Release in its spec
+    role: release                  # "repoctl release write" writes its key file and .repo files
+
+skills: [.claude/skills]           # optional set-local skills; they can only add
