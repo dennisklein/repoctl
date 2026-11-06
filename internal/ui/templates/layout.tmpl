@@ -1,0 +1,130 @@
+{{/* The shell of every page: top bar, side bar, main, modal, drawer and toasts.
+     No inline script or style: the Content-Security-Policy refuses both. */}}
+{{define "layout"}}<!doctype html>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{.Title}}</title>
+<meta name="csrf-token" content="{{.CSRF}}">
+<meta name="htmx-config" content='{{htmxConfig}}'>
+{{range css .Content}}<link rel="stylesheet" href="{{static .}}">
+{{end}}<script src="{{static "htmx.min.js"}}" defer></script>
+<script src="{{static "htmx-ext-sse.js"}}" defer></script>
+<script src="{{static "shell.js"}}" defer></script>
+{{if eq .Content "page-graph"}}<script src="{{static "graph.js"}}" defer></script>{{end}}
+</head>
+{{if .Bare}}<body class="bare">
+<main class="main" id="main">{{include .Content .}}</main>
+</body>
+{{else}}<body{{with .Set}} data-set="{{.Name}}"{{end}} hx-ext="sse" sse-connect="{{.Events}}" hx-headers='{{.CSRFHeaders}}'>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+{{template "topbar" .}}
+{{template "sidebar" .}}
+<main class="main" id="main">
+<div class="banner err offline" role="alert"><div class="grow"><b>Offline.</b> <span data-why>The connection to repoctl ui was lost. The page shows old data.</span> Live parts are dimmed. The page tries again every 5 s.</div>
+  <button class="btn btn-sm" type="button" data-reload>Reload</button></div>
+{{with .Banner}}<div class="banner warn" role="status"><div class="grow"><b>This server runs an old binary.</b> {{.}}. It starts no build, publish or agent (<span class="code-sub">host.stale-server</span>). Restart it: <code>repoctl ui --stop &amp;&amp; repoctl ui</code></div></div>{{end}}
+{{include .Content .}}
+{{with .AgentOff}}<p class="ui-note agent-off">{{.}} See <a href="/doctor">Doctor</a>.</p>{{end}}
+</main>
+</div>
+<div id="modal"></div>
+<aside id="drawer" hidden></aside>
+<div class="toasts" id="toasts" aria-live="polite" sse-swap="toast" hx-swap="beforeend"></div>
+<dialog class="dlg help-dlg" id="help" aria-labelledby="help-t">
+  <header><h2 id="help-t">Keys</h2></header>
+  <div class="body"><dl class="kv">
+    <dt><kbd>g</kbd> <kbd>o</kbd></dt><dd>Overview</dd><dt><kbd>g</kbd> <kbd>g</kbd></dt><dd>Graph</dd>
+    <dt><kbd>g</kbd> <kbd>r</kbd></dt><dd>Runs</dd><dt><kbd>g</kbd> <kbd>p</kbd></dt><dd>Packages</dd>
+    <dt><kbd>g</kbd> <kbd>a</kbd></dt><dd>Advisories</dd><dt><kbd>g</kbd> <kbd>k</kbd></dt><dd>Signing</dd>
+    <dt><kbd>g</kbd> <kbd>s</kbd></dt><dd>All sets</dd><dt><kbd>/</kbd></dt><dd>Jump to</dd><dt><kbd>?</kbd></dt><dd>These keys</dd>
+  </dl><p class="muted">No key starts a build, a cancel or a publish.</p></div>
+  <footer><button class="btn" type="button" data-close-dialog>Close</button></footer>
+</dialog>
+</body>
+{{end}}</html>
+{{end}}
+
+{{define "topbar"}}<header class="topbar">
+  <a class="icon-btn nav-toggle" href="#nav" aria-controls="nav" aria-expanded="false" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></a>
+  <a class="brand" href="/" aria-label="repoctl: all sets"><span class="brand-mark" aria-hidden="true">rc</span><span class="brand-name">repoctl</span><small>ui</small></a>
+  {{with .Set}}<details class="set-menu" hx-get="/-/frag/set-menu?set={{q .Name}}" hx-trigger="toggle once" hx-target="find .set-pop" hx-swap="innerHTML">
+    <summary class="set-switch" aria-label="Switch set"><span class="dot d-none" aria-hidden="true"></span>{{.Name}}<svg viewBox="0 0 24 24" class="caret" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="set-pop" sse-swap="sets" hx-swap="innerHTML"></div>
+  </details>
+  <label class="jump"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr-only">Jump to</span>
+    <input type="search" name="q" placeholder="Jump to a package, node, run or page" autocomplete="off"
+      hx-get="{{setURL .Name "/-/frag/jump"}}" hx-trigger="input changed delay:150ms" hx-target="#jump-results"><kbd>/</kbd></label>
+  <div id="jump-results" class="jump-results"></div>{{end}}
+  <span class="spacer"></span>
+  {{with .Chip}}{{template "chip" .}}{{end}}
+  <span class="live" role="status" title="Live updates"><span class="dot" aria-hidden="true"></span><span class="t">live</span></span>
+  <span class="who">{{.Who}}</span>
+  <button class="icon-btn" type="button" data-help aria-label="Keyboard shortcuts (?)">?</button>
+  <button class="icon-btn" type="button" data-theme-toggle aria-label="Theme: {{or .Theme "auto"}}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 010 18z" fill="currentColor"/></svg></button>
+</header>{{end}}
+
+{{define "chip"}}{{if .ID}}<a class="run-chip" id="run-chip" href="{{.Href}}" sse-swap="chip" hx-swap="outerHTML" title="{{.Title}}">
+    <span class="spin" aria-hidden="true"></span><span class="id">{{shortRun .ID}}</span><span class="n">{{if .Publish}}publish{{else}}{{.Done}}/{{.Total}}<span class="w"> builds</span>{{end}}{{if .Failed}} <span class="sep">·</span> <span class="bad">{{.Failed}} failed</span>{{end}}<span class="el"> <span class="sep">·</span> <span data-since="{{.Since}}"></span></span></span><span class="sr-only">: run in progress</span></a>{{else}}<span id="run-chip" class="run-chip-none" sse-swap="chip" hx-swap="outerHTML"></span>{{end}}{{end}}
+
+{{define "nav-runs"}}{{.}}{{end}}
+
+{{define "sidebar"}}<nav class="sidebar" id="nav" aria-label="Navigation">
+{{with .Set}}{{$s := .Name}}
+  <div class="nav-label">Set <span class="set-name">{{.Name}}</span></div>
+  <a class="nav-item" href="{{setURL $s "/"}}" data-key="o"{{if eq $.Nav "overview"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+  <a class="nav-item" data-domain="adv" href="{{setURL $s "/advisories"}}" data-key="a"{{if eq $.Nav "advisories"}} aria-current="page"{{end}}><svg class="dom" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.6 14.4V2 M3.6 2.6h8.6l-2 3 2 3H3.6"/></svg>Advisories{{with $.NavAdv}}<span class="count attn">{{.}}</span>{{end}}</a>
+  <div class="nav-label" data-domain="build">Build</div>
+  <a class="nav-item" data-domain="build" href="{{setURL $s "/graph"}}" data-key="g"{{if eq $.Nav "graph"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/></svg>Graph</a>
+  <a class="nav-item" data-domain="build" href="{{setURL $s "/plan"}}"{{if eq $.Nav "plan"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5L7.5 11M4 18h3"/></svg>Plan</a>
+  <a class="nav-item" data-domain="build" href="{{setURL $s "/runs"}}" data-key="r"{{if eq $.Nav "runs"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Runs<span class="count hot" sse-swap="nav-runs">{{$.NavRuns}}</span></a>
+  <a class="nav-item" data-domain="build" href="{{setURL $s "/packages"}}" data-key="p"{{if eq $.Nav "packages"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>Packages</a>
+  <a class="nav-item" data-domain="build" href="{{setURL $s "/upstream"}}"{{if eq $.Nav "upstream"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Upstream</a>
+  <div class="nav-label" data-domain="publish">Repository</div>
+  {{range .Targets}}<a class="nav-item" data-domain="publish" href="{{setURL $s (print "/repo/" .)}}"{{if eq $.Nav "repo"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>{{.}}</a>{{end}}
+  <a class="nav-item" data-domain="publish" href="{{setURL $s "/publish"}}"{{if eq $.Nav "publish"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>Publish</a>
+  <a class="nav-item" data-domain="trust" href="{{setURL $s "/signing"}}" data-key="k"{{if eq $.Nav "signing"}} aria-current="page"{{end}}><svg class="dom" viewBox="0 0 16 16" aria-hidden="true"><path d="M7.6 8.4 13.6 2.4 M11.4 4.6l1.6 1.6 M9.9 6.1l1.3 1.3 M8.1 10.5a3.1 3.1 0 1 1-6.2 0 3.1 3.1 0 0 1 6.2 0Z"/></svg>Signing</a>
+  <div class="nav-label">Host</div>
+  <a class="nav-item" href="{{setURL $s "/config"}}"{{if eq $.Nav "config"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>Config and lock</a>
+{{else}}
+  <div class="nav-label">Host</div>
+{{end}}
+  <a class="nav-item" href="/doctor"{{if eq .Content "page-doctor"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Doctor</a>
+  <a class="nav-item" href="/" data-key="s"{{if eq .Content "page-sets"}} aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>All sets</a>
+  <div class="side-foot">repoctl {{.Version}}</div>
+</nav>{{end}}
+
+{{define "set-menu-items"}}{{range .}}<a href="/s/{{pe .Name}}/"{{if .Here}} aria-current="page"{{end}}><span class="dot {{dot .State}}" aria-hidden="true"></span><b>{{.Name}}</b><span class="qs {{qs .State}}">{{.Word}}</span><span class="path">{{tilde .Dir}}</span></a>
+{{end}}<hr><a href="/"><span></span><span>All sets</span><kbd>g s</kbd></a>
+<div class="foot">To add a set, run <code>repoctl ui</code> in its directory.</div>{{end}}
+
+{{define "cli-toggle"}}{{if .}}<details class="cli-toggle"><summary class="btn btn-ghost" aria-label="CLI commands of this page">CLI</summary>
+  <div class="cli-pop">{{range .}}{{.}} <button class="copy" type="button" data-copy="{{.}}" aria-label="Copy the command">⧉</button>
+{{end}}</div></details>{{end}}{{end}}
+
+{{define "toast"}}<div class="toast {{.Kind}}" role="status"><span class="t">{{.Text}}</span><button class="x" type="button" aria-label="Close">×</button></div>{{end}}
+{{define "toast-oob"}}<div hx-swap-oob="beforeend:#toasts">{{template "toast" .}}</div>{{end}}
+
+{{/* The calm empty state (R-not-implemented): a command that this build has not, or that failed. */}}
+{{define "na"}}<div class="ui-na empty" role="status">{{if .NotImpl}}<p><b>{{.What}} is not available in this build.</b></p>
+  <p>This version of repoctl does not have <code>{{.Command}}</code> yet. The rest of the page works.</p>{{else}}<p><b>{{.What}} could not be read.</b></p>
+  {{with .Problem}}<p class="ui-err">{{.Message}}{{with .Hint}} {{.}}{{end}} <span class="code-sub">{{.Code}}</span></p>{{end}}
+  <p>The command was <code>{{.Command}}</code>.</p>{{end}}</div>{{end}}
+
+{{define "page-error"}}<div class="page-head"><div><h1>{{.Title}}</h1></div></div>
+<section class="card"><div class="card-body"><p>{{.Data}}</p><p><a href="/">All sets</a></p></div></section>{{end}}
+
+{{define "page-session"}}<section class="sess card">
+  <h1>repoctl ui</h1>
+  {{with .Data.Why}}<p><b>{{.}}</b></p>{{end}}
+  <p>This browser has no session of the repoctl ui server. A session starts from the link that <code>repoctl ui</code> prints; the link is good once, for 60 s.</p>
+  <p>Run <code>repoctl ui</code> in a terminal on this host for a new link.</p>
+</section>{{end}}
+
+{{define "log-lines"}}{{range .}}<div class="l{{with .Class}} {{.}}{{end}}" id="L{{.N}}"><a class="n" href="#L{{.N}}">{{.N}}</a><span class="t">{{.Text}}</span></div>
+{{end}}{{end}}
+
+{{define "jump-results"}}{{if .}}<ul class="jump-pop" role="listbox">{{range .}}<li><a href="{{.Href}}"><span class="kind">{{.Kind}}</span> {{.Label}}</a></li>{{end}}</ul>{{end}}{{end}}
+
+{{define "empty-line"}}<p class="ui-note">{{.}}</p>{{end}}

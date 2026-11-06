@@ -1,0 +1,44 @@
+{{/* The graph of one target: DAG with the panel of a node, or the matrix. */}}
+{{define "page-graph"}}{{$set := .Set.Name}}{{with .Data}}<div class="page-head graph-head"><div><h1>Graph</h1><div class="sub">{{$set}}</div></div>
+  <div class="actions">{{template "cli-toggle" $.CLI}}</div></div>
+<div class="gbar">
+  <nav class="tabs" aria-label="Target">{{range .Targets}}<a class="tab" href="{{setURL $set "/graph"}}?target={{q .}}&amp;view={{$.Data.View}}"{{if eq . $.Data.Target}} aria-current="page"{{end}}>{{.}}</a>{{end}}</nav>
+  <nav class="seg" aria-label="View"><a href="{{setURL $set "/graph"}}?target={{q .Target}}"{{if eq .View "dag"}} aria-current="page"{{end}}>DAG</a><a href="{{setURL $set "/graph"}}?target={{q .Target}}&amp;view=matrix"{{if eq .View "matrix"}} aria-current="page"{{end}}>Matrix</a></nav>
+  {{if eq .View "dag"}}<div class="zoom" role="group" aria-label="Zoom"><button class="btn btn-sm btn-ghost" type="button" data-zoom="out" aria-label="Zoom out">−</button><span class="zl">100%</span><button class="btn btn-sm btn-ghost" type="button" data-zoom="in" aria-label="Zoom in">+</button><button class="btn btn-sm btn-ghost" type="button" data-zoom="fit">Fit</button></div>{{end}}
+</div>
+{{if eq .View "matrix"}}{{template "graph-matrix" .}}{{else}}
+{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{if .Graph}}<div class="graph-wrap">{{template "graph-nodes" .}}
+{{with .Sel}}{{template "node-panel" dict "N" . "Set" $set "Target" $.Data.Target}}{{end}}</div>
+{{with .Unres}}<details class="fold card"><summary><b>{{plural (len .) "BuildRequire"}} no node of {{$.Data.Target}} provides</b></summary><ul class="rows">{{range .}}<li><span class="t mono">{{.Node}}</span><span class="s"><code>{{.Require}}</code>{{with .ProvidedOn}} · on {{join . ", "}}{{end}}</span></li>{{end}}</ul></details>{{end}}
+{{end}}{{end}}{{end}}{{end}}
+
+{{define "graph-nodes"}}<div class="canvas" id="canvas" sse-swap="graph:{{.Target}}" hx-swap="outerHTML"><div class="canvas-scroll">
+<svg class="graph" xmlns="http://www.w3.org/2000/svg" width="{{.Width}}" height="{{.Height}}" viewBox="0 0 {{.Width}} {{.Height}}" role="img" aria-label="Build graph of {{.Target}}: {{plural (len .Nodes) "node"}}, {{plural (len .Edges) "edge"}}">
+<g class="lanes">{{range .Lanes}}<rect class="lane" x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" rx="10"/><text class="lane-label" x="{{.X}}" y="{{.Y}}" dx="12" dy="18">LEVEL {{.Level}}</text>{{end}}</g>
+<g class="edges">{{range .Edges}}<g class="edge" data-from="{{.From}}" data-to="{{.To}}" data-src-state="{{.SrcState}}"><title>{{.From}} → {{.To}}{{with .Via}}: {{join . ", "}}{{end}}</title><path class="ln" d="{{.Path}}"/></g>{{end}}</g>
+{{range .Nodes}}<g class="gnode{{if .Selected}} is-sel{{end}}" data-node="{{.ID}}" data-state="{{.State}}" data-up="{{join .Up " "}}" data-down="{{join .Down " "}}"><foreignObject x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}">
+  <a xmlns="http://www.w3.org/1999/xhtml" class="nd n-{{.State}}" id="{{elemID "gn" .ID}}" data-state="{{.State}}" href="?target={{q $.Target}}&amp;node={{q .ID}}" title="{{.ID}}: {{.State}}">
+    <span class="nd-r1"><span class="nd-dir">{{.Package}}</span></span>
+    <span class="nd-r2">{{if pill .State}}<span class="pill {{st .State}}">{{.State}}</span>{{else if ne .State "none"}}<span class="qs {{qs .State}}">{{.State}}</span>{{end}}<span class="nd-ver">{{.EVR}}</span></span>
+  </a></foreignObject></g>
+{{end}}</svg></div></div>{{end}}
+
+{{define "node-panel"}}{{$n := .N}}<aside class="drawer node-drawer" id="node-drawer" aria-labelledby="dr-t">
+  <div class="dr-head"><div class="dr-title"><h2 id="dr-t" class="mono">{{$n.ID}}</h2>{{if pill $n.State}}<span class="pill {{st $n.State}}">{{$n.State}}</span>{{else if ne $n.State "none"}}<span class="qs {{qs $n.State}}">{{$n.State}}</span>{{end}}
+    <a class="icon-btn" href="?target={{q .Target}}" aria-label="Close the node details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></a></div>
+    <p class="dr-sub">{{$n.Package}}{{with $n.EVR}} {{.}}{{end}}</p></div>
+  <div class="dr-actions">{{with $n.Href}}<a class="btn btn-sm btn-primary" href="{{.}}">Open log</a>{{end}}<a class="btn btn-sm" href="{{setURL .Set (print "/packages/" (pe $n.Package))}}">Package page</a></div>
+  <div class="dr-body">
+    {{with $n.NVR}}<div class="dr-sec"><h3>Build</h3><p>{{nvr .}}</p></div>{{end}}
+    {{with $n.Line}}<div class="dr-sec"><h3>Last log line</h3><pre class="errline">{{.}}</pre></div>{{end}}
+    <div class="dr-sec"><h3>Needs</h3><p>{{if $n.Deps}}{{range $i, $d := $n.Deps}}{{if $i}}, {{end}}<a class="mono" href="?target={{q $.Target}}&amp;node={{q $d}}">{{$d}}</a>{{end}}{{else}}nothing of this set{{end}}</p></div>
+    <div class="dr-sec"><h3>Used by</h3><p>{{if $n.Users}}{{range $i, $d := $n.Users}}{{if $i}}, {{end}}<a class="mono" href="?target={{q $.Target}}&amp;node={{q $d}}">{{$d}}</a>{{end}}{{else}}no node of this set{{end}}</p></div>
+  </div>
+</aside>{{end}}
+
+{{define "graph-matrix"}}<section class="card mat-card" id="graph-matrix" sse-swap="graph:matrix" hx-swap="outerHTML">
+  {{if .Matrix}}<div class="table-wrap"><table class="table matrix"><thead><tr><th>Package</th>{{range .Targets}}<th>{{.}}</th>{{end}}</tr></thead><tbody>
+  {{range .Matrix}}<tr><td><a class="mono pkg" href="{{setURL $.Set (print "/packages/" (pe .Package))}}">{{.Package}}</a></td>{{range .Cells}}<td id="{{elemID "n" .Node}}">{{template "mcell" .}}</td>{{end}}</tr>{{end}}
+  </tbody></table></div>{{else}}<div class="card-body empty"><p>The set has no package.</p></div>{{end}}
+</section>{{end}}
