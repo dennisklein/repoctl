@@ -248,7 +248,7 @@
 <h3 id="capture">Capture at build time</h3>
 <p>The build step captures the facts that exist only during the build:</p>
 <ul>
-  <li><b>Buildroot lock.</b> The mock plugin <code>buildroot_lock</code> is on for each job (<code>config_opts["plugin_conf"]["buildroot_lock_enable"] = True</code>). The plugin ships with mock 5.7 and later; Fedora has mock 6. It writes <code>buildroot_lock.json</code> to the result directory. The file lists each RPM in the buildroot with name, epoch, version, release, arch, license, <code>SIGMD5</code>, the signer key id and the URL. It also gives the digest of the bootstrap image. The file is the <code>buildrootFile</code> of the RepoManifest (<a href="model.html#manifest">model.html#manifest</a>).</li>
+  <li><b>Buildroot file.</b> The mock plugin <code>buildroot_lock</code> is on for each job (<a href="build.html#mock-config">wrapper config</a>). The plugin ships with mock 5.7 and later; Fedora has mock 6. It writes <code>buildroot_lock.json</code> to the result directory. The file has each RPM in the buildroot with name, epoch, version, release, arch, license, <code>SIGMD5</code> and URL, and the digest of the bootstrap image. Before mock removes the root, repoctl adds the header digest (<code>SHA256HEADER</code>) and the signer key id (<code>RSAHEADER</code>) of each RPM (<a href="build.html#buildroot-facts">buildroot facts</a>). The result is the <code>buildrootFile</code> of the RepoManifest (<a href="model.html#manifest">model.html#manifest</a>).</li>
   <li><b>Source archives.</b> The SRPM holds each source archive and each patch. repoctl takes the sha256 of each file from the SRPM, and the URL of each <code>Source</code> line from the spec. It already parses the spec in the target chroot for the graph.</li>
   <li><b>Run facts.</b> The start and the end of the node build, the mock version, the repoctl version, the user and the host. The journal has them (<code>node.state</code>).</li>
   <li><b>Set dependencies.</b> Each buildroot RPM that comes from the set (from staging or from latest) gets the purl of the set. repoctl finds it by NEVRA in the staging or in the RepoManifest.</li>
@@ -291,9 +291,9 @@
          "uri": "https://github.com/openucx/ucx/releases/download/v1.22.1/ucx-1.22.1.tar.gz",
          "digest": {"sha256": "…"}},
         {"uri": "pkg:rpm/rocky/gcc@11.5.0-5.el9_5?arch=x86_64",
-         "digest": {"md5": "…"}, "annotations": {"digest": "SIGMD5", "signer": "350d275d"}},
+         "digest": {"sha256": "…"}, "annotations": {"digest": "SHA256HEADER", "signer": "350d275d"}},
         {"uri": "pkg:rpm/gsi-hpc/pmix-devel@6.1.0-1.el9?arch=x86_64&amp;distro=el9",
-         "digest": {"md5": "…"}, "annotations": {"digest": "SIGMD5", "from": "latest p-20260912-1403-c21"}},
+         "digest": {"sha256": "…"}, "annotations": {"digest": "SHA256HEADER", "from": "latest p-20260912-1403-c21"}},
         "…"
       ]
     },
@@ -316,7 +316,7 @@
 <p id="build-type"><b>Build type <code>mock-rpm/v1</code>.</b> This paragraph documents the build type, because SLSA asks for a documented build type. One node build checks out <code>commit</code> of <code>source</code>. It makes the SRPM and the RPMs with mock in the config <code>mockConfig</code> of <code>target</code>, with rpmautospec. The extra repositories are the staging of the run and the local copy of latest.</p>
 <p><code>externalParameters</code> are the values a human controls through the set. <code>internalParameters</code> are the values of the admin host. Two builds with equal <code>externalParameters</code> and equal <code>resolvedDependencies</code> are the same build.</p>
 <p id="builder"><b>Builder <code>admin-host</code>.</b> The builder is the repoctl process of one admin on one host. The admin is the trust boundary: the same human builds, signs and publishes. This is SLSA Build L1. The record is unsigned in itself (L1 allows it), and the repository signature covers it.</p>
-<p>The buildroot digests are <code>SIGMD5</code> values from the buildroot lock, marked as such. MD5 is weak, but the record uses it to identify a package, not to trust it. The rpm signature of each buildroot package (the <code>signer</code> annotation) gives the trust. When test V23 passes, each entry also gets the <code>SHA256HEADER</code> of the package.</p>
+<p>The buildroot digests are header digests (<code>SHA256HEADER</code>) from the buildroot file, marked as such. A header digest is the sha256 of the header of a package, not of the file. The header holds the payload digest, so the header digest identifies the content. The rpm signature of each buildroot package (the <code>signer</code> annotation) gives the trust.</p>
 
 <h3 id="sbom-record">SBOM record</h3>
 <p>repoctl writes one CycloneDX 1.6 SBOM for each build and one SBOM for the repository of each target. The build SBOM follows the Red Hat CycloneDX guidance for RPMs:</p>

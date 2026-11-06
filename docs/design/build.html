@@ -20,11 +20,11 @@
 
 <h2 id="graph">Graph per target</h2>
 <p>repoctl makes one graph for each target, with the nodes <code>PKG@TARGET</code> (<a href="model.html#nodes">nodes</a>). An edge from A to B means: B needs a package of A to build. Both nodes of an edge are on the same target.</p>
-<p>For the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It uses a detached worktree of the commit, never <code>packages/PKG</code> (<a href="#run">the run</a>).</p>
+<p>For the edges, repoctl builds the SRPM of each package in the mock chroot of the target (<code>mock --buildsrpm</code>). It uses a source clone of the commit, never <code>packages/PKG</code> (<a href="#source-clone">source clone</a>).</p>
 <p>repoctl then matches the requires of the SRPM against the Provides of the other set packages on the same target. <code>rpmspec</code> reads the Provides in the same chroot. Thus <code>%if 0%{?rhel} &gt;= 10</code> in a spec gives the correct edges for each target.</p>
 <p>The SRPM cache <code>~/.cache/repoctl/srpm/</code> keeps each result. All sets share it, and it is safe to delete.</p>
 <ul>
-  <li><b>Key.</b> The sha256 of the package commit and of the mock config, the macro file content and the mock and plugin versions of the target. The mock config is the output of <code>mock -r CONFIG --debug-config</code>. Thus two sets with other macros or another mock config never share an entry.</li>
+  <li><b>Key.</b> The sha256 of the package commit, the mock config hash, the macro file and the mock and plugin versions of the target (<a href="#mock-config">mock config</a>). Thus two sets with other macros or another mock config never share an entry.</li>
   <li><b>Time.</b> The first plan of a target builds all SRPMs and can take minutes. After that, only a new commit or a change of the key inputs makes a new SRPM.</li>
   <li><b>Write.</b> repoctl writes each entry to a temporary file and renames it. Thus a reader never sees a part of an entry, and two writers of one key give the same entry.</li>
 </ul>
@@ -98,7 +98,7 @@ hint: guard the BuildRequires in slurm.spec with %if 0%{?rhel} &lt; 10, or add e
 <p>A package branch has the layout of Fedora dist-git. The spec, the patches and the small source files are in git. The large source archives are not: <code>.gitignore</code> names them, and the <dfn>sources file</dfn> <code>sources</code> gives the SHA-512 of each, one line per file.</p>
 <p>Each package branch of the story has this layout, also rocm-smi and slurm-singularity-exec, which do not come from Fedora. An in-tree package has it below its path. The sources file of slurm at <code>d42f66a</code>:</p>
 <pre><code class="language-plaintext">SHA512 (slurm-26.05.4.tar.bz2) = 9ad6e078a6be67d8ad1dbcdd7e07d97af56c30c2e058a49ce3db3073ee77e26a29d6c12843e65605f1223ccbbfe778895ae53e3826dbf7037ac97b9b0147ed7e</code></pre>
-<p>repoctl reads the <code>Source</code> and <code>Patch</code> lines of the spec in the chroot of the target, as <code>spectool</code> does: one file per line. It puts the files into one directory for <code>mock --buildsrpm --sources</code>.</p>
+<p>repoctl reads the <code>Source</code> and <code>Patch</code> lines of the spec in the chroot of the target, as <code>spectool</code> does: one file per line. It puts the files into the source clone of the node, next to the spec, and gives that directory to <code>mock --buildsrpm --sources</code> (<a href="#source-clone">source clone</a>).</p>
 <table class="compact">
 <thead><tr><th>File of a Source or Patch line</th><th>Where repoctl gets it</th><th>Check</th></tr></thead>
 <tbody>
@@ -297,7 +297,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <figcaption>One build run. Steps 1 and 3 run once. Step 2 runs for each build node, in parallel up to the job count.</figcaption>
 </figure>
 <ol class="steps">
-  <li>Preflight: repoctl checks mock, the mock group and the rpmautospec plugin. It also checks the mock config of each selected target and the free disk (<a href="delivery.html#requirements">requirements</a>). The data and the cache directory each need at least 10 GiB free. The state directory needs 1 GiB, and <code>/var/lib/mock</code> needs 20 GiB. A failure stops the run before it starts (exit 9, <code>host.not-ready</code>). Build does not sign, so there is no GPG check.</li>
+  <li>Preflight: repoctl checks mock, podman, the mock group and the rpmautospec plugin. It also checks the mock config of each selected target and the free disk (<a href="delivery.html#requirements">requirements</a>). The data and the cache directory each need at least 10 GiB free. The state directory needs 1 GiB, and <code>/var/lib/mock</code> needs 20 GiB. A failure stops the run before it starts (exit 9, <code>host.not-ready</code>). Build does not sign, so there is no GPG check.</li>
   <li>Plan: repoctl makes the plan and writes the event <code>plan.ready</code>.</li>
   <li>Nodes: a node starts when each dependency is ok, current or staged, and a job slot is free. It runs the node steps (<a href="#node-steps">below</a>).</li>
   <li>End: repoctl writes the final repodata of each staging, the run result and the event <code>run.finished</code>. After an ok run, the last line is the Next line, for example <code>Next: repoctl publish</code>. A failed run ends with hints and no Next line, for example <code>hint: el9 is publishable now. run: repoctl publish --target el9</code>.</li>
@@ -308,24 +308,48 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <table class="compact">
 <thead><tr><th>Step</th><th>What it does</th></tr></thead>
 <tbody>
-<tr><td><code>srpm</code></td><td>Makes a detached git worktree of the commit of the node, with the full history that rpmautospec reads. Builds the SRPM (<code>mock --buildsrpm</code>).</td></tr>
-<tr><td><code>rpm</code></td><td>Builds the SRPM of step srpm (<code>mock --rebuild</code>). <code>artifact.added</code> records the sha256 of that SRPM. The soname check runs at the end of the step (<a href="#soname">soname check</a>).</td></tr>
+<tr><td><code>srpm</code></td><td>Makes the source clone of the commit of the node, with the full history that rpmautospec reads, and puts the sources into it (<a href="#source-clone">source clone</a>). Builds the SRPM (<code>mock --buildsrpm</code>).</td></tr>
+<tr><td><code>rpm</code></td><td>Builds the SRPM of step srpm (<code>mock --rebuild</code>). <code>artifact.added</code> records the sha256 of that SRPM. The soname check runs at the end of the step (<a href="#soname">soname check</a>). Then the step reads the <a href="#buildroot-facts">buildroot facts</a>.</td></tr>
 <tr><td><code>stage</code></td><td>Copies the RPMs into the staging and runs <code>createrepo_c --update</code>, so that the next node sees them. The node becomes ok after the <code>staging.updated</code> event of this step. Only then does a dependent start.</td></tr>
 </tbody>
 </table>
-<p>Step srpm makes the worktree in the work directory of the run. Its source is the repository of the package: the set repository, or the bare clone of an external package. An in-tree package gets a worktree of the set repository at its commit.</p>
 <p>Step stage runs for one node of a target at a time, under an in-process lock of the run and the target. <code>createrepo_c</code> writes the new repodata into a temporary directory, and repoctl renames it into place. Thus a mock that reads the staging through <code>--addrepo</code> sees the old or the new repodata, never a part of it.</p>
-<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/PKG</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the worktrees in it at the end of the run.</p></aside>
+<aside class="callout rule"><p class="callout-title">Rule: a run reads no worktree</p><p>After <code>plan.ready</code>, repoctl never reads <code>packages/PKG</code>. A human can edit, commit or check out in a worktree during a run, and the run still builds the commits of its plan. The work directory of a run is <code>$XDG_CACHE_HOME/repoctl/mock/SET/RUN/</code>. repoctl deletes the source clones in it at the end of the run.</p></aside>
 <p>Each mock call gets:</p>
 <ul>
+  <li><code>-r</code> with the wrapper config of the target, which adds the plugins of repoctl to the mock config (<a href="#mock-config">mock config of a target</a>);</li>
   <li><code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots (<a href="#mock">mock roots</a>);</li>
   <li><code>--resultdir</code> in the work directory of the run;</li>
-  <li>the macros and plugins of the target (<a href="config.html#targets">targets</a>);</li>
-  <li><code>--addrepo</code> with the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>.</li>
+  <li><code>--macro-file</code> with the one macro file of the target;</li>
+  <li><code>--addrepo</code> with the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>;</li>
+  <li>in step rpm, <code>--rpmbuild_timeout</code> with <code>build.timeout.rpm</code> (<a href="#failures">failures</a>).</li>
 </ul>
+<p>repoctl starts each mock child in its own process group, so a Ctrl-C of the terminal reaches only repoctl. It reads each pipe of mock to its end. mock writes its own lines to stdout too, so a command in the root marks its output with a prefix.</p>
+
+<h3 id="source-clone">Source clone</h3>
+<p>Step srpm makes the <dfn>source clone</dfn> of the node in the work directory of the run. It runs <code>git clone --local --no-checkout</code> of the package repository, then a detached checkout of the node commit. The package repository is the set repository, or the bare clone of an external package.</p>
+<p>repoctl puts the sources of the node into the source clone (<a href="#sources">sources</a>) and gives its root to <code>mock --buildsrpm --sources</code>. <code>--local</code> hard-links the git objects on one file system, so a source clone needs little disk.</p>
+<aside class="callout rule"><p class="callout-title">Rule: the source clone is a full clone</p><p>The rpmautospec plugin of mock runs before the SRPM build. It computes <code>%autorelease</code> and <code>%autochangelog</code> only when the sources directory has a <code>.git</code> directory with the full history of the package. Else it does nothing and writes no message, and the fallback macros give release 1.</p><p>Thus the source clone is never a git worktree, because the <code>.git</code> of a worktree is a file. It is never a shallow clone. It is never a clone with <code>--shared</code>, because a human can change the objects of the source repository during the run.</p></aside>
+<p>An in-tree package is a path below the root of the set repository. repoctl gives that path in the source clone to <code>--sources</code>. The path has no <code>.git</code>, so the rpmautospec plugin does nothing for it.</p>
+<p>Thus the spec of an in-tree package has a plain <code>Release</code> and <code>%changelog</code>, and a human raises the release with each change. An in-tree spec with <code>%autorelease</code> or <code>%autochangelog</code> gives <code>source.in-tree-autorelease</code>. It is a warning in plan and graph, and a failed node in build (class srpm).</p>
+
+<h3 id="buildroot-facts">Buildroot facts</h3>
+<p>The mock plugin <code>buildroot_lock</code> writes <code>buildroot_lock.json</code> into the result directory. It lists each RPM of the build root with name, epoch, version, release, arch, license, <code>SIGMD5</code> and URL. It also gives the digest of the bootstrap image.</p>
+<p>The file has no header digest. Its signer field reads only the tag <code>SIGPGP</code>. Rocky and EPEL sign only the header (<code>RSAHEADER</code>), so the field is empty for their RPMs.</p>
+<p>Thus, after a good build, step rpm reads the <dfn>buildroot facts</dfn> from the root, in the same root and with the same wrapper config:</p>
+<pre><code class="language-bash">mock -r WORK/el9.cfg --uniqueext EXT --chroot -- \
+  rpm -qa --qf 'PKG %{NEVRA}\t%{SHA256HEADER}\t%{RSAHEADER:pgpsig}\n'</code></pre>
+<ul>
+  <li>repoctl reads only the lines that start with <code>PKG</code>.</li>
+  <li>It adds the header digest and the signer key id of each RPM to the entries of <code>buildroot_lock.json</code>. The result is the buildroot file of the node (<a href="supply-chain.html#capture">capture at build time</a>).</li>
+  <li>An RPM without a signature, for example <code>gpg-pubkey</code>, gets the signer <code>null</code>.</li>
+  <li>Then repoctl runs <code>mock --clean</code> on the root (<a href="#mock">mock roots</a>).</li>
+</ul>
+<p>A failure of the facts fails the node with the class mock, because the provenance of the build needs them.</p>
 
 <h3 id="jobs">Jobs and order</h3>
 <p>The job count is the maximum number of nodes in mock at the same time. It comes from <code>-j</code>, then <code>REPOCTL_JOBS</code>, then <code>jobs</code> in the user config, else 2 (<a href="config.html#user-config">user config</a>). When more nodes are ready than slots are free, the node with the most dependents starts first, then the oldest.</p>
+<p>The builds of parallel jobs run at the same time, but their dnf phases do not. mock locks the package cache of the mock config (<code>yumcache.lock</code>) during each dnf action. Thus the dnf phases of one mock config run one after the other.</p>
 
 <h3 id="failures">Failures</h3>
 <p>When a node fails, each node that depends on it becomes blocked. The other nodes continue: keep going is the default. With <code>--fail-fast</code>, repoctl starts no new node after the first failure, and the open nodes end canceled. The dependents of the failed node end blocked, and the run ends failed with exit 3.</p>
@@ -337,6 +361,20 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td>host</td><td>No disk space, no mock group, a repo metadata error. No space on a device (ENOSPC) in any step gives host, also in step stage.</td><td>Can help after the human repairs the host.</td></tr>
 </tbody>
 </table>
+<p>repoctl gets the class of a failed mock call from its own records first, then from the exit code of mock:</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Class</th></tr></thead>
+<tbody>
+<tr><td>repoctl stopped the node: a time limit, or a cancel. repoctl writes the cause to the journal before it stops mock.</td><td>timeout or canceled</td></tr>
+<tr><td>No space on a device, or a repo metadata error in <code>root.log</code>.</td><td>host</td></tr>
+<tr><td>Exit 30: <code>dnf builddep</code> failed.</td><td>builddep</td></tr>
+<tr><td>Exit 11: <code>--rpmbuild_timeout</code> stopped rpmbuild.</td><td>timeout</td></tr>
+<tr><td>Exit 1 in step srpm.</td><td>srpm</td></tr>
+<tr><td>Exit 1 in step rpm.</td><td>build</td></tr>
+<tr><td>Another exit code, for example 128 + N after signal N.</td><td>mock</td></tr>
+</tbody>
+</table>
+<p>mock gives exit 1 for a failed build and also for a build that <code>--orphanskill</code> stopped. Thus the exit code alone never tells a timeout or a cancel of repoctl. After a normal failure, mock writes a <code>Finish</code> line for each <code>Start</code> line of <code>state.log</code>. Thus the failed phase is the last <code>Start</code> line before the first error.</p>
 <p>A failed write of the journal ends the run. repoctl starts no new node, stops the running nodes with the class internal, and tries to write <code>run.finished</code> with the state failed and exit 1. When that write also fails, the readers show the run as abandoned.</p>
 <p>Each step has a time limit, and mock must write output. The limits are keys of the user config (<a href="config.html#user-config">user config</a>) and do not change the build result.</p>
 <table class="compact">
@@ -349,7 +387,9 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td><code>build.timeout.run</code></td><td>0 (no limit)</td><td>the whole run</td></tr>
 </tbody>
 </table>
-<p>At a step limit or the idle limit, repoctl sends SIGTERM to the process group of the mock child, and SIGKILL after 60 s. The node ends failed with the class timeout: <code>error.step</code> names the step, and the message names the limit. The other nodes continue.</p>
+<p>At a step limit or the idle limit, repoctl writes the timeout to the journal. Then it runs <code>mock --orphanskill</code> on the root of the node and waits at most 60 s for the mock child. The node ends failed with the class timeout: <code>error.step</code> names the step, and the message names the limit. The other nodes continue.</p>
+<p>Step rpm also gives <code>build.timeout.rpm</code> to mock as <code>--rpmbuild_timeout</code>, so mock stops a hung rpmbuild itself (exit 11).</p>
+<aside class="callout why"><p class="callout-title">Why --orphanskill</p><p>mock runs as root through consolehelper, so a signal from the user to mock gives EPERM, and the build continues. <code>mock --orphanskill</code> runs as root too. It stops each process in the root and unmounts it, and the stopped mock then ends with exit 1.</p></aside>
 <p>At <code>build.timeout.run</code>, repoctl writes <code>run.cancel-requested</code> with the reason <code>deadline</code> and cancels the run as <code>repoctl cancel</code> does (exit 130, <a href="#cancel">cancel</a>). Thus a hung mock never holds the set lock for longer than its limit.</p>
 
 <h3 id="run-states">Run states</h3>
@@ -688,7 +728,7 @@ hint: wait for it. run: repoctl build slurm --lock-wait 2h</pre>
   <li>repoctl adds the commit on HEAD: the local branch of the package (<a href="cli.html#local-branch">local branch</a>), or the detached HEAD of a shared branch of another worktree. After the pin, the worktree is in-sync at the new commit.</li>
   <li>All or nothing: repoctl checks every PKG before the first commit. When a check fails, it makes no commit and does not write the lock. When a commit fails, repoctl resets each branch of this call to its lock commit. Thus the same command again after a failure gives one new release, not two.</li>
   <li>repoctl fetches the remote branch first and warns when it has new commits. It never pushes: the Next lines give the push of each package branch and the commit of the lock.</li>
-  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A PKG that names one stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before any commit. A glob that matches one leaves it out, with the same code as a warning. To build it again, change a file below its path, for example its changelog, and commit to the set branch.</li>
+  <li>An in-tree package has no package branch. Its commit is the last set commit that changes its path, so an empty commit does not change it. A PKG that names one stops the rebuild with exit 1 and <code>rebuild.in-tree</code>, before any commit. A glob that matches one leaves it out, with the same code as a warning. To build it again, raise the <code>Release</code> in its spec, add a <code>%changelog</code> entry, and commit to the set branch (<a href="#source-clone">source clone</a>).</li>
   <li><code>--dry-run</code> shows the new NVRs and commits nothing.</li>
 </ul>
 <pre class="term">$ repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"
@@ -733,13 +773,13 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 
 <h2 id="cancel">Cancel and abandoned runs</h2>
 <p><code>repoctl cancel [RUN]</code> stops a running build of this user on this host. The default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock.</p>
-<p>That process stops its mock children (SIGTERM to the process group of each child, SIGKILL after 60 s) and marks its open nodes canceled. It keeps the staging and the logs, and exits 130.</p>
+<p>That process writes the cancel to the journal. It runs <code>mock --orphanskill</code> on the root of each mock child and waits at most 60 s for each child (<a href="#failures">failures</a>). It marks its open nodes canceled. It keeps the staging and the logs, and exits 130.</p>
 <table class="compact">
 <thead><tr><th>Case</th><th>Result</th></tr></thead>
 <tbody>
 <tr><td>The first Ctrl-C in the terminal of the build.</td><td>The same as cancel. The tree shows <code>interrupting</code> until the mock children end, at most 60 s.</td></tr>
 <tr><td>A second <code>repoctl cancel</code> without <code>--force</code>.</td><td>No change. It prints that the run is interrupting.</td></tr>
-<tr><td>A second Ctrl-C, or <code>repoctl cancel --force</code> for a run without a terminal, for example a run of the UI or of MCP.</td><td>SIGKILL to the mock children, and exit at once. The journal has no <code>run.finished</code>, so the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</td></tr>
+<tr><td>A second Ctrl-C, or <code>repoctl cancel --force</code> for a run without a terminal, for example a run of the UI or of MCP.</td><td><code>mock --orphanskill</code> on the root of each child without a wait, and exit at once. The journal has no <code>run.finished</code>, so the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</td></tr>
 <tr><td>The holder is on another host or is another user.</td><td>Exit 1 and <code>cancel.not-holder</code>.</td></tr>
 <tr><td>A crash.</td><td>An abandoned run. The set lock ends with the process, so the next build can start.</td></tr>
 <tr><td>A publish run after its push step starts.</td><td>No cancel (<a href="publish.html#order">publish order</a>).</td></tr>
@@ -749,22 +789,22 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 
 <h2 id="mock">Mock roots and verify roots</h2>
 <p>Each target names a mock config: <code>rocky+epel-9-x86_64</code> for el9 and <code>rocky+epel-10-x86_64</code> for el10 (<a href="config.html#targets">targets</a>). repoctl runs on Fedora. The mock chroots are EL9 and EL10.</p>
-<p>repoctl names each root that it makes with <code>--uniqueext</code>. The name starts with <code>repoctl-UID</code>, the numeric id of the user. Thus repoctl knows its own roots, and the roots of two users or two sets never meet.</p>
+<p>repoctl names each root that it makes with <code>--uniqueext</code>. The value starts with <code>repoctl-UID</code>, the numeric id of the user. mock makes the root directory <code>/var/lib/mock/CONFIG-UNIQUEEXT</code> and the bootstrap root <code>CONFIG-bootstrap-UNIQUEEXT</code>, for example <code>rocky+epel-9-x86_64-repoctl-1000-…</code>. Thus repoctl knows its own roots, and the roots of two users or two sets never meet.</p>
 <table class="compact">
 <thead><tr><th>Root</th><th><code>--uniqueext</code></th><th>Made by</th><th>Removed</th></tr></thead>
 <tbody>
-<tr><td>Build root</td><td><code>repoctl-UID-SET-RUN-SLOT</code>, for example <code>repoctl-1000-slurm-26.05-r-20261102-1750-a3f-3</code></td><td>a node of a build, in job slot SLOT</td><td>When the node ends ok. The root of a failed or canceled node stays for a look with mock until the next build of the set on this host.</td></tr>
+<tr><td>Build root</td><td><code>repoctl-UID-SET-RUN-SLOT</code>, for example <code>repoctl-1000-slurm-26.05-r-20261102-1750-a3f-3</code></td><td>a node of a build, in job slot SLOT</td><td>When the node ends ok, after the buildroot facts. A failed or canceled node keeps its root for a look until the next build of the set on this host, and its slot gets a new SLOT.</td></tr>
 <tr><td>Plan root</td><td><code>repoctl-UID-plan-PID</code></td><td>plan, graph, list, show and the step plan of a build, for the SRPMs of the graph</td><td>At the end of the command.</td></tr>
 <tr><td>Shell root</td><td><code>repoctl-UID-shell-PID</code></td><td><code>repoctl mock shell</code></td><td>When the shell ends.</td></tr>
 <tr><td>Verify root</td><td><code>repoctl-UID-SET-verify-TARGET</code></td><td><code>repoctl mock update</code>, for the publish step verify-el</td><td>By <code>repoctl mock clean</code>.</td></tr>
 </tbody>
 </table>
 <ul>
-  <li>Build roots: one per job. The mock plugin <code>buildroot_lock</code> is on in each build root. <code>NodeResult.root</code> records the root of each node.</li>
+  <li>Build roots: one per job. The wrapper config keeps a failed root and copies the logs of the failed tools into the result directory (<a href="#mock-config">mock config of a target</a>). <code>NodeResult.root</code> records the root of each node.</li>
   <li>Verify roots: one per set and target. A verify root has the mock config of the target, plus rpm, dnf and gnupg2. It checks the signatures with the client tools (<a href="signing.html#verify-el">verify in the EL chroot</a>).</li>
 </ul>
 <p><code>repoctl mock update</code> runs <code>mock --update</code> for each selected target, with the config, macros and plugins of the target. It also makes or updates the verify root of each target.</p>
-<p><code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots of this user whose name starts with <code>repoctl-UID</code>. It never touches a root of another user or a root without this prefix.</p>
+<p><code>repoctl mock clean</code> runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on each root of this user: each directory <code>CONFIG-UNIQUEEXT</code> or <code>CONFIG-bootstrap-UNIQUEEXT</code> in <code>/var/lib/mock</code> whose <code>--uniqueext</code> starts with <code>repoctl-UID</code>. It never touches a root of another user or a root without this prefix.</p>
 <aside class="callout rule"><p class="callout-title">Rule: the host mock lock</p><p>The mock config, its root cache and its package cache are shared by all users and sets of the host. Thus repoctl has one host mock lock, the file lock <code>/var/lib/mock/.repoctl.lock</code>, which the group mock can write.</p>
 <ul>
   <li>Each command that runs mock takes it shared: build (for the whole run), plan, graph, list, show, mock shell and the publish step verify-el.</li>
@@ -775,6 +815,38 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 <p><code>repoctl mock shell TARGET</code> opens a shell in a shell root, for debugging. The doctor check <code>sign.verify-el</code> says when a verify root is missing. Reference: <a href="cli.html#cmd-mock">repoctl mock</a>.</p>
 <pre class="term">$ repoctl mock shell el10 -- rpm -q --whatprovides rocm-smi-devel
 no package provides rocm-smi-devel</pre>
+
+<h3 id="mock-config">Mock config of a target</h3>
+<p>repoctl never changes a mock config of the host. For each target, it writes a <dfn>wrapper config</dfn> <code>WORK/TARGET.cfg</code> into the work directory of the run and gives it to mock with <code>-r</code>. The wrapper config includes the mock config of the target, so the root name of the target stays. It adds only these options:</p>
+<pre><code class="language-python">include('/etc/mock/rocky+epel-9-x86_64.cfg')
+config_opts['cleanup_on_success'] = False   # repoctl reads the buildroot facts, then cleans
+config_opts['cleanup_on_failure'] = False   # a failed root stays for a look
+config_opts['plugin_conf']['rpmautospec_enable'] = True       # one line per targets[].plugins
+config_opts['plugin_conf']['buildroot_lock_enable'] = True
+config_opts['plugin_conf']['chroot_scan_enable'] = True
+config_opts['plugin_conf']['chroot_scan_opts']['only_failed'] = True
+config_opts['plugin_conf']['chroot_scan_opts']['regexes'] = [
+    r'config\.log$', r'test-suite\.log$', r'CMakeError\.log$', r'/core(\.\d+)?$']</code></pre>
+<p>The plugin <code>chroot_scan</code> copies these files of a failed build into the result directory. Thus <code>repoctl logs</code> and the skill triage-build read them after the root is gone.</p>
+<p>The <dfn>mock config hash</dfn> is the sha256 of the output of <code>mock -r CONFIG --debug-config</code>. CONFIG is the mock config of the target, not the wrapper config. repoctl runs it with stderr to a pipe and without <code>-v</code> and <code>-q</code>. Before the hash, it removes four keys whose values change from call to call:</p>
+<table class="compact">
+<thead><tr><th>Key</th><th>Why it changes</th></tr></thead>
+<tbody>
+<tr><td><code>mock_run_uuid</code></td><td>A new random value in each call.</td></tr>
+<tr><td><code>config_paths</code></td><td>The order of the files can change.</td></tr>
+<tr><td><code>print_main_output</code></td><td>True only when stderr is a terminal.</td></tr>
+<tr><td><code>verbose</code></td><td>Follows <code>-v</code> and <code>-q</code>.</td></tr>
+</tbody>
+</table>
+<p>Thus a plan in a terminal and a plan of the web UI give the same hash. The SRPM cache key, the manifest field <code>mockConfig</code> and the advisory <code>mock.drift</code> use it.</p>
+<p>mock applies only the last <code>--macro-file</code> of a call. Thus repoctl joins the files of <code>targets[].macros</code> in list order into one <dfn>macro file</dfn> of the target, <code>WORK/TARGET.macros</code>. A later file wins over an earlier one.</p>
+<p>The macro file ends with the line <code>%repoctl_target TARGET</code>, for example <code>%repoctl_target el9</code>. Its sha256 is the manifest field <code>macros</code> and a part of the SRPM cache key.</p>
+<p>Two keys of the user config make mock faster on a host (<a href="config.html#user-config">user config</a>). They do not change the build result, so the mock config hash does not cover them:</p>
+<ul>
+  <li><code>mock.nosync: true</code> adds <code>config_opts['nosync'] = True</code>. dnf and rpm in the root then skip fsync. The host needs the package nosync.</li>
+  <li><code>mock.tmpfs: SIZE</code>, for example <code>32g</code>, turns on the plugin <code>tmpfs</code> with this maximum size. The root is in RAM, so each job slot needs RAM of SIZE.</li>
+</ul>
+<p>repoctl uses only the mock CLI and the plugins that ship with mock (<a href="decision.html#mock-cli">rule: mock through its CLI only</a>). The plugins root_cache, yum_cache and hw_info of the mock config stay on. A verify root also uses bind_mount (<a href="signing.html#verify-el">verify in the EL chroot</a>).</p>
 
 <h2 id="help">Help topic build-state</h2>
 <p><code>repoctl help build-state</code> prints this text. The other topics are in the CLI reference (<a href="cli.html#topics">help topics</a>).</p>
