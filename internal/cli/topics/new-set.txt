@@ -1,0 +1,30 @@
+NEW SET
+
+Start set slurm-26.11 from slurm-26.05. Each step names the repository
+that gets the commit.
+  1. git fetch origin
+     git worktree add -b set/slurm-26.11 ../slurm-repo-26.11 origin/set/slurm-26.05
+     cd ../slurm-repo-26.11
+  2. repoctl init --from set/slurm-26.05 --name slurm-26.11
+  3. Set repo.url in repoctl.yaml. Edit the release package: Version 26.11.
+     "repoctl release write" writes the key file and the .repo files.
+  4. git commit -am "feat: start set slurm-26.11"        set branch
+  5. repoctl checkout --create --from-set set/slurm-26.05
+  6. git push origin BRANCH...                          package branches
+     (checkout prints the full command, also for external packages)
+  7. repoctl pin
+     git commit repoctl.lock && git push origin set/slurm-26.11
+  8. repoctl doctor
+  9. repoctl plan           expect: every node "new-package"
+ 10. repoctl build
+ 11. repoctl publish        first snapshot of each target
+ 12. An organization owner sets each new OCI package public and turns
+     on "Inherit access from source repository" (doctor: registry.public).
+ 13. Add one mirror line per target to the mirror job on the HTTP
+     server, and put the key file of the release at its keyring.
+ 14. Install the release package on the clients (config management),
+     then confirm it for each active key and target:
+     repoctl sign deployed KEY --release NVR --target T
+ 15. repoctl check --install-timer
+
+repoctl status lists the steps that are still open.

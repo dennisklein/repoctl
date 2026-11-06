@@ -1,0 +1,36 @@
+BUILD STATE
+
+The build identity of a node is the package commit plus the target.
+repoctl builds each node of one identity once.
+
+"repoctl plan" gives one action for each node:
+  current   the commit is in latest of the target: nothing to do
+  staged    built for this lock in a run of yours, not published yet
+            (a run --from worktree never stages a node)
+  build     no build of this commit for this target. The reason says why:
+              commit-changed  the package commit changed
+              rebuild         "repoctl rebuild PKG" made an empty commit
+              new-package     the package is new in the set
+              new-target      the target is new for the package
+              forced          --force (for tests; a forced build of a
+                              current node is never staged or published)
+              staging-missing the staging of a staged node is gone
+  skip      not selected, and no selected node needs it
+
+repoctl does not rebuild dependents by itself. A change in a library can
+need a rebuild of its dependents. An advisory says so (soname.removed,
+closure.broken, provider.changed). You decide.
+
+To build again with the same version:
+  repoctl rebuild PKG --reason TEXT
+This makes an empty commit "Rebuild: TEXT" in the package branch and
+pins it. rpmautospec raises the release. Push the package branch, then
+commit and push repoctl.lock.
+
+A change in a mock config, a macro file or an extra repository is not
+in the build identity. It gives the advisory mock.drift or
+buildroot.drift. Use "repoctl rebuild" to build against the change.
+
+Staging is in $XDG_DATA_HOME/repoctl/SET/staging/. It holds the nodes
+that are built for the lock and not published yet. "repoctl clean" keeps
+these nodes. The next plan shows them as "staged".

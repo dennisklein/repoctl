@@ -1,0 +1,14 @@
+GRAPH
+
+"repoctl graph" draws one lane graph for each target, as "git log --graph".
+  header     target, mock config, nodes, edges, layers, action counts
+  ◆ ≡ ● –    the node glyph: the plan action (build, current, staged, skip)
+  │ ├ └ ┼    lanes: a line goes down from a dependency to each node that needs it
+  L0 L1 ...  the layer: an L0 node needs no node of the set
+  ← A B      the node needs A and B on the same target
+Each row names its dependencies, so the graph is clear without the lanes.
+
+  --format matrix   one row for each package, one column for each target
+  --format dot      Graphviz input, for example: | dot -Tsvg > el9.svg
+  --run RUN         the node states of that run in place of the actions
+  -v                also the requires that no package of the set provides

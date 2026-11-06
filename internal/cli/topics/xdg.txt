@@ -1,0 +1,82 @@
+FILES
+
+The set directory holds only committed files and the package worktrees.
+All generated files go to the XDG directories of the user.
+
+  $XDG_CONFIG_HOME/repoctl/config.yaml
+                                the user config · edit by hand
+  $XDG_CACHE_HOME/repoctl/srpm/, sources/, upstream/, mock/
+                                SRPMs and spec facts per commit and
+                                build inputs (build.html#graph), source
+                                archives by SHA-512
+                                (build.html#sources), upstream answers
+                                (1 hour), mock work files of all sets ·
+                                safe: repoctl clean --cache
+  $XDG_DATA_HOME/repoctl/SET/staging/RUN/
+                                the RPMs of a run, per target · repoctl
+                                clean keeps staged nodes and publishable
+                                runs
+  $XDG_DATA_HOME/repoctl/SET/repo/TARGET/
+                                the local copy of latest and its
+                                snapshot.json · never; repoctl repo pull
+                                makes it again. At the end of a set,
+                                repoctl clean --set NAME deletes all
+                                files of the set.
+  $XDG_DATA_HOME/repoctl/SET/publishes/ID/
+                                the signed tree and the state file
+                                state.json of a publish until step 8 ·
+                                repoctl repo push ID completes it,
+                                repoctl clean --publish ID deletes it
+  $XDG_DATA_HOME/repoctl/git/HASH.git
+                                bare clones of external package
+                                repositories, one per URL · repoctl
+                                clean --git, only without worktree and
+                                unpushed commits
+  $XDG_STATE_HOME/repoctl/SET/runs/, logs/
+                                journals, progress logs, node and mock
+                                logs; stdout and stderr of a run that
+                                the web UI started (RUN.out, RUN.err) ·
+                                repoctl clean --logs; state.keep_runs,
+                                state.keep_publishes
+  $XDG_STATE_HOME/repoctl/SET/check.json
+                                the result of the last repoctl check ·
+                                the next check writes it again
+  $XDG_STATE_HOME/repoctl/SET/agent/
+                                the results of agent buttons · repoctl
+                                clean --logs; state.keep_agent
+  $XDG_STATE_HOME/repoctl/-ui/sets.yaml
+                                the set list of the web UI: name and
+                                path of each set (ui.html#sets) ·
+                                repoctl ui --remove SET, or "Remove from
+                                list" on the Sets page; repoctl clean
+                                --set NAME
+  $XDG_STATE_HOME/repoctl/import/SET/, import/SET.log
+                                the copy of the served tree, the
+                                manifest and the log of the import
+                                runbook · the agent deletes the copy
+                                after Verify (report); repoctl clean
+                                --set NAME deletes all
+  $XDG_RUNTIME_DIR/repoctl/     the set lock SET.lock, the clone locks
+                                git-HASH.lock, the web UI socket ui.sock
+                                and ui.json (pid, address, port, version
+                                and start time of the server) · at
+                                logout, unless lingering is on; a run
+                                that holds the set lock takes it again
+                                (build.html#lock)
+  $XDG_RUNTIME_DIR/repoctl/ui/  stdout and stderr of the UI children
+                                without a run; the private plugin
+                                ui/plugin/ of the agent buttons · the
+                                server deletes the files of a child that
+                                ended
+
+  - Only the cache is safe to delete. The next build is slower, not
+    different.
+  - The data directory is build state. A clone can hold commits that are
+    not pushed, so it is not cache.
+  - The state is kept. The journals feed repoctl logs, the web UI and
+    the agent.
+  - The registry decides what is published. No file on this host does
+    (model.html#records).
+
+repoctl config paths prints the paths of this set with their sizes
+(cli.html#cmd-config).

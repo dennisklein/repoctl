@@ -1,0 +1,74 @@
+SELECTORS
+
+A selector names nodes. A node is one package built for one target,
+written PKG@TARGET (model.html#nodes). build, plan, graph, list, show,
+logs and repo diff take node selectors. checkout, pin, rebuild and
+upstream act on packages and take only the package part; slurm@el9 there
+is a usage error. repoctl help selectors prints the rules and examples
+of this section.
+
+  (* EBNF, ISO 14977 *)
+  selectors       = [ selector , { separator , selector } ] ;
+  separator       = "," | white-space ;           (* several args are a union too *)
+  selector        = [ "!" ] , ( node-selector | target-selector | here ) ;
+  node-selector   = pkg-pattern , [ "@" , target-pattern ] ;
+  target-selector = "@" , target-pattern ;
+  here            = "." ;                         (* the package of the current directory *)
+  pkg-pattern     = glob ;                        (* matched against packages[].id *)
+  target-pattern  = glob ;                        (* matched against targets[].id *)
+  glob            = gchar , { gchar } ;
+  gchar           = letter | digit | "-" | "_" | "+" | "." | "*" | "?" | class ;
+  class           = "[" , [ "!" | "^" ] , cchar , { cchar } , "]" ;
+  cchar           = letter | digit | "-" | "_" | "+" | "." ;
+  (* "*" and "?" never match "@". A glob uses the Go path.Match rules. *)
+
+  - Start with all nodes of the set. packages[].targets limits them, so
+    rocm-smi has no el10 node. A retired target has no nodes.
+  - Remove the nodes of the targets that --target does not name.
+  - Without a positive selector, select all remaining nodes. Else select
+    the union of the positive selectors.
+  - Remove the nodes of each ! selector. The order of the selectors has
+    no effect.
+  - Each positive selector must select at least one node, else exit 2.
+    The error gives the cause: unknown package (with "did you mean"),
+    unknown target, not built for this target, or removed by --target.
+  - . is the package whose worktree holds the current directory. Outside
+    a worktree, it is a usage error.
+
+Quote globs and !. Else the shell expands pmix*, and bash reads ! as
+history.
+
+  (none)                  all 21 nodes: 11 on el9, 10 on el10
+  slurm                   slurm@el9, slurm@el10
+  @el10                   the 10 nodes on el10
+  'pmix*'                 pmix, pmix_v5 and pmix_v4 on el9 and el10 (6
+                          nodes)
+  'pmix*@el9' '!pmix_v4'  pmix@el9, pmix_v5@el9
+  --target el9 slurm,ucx  slurm@el9, ucx@el9
+  rocm-smi@el10           usage error: rocm-smi is not built for el10
+
+For build, plan and graph, the selected nodes are the roots. A
+dependency is always a node of the same target. A needed dependency
+builds first, or comes from latest or a staging (build.html#deps). The
+plan action of a node comes from its own commit, not from its
+dependencies (build.html#actions).
+
+  - A change in ucx never selects slurm. The soname check and
+    closure.broken say when a rebuild is necessary; then a human runs
+    repoctl rebuild.
+  - --with-deps adds the transitive dependencies, --rdeps the transitive
+    dependents. In build, they matter only with --force.
+  - Nodes that are not selected and not needed get the action skip. The
+    JSON result always has them.
+  - A run of a subset is partial. Publish takes the plan, not one run
+    (publish.html#takes).
+
+  repoctl build                 8: ucx, slurm, openmpi, slurm-
+                                singularity-exec on el9 and el10 · 13 ·
+                                0
+  repoctl build ucx             2: ucx@el9, ucx@el10 · 0 · 19
+  repoctl build slurm           4: slurm and the needed ucx, on both
+                                targets · 9 · 8
+  repoctl build @el10           4: the four build nodes of el10 · 6 · 11
+  repoctl build munge@el9 --force
+                                1: munge@el9 (reason forced) · 0 · 20

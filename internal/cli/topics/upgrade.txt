@@ -1,0 +1,31 @@
+UPGRADE
+
+The text of repoctl help upgrade gives the steps on one admin host. A
+run that is active during the upgrade ends with the old binary. A UI or
+MCP server that runs during the upgrade starts no new child (host.stale-
+server).
+
+  UPGRADE
+
+  Upgrade repoctl on an admin host:
+    1. Read the release notes. They name new keys and fields, a new
+       apiVersion and a new minRepoctl.
+    2. repoctl runs --state running    in each set: wait until no run is active
+    3. repoctl ui --stop               stop the web UI server
+    4. sudo dnf upgrade repoctl repoctl-release
+    5. repoctl skills install          also --project in each set that has them
+    6. repoctl check --install-timer   in each set with a timer: it rewrites
+                                       the units when they changed
+    7. Restart each agent session that runs "repoctl mcp start".
+    8. repoctl doctor                  host.stale-server, skills.version-mismatch
+                                       and check.timer-unit must pass
+  Upgrade the mirror job on the HTTP server: sudo dnf upgrade
+  repoctl-mirror. The timer runs the new job at its next start.
+  Two admins can work with two releases for a short time. An older
+  binary reads newer files, but it never rewrites a file with a field
+  that it does not know (contract.newer-file, exit 1).
+  When all admins have the new release:
+    - raise minRepoctl in repoctl.yaml if the release notes ask for it;
+    - for a new apiVersion, upgrade the HTTP server first, then run
+      "repoctl migrate --api".
+  Commit and push the change of repoctl.yaml.

@@ -1,0 +1,89 @@
+ENVIRONMENT
+
+A REPOCTL_* variable stands in for a flag that the command line does not
+give.
+
+  - A variable with the empty string counts as not set.
+  - The help of each flag names its variable before the default.
+  - A value that repoctl cannot use fails the command with exit 1 and
+    names the variable.
+  - REPOCTL_PROGRESS, REPOCTL_PROGRESS_LOG and REPOCTL_VERBOSE never
+    fail a command. repoctl writes one note and continues without them.
+
+  REPOCTL_DIR                   -C, --dir · The start directory of the
+                                set discovery.
+  REPOCTL_CONFIG                --config · The user config file.
+                                --config "" reads no user config.
+  REPOCTL_TARGET                --target · A comma list: el9,el10.
+  REPOCTL_JSON                  --json · 1 or true.
+  REPOCTL_PROGRESS              --progress · auto, tree, counter, plain,
+                                none.
+  REPOCTL_PROGRESS_LOG          --progress-log · A file for a copy of
+                                the progress log.
+  REPOCTL_QUIET                 -q · 1.
+  REPOCTL_VERBOSE               -v · A number: 2 is -vv.
+  REPOCTL_JOBS                  --jobs · Also the user config key jobs.
+  REPOCTL_LOCK_WAIT             --lock-wait · A duration, for example
+                                10m.
+  REPOCTL_SIGN_KEY              user config sign.key · No flag: a human
+                                sets the key once. REPOCTL_GPG_NAME is
+                                an alias.
+  REPOCTL_UI_LISTEN             repoctl ui --listen · A loopback address
+                                only.
+  REPOCTL_ALLOW_UNATTENDED_PUBLISH
+                                no flag · 1 lets publish, repo push,
+                                repo restore, repo prune and repo resign
+                                run with --yes and without a terminal.
+                                It never allows repo gc, sign deployed,
+                                a trust change or --accept-advisory.
+                                repoctl reads it only from the
+                                environment (cli.html#safety).
+
+repoctl also reads these variables:
+
+  Paths                        XDG_CONFIG_HOME, XDG_CACHE_HOME,
+                               XDG_STATE_HOME, XDG_DATA_HOME,
+                               XDG_RUNTIME_DIR
+  Display                      NO_COLOR (same as --no-color), TERM,
+                               COLORTERM, LC_ALL, LC_CTYPE, LANG
+  Trace in the journal         TRACEPARENT, TRACESTATE
+  Upstream queries             GH_TOKEN, GITHUB_TOKEN; else gh auth
+                               token; else anonymous. The check timer
+                               reads them from
+                               ~/.config/repoctl/check.env (check
+                               timer).
+  Signing                      GNUPGHOME, GPG_TTY
+  Browser start of repoctl ui  SSH_CONNECTION, DISPLAY, WAYLAND_DISPLAY
+
+repoctl never writes a token or a passphrase into a config file, a log
+or a --json result.
+
+repoctl ui and repoctl mcp start run each command without the variables
+that stand in for a flag. Thus a run does what its shown command says.
+
+  REPOCTL_DIR, REPOCTL_CONFIG, REPOCTL_TARGET, REPOCTL_JSON, REPOCTL_PROGRESS_LOG, REPOCTL_QUIET, REPOCTL_VERBOSE, REPOCTL_JOBS, REPOCTL_LOCK_WAIT, REPOCTL_UI_LISTEN, REPOCTL_ALLOW_UNATTENDED_PUBLISH
+                                removed
+  REPOCTL_PROGRESS              set: REPOCTL_PROGRESS=none
+  REPOCTL_SIGN_KEY and its alias REPOCTL_GPG_NAME
+                                kept: they stand in for the user config
+                                key sign.key, which has no flag
+
+  -C                           The set directory.
+  --config                     The effective user config path of the
+                               server, also --config "". The CLI toggle
+                               of the UI shows --config PATH only when
+                               the path is not the default.
+  --jobs (for a build)         The value of the build dialog or of the
+                               tool call, else the effective jobs of the
+                               server.
+  --lock-wait 0                Thus a busy set answers at once with
+                               set.busy.
+
+Thus the server and the child find the same signer from the same layers.
+The review shows that signer, and the plan digest holds its fingerprint
+(cli.html#ui-confirmation).
+
+The pages of the UI and the read tools of the MCP server run in the
+server process. They use the same values as the children: the effective
+config path and the kept variables. They read no other REPOCTL_*
+variable.
