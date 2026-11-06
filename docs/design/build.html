@@ -321,8 +321,11 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <li><code>--uniqueext</code> with the run and the job slot, so that parallel builds have their own roots (<a href="#mock">mock roots</a>);</li>
   <li><code>--resultdir</code> in the work directory of the run;</li>
   <li><code>--macro-file</code> with the one macro file of the target;</li>
-  <li><code>--addrepo</code> with the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>.</li>
+  <li><code>--addrepo</code> with the local copy of latest, the staging of this run, the staged view of the plan and <code>targets[].repos</code>;</li>
+  <li>in step rpm, <code>--rpmbuild_timeout</code> with <code>build.timeout.rpm</code> (<a href="#failures">failures</a>).</li>
 </ul>
+<p>repoctl starts each mock child in its own process group, so a Ctrl-C of the terminal reaches only repoctl. It reads each pipe of mock to its end. mock writes its own lines to stdout too, so a command in the root marks its output with a prefix.</p>
+
 <h3 id="source-clone">Source clone</h3>
 <p>Step srpm makes the <dfn>source clone</dfn> of the node in the work directory of the run. It runs <code>git clone --local --no-checkout</code> of the package repository, then a detached checkout of the node commit. The package repository is the set repository, or the bare clone of an external package.</p>
 <p>repoctl puts the sources of the node into the source clone (<a href="#sources">sources</a>) and gives its root to <code>mock --buildsrpm --sources</code>. <code>--local</code> hard-links the git objects on one file system, so a source clone needs little disk.</p>
@@ -358,6 +361,20 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td>host</td><td>No disk space, no mock group, a repo metadata error. No space on a device (ENOSPC) in any step gives host, also in step stage.</td><td>Can help after the human repairs the host.</td></tr>
 </tbody>
 </table>
+<p>repoctl gets the class of a failed mock call from its own records first, then from the exit code of mock:</p>
+<table class="compact">
+<thead><tr><th>Case</th><th>Class</th></tr></thead>
+<tbody>
+<tr><td>repoctl stopped the node: a time limit, or a cancel. repoctl writes the cause to the journal before it stops mock.</td><td>timeout or canceled</td></tr>
+<tr><td>No space on a device, or a repo metadata error in <code>root.log</code>.</td><td>host</td></tr>
+<tr><td>Exit 30: <code>dnf builddep</code> failed.</td><td>builddep</td></tr>
+<tr><td>Exit 11: <code>--rpmbuild_timeout</code> stopped rpmbuild.</td><td>timeout</td></tr>
+<tr><td>Exit 1 in step srpm.</td><td>srpm</td></tr>
+<tr><td>Exit 1 in step rpm.</td><td>build</td></tr>
+<tr><td>Another exit code, for example 128 + N after signal N.</td><td>mock</td></tr>
+</tbody>
+</table>
+<p>mock gives exit 1 for a failed build and also for a build that <code>--orphanskill</code> stopped. Thus the exit code alone never tells a timeout or a cancel of repoctl. After a normal failure, mock writes a <code>Finish</code> line for each <code>Start</code> line of <code>state.log</code>. Thus the failed phase is the last <code>Start</code> line before the first error.</p>
 <p>A failed write of the journal ends the run. repoctl starts no new node, stops the running nodes with the class internal, and tries to write <code>run.finished</code> with the state failed and exit 1. When that write also fails, the readers show the run as abandoned.</p>
 <p>Each step has a time limit, and mock must write output. The limits are keys of the user config (<a href="config.html#user-config">user config</a>) and do not change the build result.</p>
 <table class="compact">
@@ -370,7 +387,9 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
 <tr><td><code>build.timeout.run</code></td><td>0 (no limit)</td><td>the whole run</td></tr>
 </tbody>
 </table>
-<p>At a step limit or the idle limit, repoctl sends SIGTERM to the process group of the mock child, and SIGKILL after 60 s. The node ends failed with the class timeout: <code>error.step</code> names the step, and the message names the limit. The other nodes continue.</p>
+<p>At a step limit or the idle limit, repoctl writes the timeout to the journal. Then it runs <code>mock --orphanskill</code> on the root of the node and waits at most 60 s for the mock child. The node ends failed with the class timeout: <code>error.step</code> names the step, and the message names the limit. The other nodes continue.</p>
+<p>Step rpm also gives <code>build.timeout.rpm</code> to mock as <code>--rpmbuild_timeout</code>, so mock stops a hung rpmbuild itself (exit 11).</p>
+<aside class="callout why"><p class="callout-title">Why --orphanskill</p><p>mock runs as root through consolehelper, so a signal from the user to mock gives EPERM, and the build continues. <code>mock --orphanskill</code> runs as root too. It stops each process in the root and unmounts it, and the stopped mock then ends with exit 1.</p></aside>
 <p>At <code>build.timeout.run</code>, repoctl writes <code>run.cancel-requested</code> with the reason <code>deadline</code> and cancels the run as <code>repoctl cancel</code> does (exit 130, <a href="#cancel">cancel</a>). Thus a hung mock never holds the set lock for longer than its limit.</p>
 
 <h3 id="run-states">Run states</h3>
@@ -754,13 +773,13 @@ hint: read the dnf output of mock. run: repoctl logs slurm@el10 --file root</pre
 
 <h2 id="cancel">Cancel and abandoned runs</h2>
 <p><code>repoctl cancel [RUN]</code> stops a running build of this user on this host. The default is the running run of the set. repoctl sends SIGINT to the process that holds the set lock.</p>
-<p>That process stops its mock children (SIGTERM to the process group of each child, SIGKILL after 60 s) and marks its open nodes canceled. It keeps the staging and the logs, and exits 130.</p>
+<p>That process writes the cancel to the journal. It runs <code>mock --orphanskill</code> on the root of each mock child and waits at most 60 s for each child (<a href="#failures">failures</a>). It marks its open nodes canceled. It keeps the staging and the logs, and exits 130.</p>
 <table class="compact">
 <thead><tr><th>Case</th><th>Result</th></tr></thead>
 <tbody>
 <tr><td>The first Ctrl-C in the terminal of the build.</td><td>The same as cancel. The tree shows <code>interrupting</code> until the mock children end, at most 60 s.</td></tr>
 <tr><td>A second <code>repoctl cancel</code> without <code>--force</code>.</td><td>No change. It prints that the run is interrupting.</td></tr>
-<tr><td>A second Ctrl-C, or <code>repoctl cancel --force</code> for a run without a terminal, for example a run of the UI or of MCP.</td><td>SIGKILL to the mock children, and exit at once. The journal has no <code>run.finished</code>, so the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</td></tr>
+<tr><td>A second Ctrl-C, or <code>repoctl cancel --force</code> for a run without a terminal, for example a run of the UI or of MCP.</td><td><code>mock --orphanskill</code> on the root of each child without a wait, and exit at once. The journal has no <code>run.finished</code>, so the readers show the run as abandoned. repoctl prints <code>hint: clean the mock roots: run: repoctl mock clean</code>.</td></tr>
 <tr><td>The holder is on another host or is another user.</td><td>Exit 1 and <code>cancel.not-holder</code>.</td></tr>
 <tr><td>A crash.</td><td>An abandoned run. The set lock ends with the process, so the next build can start.</td></tr>
 <tr><td>A publish run after its push step starts.</td><td>No cancel (<a href="publish.html#order">publish order</a>).</td></tr>

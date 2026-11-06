@@ -949,7 +949,7 @@
         "canceled",
         "internal"
       ],
-      "description": "From the step and from patterns in the mock logs. host: the host failed, not the package (mock cannot start, no disk space, the user is not in the group mock). A retry can help after the host is fixed. ENOSPC in any step is host. internal: a fault of repoctl, for example a failed write of the journal. timeout: build.timeout.srpm, .rpm, .stage or .idle of the user config ended; repoctl sent SIGTERM, then SIGKILL after 60 s."
+      "description": "From the records of repoctl, the exit code of mock (30 builddep, 11 timeout, 1 srpm or build), the step and patterns in the mock logs. host: the host failed, not the package (mock cannot start, no disk space, the user is not in the group mock). A retry can help after the host is fixed. ENOSPC in any step is host. internal: a fault of repoctl, for example a failed write of the journal. timeout: build.timeout.srpm, .rpm, .stage or .idle of the user config ended; repoctl ran mock --orphanskill on the root of the node, or mock --rpmbuild_timeout stopped rpmbuild."
     },
     "RepoKind": {
       "enum": [
