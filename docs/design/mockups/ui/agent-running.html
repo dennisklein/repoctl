@@ -64,7 +64,7 @@
 
 <div class="page-head set-head" id="set-head" data-live hx-get="/s/slurm-26.05/-/frag/set-head" hx-trigger="refresh" sse-swap="set-head" hx-swap="outerHTML">
   <div><h1 class="mono">slurm-26.05</h1>
-    <div class="sub"><span class="mono">~/src/slurm-repo</span><span class="sep">·</span><span>branch <code>builder/slurm-26.05</code></span><span class="sep">·</span>
+    <div class="sub"><span class="mono">~/src/slurm-repo</span><span class="sep">·</span><span>branch <code>set/slurm-26.05</code></span><span class="sep">·</span>
       <span>targets <b class="mono" title="rocky+epel-9-x86_64">el9</b>, <b class="mono" title="rocky+epel-10-x86_64">el10</b></span></div></div>
   <div class="actions">
     <details class="cli-toggle"><summary class="btn btn-ghost" aria-label="CLI commands of this page">CLI</summary>
@@ -98,7 +98,7 @@ repoctl -C ~/src/slurm-repo runs</div></details>
         <div class="t"><span class="kind">Advisory</span><a class="node-chip st-current" href="#" title="pmix@el9: current"><b>pmix</b>@el9</a> does not install on a new el9 host <span class="pill st-failed">required</span></div>
         <p class="s"><span class="mono">pmix-6.1.0-1.el9</span> needs <code>libhwloc.so.15</code>. EPEL 9 now has only <code>libhwloc.so.16</code>. This blocks a <a class="gl" href="../../glossary.html#publish" data-gl="publish" data-domain="publish">publish</a> that changes pmix. The el9 publish of this <a class="gl" href="../../glossary.html#run" data-gl="run" data-domain="build">run</a> does not change pmix. <span class="code-sub">closure.broken</span></p>
       </div>
-      <div class="acts"><a class="btn btn-sm" href="rebuild-dialog.html" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=pmix&amp;advisory=closure.broken/pmix@el9" hx-target="#modal">Rebuild…</a>
+      <div class="acts"><a class="btn btn-sm" href="rebuild-dialog.html" hx-get="/s/slurm-26.05/-/dialog/rebuild?package=pmix&amp;advisory=closure.broken/pmix@el9" hx-target="#modal">Rebuild…</a>
         <details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for closure.broken/pmix@el9">⋯</summary><div class="more-pop" role="menu">
           <a href="advisories.html#adv-closure.broken-pmix-el9" role="menuitem">Show closure</a>
           <button type="button" role="menuitem" data-copy="repoctl rebuild pmix --reason &quot;hwloc-libs 2.11.2: libhwloc.so.15 to .so.16&quot;">Copy command <span class="code-sub">repoctl rebuild pmix --reason …</span></button>
@@ -133,19 +133,19 @@ repoctl -C ~/src/slurm-repo runs</div></details>
         <span class="s">Nothing is broken. <a class="gl" href="../../glossary.html#rebuild" data-gl="rebuild" data-domain="build">Rebuild</a> only if you want the new version. <span class="code-sub">buildroot.drift</span></span>
         <span class="acts"><button class="btn btn-sm" type="button" hx-get="/s/slurm-26.05/-/dialog/dismiss?advisory=buildroot.drift/munge@el9" hx-target="#modal">Dismiss…</button>
           <details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for buildroot.drift/munge@el9">⋯</summary><div class="more-pop" role="menu">
-            <button type="button" role="menuitem" hx-get="/s/slurm-26.05/-/dialog/rebuild?dir=munge&amp;advisory=buildroot.drift/munge@el9" hx-target="#modal">Rebuild…</button>
+            <button type="button" role="menuitem" hx-get="/s/slurm-26.05/-/dialog/rebuild?package=munge&amp;advisory=buildroot.drift/munge@el9" hx-target="#modal">Rebuild…</button>
             <button class="btn-agent" type="button" role="menuitem" hx-post="/s/slurm-26.05/-/agent/rebuild-check" hx-vals='{"advisory":"buildroot.drift/munge@el9"}' hx-target="#drawer" hx-swap="outerHTML"
               title="Runs the agent with the skill rebuild-check. Tools: read only. It changes nothing.">Is a rebuild necessary?</button>
           </div></details></span></li>
       <li id="adv-upstream.release-slurm"><span class="t"><a class="mono" href="package-slurm.html">slurm</a> 26.05.5 is out. You have 26.05.4.</span>
         <span class="s">On <a href="https://github.com/SchedMD/slurm/releases">GitHub SchedMD/slurm</a>. <span class="code-sub">upstream.release</span></span>
-        <span class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"dir":"slurm","version":"26.05.5"}' hx-target="#drawer" hx-swap="outerHTML"
+        <span class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"package":"slurm","version":"26.05.5"}' hx-target="#drawer" hx-swap="outerHTML"
             title="Runs the agent with the skill package-updates. Tools: read only. It changes nothing.">Summarize upstream release</button>
           <details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for upstream.release/slurm">⋯</summary><div class="more-pop" role="menu">
             <button type="button" role="menuitem" hx-get="/s/slurm-26.05/-/dialog/dismiss?advisory=upstream.release/slurm" hx-target="#modal">Dismiss…</button></div></details></span></li>
       <li id="adv-upstream.release-openmpi"><span class="t"><a class="mono" href="#">openmpi</a> 5.0.12 is out. You have 5.0.11.</span>
         <span class="s">On <a href="https://github.com/open-mpi/ompi/releases">GitHub open-mpi/ompi</a>. <span class="code-sub">upstream.release</span></span>
-        <span class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"dir":"openmpi","version":"5.0.12"}' hx-target="#drawer" hx-swap="outerHTML"
+        <span class="acts"><button class="btn btn-sm btn-agent" type="button" hx-post="/s/slurm-26.05/-/agent/release-notes" hx-vals='{"package":"openmpi","version":"5.0.12"}' hx-target="#drawer" hx-swap="outerHTML"
             title="Runs the agent with the skill package-updates. Tools: read only. It changes nothing.">Summarize upstream release</button>
           <details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for upstream.release/openmpi">⋯</summary><div class="more-pop" role="menu">
             <button type="button" role="menuitem" hx-get="/s/slurm-26.05/-/dialog/dismiss?advisory=upstream.release/openmpi" hx-target="#modal">Dismiss…</button></div></details></span></li>

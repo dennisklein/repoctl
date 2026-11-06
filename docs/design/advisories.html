@@ -91,7 +91,7 @@
 <tr><td><code>title</code></td><td>One line in plain words.</td></tr>
 <tr><td><code>facts</code>, <code>factsDigest</code></td><td>The evidence, with a fixed shape for each code, and its digest (<a href="#facts">facts</a>).</td></tr>
 <tr><td><code>hostFacts</code></td><td>Values of this host that explain the advisory. They are not in the digest.</td></tr>
-<tr><td><code>closure</code></td><td>Required level only: the dirs whose publish the advisory blocks.</td></tr>
+<tr><td><code>closure</code></td><td>Required level only: the packages whose publish the advisory blocks.</td></tr>
 <tr><td><code>suggestion</code></td><td>A text and a command.</td></tr>
 <tr><td><code>source</code>, <code>seen</code></td><td>Where the check ran (plan, build, check, upstream or publish) and when.</td></tr>
 <tr><td><code>dismissal</code></td><td>By, at, note, and <code>stale</code> when the dismissal no longer matches.</td></tr>
@@ -103,9 +103,9 @@
 <table class="compact">
 <thead><tr><th>Subject</th><th>Used for</th><th>Example</th></tr></thead>
 <tbody>
-<tr><td><code>DIR@TARGET</code></td><td>Each code that depends on a target.</td><td><code>closure.broken/pmix@el9</code></td></tr>
-<tr><td><code>DIR</code></td><td><code>upstream.release</code>: an upstream release does not depend on a target.</td><td><code>upstream.release/slurm</code></td></tr>
-<tr><td>source package name</td><td>A retired package, which has no dir in repoctl.yaml (<a href="lifecycle.html#retire">retire</a>).</td><td><code>retired.published/NAME</code></td></tr>
+<tr><td><code>PKG@TARGET</code></td><td>Each code that depends on a target.</td><td><code>closure.broken/pmix@el9</code></td></tr>
+<tr><td><code>PKG</code></td><td><code>upstream.release</code>: an upstream release does not depend on a target.</td><td><code>upstream.release/slurm</code></td></tr>
+<tr><td>source package name</td><td>A retired package, which has no package in repoctl.yaml (<a href="lifecycle.html#retire">retire</a>).</td><td><code>retired.published/NAME</code></td></tr>
 <tr><td>source package name<code>@TARGET</code></td><td><code>closure.broken</code> of a retired package (level warn).</td><td><code>closure.broken/NAME@el9</code></td></tr>
 <tr><td>key id</td><td><code>sign.expiring</code>: a signer key, not a package.</td><td><code>sign.expiring/KEYID</code></td></tr>
 </tbody>
@@ -122,14 +122,14 @@
 <tbody>
 <tr><td><code>soname.removed</code></td><td><span class="tag req">required</span></td><td>after a node build</td><td>The new build does not provide a soname of the newest published build of the node, and a kept set package requires it. A retired package does not count.</td><td><code>repoctl rebuild DEPENDENTS --reason "ucx: libucp.so.0 → .so.1"</code></td></tr>
 <tr><td><code>closure.broken</code></td><td><span class="tag req">required</span></td><td>plan, check, publish gate</td><td><code>dnf repoclosure --newest</code> per target, on the published repo plus the closure repos, finds a requirement with no provider. Only the newest NVR of each name counts.</td><td>Rebuild the affected package, or change its spec.</td></tr>
-<tr><td><code>closure.broken</code> of a retired package</td><td><span class="tag warn">warn</span></td><td>plan, check</td><td>As above, for a source package that no dir in repoctl.yaml builds.</td><td><code>repoctl repo prune --package NAME --all</code>. Never a rebuild.</td></tr>
+<tr><td><code>closure.broken</code> of a retired package</td><td><span class="tag warn">warn</span></td><td>plan, check</td><td>As above, for a source package that no package in repoctl.yaml builds.</td><td><code>repoctl repo prune --package NAME --all</code>. Never a rebuild.</td></tr>
 <tr><td><code>provider.changed</code></td><td><span class="tag warn">warn</span></td><td>plan, check</td><td>A current node took a BuildRequires provider from outside the set, and now a set package provides it, for example a new hwloc. The recorded buildroot shows the old provider.</td><td><code>repoctl rebuild DEPENDENTS --reason "build against set hwloc"</code></td></tr>
 <tr><td><code>abi.changed</code></td><td><span class="tag warn">warn</span></td><td>after a node build (optional, needs libabigail)</td><td><code>abidiff</code> of the old and new shared libraries with the same soname.</td><td>Review. Rebuild the dependents when the change matters.</td></tr>
 <tr><td><code>sign.expiring</code></td><td><span class="tag warn">warn</span>, <span class="tag req">required</span></td><td>check</td><td>Published RPMs carry a signer whose key expires inside <code>sign.checks.key_expiry_warn</code> (default 180 days): warn. Inside <code>sign.checks.key_min_validity</code> (default 30 days): required. It has no closure, so it never blocks a publish.</td><td>Treat it as a key change, and re-sign the RPMs before the expiry (<a href="signing.html#expiry">key expiry</a>).</td></tr>
 <tr><td><code>buildroot.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>A BuildRequires provider in the closure repos has a newer version than the recorded buildroot.</td><td>Nothing, or a rebuild.</td></tr>
 <tr><td><code>mock.drift</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The hash of the mock config or the macros of this host differs from the manifest. Per host (<a href="#data">data</a>).</td><td>Nothing, or a rebuild.</td></tr>
 <tr><td><code>upstream.release</code></td><td><span class="tag info">info</span></td><td>upstream, check</td><td>A new upstream version of the package.</td><td>Bump the version (skill bump-package).</td></tr>
-<tr><td><code>retired.published</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The published repo of a target holds RPMs of a source package that no dir in repoctl.yaml builds.</td><td>Nothing (the default), or <code>repoctl repo prune --package NAME --all</code>.</td></tr>
+<tr><td><code>retired.published</code></td><td><span class="tag info">info</span></td><td>plan, check</td><td>The published repo of a target holds RPMs of a source package that no package in repoctl.yaml builds.</td><td>Nothing (the default), or <code>repoctl repo prune --package NAME --all</code>.</td></tr>
 </tbody>
 </table>
 <p>These results are not advisories:</p>
@@ -150,7 +150,7 @@
 <tbody>
 <tr><td><code>soname.removed</code></td><td><code>removed[]</code>: the sonames that the new build does not provide. <code>requiredBy[]</code>: <code>{nvra, requires}</code> of each kept set package that requires one of them.</td><td>removed by value; requiredBy by nvra, then requires</td></tr>
 <tr><td><code>closure.broken</code></td><td><code>broken[]</code>: <code>{nvra, requires, newest, newestRepo, newestProvides[]}</code>, one entry per broken requirement of the node. <code>newest</code> is the newest NVRA in the closure repos of the package that gave the requirement before, if one exists.</td><td>by nvra, then requires</td></tr>
-<tr><td><code>provider.changed</code></td><td><code>changes[]</code>: <code>{capability, recorded, provider}</code>: the provider NVRA in the recorded buildroot and the set dir that provides it now.</td><td>by capability</td></tr>
+<tr><td><code>provider.changed</code></td><td><code>changes[]</code>: <code>{capability, recorded, provider}</code>: the provider NVRA in the recorded buildroot and the set package that provides it now.</td><td>by capability</td></tr>
 <tr><td><code>abi.changed</code></td><td><code>libraries[]</code>: <code>{soname, old, new, status}</code>: the old and new NVRA and the exit status of <code>abidiff</code>.</td><td>by soname</td></tr>
 <tr><td><code>sign.expiring</code></td><td><code>{fingerprint, expires}</code>: the full fingerprint and the expiry date.</td><td>-</td></tr>
 <tr><td><code>buildroot.drift</code></td><td><code>drift[]</code>: <code>{package, recorded, available, repo}</code>.</td><td>by package</td></tr>
@@ -206,7 +206,7 @@
 <tr><td>gone</td><td>The check does not find the problem any more.</td><td>Not stored, so not in the contract enum. The journal of the check records <code>advisory.gone</code>.</td></tr>
 </tbody>
 </table>
-<p>A dismissed advisory is open again when a human undismisses it or the dismissal becomes stale (<a href="#dismissals">dismissal file</a>). Two examples: a newer upstream version changes the facts of <code>upstream.release</code>, and thus the digest. A dir builds a retired package again, and its <code>closure.broken</code> becomes required.</p>
+<p>A dismissed advisory is open again when a human undismisses it or the dismissal becomes stale (<a href="#dismissals">dismissal file</a>). Two examples: a newer upstream version changes the facts of <code>upstream.release</code>, and thus the digest. A package builds a retired package again, and its <code>closure.broken</code> becomes required.</p>
 <p>A run advisory (<code>soname.removed</code>, <code>abi.changed</code>) comes from a node build and lives in the record and the journal of its run. It is gone in these cases:</p>
 <ul>
   <li>At <code>run.finished</code>, repoctl checks each <code>soname.removed</code> of the run again, on latest plus the staging of the run. It is gone when no newest NVR there requires a removed soname, for example because a dependent built later in the same run. The run journal records <code>advisory.gone</code>.</li>
@@ -323,7 +323,7 @@ check       last 8h ago (timer) · ok</pre>
 <text class="t-title" x="40" y="140">Rocky, EPEL, feeds</text>
 <text class="t-small" x="40" y="157">upstream repos and releases</text>
 <rect class="box" x="28" y="176" width="244" height="84" rx="8"/>
-<text class="t-title" x="40" y="196">builder/slurm-26.05</text>
+<text class="t-title" x="40" y="196">set/slurm-26.05</text>
 <text class="t-small" x="40" y="213">.repoctl/advisories.yaml</text>
 <text class="t-small" x="40" y="228">dismissals of the team,</text>
 <text class="t-small" x="40" y="243">shared with git pull and push</text>
@@ -447,13 +447,13 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
   <li>Run <code>dnf repoclosure --newest</code> on the result tree plus the closure repos of the target. The result is a list of broken requirements: an RPM and a requirement.</li>
   <li>Name the advisory of each broken requirement, and find its closure. One advisory holds all broken requirements of its subject (<a href="#facts">facts</a>).
     <ul>
-      <li>A dir of this publish provided the soname in its newest published build. Its new build does not provide it: <code>soname.removed/PROVIDER@TARGET</code>. The closure is the provider plus each dir that requires the soname.</li>
-      <li>Every other broken requirement: <code>closure.broken/REQUIRER@TARGET</code>, with REQUIRER the dir that built the RPM. The closure is REQUIRER, plus each set dir with an older NVR in the tree that provides the requirement.</li>
+      <li>A package of this publish provided the soname in its newest published build. Its new build does not provide it: <code>soname.removed/PROVIDER@TARGET</code>. The closure is the provider plus each package that requires the soname.</li>
+      <li>Every other broken requirement: <code>closure.broken/REQUIRER@TARGET</code>, with REQUIRER the package that built the RPM. The closure is REQUIRER, plus each set package with an older NVR in the tree that provides the requirement.</li>
     </ul></li>
-  <li>A required advisory blocks the target when its closure contains a dir of the publish on that target. An acceptance of the human removes the block.</li>
+  <li>A required advisory blocks the target when its closure contains a package of the publish on that target. An acceptance of the human removes the block.</li>
 </ol>
 <ul>
-  <li>A required advisory whose closure has no dir of the publish does not block. The summary shows it as "open, not changed by this publish".</li>
+  <li>A required advisory whose closure has no package of the publish does not block. The summary shows it as "open, not changed by this publish".</li>
   <li>A broken requirement of an old NVR (not the newest of its name) never blocks. The gate finds it with a second <code>dnf repoclosure</code> run without <code>--newest</code>: only the second run gives it. The summary shows it as info, with a prune suggestion. <code>repoctl check</code> does not run the second repoclosure.</li>
   <li>The gate checks each <code>soname.removed</code> of a taken node again on the result tree. When no newest NVR there requires the soname, the advisory is gone, for example because this publish also takes a rebuilt dependent.</li>
   <li>A retired package is never in a closure. Its broken requirements are <code>closure.broken</code> at level warn.</li>
@@ -563,14 +563,14 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
 <path class="edge" d="M836,176 L836,230" marker-end="url(#arrow)"/>
 <rect class="box-muted" x="256" y="232" width="688" height="84" rx="8" data-f="0-3"/>
 <text class="t-title" x="268" y="252" data-f="0-3">gate decision</text>
-<text class="t-small" x="268" y="269" data-f="0-3">closure ∩ dirs of this publish</text>
+<text class="t-small" x="268" y="269" data-f="0-3">closure ∩ packages of this publish</text>
 <rect class="box-ok" x="256" y="232" width="688" height="84" rx="8" data-f="4"/>
 <text class="t-title" x="268" y="252" data-f="4">does not block</text>
 <text class="t-small" x="268" y="269" data-f="4">{pmix} ∩ {ucx, slurm, openmpi, slurm-singularity-exec} = ∅</text>
 <text class="t-small" x="268" y="284" data-f="4">summary: open, not changed by this publish</text>
 <rect class="box-muted" x="256" y="232" width="688" height="84" rx="8" data-f="5"/>
 <text class="t-title" x="268" y="252" data-f="5">gate decision</text>
-<text class="t-small" x="268" y="269" data-f="5">closure ∩ dirs of this publish</text>
+<text class="t-small" x="268" y="269" data-f="5">closure ∩ packages of this publish</text>
 <rect class="box-err" x="256" y="232" width="688" height="84" rx="8" data-f="6"/>
 <text class="t-title" x="268" y="252" data-f="6">blocks el9</text>
 <text class="t-small" x="268" y="269" data-f="6">{ucx, openmpi} ∩ {ucx} = {ucx}</text>
@@ -589,25 +589,25 @@ ExecStart=/usr/bin/repoctl -C %I check --quiet --check --min-level required</cod
 <text class="t-small" x="16" y="296" data-f="6">this publish, or accept</text>
 <text class="t-small" x="16" y="296" data-f="7">openmpi@el9 is open</text>
 </svg>
-<script type="application/json" class="steps">["Story, 2026-11-03 14:05 · Publish of el9. Base: latest p-20260912-1403-c21 with 170 RPMs. The publish takes the staged el9 nodes of r-…a3f: ucx, slurm, openmpi and slurm-singularity-exec, 38 new RPMs. The advisory closure.broken/pmix@el9 is open since the check of 2026-11-02 06:00.", "Step 1 · The gate makes the result tree: latest plus the nodes of this publish, 208 RPMs. A new NVR is the newest NVR of its name. The old NVRs stay in the tree.", "Step 2 · dnf repoclosure --newest runs on the result tree plus Rocky 9 and EPEL 9. One requirement is broken: pmix-6.1.0-1.el9 needs libhwloc.so.15, and EPEL 9 now gives only libhwloc.so.16.", "Step 3 · No dir of this publish provided libhwloc.so.15, so the advisory is closure.broken/pmix@el9. The closure is the dir that built the RPM (pmix), plus each set dir with an older NVR that provides the requirement. hwloc is not in the set, so the closure is {pmix}.", "Step 4 · The closure {pmix} has no dir of this publish. The advisory does not block. The summary shows it as open, not changed by this publish. Info advisories never block. The publish p-20261103-1412-5e1 continues.", "Variant, not the story · Run r-20261102-1720-9b1 builds ucx alone, and ucx 1.22.1 removes libucp.so.0. After the build of ucx@el9, the soname check writes soname.removed/ucx@el9 (required). The publish takes only ucx.", "Variant · The repoclosure finds that openmpi-5.0.11-1.el9 needs libucp.so.0. The closure {ucx, openmpi} holds ucx, a dir of this publish. The gate blocks el9: exit 12, problem advisory.open, humanAction accept-advisory.", "Variant · The human accepts the advisory for this publish, with the reason \"openmpi loads libucp only in mca_pml_ucx; our clusters use ob1\". repoctl writes advisory.accepted to the journal and to the snapshot annotation. After the publish, closure.broken/openmpi@el9 is open until openmpi has a new build. Until then, clients that have openmpi-5.0.11-1.el9 cannot update ucx."]</script>
+<script type="application/json" class="steps">["Story, 2026-11-03 14:05 · Publish of el9. Base: latest p-20260912-1403-c21 with 170 RPMs. The publish takes the staged el9 nodes of r-…a3f: ucx, slurm, openmpi and slurm-singularity-exec, 38 new RPMs. The advisory closure.broken/pmix@el9 is open since the check of 2026-11-02 06:00.", "Step 1 · The gate makes the result tree: latest plus the nodes of this publish, 208 RPMs. A new NVR is the newest NVR of its name. The old NVRs stay in the tree.", "Step 2 · dnf repoclosure --newest runs on the result tree plus Rocky 9 and EPEL 9. One requirement is broken: pmix-6.1.0-1.el9 needs libhwloc.so.15, and EPEL 9 now gives only libhwloc.so.16.", "Step 3 · No package of this publish provided libhwloc.so.15, so the advisory is closure.broken/pmix@el9. The closure is the package that built the RPM (pmix), plus each set package with an older NVR that provides the requirement. hwloc is not in the set, so the closure is {pmix}.", "Step 4 · The closure {pmix} has no package of this publish. The advisory does not block. The summary shows it as open, not changed by this publish. Info advisories never block. The publish p-20261103-1412-5e1 continues.", "Variant, not the story · Run r-20261102-1720-9b1 builds ucx alone, and ucx 1.22.1 removes libucp.so.0. After the build of ucx@el9, the soname check writes soname.removed/ucx@el9 (required). The publish takes only ucx.", "Variant · The repoclosure finds that openmpi-5.0.11-1.el9 needs libucp.so.0. The closure {ucx, openmpi} holds ucx, a package of this publish. The gate blocks el9: exit 12, problem advisory.open, humanAction accept-advisory.", "Variant · The human accepts the advisory for this publish, with the reason \"openmpi loads libucp only in mca_pml_ucx; our clusters use ob1\". repoctl writes advisory.accepted to the journal and to the snapshot annotation. After the publish, closure.broken/openmpi@el9 is open until openmpi has a new build. Until then, clients that have openmpi-5.0.11-1.el9 cannot update ucx."]</script>
 <figcaption>The gate on the story publish of el9 (frames 0 to 4), and a variant in which the gate blocks (frames 5 to 7). The variant is not part of the story.</figcaption>
 </figure>
 <p>A blocked publish fails with exit 12 and the problem code <code>advisory.open</code>. Its humanAction is <code>accept-advisory</code> with the exact command. The output of the variant:</p>
-<pre class="term">repoctl: error: el9: a required advisory has a dir of this publish in its closure
+<pre class="term">repoctl: error: el9: a required advisory has a package of this publish in its closure
   soname.removed/ucx@el9  libucp.so.0 removed; openmpi requires it (closure: ucx, openmpi)
   affected: clients with openmpi-5.0.11-1.el9 cannot update ucx until openmpi is rebuilt and published
 hint: rebuild the dependents into this publish. run: repoctl rebuild openmpi --reason "ucx: libucp.so.0 removed"
 hint: or accept it for this publish. run: repoctl publish --target el9 --accept-advisory soname.removed/ucx@el9 --reason TEXT</pre>
 <h3 id="gate-kinds">Gate per publish kind</h3>
-<p>The <code>publishKind</code> of a publish run (<a href="publish.html#format">snapshot format</a>) decides how the gate runs and which dirs count as the dirs of the publish.</p>
+<p>The <code>publishKind</code> of a publish run (<a href="publish.html#format">snapshot format</a>) decides how the gate runs and which packages count as the packages of the publish.</p>
 <table class="compact">
 <thead><tr><th>Kind</th><th>Gate</th><th>Dirs of the publish</th><th>Acceptance</th></tr></thead>
 <tbody>
-<tr><td>publish</td><td>Runs as above.</td><td>The dirs of the taken nodes.</td><td><code>--accept-advisory</code></td></tr>
-<tr><td>restore</td><td>Runs as above, on the files of REF.</td><td>The dirs whose newest NVR is different in the base and in REF.</td><td><code>repo restore --accept-advisory</code></td></tr>
+<tr><td>publish</td><td>Runs as above.</td><td>The packages of the taken nodes.</td><td><code>--accept-advisory</code></td></tr>
+<tr><td>restore</td><td>Runs as above, on the files of REF.</td><td>The packages whose newest NVR is different in the base and in REF.</td><td><code>repo restore --accept-advisory</code></td></tr>
 <tr><td>prune</td><td>Runs <code>dnf repoclosure --newest</code> on the base and on the result tree. A broken requirement that only the result tree has refuses the prune: <code>prune.breaks-closure</code> (exit 12). One that the base has, for example <code>closure.broken/pmix@el9</code>, does not block.</td><td>-</td><td>none</td></tr>
 <tr><td>resign</td><td>Skips the gate. A new signature does not change the requirements of an RPM.</td><td>-</td><td>-</td></tr>
-<tr><td>import</td><td>Runs as a report. The summary shows each broken requirement, and it is an open advisory after the import. It does not block, because the clients already have this tree.</td><td>All dirs of the manifest.</td><td>-</td></tr>
+<tr><td>import</td><td>Runs as a report. The summary shows each broken requirement, and it is an open advisory after the import. It does not block, because the clients already have this tree.</td><td>All packages of the manifest.</td><td>-</td></tr>
 </tbody>
 </table>
 <h3 id="gate-unavailable">When the gate cannot run</h3>
@@ -642,11 +642,11 @@ package in its closure.
 
   1. repoctl advisories show ID          read the facts and the closure
   2. Fix the package, one of:
-       repoctl rebuild DIR --reason "..."   a rebuild is enough (it pins)
-       change the spec in packages/DIR, commit, then repoctl pin DIR
-  3. git -C packages/DIR push origin BRANCH
+       repoctl rebuild PKG --reason "..."   a rebuild is enough (it pins)
+       change the spec in packages/PKG, commit, then repoctl pin PKG
+  3. git -C packages/PKG push origin BRANCH
      git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push
-  4. repoctl build DIR
+  4. repoctl build PKG
   5. repoctl publish --target T          the gate checks the result tree
   6. Optional: repoctl repo prune --nvr OLD-NVR   remove the old broken NVR
 

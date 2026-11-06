@@ -9,8 +9,8 @@
 <h1>Core model</h1>
 <p class="lede">This chapter gives the mental model of repoctl. It defines the words that all other chapters use, and it shows how one change goes from a commit to the clients. Read it first.</p>
 <ul class="keypoints">
-  <li>A set is one <code>repoctl.yaml</code> on one builder branch. It builds one repository per target.</li>
-  <li>A node is one package on one target, written <code>DIR@TARGET</code>. Its build identity is the package commit plus the target.</li>
+  <li>A set is one <code>repoctl.yaml</code> on one set branch. It builds one repository per target.</li>
+  <li>A node is one package on one target, written <code>PKG@TARGET</code>. Its build identity is the package commit plus the target.</li>
   <li>The published repo is the build state. Each target repo carries a signed RepoManifest. Only commits that are not in it build.</li>
   <li>A rebuild is an empty commit. rpmautospec raises the release, so every build has a new NVR.</li>
   <li>repoctl does not rebuild dependents by itself. Advisories suggest a step, and the human decides.</li>
@@ -25,7 +25,7 @@
 <h2 id="set">Package set</h2>
 <p>A <dfn>set</dfn> (package set) is a group of packages that repoctl builds and publishes together. One <code>repoctl.yaml</code> describes one set: its packages, its targets and its output repositories (<a href="config.html#set-config">config.html#set-config</a>). The set name is in all local paths and in the OCI package names.</p>
 <p>The story set <code>slurm-26.05</code> has 11 packages. Other sets use the same tool with their own file, for example <code>slurm-25.11</code> in <code>~/src/slurm-repo-25.11</code>. A new set forks its branches from the previous set (<a href="lifecycle.html#new-set">lifecycle.html#new-set</a>).</p>
-<p>Each set lives on one builder branch, <code>builder/&lt;set&gt;</code>. The branch holds only data:</p>
+<p>Each set lives on one set branch, <code>set/&lt;set&gt;</code>. The branch holds only data:</p>
 <ul>
   <li><code>repoctl.yaml</code>, <code>repoctl.lock</code> and the macro files;</li>
   <li>the in-tree release package <code>packages/slurm-release</code>;</li>
@@ -33,13 +33,14 @@
   <li><code>.repoctl/advisories.yaml</code> with the dismissals;</li>
   <li><code>CLAUDE.md</code>.</li>
 </ul>
-<p>The <dfn>set directory</dfn> is a git work tree of the builder branch, for example <code>/home/dklein/src/slurm-repo</code>. repoctl checks out each package as a git worktree in <code>packages/&lt;dir&gt;</code>, which git ignores.</p>
-<p>A <dfn>package</dfn> is one <code>dir</code> entry in <code>repoctl.yaml</code>. Its source is one of these:</p>
+<p>The <dfn>set directory</dfn> is a git work tree of the set branch, for example <code>/home/dklein/src/slurm-repo</code>. repoctl checks out each package as a git worktree in <code>packages/&lt;pkg&gt;</code>, which git ignores.</p>
+<p>A <dfn>package</dfn> is one entry of <code>packages</code> in <code>repoctl.yaml</code>. Its <code>id</code> is unique in the set. Its source is one of these:</p>
 <ul>
-  <li>a package branch <code>&lt;pkg&gt;/&lt;set&gt;[-&lt;variant&gt;]</code> of the same repository, for example <code>pmix/slurm-26.05-v4</code>;</li>
+  <li>a package branch <code>&lt;project&gt;/&lt;set&gt;[-&lt;variant&gt;]</code> of the same repository, for example <code>pmix/slurm-26.05-v4</code>;</li>
   <li>a branch of an external git repository, for example rocm-smi on <code>git.gsi.de</code>;</li>
   <li>an in-tree path, for example <code>packages/slurm-release</code>.</li>
 </ul>
+<p>In a package branch, <code>&lt;project&gt;</code> is the upstream project, not the package id. The packages <code>pmix</code>, <code>pmix_v5</code> and <code>pmix_v4</code> all use branches of the project <code>pmix</code>.</p>
 
 <h2 id="targets">Targets</h2>
 <p>A <dfn>target</dfn> is one build platform: one mock chroot with one architecture. The set <code>slurm-26.05</code> has two targets: <code>el9</code> (<code>rocky+epel-9-x86_64</code>) and <code>el10</code> (<code>rocky+epel-10-x86_64</code>). The keys are in <a href="config.html#targets">config.html#targets</a>.</p>
@@ -94,7 +95,7 @@
 </figure>
 
 <h2 id="nodes">Nodes</h2>
-<p>A <dfn>node</dfn> is one package on one target. Its id is <code>DIR@TARGET</code>, for example <code>slurm@el10</code>. repoctl builds each package for each target in its <code>targets</code> list. The default is all targets.</p>
+<p>A <dfn>node</dfn> is one package on one target. Its id is <code>PKG@TARGET</code>, for example <code>slurm@el10</code>. repoctl builds each package for each target in its <code>targets</code> list. The default is all targets.</p>
 <figure class="diagram">
 <svg viewBox="0 0 660 420" role="img" aria-labelledby="nodes-t">
 <title id="nodes-t">The 21 nodes of slurm-26.05: 11 packages on el9, 10 on el10</title>
@@ -250,7 +251,7 @@
   "publish": "p-20261103-1412-5e1",
   "builds": [
     {
-      "dir": "ucx",
+      "package": "ucx",
       "branch": "ucx/slurm-26.05",
       "url": null,
       "commit": "4b1e9c2…",
@@ -274,7 +275,7 @@
       }
     },
     {
-      "dir": "slurm",
+      "package": "slurm",
       "branch": "slurm/slurm-26.05",
       "url": null,
       "commit": "d42f66a…",
@@ -300,7 +301,7 @@
 <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td><code>set</code>, <code>target</code>, <code>publish</code></td><td>The set, the target and the publish id of the snapshot that holds the manifest.</td></tr>
-<tr><td><code>builds[]</code>: <code>dir</code>, <code>branch</code>, <code>url</code>, <code>commit</code></td><td>The package and the commit of the build. <code>url</code> is set only for an external package. An in-tree package has the builder branch and a set commit.</td></tr>
+<tr><td><code>builds[]</code>: <code>package</code>, <code>branch</code>, <code>url</code>, <code>commit</code></td><td>The package and the commit of the build. <code>url</code> is set only for an external package. An in-tree package has the set branch and a set commit.</td></tr>
 <tr><td><code>reason</code></td><td>The plan reason: <code>commit-changed</code>, <code>new-package</code>, <code>new-target</code> or <code>rebuild: TEXT</code>. Imported entries have <code>adopted</code> or <code>adopted-unmapped</code> (<a href="lifecycle.html#adopted">lifecycle.html#adopted</a>).</td></tr>
 <tr><td><code>srpm</code>, <code>rpms</code>, <code>provides</code>, <code>requires</code></td><td>All RPMs of the build and their capabilities from the RPM headers. The soname and closure checks read them.</td></tr>
 <tr><td><code>mockConfig</code>, <code>macros</code>, <code>buildroot</code></td><td>Hashes of the mock config, the macro files and the buildroot. <code>buildroot</code> is the sha256 of the buildroot file.</td></tr>
@@ -317,8 +318,8 @@
 <p>The <dfn>match key</dfn> of an entry is the commit, the target and the source package name (the <code>Name</code> of the SRPM). plan finds the build of a node by this key.</p>
 <ul>
   <li>The name tells apart two in-tree packages with the same set commit.</li>
-  <li>For the reason <code>commit-changed</code>, plan compares with the newest entry of the same dir, else of the same source package name.</li>
-  <li><code>dir</code>, <code>branch</code> and <code>url</code> are information only. Thus a rename of a dir or a branch, and a move of the history to another git server, keep the node current.</li>
+  <li>For the reason <code>commit-changed</code>, plan compares with the newest entry of the same package, else of the same source package name.</li>
+  <li><code>package</code>, <code>branch</code> and <code>url</code> are information only. Thus a rename of a package id or a branch, and a move of the history to another git server, keep the node current.</li>
 </ul>
 </aside>
 <p>The lists change in this way:</p>
@@ -345,7 +346,7 @@
 <thead><tr><th>Event</th><th>Plan</th><th>Why</th></tr></thead>
 <tbody>
 <tr><td>New commit on a package branch, pinned in the lock</td><td>build, <code>commit-changed</code></td><td>A new commit gives a new NVR.</td></tr>
-<tr><td><code>repoctl rebuild DIR --reason TEXT</code></td><td>build, <code>rebuild</code></td><td>An empty commit <code>Rebuild: TEXT</code>, then pin. The release goes up. The changelog shows the reason.</td></tr>
+<tr><td><code>repoctl rebuild PKG --reason TEXT</code></td><td>build, <code>rebuild</code></td><td>An empty commit <code>Rebuild: TEXT</code>, then pin. The release goes up. The changelog shows the reason.</td></tr>
 <tr><td>New package in <code>repoctl.yaml</code></td><td>build, <code>new-package</code></td><td>No entry in the manifest.</td></tr>
 <tr><td>New target in <code>repoctl.yaml</code></td><td>build, <code>new-target</code></td><td>No manifest for the target yet.</td></tr>
 <tr><td>The staging of a staged node is gone</td><td>build, <code>staging-missing</code></td><td>The plan checks the files of each staged node (<a href="build.html#actions">build.html#actions</a>).</td></tr>
@@ -359,7 +360,7 @@
 <p>A staged node does not build again, so a failed run does not rebuild its good nodes (<a href="build.html#staging">build.html#staging</a>). In the story, the plan at 17:49 gives 8 build, 13 current, 0 staged and 0 skip. ucx builds on both targets with <code>commit-changed</code>. slurm, openmpi and slurm-singularity-exec build on both targets with <code>rebuild</code>.</p>
 
 <h2 id="rebuild">A rebuild is a commit</h2>
-<p><a href="cli.html#cmd-rebuild"><code>repoctl rebuild DIR... --reason TEXT</code></a> adds an empty commit <code>Rebuild: TEXT</code> to each package branch and pins it. rpmautospec raises the release for this commit, as it does for Fedora mass rebuilds. Thus every build has a new NVR.</p>
+<p><a href="cli.html#cmd-rebuild"><code>repoctl rebuild PKG... --reason TEXT</code></a> adds an empty commit <code>Rebuild: TEXT</code> to each package branch and pins it. rpmautospec raises the release for this commit, as it does for Fedora mass rebuilds. Thus every build has a new NVR.</p>
 <p>A rebuild is always a decision of the human. repoctl never makes a rebuild commit by itself. The rules are in <a href="build.html#rebuild">build.html#rebuild</a>.</p>
 <p>In the story, Dennis runs <code>repoctl rebuild slurm openmpi slurm-singularity-exec --reason "ucx 1.22.1"</code> after the ucx bump. The new NVRs are slurm 26.05.4-2, openmpi 5.0.11-2 and slurm-singularity-exec 3.2.0-2. The soname check of ucx then says "sonames unchanged: rebuild not necessary", because <code>libucp.so.0</code> stays. The rebuilds are his choice, not a need.</p>
 
@@ -375,7 +376,7 @@
 <svg viewBox="0 0 900 312" role="img" aria-labelledby="records-t">
 <title id="records-t">One authority and its copies; team records in git; personal files</title>
 <rect class="box" x="20" y="20" width="260" height="100" rx="8"/>
-<text class="t-title" x="36" y="44">builder branch (git)</text>
+<text class="t-title" x="36" y="44">set branch (git)</text>
 <text class="t-small" x="36" y="66">repoctl.yaml, repoctl.lock</text>
 <text class="t-small" x="36" y="84">keys/deployed.yaml, advisories.yaml</text>
 <text class="t-small t-muted" x="36" y="104">team records: what to build, who is trusted</text>
@@ -418,8 +419,8 @@
 <tr><td>Local copy and <code>snapshot.json</code></td><td><code>$XDG_DATA_HOME/repoctl/SET/repo/TARGET/</code></td><td>repo pull, publish (after the tag)</td><td>plan, build, repo ls, repo diff</td><td>cache of <code>latest</code></td></tr>
 <tr><td>Supply chain records</td><td>files in the snapshot (<code>slurm/records/</code>), with their sha256 in the RepoManifest</td><td>publish, repo push, restore, prune, resign</td><td>repo provenance, repo sbom, repo verify, mirror job, scanners</td><td>part of the snapshot</td></tr>
 <tr><td>Served tree</td><td>HTTP server</td><td>mirror job</td><td>clients, status</td><td>copy for dnf</td></tr>
-<tr><td><code>keys/deployed.yaml</code></td><td>builder branch (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
-<tr><td><code>.repoctl/advisories.yaml</code></td><td>builder branch (git)</td><td>advisories dismiss</td><td>check, plan, status, advisories, web UI; never publish</td><td>team record</td></tr>
+<tr><td><code>keys/deployed.yaml</code></td><td>set branch (git)</td><td>sign deployed</td><td>gate 2</td><td>team record</td></tr>
+<tr><td><code>.repoctl/advisories.yaml</code></td><td>set branch (git)</td><td>advisories dismiss</td><td>check, plan, status, advisories, web UI; never publish</td><td>team record</td></tr>
 <tr><td>Runs, staging, journals, logs</td><td><code>$XDG_DATA_HOME</code> (staging), <code>$XDG_STATE_HOME</code> (runs, journals, logs)</td><td>build, publish</td><td>the same user</td><td>personal, not shared</td></tr>
 </tbody>
 </table>

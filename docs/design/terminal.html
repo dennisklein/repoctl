@@ -72,7 +72,7 @@
   <li>All lines fit in 120 columns. On a narrower terminal, the live tree cuts a row at the terminal width with <code>…</code>. Tables do not cut a cell, so a pipe gets full rows.</li>
   <li>Tables: UPPERCASE headers, two spaces between columns, numbers right-aligned, one totals line under the table.</li>
   <li>Key-value blocks: a lowercase key in dim, padded to one column, then the value.</li>
-  <li>A node is always <code>DIR@TARGET</code>. A commit has 7 hex digits. A snapshot digest has 4 hex digits (<code>sha256:9d07…</code>). A key fingerprint shows in groups of 4, or as its last 8 digits (<code>…41D8 0B6E</code>).</li>
+  <li>A node is always <code>PKG@TARGET</code>. A commit has 7 hex digits. A snapshot digest has 4 hex digits (<code>sha256:9d07…</code>). A key fingerprint shows in groups of 4, or as its last 8 digits (<code>…41D8 0B6E</code>).</li>
   <li>Run ids and publish ids are always complete, because a human copies them into the next command.</li>
   <li>Durations: <code>4.2s</code>, <code>26s</code>, <code>6m53s</code>, <code>41m07s</code>, <code>1h12m</code>. The elapsed time of a live tree: <code>11:02.4</code>. A plain line starts with <code>[m:ss]</code>. Times of day: <code>17:50</code>. Dates: <code>2026-11-02</code>.</li>
   <li>Tree rows: mark, name, elapsed time, step, and the last line of the child process in dim.</li>
@@ -260,11 +260,11 @@ $ echo $?
 
 <h2 id="checkout">repoctl checkout</h2>
 <figure class="shot term"><a href="mockups/term/checkout.html"><img src="img/term-checkout.webp" alt="repoctl checkout in a new clone: one fetch line, one worktrees line and a totals line" loading="lazy"></a><figcaption>repoctl checkout in a new clone of the set.</figcaption></figure>
-<p>In a new clone, <a href="cli.html#cmd-checkout">repoctl checkout</a> makes all worktrees in their default place <code>packages/DIR</code>. Thus the table folds into the totals line (external clones: <a href="lifecycle.html#clones">Sets and packages: clones</a>):</p>
+<p>In a new clone, <a href="cli.html#cmd-checkout">repoctl checkout</a> makes all worktrees in their default place <code>packages/PKG</code>. Thus the table folds into the totals line (external clones: <a href="lifecycle.html#clones">Sets and packages: clones</a>):</p>
 <ul>
   <li>While the fetch runs, the tree shows the bytes and the rate of the clone of rocm-smi.</li>
   <li>Each worktree is on its local branch.</li>
-  <li>A worktree that is ahead of the lock or dirty is kept. It gets a row, the warning <code>worktree.dirty</code> and the hint <code>repoctl pin DIR</code>, and the exit code stays 0.</li>
+  <li>A worktree that is ahead of the lock or dirty is kept. It gets a row, the warning <code>worktree.dirty</code> and the hint <code>repoctl pin PKG</code>, and the exit code stays 0.</li>
 </ul>
 </body>
 </html>

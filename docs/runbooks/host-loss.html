@@ -54,14 +54,14 @@
 <h2 id="commits">Find the lost commits</h2>
 <p>A publish needs a pushed set commit and pushed package commits (<a href="../design/publish.html#checks">checks</a>). Thus latest never depends on a lost commit: it is only work to make again.</p>
 <ol class="steps">
-<li>On another admin host, run <code>git fetch origin</code> and <code>git log origin/builder/SET</code>. Ask the human of the lost host which commits were not pushed.</li>
+<li>On another admin host, run <code>git fetch origin</code> and <code>git log origin/set/SET</code>. Ask the human of the lost host which commits were not pushed.</li>
 <li>Make each lost commit again, and push it at once:
 <table>
 <thead><tr><th>Lost commit</th><th>Action</th></tr></thead>
 <tbody>
 <tr><td><code>repoctl sign add</code></td><td>Run <code>repoctl sign add ID --fingerprint FPR</code> again. The public key of a new key was in the gpg keyring of the lost host. When nobody has a copy, make a new key (<a href="../design/signing.html#help-key">help key</a>).</td></tr>
 <tr><td><code>repoctl sign deployed</code></td><td>Run it again with the same <code>--release</code> or <code>--keyfile</code> value.</td></tr>
-<tr><td><code>repoctl.lock</code> after <code>repoctl pin</code></td><td>Run <code>repoctl checkout</code>, then <code>repoctl pin DIR</code>, and commit. When the package commit is also lost, make it again first.</td></tr>
+<tr><td><code>repoctl.lock</code> after <code>repoctl pin</code></td><td>Run <code>repoctl checkout</code>, then <code>repoctl pin PKG</code>, and commit. When the package commit is also lost, make it again first.</td></tr>
 <tr><td><code>.repoctl/advisories.yaml</code> after a dismiss</td><td>Run <code>repoctl advisories dismiss</code> again.</td></tr>
 <tr><td>A commit of an external package in a bare clone</td><td>Make the commit again in the external repository, then pin it.</td></tr>
 </tbody>

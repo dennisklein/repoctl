@@ -10,7 +10,7 @@
 <p class="lede">This chapter gives the delivery phases of repoctl and the limits of scale, time and disk that the design supports. It gives the tests that must pass before the code depends on a fact, the assumptions of the design and the open questions.</p>
 <ul class="keypoints">
   <li>Eight phases, 0 to 7. Each phase gives a tool that works on its own and ends with a "done when" in the terms of the data story.</li>
-  <li>The bash-era scripts stay on the builder branches until the first publish with repoctl.</li>
+  <li>The bash-era scripts stay on the set branches until the first publish with repoctl.</li>
   <li>Each requirement gives a value from the data story and a design limit for scale, time or disk.</li>
   <li>Tests V1 to V34 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
   <li>Each open question names the phase that needs the answer.</li>
@@ -74,7 +74,7 @@
 <dd><ul>
 <li><code>main</code> is the default branch, and CI passes on it.</li>
 <li>The docs site is online at <code>https://dennisklein.github.io/repoctl/</code>.</li>
-<li>The builder branches do not change.</li>
+<li>The set branches do not change.</li>
 </ul></dd>
 </dl>
 
@@ -89,7 +89,7 @@
 </ul></dd>
 <dt>Done when</dt>
 <dd><ul>
-<li><code>repoctl migrate</code> on <code>builder/slurm-26.05</code> writes a lock with the same dirs, branches and commits as <code>packages.lock</code>.</li>
+<li><code>repoctl migrate</code> on <code>set/slurm-26.05</code> writes a lock with the same packages, branches and commits as <code>packages.lock</code>.</li>
 <li><code>repoctl graph --target el9</code> shows 11 nodes, 14 edges and depth 4 (<a href="decision.html#graph">the real build graph</a>). With the target el10 added, the el10 graph has 10 nodes.</li>
 <li><code>checkout</code> and <code>pin</code> give the same lock as the scripts.</li>
 <li><code>repoctl doctor</code> passes on <code>hpc-a1</code>.</li>
@@ -157,9 +157,9 @@
 <li>On a clean Fedora host, the first install with the sha256 and the fingerprint of <a href="tool.html#tool-bootstrap">Tool releases</a> works.</li>
 <li><code>dnf install repoctl</code> from the Pages repo installs the tool. <code>repoctl doctor</code> passes with <code>tool.repo-key</code>, and <code>gh attestation verify</code> passes for the RPM.</li>
 <li>On Rocky 9, <code>dnf install repoctl-mirror</code> installs the mirror job.</li>
-<li>A workflow on a builder branch cannot read <code>TOOL_REPO_KEY</code>.</li>
+<li>A workflow on a set branch cannot read <code>TOOL_REPO_KEY</code>.</li>
 <li>The import of slurm-26.05 el9 gives <code>p-import-20260828</code> (48 RPMs, signer <code>hpc-repo</code>), and no client changes a package.</li>
-<li>After the first publish with repoctl (<code>p-20260902-1010-4a7</code>), the builder branch has no <code>scripts/</code> and no <code>packages.lock</code>.</li>
+<li>After the first publish with repoctl (<code>p-20260902-1010-4a7</code>), the set branch has no <code>scripts/</code> and no <code>packages.lock</code>.</li>
 </ul></dd>
 </dl>
 
@@ -262,7 +262,7 @@
 </tbody>
 </table>
 <ul>
-  <li><b>Story fixture.</b> The <dfn>story fixture</dfn> is the data story as test data: the set <code>slurm-26.05</code> with a builder branch and 11 package branches. The specs are small, but they keep the names, versions, <code>BuildRequires</code> and <code>Provides</code> of the story. A script replays the story: the bump of ucx, the rebuild commits, run <code>r-20261102-1750-a3f</code> with the failure of slurm@el10, and publish <code>p-20261103-1412-5e1</code>. The fixture also holds the recorded tool output: <code>rpmspec</code> output, <code>buildroot_lock.json</code> and the mock logs of the story.</li>
+  <li><b>Story fixture.</b> The <dfn>story fixture</dfn> is the data story as test data: the set <code>slurm-26.05</code> with a set branch and 11 package branches. The specs are small, but they keep the names, versions, <code>BuildRequires</code> and <code>Provides</code> of the story. A script replays the story: the bump of ucx, the rebuild commits, run <code>r-20261102-1750-a3f</code> with the failure of slurm@el10, and publish <code>p-20261103-1412-5e1</code>. The fixture also holds the recorded tool output: <code>rpmspec</code> output, <code>buildroot_lock.json</code> and the mock logs of the story.</li>
   <li><b>Mock stub.</b> The integration tests put a stub with the name <code>mock</code> first in <code>PATH</code>. It reads the arguments of repoctl and writes the recorded RPMs, logs and <code>buildroot_lock.json</code> of the node into <code>--resultdir</code>. It exits with the recorded exit code (0, 1 or 30). Thus CI needs no mock chroot and no network.</li>
   <li><b>Golden files.</b> A <dfn>golden file</dfn> is the expected output of one command or one UI fragment in the story state. <code>go test -update</code> writes the golden files again, and a human reviews the change. The mockups are the reference for what a human sees. When a golden file changes what a human sees, the same pull request changes the mockup and its screenshot.</li>
   <li><b>Code.</b> Unit tests are next to their Go package. The fixture is in <code>testdata/story/</code>, the helpers are in <code>internal/testkit</code> (<a href="decision.html#code-layout">Go packages</a>). The end-to-end tests and the scale tests have the Go build tags <code>e2e</code> and <code>scale</code>, so <code>go test ./...</code> does not run them.</li>
@@ -337,7 +337,7 @@
 <table class="compact">
 <thead><tr><th>Service</th><th>Use</th><th>Effect of an outage</th><th>Way to continue</th></tr></thead>
 <tbody>
-<tr><td>GitHub git: the set repository and its branches</td><td>Builder branch and package branches: fetch and push by the human, <code>checkout</code> of a missing commit, <code>pin --fetch</code>.</td><td><code>checkout</code> of a missing commit and <code>pin --fetch</code> stop with <code>git.fetch-failed</code> (exit 1). <code>pin</code>, <code>plan</code> and <code>build</code> work from the local worktrees and the lock.</td><td>Work on the local worktrees. Push the commits later.</td></tr>
+<tr><td>GitHub git: the set repository and its branches</td><td>Set branch and package branches: fetch and push by the human, <code>checkout</code> of a missing commit, <code>pin --fetch</code>.</td><td><code>checkout</code> of a missing commit and <code>pin --fetch</code> stop with <code>git.fetch-failed</code> (exit 1). <code>pin</code>, <code>plan</code> and <code>build</code> work from the local worktrees and the lock.</td><td>Work on the local worktrees. Push the commits later.</td></tr>
 <tr><td>GHCR (<code>ghcr.io/gsi-hpc/slurm-repo</code>)</td><td>Snapshots: the freshness check, <code>repo pull</code>, <code>publish</code>, <code>repo push</code>, the mirror job.</td><td><code>plan</code> and <code>build</code> warn with <code>registry.unreachable</code> and use the local copy. <code>publish</code> and <code>repo pull</code> stop with it (exit 13). A push that fails keeps the signed tree (<code>snapshot.push-failed</code>). The mirror job keeps the served tree.</td><td>Build to staging. When GHCR answers: <code>repoctl repo push p-…</code> for a publish that stopped, else <code>repoctl publish</code> (<a href="publish.html#freshness">freshness check</a>).</td></tr>
 <tr><td>GitHub API</td><td><code>repoctl upstream</code>, the upstream part of <code>repoctl check</code>, <code>repo gc</code>.</td><td><code>upstream</code> shows the status unknown. <code>check</code> records <code>upstream.unreachable</code>, runs the other checks and exits with 1 (<a href="advisories.html#check">repoctl check</a>). <code>repo gc</code> stops.</td><td>Run the command later. Set <code>GH_TOKEN</code> against the rate limit. gc can wait: it frees storage only.</td></tr>
 <tr><td>GitHub Pages and GitHub Releases</td><td>The docs site, the Fedora repo of repoctl, the tool RPMs.</td><td>A new admin host cannot install or update repoctl. An installed admin host works as before.</td><td>Keep the installed version. Install a new admin host when Pages answers.</td></tr>
@@ -365,7 +365,7 @@
 <tr><td>Which Rocky 10 minor release do the clusters get first?</td><td>F5 gives <code>rpmkeys --erase</code> from EL10.1. V18 decides the offboarding command.</td></tr>
 <tr><td><code>createrepo --deltas</code>: keep it (a key such as <code>repo.deltas: true</code>) or drop it?</td><td>The bash-era <code>scripts/build</code> makes delta RPMs. dnf5 does not use them by default. Each delta RPM is also a blob in the snapshot.</td></tr>
 <tr><td>Does the EU Cyber Resilience Act apply to the slurm repositories?</td><td>GSI legal or IT security decides (<a href="supply-chain.html#regulation">regulation</a>). The SBOM format does not depend on the answer.</td></tr>
-<tr><td rowspan="4">4</td><td rowspan="2">The slurm sets and the tool share the GitHub repo <code>repoctl</code>: <code>main</code> holds the tool, each <code>builder/&lt;set&gt;</code> branch holds a set. Do the sets move to their own repo?</td><td>The GHCR namespace in the examples is <code>ghcr.io/gsi-hpc/slurm-repo</code>. The import writes the first snapshot into this namespace. A move changes <code>store.oci</code>, the image source annotation and the remote of the package branches.</td></tr>
+<tr><td rowspan="4">4</td><td rowspan="2">The slurm sets and the tool share the GitHub repo <code>repoctl</code>: <code>main</code> holds the tool, each <code>set/&lt;set&gt;</code> branch holds a set. Do the sets move to their own repo?</td><td>The GHCR namespace in the examples is <code>ghcr.io/gsi-hpc/slurm-repo</code>. The import writes the first snapshot into this namespace. A move changes <code>store.oci</code>, the image source annotation and the remote of the package branches.</td></tr>
 <tr><td>A move also removes the push rights of the set admins from the repository that holds the <a href="tool.html#tool-key">tool repository key</a>.</td></tr>
 <tr><td rowspan="2">Does the repository <code>dennisklein/repoctl</code> move to the GSI-HPC organization?</td><td>The GHCR namespace (<code>ghcr.io/gsi-hpc/…</code>) and the <code>$id</code> host of the schemas (<code>https://gsi-hpc.github.io/repoctl/schema/v1alpha1/</code>) use GSI-HPC. The <code>$id</code> values are identifiers and need not resolve (<a href="contract.html#schemas">schemas</a>).</td></tr>
 <tr><td>The docs site and the Pages repo are at <code>https://dennisklein.github.io/repoctl/</code>. A move changes the Pages URL, the repo links and the image source annotation.</td></tr>

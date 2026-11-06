@@ -37,10 +37,10 @@
 <tr><td>Version</td><td>The spec version at the pin.</td><td>ucx 1.22.1</td></tr>
 <tr><td>Targets</td><td>Only when the package does not build for all targets.</td><td>rocm-smi "el9 only"</td></tr>
 <tr><td>Upstream</td><td>Quiet text when it equals the version, else accent text, not a pill (R3).</td><td>slurm "↑ 26.05.5", openmpi "↑ 5.0.12", pmix_v4 "frozen 4.2.9", slurm-release "role: release"</td></tr>
-<tr><td>Notes</td><td>The first line of <code>packages[dir].notes</code>.</td><td>pmix_v4 "Upstream 4.x is frozen at 4.2.9."</td></tr>
+<tr><td>Notes</td><td>The first line of <code>packages[].notes</code>.</td><td>pmix_v4 "Upstream 4.x is frozen at 4.2.9."</td></tr>
 </tbody>
 </table>
-<p>An unpinned or orphaned package (<a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>) gets a row with the state word and a copy command, for example <code>repoctl pin DIR</code>. The UI does not edit the package list. To add, retire or rename a package, the human changes repoctl.yaml (<a href="lifecycle.html#changes">lifecycle.html#changes</a>).</p>
+<p>An unpinned or orphaned package (<a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>) gets a row with the state word and a copy command, for example <code>repoctl pin PKG</code>. The UI does not edit the package list. To add, retire or rename a package, the human changes repoctl.yaml (<a href="lifecycle.html#changes">lifecycle.html#changes</a>).</p>
 <figure class="shot"><a href="mockups/ui/packages.html"><img src="img/ui-packages-mobile.webp" alt="Packages at 390 px: one card per package with labelled values" loading="lazy"></a><figcaption>Packages at 390 px. Each row becomes a card; each value keeps its column name as a label.</figcaption></figure>
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/packages[?filter=update|frozen|external|partial]</code></dd>
@@ -74,13 +74,13 @@
 <ul>
   <li>A hash shows only where two values differ: pin, worktree HEAD, the commit in latest. NVRs have no epoch and no arch.</li>
   <li>Pin 4b1e9c2 opens the pin dialog; the CLI toggle holds <code>repoctl pin ucx</code>. Pin writes repoctl.lock and makes no commit. The lock banner then shows on Packages and in Needs you.</li>
-  <li>The Notes fold shows <code>packages[dir].notes</code> as text, and the UI does not edit it. The human edits repoctl.yaml and commits it, as for each other set input. Thus the CLI, the skills and the UI read the same committed text (CLI parity, <a href="ui.html#principles">ui.html#principles</a>). The fold gives this hint with the key path.</li>
+  <li>The Notes fold shows <code>packages[].notes</code> as text, and the UI does not edit it. The human edits repoctl.yaml and commits it, as for each other set input. Thus the CLI, the skills and the UI read the same committed text (CLI parity, <a href="ui.html#principles">ui.html#principles</a>). The fold gives this hint with the key path.</li>
   <li><code>?target=el9</code> limits the page to one target. <code>tab=history|spec|upstream</code> opens that section.</li>
 </ul>
 <dl class="facts">
-  <dt>URL</dt><dd><code>/s/&lt;set&gt;/packages/&lt;dir&gt;[?target=el9&amp;tab=history|spec|upstream]</code>; <code>POST /s/&lt;set&gt;/-/actions/pin</code></dd>
-  <dt>CLI</dt><dd><a href="cli.html#cmd-show"><code>repoctl show DIR</code></a>, <a href="cli.html#cmd-pin"><code>repoctl pin DIR</code></a>, <a href="cli.html#cmd-upstream"><code>repoctl upstream DIR</code></a></dd>
-  <dt>Live</dt><dd><code>set-head</code> (step line, lock and worktree), <code>node:DIR@TARGET</code> (one builds row), <code>upstream</code></dd>
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/packages/&lt;pkg&gt;[?target=el9&amp;tab=history|spec|upstream]</code>; <code>POST /s/&lt;set&gt;/-/actions/pin</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-show"><code>repoctl show PKG</code></a>, <a href="cli.html#cmd-pin"><code>repoctl pin PKG</code></a>, <a href="cli.html#cmd-upstream"><code>repoctl upstream PKG</code></a></dd>
+  <dt>Live</dt><dd><code>set-head</code> (step line, lock and worktree), <code>node:PKG@TARGET</code> (one builds row), <code>upstream</code></dd>
 </dl>
 
 <h2 id="repository">Repository</h2>
@@ -130,7 +130,7 @@
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/repo/&lt;target&gt;?run=RUN</code>; diff <code>/s/&lt;set&gt;/repo/&lt;target&gt;/diff?run=RUN</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-repo-ls"><code>repoctl repo ls --run RUN</code></a>, <a href="cli.html#cmd-repo-diff"><code>repoctl repo diff --run RUN</code></a></dd>
-  <dt>Live</dt><dd><code>node:DIR@TARGET</code> (one row)</dd>
+  <dt>Live</dt><dd><code>node:PKG@TARGET</code> (one row)</dd>
 </dl>
 
 <h2 id="publish">Publish flow</h2>
@@ -225,7 +225,7 @@
 <p>When latest moves during the review, a banner says "latest of el9 moved since this review. Run repoctl repo pull, then review again." Continue goes off (<code>state.behind</code>, <a href="publish.html#admins">publish.html#admins</a>).</p>
 <dl class="facts">
   <dt>CLI</dt><dd><a href="cli.html#cmd-publish"><code>repoctl publish --target el9 --dry-run</code></a></dd>
-  <dt>Live</dt><dd><code>advisories</code>, <code>advisory:ID</code> (gate rows), <code>node:DIR@TARGET</code> (target cards), <code>last-publish</code> (base moved), <code>signing</code> (key state, probe)</dd>
+  <dt>Live</dt><dd><code>advisories</code>, <code>advisory:ID</code> (gate rows), <code>node:PKG@TARGET</code> (target cards), <code>last-publish</code> (base moved), <code>signing</code> (key state, probe)</dd>
 </dl>
 
 <h3 id="accept">Accept state (variant)</h3>
@@ -358,7 +358,7 @@ hint: fix slurm.spec, commit and push it. run: repoctl pin slurm</pre>
   <li><b>Typed key id.</b> "Type a.admin to confirm". Record deployment is the filled primary, off until the text matches.</li>
 </ul>
 <p>The dialog writes a release record only. A key file record is a CLI step (<a href="cli.html#cmd-sign-deployed"><code>sign deployed --keyfile</code></a>). The CLI toggle of the Signing page holds <code>repoctl sign deployed a.admin --release slurm-release-26.05-3 --target el9 --note "…"</code>.</p>
-<p>The server gives the typed key id to the child as a UI confirmation (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>). The action writes <code>keys/deployed.yaml</code> and makes the set commit b3d94f1 (<a href="security.html#set-inputs">security.html#set-inputs</a>). The toast says "Committed b3d94f1. Push it." with <code>git push origin builder/slurm-26.05</code> to copy. The UI does not push.</p>
+<p>The server gives the typed key id to the child as a UI confirmation (<a href="cli.html#ui-confirmation">cli.html#ui-confirmation</a>). The action writes <code>keys/deployed.yaml</code> and makes the set commit b3d94f1 (<a href="security.html#set-inputs">security.html#set-inputs</a>). The toast says "Committed b3d94f1. Push it." with <code>git push origin set/slurm-26.05</code> to copy. The UI does not push.</p>
 <dl class="facts">
   <dt>URL</dt><dd><code>GET /s/&lt;set&gt;/-/dialog/sign-deployed?key=a.admin</code>; <code>POST /s/&lt;set&gt;/-/actions/sign-deployed</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-sign-deployed"><code>repoctl sign deployed ID --release NVR --target ID --note TEXT</code></a></dd>

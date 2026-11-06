@@ -70,7 +70,7 @@
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-status"><code>repoctl status</code></a>, <a href="cli.html#cmd-advisories"><code>repoctl advisories</code></a>, <a href="cli.html#cmd-runs"><code>repoctl runs</code></a></dd>
-  <dt>Live</dt><dd><code>set-head</code>, <code>attention</code> (Needs you), <code>advisories</code>, <code>advisory:ID</code>, <code>current-run</code>, <code>recent-runs</code>, <code>last-publish</code>, <code>node:DIR@TARGET</code> (one matrix cell)</dd>
+  <dt>Live</dt><dd><code>set-head</code>, <code>attention</code> (Needs you), <code>advisories</code>, <code>advisory:ID</code>, <code>current-run</code>, <code>recent-runs</code>, <code>last-publish</code>, <code>node:PKG@TARGET</code> (one matrix cell)</dd>
 </dl>
 
 <h2 id="advisories-page">Advisories page</h2>
@@ -95,7 +95,7 @@
 <ul>
   <li><b>Head.</b> "Checked TIME", and "from the cache" when the answer is less than one hour old. Refresh (quiet) loads the page with <code>?refresh=1</code>, which runs <code>repoctl upstream --refresh</code>. CLI toggle.</li>
   <li><b>Table.</b> The columns of the CLI: Package, Current, Latest, Released, Fedora, Status, Note. Rows with update-available, ahead, frozen and unknown show. Rows with up-to-date and none fold into one line with a count per status, as the totals line of the CLI does.</li>
-  <li><b>Rows.</b> An update-available row links to its advisory <code>upstream.release/DIR</code> on the Advisories page. A dismissed update shows the note of its dismissal. The fold of a row lists the newer releases with date and URL (<code>--releases</code>). ✦ Summarize upstream release is in ⋯ when an agent is set up.</li>
+  <li><b>Rows.</b> An update-available row links to its advisory <code>upstream.release/PKG</code> on the Advisories page. A dismissed update shows the note of its dismissal. The fold of a row lists the newer releases with date and URL (<code>--releases</code>). ✦ Summarize upstream release is in ⋯ when an agent is set up.</li>
 </ul>
 <p>The Upstream tab of the package page shows the same row for one package (<a href="ui-publish.html#package">ui-publish.html#package</a>).</p>
 <dl class="facts">
@@ -119,7 +119,7 @@
 <thead><tr><th>Part</th><th>Content</th><th>Rule</th></tr></thead>
 <tbody>
 <tr><td>Left bar</td><td>State colour</td><td>A failed card also gets the failed background, a blocked card the blocked background.</td></tr>
-<tr><td>Row 1</td><td>Δ · dir · advisory marker</td><td>Δ when the plan action is build. The marker is a small icon in the level colour with a tooltip ("slurm 26.05.5 is out"). A click opens the drawer at its advisories.</td></tr>
+<tr><td>Row 1</td><td>Δ · package · advisory marker</td><td>Δ when the plan action is build. The marker is a small icon in the level colour with a tooltip ("slurm 26.05.5 is out"). A click opens the drawer at its advisories.</td></tr>
 <tr><td>Row 2</td><td>State · elapsed · version</td><td>Running: the elapsed time of the node ("6m53s"); the tooltip and the drawer name the step. Ok: total time. Failed: step and time ("rpm 1m48s"). Blocked: "slurm failed". Waiting: "for slurm". Current: quiet text.</td></tr>
 </tbody>
 </table>
@@ -186,9 +186,9 @@
 <figure class="shot"><a href="mockups/ui/graph.html"><img src="img/ui-graph-mobile.webp" alt="Graph at 390 px: a list with one heading per level and the cards under it" loading="lazy"></a><figcaption>Graph at 390 px. A level list replaces the SVG.</figcaption></figure>
 <p>The page also holds a level list: one heading per level, the same cards and a "needs …" line. Below 760 px it replaces the SVG. On a desktop it is visually hidden and serves screen readers.</p>
 <dl class="facts">
-  <dt>URL</dt><dd><code>/s/&lt;set&gt;/graph?target=el9&amp;view=dag|matrix[&amp;node=slurm][&amp;filter=run|advisories|failed][&amp;q=pmix]</code>; <code>target=all</code>; drawer fragment <code>/s/&lt;set&gt;/graph/node/DIR@TARGET</code>; <code>graph.dot</code>, <code>graph.json</code></dd>
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/graph?target=el9&amp;view=dag|matrix[&amp;node=slurm][&amp;filter=run|advisories|failed][&amp;q=pmix]</code>; <code>target=all</code>; drawer fragment <code>/s/&lt;set&gt;/graph/node/PKG@TARGET</code>; <code>graph.dot</code>, <code>graph.json</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-graph"><code>repoctl graph --target el9 --format dot|json</code></a></dd>
-  <dt>Live</dt><dd><code>node:DIR@TARGET</code> (card, matrix cell, open drawer), <code>graph:TARGET</code> (structure changed: "The graph changed. Reload.")</dd>
+  <dt>Live</dt><dd><code>node:PKG@TARGET</code> (card, matrix cell, open drawer), <code>graph:TARGET</code> (structure changed: "The graph changed. Reload.")</dd>
 </dl>
 <p>A node event carries the whole card. htmx swaps it inside the <code>foreignObject</code>, so position and edges stay. <code>graph.js</code> copies the state to the edges.</p>
 
@@ -229,7 +229,7 @@
 <ol class="steps">
   <li><b>Layers.</b> layer(n) = 0 when n has no dependency in the set, else 1 + max(layer(dependency)). The UI levels are these layers; the build order follows them.</li>
   <li><b>Virtual nodes.</b> An edge that spans more than one layer gets one virtual node (height 0) in each layer between. Virtual nodes are shared per (source, layer).</li>
-  <li><b>Order.</b> Start from the union order, so that a package keeps its place on all targets. Run 24 sweeps, down and up. Each sweep sorts a layer by the mean position of its neighbours in the previous layer. After each sweep, swap adjacent items when this gives fewer crossings (transpose). Keep the order with the fewest crossings. Ties: config order, then dir. A node with no edges (slurm-release) goes to the end of its layer.</li>
+  <li><b>Order.</b> Start from the union order, so that a package keeps its place on all targets. Run 24 sweeps, down and up. Each sweep sorts a layer by the mean position of its neighbours in the previous layer. After each sweep, swap adjacent items when this gives fewer crossings (transpose). Keep the order with the fewest crossings. Ties: config order, then package. A node with no edges (slurm-release) goes to the end of its layer.</li>
   <li><b>Y.</b> Each item wants the mean y of its neighbours. Per layer, solve "closest to the wanted y, keep the order, keep the gaps" with isotonic regression (pool adjacent violators). Repeat 60 times. Gaps: 22 px node–node, 16 px node–virtual, 12 px virtual–virtual. The top is at 44 px, for the lane labels.</li>
   <li><b>X.</b> One column per layer, card width 212 px. Channel width: max(80, 40 + (tracks − 1) · 12) px.</li>
   <li><b>Routing.</b> Orthogonal. The edges of one item into the next layer form a group with one vertical track. A hub (4 or more inputs, for example slurm) has one shared entry port. Other cards spread their ports over the left side, sorted by source y. An edge goes straight when the source y is inside the target box. Track order: test all orders for 7 groups or fewer, else use the barycenter. Corner radius 6 px. A long edge is one <code>&lt;path&gt;</code> through its virtual nodes, so hover marks it as one element.</li>
@@ -277,7 +277,7 @@
   <li>When a target has only current and staged nodes, the primary is Publish el9…. Start build is an outline button. Its note says that slurm@el10 fails the same way until its commit changes.</li>
 </ul>
 <dl class="facts">
-  <dt>URL</dt><dd><code>/s/&lt;set&gt;/plan?dir=ucx&amp;target=el9&amp;from=lock&amp;force=1&amp;fail_fast=1&amp;jobs=3</code> (no target: all)</dd>
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/plan?package=ucx&amp;target=el9&amp;from=lock&amp;force=1&amp;fail_fast=1&amp;jobs=3</code> (no target: all)</dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-plan"><code>repoctl plan</code></a>; Start build = <a href="cli.html#cmd-build"><code>repoctl build</code></a></dd>
   <dt>Live</dt><dd><code>plan:TARGET</code> (the plan is stale), <code>advisory:ID</code></dd>
 </dl>
@@ -294,8 +294,8 @@
 </ul>
 <p>During a run, Make 1 commit is off with "Run r-…a3f is active." (<a href="ui.html#states">ui.html#states</a>).</p>
 <dl class="facts">
-  <dt>URL</dt><dd><code>GET /s/&lt;set&gt;/-/dialog/rebuild?dir=pmix&amp;advisory=closure.broken/pmix@el9</code>; <code>POST /s/&lt;set&gt;/-/actions/rebuild</code></dd>
-  <dt>CLI</dt><dd><a href="cli.html#cmd-rebuild"><code>repoctl rebuild DIR... --reason TEXT</code></a></dd>
+  <dt>URL</dt><dd><code>GET /s/&lt;set&gt;/-/dialog/rebuild?package=pmix&amp;advisory=closure.broken/pmix@el9</code>; <code>POST /s/&lt;set&gt;/-/actions/rebuild</code></dd>
+  <dt>CLI</dt><dd><a href="cli.html#cmd-rebuild"><code>repoctl rebuild PKG... --reason TEXT</code></a></dd>
   <dt>Live</dt><dd>none; the toast comes with the response</dd>
 </dl>
 
@@ -344,7 +344,7 @@
 <thead><tr><th>Action</th><th>Request</th><th>Behaviour</th></tr></thead>
 <tbody>
 <tr><td>Cancel run…</td><td><code>GET …/-/dialog/cancel?run=RUN</code>, then <code>POST /s/&lt;set&gt;/-/actions/cancel</code></td><td>A confirm dialog that names the origin of the run, then <code>repoctl cancel RUN</code> (<a href="build.html#cancel">build.html#cancel</a>). While the run is interrupting, the button is Stop now…, which runs <code>repoctl cancel RUN --force</code>.</td></tr>
-<tr><td>Retry failed</td><td><code>POST /s/&lt;set&gt;/-/actions/build</code></td><td>A new run with the dirs of the failed and blocked nodes, on the old targets (<code>repoctl build slurm slurm-singularity-exec</code>). The plan reads repoctl.lock again. Off while the old run is active.</td></tr>
+<tr><td>Retry failed</td><td><code>POST /s/&lt;set&gt;/-/actions/build</code></td><td>A new run with the packages of the failed and blocked nodes, on the old targets (<code>repoctl build slurm slurm-singularity-exec</code>). The plan reads repoctl.lock again. Off while the old run is active.</td></tr>
 <tr><td>Open in terminal</td><td>client side</td><td>In the CLI toggle. Copies <code>repoctl -C ~/src/slurm-repo runs RUN --follow</code>.</td></tr>
 <tr><td>Copy for agent</td><td>client side</td><td>Copies <code>repoctl logs RUN NODE --json</code>, which includes the problems list.</td></tr>
 </tbody>
@@ -352,7 +352,7 @@
 <p>When the commit did not change since the failure, the Retry failed entry says that a retry cannot help.</p>
 
 <h3 id="error-extraction">Error extraction</h3>
-<p>repoctl scans each log while mock writes it. A rule gives a summary, the evidence lines and an optional diagnosis. A fingerprint (rule, normalized capture, DIR@TARGET) finds the same error in earlier runs. The rules live in the core, so CLI, MCP and the triage-build skill get the same results.</p>
+<p>repoctl scans each log while mock writes it. A rule gives a summary, the evidence lines and an optional diagnosis. A fingerprint (rule, normalized capture, PKG@TARGET) finds the same error in earlier runs. The rules live in the core, so CLI, MCP and the triage-build skill get the same results.</p>
 <table class="compact">
 <thead><tr><th>Rule</th><th>Match (examples)</th><th>Log</th></tr></thead>
 <tbody>
@@ -370,7 +370,7 @@
 <dl class="facts">
   <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN</code>, for example <code>/s/slurm-26.05/runs/r-20261102-1750-a3f</code>; publish runs use the same form</dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-runs"><code>repoctl runs RUN --follow</code></a>, <a href="cli.html#cmd-logs"><code>repoctl logs</code></a>, <a href="cli.html#cmd-cancel"><code>repoctl cancel</code></a>; frame <a href="terminal.html#build-failed">build failure</a></dd>
-  <dt>Live</dt><dd><code>run:RUN</code> (header, progress, failure cards, staging, events), <code>node:DIR@TARGET</code> (one tree row). A finished run sends no <code>run:RUN</code> events.</dd>
+  <dt>Live</dt><dd><code>run:RUN</code> (header, progress, failure cards, staging, events), <code>node:PKG@TARGET</code> (one tree row). A finished run sends no <code>run:RUN</code> events.</dd>
 </dl>
 
 <h2 id="node-log">Node log</h2>
@@ -417,9 +417,9 @@
   <li>A line over 4,096 characters is cut in the view with "(+N chars)". Search runs on the server over the full file (any case, at most 500 matches). Problems: at most 200 per file. Raw streams the full file.</li>
 </ul>
 <dl class="facts">
-  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN/nodes/DIR@TARGET[?step=rpm&amp;file=root.log&amp;q=&amp;follow=1&amp;wrap=1&amp;around=N][#L813]</code>; raw <code>…/nodes/DIR@TARGET/logs/STEP/FILE[?download=1]</code> (for example <code>…/logs/rpm/root.log</code>), <code>…/logs.tar.gz</code></dd>
+  <dt>URL</dt><dd><code>/s/&lt;set&gt;/runs/RUN/nodes/PKG@TARGET[?step=rpm&amp;file=root.log&amp;q=&amp;follow=1&amp;wrap=1&amp;around=N][#L813]</code>; raw <code>…/nodes/PKG@TARGET/logs/STEP/FILE[?download=1]</code> (for example <code>…/logs/rpm/root.log</code>), <code>…/logs.tar.gz</code></dd>
   <dt>CLI</dt><dd><a href="cli.html#cmd-logs"><code>repoctl logs RUN NODE [--step] [--file] [--follow]</code></a>; frame <a href="terminal.html#logs">logs</a></dd>
-  <dt>Live</dt><dd><code>log:DIR@TARGET</code> (appended lines; reconnect: <a href="ui.html#log-stream">ui.html#log-stream</a>), <code>node:DIR@TARGET</code> (step bar, last line)</dd>
+  <dt>Live</dt><dd><code>log:PKG@TARGET</code> (appended lines; reconnect: <a href="ui.html#log-stream">ui.html#log-stream</a>), <code>node:PKG@TARGET</code> (step bar, last line)</dd>
 </dl>
 
 <h2 id="finished">Finished runs</h2>

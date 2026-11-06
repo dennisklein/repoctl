@@ -608,8 +608,8 @@
         "node": {
           "$ref": "#/$defs/NodeId"
         },
-        "dir": {
-          "$ref": "#/$defs/Dir"
+        "package": {
+          "$ref": "#/$defs/PackageId"
         },
         "target": {
           "$ref": "#/$defs/TargetId"
@@ -824,10 +824,10 @@
       "minimum": 0,
       "description": "A duration in milliseconds."
     },
-    "Dir": {
+    "PackageId": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]*$",
-      "description": "Package dir: the dir key of a package in repoctl.yaml, e.g. pmix_v5."
+      "description": "Package id: the id of a package in repoctl.yaml, e.g. pmix_v5."
     },
     "TargetId": {
       "type": "string",
@@ -837,7 +837,7 @@
     "NodeId": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]*@[a-z0-9][a-z0-9._-]*$",
-      "description": "<dir>@<target>, e.g. slurm@el9."
+      "description": "<package>@<target>, e.g. slurm@el9."
     },
     "RunId": {
       "type": "string",
@@ -1005,14 +1005,14 @@
           "type": "object",
           "required": [
             "name",
-            "dir",
+            "package",
             "config"
           ],
           "properties": {
             "name": {
               "type": "string"
             },
-            "dir": {
+            "package": {
               "type": "string"
             },
             "config": {
@@ -1033,7 +1033,7 @@
                 },
                 "pushed": {
                   "type": "boolean",
-                  "description": "The set commit is on the remote branch of the builder branch."
+                  "description": "The set commit is on the remote branch of the set branch."
                 }
               }
             }
@@ -1050,12 +1050,12 @@
           "items": {
             "type": "object",
             "required": [
-              "dir",
+              "package",
               "lock"
             ],
             "properties": {
-              "dir": {
-                "$ref": "#/$defs/Dir"
+              "package": {
+                "$ref": "#/$defs/PackageId"
               },
               "lock": {
                 "$ref": "#/$defs/LockState"
@@ -1327,12 +1327,12 @@
               "items": {
                 "type": "object",
                 "required": [
-                  "dir",
+                  "package",
                   "version"
                 ],
                 "properties": {
-                  "dir": {
-                    "$ref": "#/$defs/Dir"
+                  "package": {
+                    "$ref": "#/$defs/PackageId"
                   },
                   "version": {
                     "type": "string"
@@ -1466,7 +1466,7 @@
         "packages": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Dir"
+            "$ref": "#/$defs/PackageId"
           }
         },
         "store": {
@@ -1491,14 +1491,14 @@
     "Package": {
       "type": "object",
       "required": [
-        "dir",
+        "package",
         "role",
         "source",
         "targets"
       ],
       "properties": {
-        "dir": {
-          "$ref": "#/$defs/Dir"
+        "package": {
+          "$ref": "#/$defs/PackageId"
         },
         "name": {
           "type": "string",
@@ -1582,14 +1582,14 @@
               "dependsOn": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/Dir"
+                  "$ref": "#/$defs/PackageId"
                 },
                 "description": "Set packages that this package needs to build on the target."
               },
               "usedBy": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/Dir"
+                  "$ref": "#/$defs/PackageId"
                 },
                 "description": "Set packages that need this package to build on the target."
               },
@@ -1688,15 +1688,15 @@
             "type": "object",
             "required": [
               "id",
-              "dir",
+              "package",
               "depth"
             ],
             "properties": {
               "id": {
                 "$ref": "#/$defs/NodeId"
               },
-              "dir": {
-                "$ref": "#/$defs/Dir"
+              "package": {
+                "$ref": "#/$defs/PackageId"
               },
               "evr": {
                 "type": "string"
@@ -1861,10 +1861,10 @@
     "Selection": {
       "type": "object",
       "properties": {
-        "dirs": {
+        "packages": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Dir"
+            "$ref": "#/$defs/PackageId"
           },
           "description": "Selectors given on the command line; empty is all."
         },
@@ -2613,9 +2613,9 @@
               "rebuild": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/$defs/Dir"
+                  "$ref": "#/$defs/PackageId"
                 },
-                "description": "Restore only: the dirs whose locked commit built an NVR that left the repository. Each needs repoctl rebuild or an older pin before the next publish, else nvr.removed."
+                "description": "Restore only: the packages whose locked commit built an NVR that left the repository. Each needs repoctl rebuild or an older pin before the next publish, else nvr.removed."
               }
             }
           }
@@ -2650,7 +2650,7 @@
       "type": "object",
       "required": [
         "node",
-        "dir",
+        "package",
         "target",
         "state",
         "commit"
@@ -2659,8 +2659,8 @@
         "node": {
           "$ref": "#/$defs/NodeId"
         },
-        "dir": {
-          "$ref": "#/$defs/Dir"
+        "package": {
+          "$ref": "#/$defs/PackageId"
         },
         "target": {
           "$ref": "#/$defs/TargetId"
@@ -3334,7 +3334,7 @@
                 "string",
                 "null"
               ],
-              "description": "NVR of the previous build of the same dir and target."
+              "description": "NVR of the previous build of the same package and target."
             },
             "changed": {
               "type": "array",
@@ -3425,13 +3425,13 @@
     "Upstream": {
       "type": "object",
       "required": [
-        "dir",
+        "package",
         "current",
         "status"
       ],
       "properties": {
-        "dir": {
-          "$ref": "#/$defs/Dir"
+        "package": {
+          "$ref": "#/$defs/PackageId"
         },
         "name": {
           "type": "string"
@@ -3601,12 +3601,12 @@
     "LockEntry": {
       "type": "object",
       "required": [
-        "dir",
+        "package",
         "state"
       ],
       "properties": {
-        "dir": {
-          "$ref": "#/$defs/Dir"
+        "package": {
+          "$ref": "#/$defs/PackageId"
         },
         "url": {
           "type": "string"
@@ -4024,7 +4024,7 @@
         "id": {
           "type": "string",
           "pattern": "^[a-z]+\\.[a-z-]+/[A-Za-z0-9][A-Za-z0-9_.+-]*(@[a-z0-9][a-z0-9._-]*)?$",
-          "description": "CODE/SUBJECT. SUBJECT is a node, a dir or, for sign.expiring, a key id: closure.broken/pmix@el9, sign.expiring/d.klein."
+          "description": "CODE/SUBJECT. SUBJECT is a node, a package or, for sign.expiring, a key id: closure.broken/pmix@el9, sign.expiring/d.klein."
         },
         "code": {
           "$ref": "#/$defs/AdvisoryCode"
@@ -4034,7 +4034,7 @@
         },
         "subject": {
           "type": "string",
-          "description": "DIR@TARGET, DIR (upstream.release), a source package name (retired.published), NAME@TARGET (closure.broken of a retired package), or a key id (sign.expiring)."
+          "description": "PKG@TARGET, PKG (upstream.release), a source package name (retired.published), NAME@TARGET (closure.broken of a retired package), or a key id (sign.expiring)."
         },
         "targets": {
           "type": "array",
@@ -4064,9 +4064,9 @@
         "closure": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/Dir"
+            "$ref": "#/$defs/PackageId"
           },
-          "description": "Level required only: the dirs whose publish this advisory blocks."
+          "description": "Level required only: the packages whose publish this advisory blocks."
         },
         "suggestion": {
           "type": "object",
@@ -4406,8 +4406,8 @@
                 "description": "NVRA of the provider in the recorded buildroot."
               },
               "provider": {
-                "$ref": "#/$defs/Dir",
-                "description": "The set dir that provides the capability now."
+                "$ref": "#/$defs/PackageId",
+                "description": "The set package that provides the capability now."
               }
             }
           },

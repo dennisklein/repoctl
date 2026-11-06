@@ -276,7 +276,7 @@ See also: repoctl help selectors, repoctl help build-state.</pre>
 </table>
 
 <h2 id="selectors">Selectors</h2>
-<p>A selector names nodes. A node is one package built for one target, written <code>DIR@TARGET</code> (<a href="model.html#nodes">model.html#nodes</a>). build, plan, graph, list, show, logs and repo diff take node selectors. checkout, pin, rebuild and upstream act on packages and take only the package part; <code>slurm@el9</code> there is a usage error. <code>repoctl help selectors</code> prints the rules and examples of this section.</p>
+<p>A selector names nodes. A node is one package built for one target, written <code>PKG@TARGET</code> (<a href="model.html#nodes">model.html#nodes</a>). build, plan, graph, list, show, logs and repo diff take node selectors. checkout, pin, rebuild and upstream act on packages and take only the package part; <code>slurm@el9</code> there is a usage error. <code>repoctl help selectors</code> prints the rules and examples of this section.</p>
 <pre><code class="language-plaintext">(* EBNF, ISO 14977 *)
 selectors       = [ selector , { separator , selector } ] ;
 separator       = "," | white-space ;           (* several args are a union too *)
@@ -284,7 +284,7 @@ selector        = [ "!" ] , ( node-selector | target-selector | here ) ;
 node-selector   = pkg-pattern , [ "@" , target-pattern ] ;
 target-selector = "@" , target-pattern ;
 here            = "." ;                         (* the package of the current directory *)
-pkg-pattern     = glob ;                        (* matched against packages[].dir *)
+pkg-pattern     = glob ;                        (* matched against packages[].id *)
 target-pattern  = glob ;                        (* matched against targets[].id *)
 glob            = gchar , { gchar } ;
 gchar           = letter | digit | "-" | "_" | "+" | "." | "*" | "?" | class ;
@@ -356,7 +356,7 @@ cchar           = letter | digit | "-" | "_" | "+" | "." ;
 </tbody>
 </table>
 <p>Restore, resign, prune, sign retire, sign remove, sign deployed and sign removed also use exit 12, and build stops with 12 for a retired set. A first publish stops with 12 when <code>repo.url</code> already serves a repo (<code>publish.served-exists</code>) or the served tree names another set (<code>set.renamed</code>).</p>
-<p>The remote builder branch can stop a publish with 13 (<code>sign.trust-behind</code>). It counts only when its tip has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit of the publish. Exit 13 also comes from an advisory gate that cannot read a repo.</p>
+<p>The remote set branch can stop a publish with 13 (<code>sign.trust-behind</code>). It counts only when its tip has another <code>repoctl.yaml</code> or <code>keys/</code> than the set commit of the publish. Exit 13 also comes from an advisory gate that cannot read a repo.</p>
 <p>Exceptions: <code>mock shell</code> exits with the status of the shell or of its command. <code>ui</code> and <code>mcp start</code> exit 0 on SIGINT or SIGTERM, because a signal is the normal way to stop a server.</p>
 
 <h2 id="commands">Commands</h2>
@@ -376,20 +376,20 @@ repoctl init --from SET --name NAME [--force]</pre>
   <tr><td><code>--name NAME</code></td><td>The name of the new set.</td></tr>
   <tr><td><code>--repo NAME</code></td><td>The repository name. Default: the first part of the set name.</td></tr>
   <tr><td><code>--add-target ID=MOCKCFG</code></td><td>Add a target. Default: <code>el9=rocky+epel-9-x86_64</code>.</td></tr>
-  <tr><td><code>--from SET</code></td><td>Fork the set directory or builder branch SET (<a href="lifecycle.html#init-from">lifecycle.html#init-from</a>).</td></tr>
+  <tr><td><code>--from SET</code></td><td>Fork the set directory or set branch SET (<a href="lifecycle.html#init-from">lifecycle.html#init-from</a>).</td></tr>
   <tr><td><code>--force</code></td><td>Write over an existing file.</td></tr>
   </tbody>
   </table>
   <dl class="facts"><dt>Lock</dt><dd>none (no set yet)</dd><dt>Writes</dt><dd><code>repoctl.yaml</code>, <code>repoctl.lock</code>; with <code>--from</code> also the files of <a href="lifecycle.html#init-from">init --from</a></dd><dt>Output</dt><dd>kind <code>File</code></dd><dt>Exit</dt><dd>0; 1 the file exists (without <code>--force</code>) or no git work tree; 2</dd></dl>
-  <pre class="term">$ repoctl init --from builder/slurm-26.05 --name slurm-26.11
+  <pre class="term">$ repoctl init --from set/slurm-26.05 --name slurm-26.11
 wrote repoctl.yaml   set slurm-26.11, 10 branches renamed (slurm-26.05 → slurm-26.11), 0 shared branches
 wrote repoctl.lock   empty
 dropped key hpc-repo (retiring): no RPM of the new set carries it
 deleted .repoctl/advisories.yaml, keys/deployed.yaml, keys/hpc-repo.asc
 Next: steps 3 to 14 of "repoctl help new-set":
    3. set repo.url in repoctl.yaml; edit the release package: Version 26.11; repoctl release write
-   4. git commit -am "feat: start set slurm-26.11"            builder branch
-   5. repoctl checkout --create --from-set builder/slurm-26.05
+   4. git commit -am "feat: start set slurm-26.11"            set branch
+   5. repoctl checkout --create --from-set set/slurm-26.05
    …
   14. repoctl check --install-timer</pre>
 </section>
@@ -398,7 +398,7 @@ Next: steps 3 to 14 of "repoctl help new-set":
   <h4><code>repoctl migrate</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl migrate [--name NAME] [--dry-run] [--force]
 repoctl migrate --api [--dry-run]</pre>
-  <p>Convert a builder branch of the bash scripts to a set (<a href="../runbooks/import.html#convert">import runbook</a>). migrate reads <code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code>, the build lines of <code>scripts/build</code> and the tables <code>REPO_MAP</code> and <code>DEFAULT_FILTERS</code> of the package-info skill. It deletes no old file. It reports each difference between the hand order of <code>scripts/build</code> and the graph.</p>
+  <p>Convert a set branch of the bash scripts to a set (<a href="../runbooks/import.html#convert">import runbook</a>). migrate reads <code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code>, the build lines of <code>scripts/build</code> and the tables <code>REPO_MAP</code> and <code>DEFAULT_FILTERS</code> of the package-info skill. It deletes no old file. It reports each difference between the hand order of <code>scripts/build</code> and the graph.</p>
   <p>migrate does not import the published RPMs; an agent does that with the <a href="../runbooks/import.html">import runbook</a>.</p>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
@@ -432,13 +432,13 @@ Next: check the files, then:
   <p>The line <code>in flight</code> counts the pinned nodes whose commit latest does not hold (<a href="signing.html#help-team">signing.html#help-team</a>). It splits them into the nodes staged on this host and the nodes to build here, for example after the pin of another admin. Its JSON is <code>Status.inFlight</code> with <code>nodes</code>, <code>staged</code> and <code>build</code>.</p>
   <dl class="facts"><dt>Lock</dt><dd>none; status shows the holder of the set lock</dd><dt>Writes</dt><dd>nothing</dd><dt>Output</dt><dd>kind <code>Status</code>, with <code>lockHolder</code>, <code>inFlight</code> and <code>next</code></dd><dt>Exit</dt><dd>0; 1. A dirty lock or a local copy that is behind is a finding, not a failure.</dd></dl>
   <pre class="term">$ repoctl status                         # 2026-11-02 17:41, after the ucx commit
-set         slurm-26.05  ~/src/slurm-repo  (builder/slurm-26.05 at 5d81c3e, pushed)
+set         slurm-26.05  ~/src/slurm-repo  (set/slurm-26.05 at 5d81c3e, pushed)
 published   el9 el10  p-20260912-1403-c21  2026-09-12 14:03  local same, served same
 last run    r-20260912-1251-e19  2026-09-12 12:51  ok, published in p-20260912-1403-c21
 advisories  1 required (closure.broken/pmix@el9), 3 info
 upstream    2 updates (slurm 26.05.5, openmpi 5.0.12)
 signing     hpc-repo is retiring: 50 RPMs in latest of el9 carry it
-DIR  LOCK     WORKTREE  STATE
+PKG  LOCK     WORKTREE  STATE
 ucx  907c60d  4b1e9c2   ahead 1 ("Bump to 1.22.1")
 11 packages: 9 in-sync, 1 ahead, 1 in tree  (-v shows all)
 hint: read the facts and the closure. run: repoctl advisories show closure.broken/pmix@el9
@@ -460,7 +460,7 @@ repoctl ls ...</pre>
   </table>
   <dl class="facts"><dt>Lock</dt><dd>no set lock; the host mock lock, shared, while it builds an SRPM</dd><dt>Writes</dt><dd>SRPM cache and source cache entries in <code>~/.cache/repoctl/srpm/</code> and <code>sources/</code></dd><dt>Output</dt><dd>kind <code>Package</code>, one item per package</dd><dt>Exit</dt><dd>0; 1; 2</dd></dl>
   <pre class="term">$ repoctl list
-DIR                     VERSION  COMMIT   BRANCH                  TARGETS   DEPENDS ON
+PKG                     VERSION  COMMIT   BRANCH                  TARGETS   DEPENDS ON
 munge                   0.5.18   3a244fd  munge/slurm-26.05       el9 el10  -
 ucx                     1.22.1   4b1e9c2  ucx/slurm-26.05         el9 el10  -
 rocm-smi                7.14.0   cae3663  slurm-26.05 (external)  el9       -
@@ -487,75 +487,75 @@ warning: slurm@el10 needs rocm-smi-devel; only rocm-smi@el9 provides it (dep.not
 
 <section class="cmd" id="cmd-checkout">
   <h4><code>repoctl checkout</code> <span class="tag local">local write</span></h4>
-  <pre class="synopsis">repoctl checkout [DIR...] [--fetch] [--force] [-j N]
-repoctl checkout [DIR...] --create (--from-set SET | --from REF | --from fedora[:BRANCH] | --orphan)</pre>
-  <p>Create the worktrees <code>packages/DIR</code>, or move them to the lock commits. repoctl fetches a missing commit from <code>defaults.git.remote</code>. An external package gets its worktree from a bare clone in <code>~/.local/share/repoctl/git/</code> (<a href="lifecycle.html#clones">lifecycle.html#clones</a>). repoctl adds each worktree path to <code>.git/info/exclude</code>.</p>
-  <p id="local-branch">Each worktree is attached to its <dfn>local branch</dfn>: the branch <code>BRANCH</code> of the package entry, with the upstream <code>origin/BRANCH</code>. It is in the repository of the worktree: the set repository or the bare clone. A commit in <code>packages/DIR</code> goes to the local branch, and <code>git -C packages/DIR push origin BRANCH</code> pushes it.</p>
+  <pre class="synopsis">repoctl checkout [PKG...] [--fetch] [--force] [-j N]
+repoctl checkout [PKG...] --create (--from-set SET | --from REF | --from fedora[:BRANCH] | --orphan)</pre>
+  <p>Create the worktrees <code>packages/PKG</code>, or move them to the lock commits. repoctl fetches a missing commit from <code>defaults.git.remote</code>. An external package gets its worktree from a bare clone in <code>~/.local/share/repoctl/git/</code> (<a href="lifecycle.html#clones">lifecycle.html#clones</a>). repoctl adds each worktree path to <code>.git/info/exclude</code>.</p>
+  <p id="local-branch">Each worktree is attached to its <dfn>local branch</dfn>: the branch <code>BRANCH</code> of the package entry, with the upstream <code>origin/BRANCH</code>. It is in the repository of the worktree: the set repository or the bare clone. A commit in <code>packages/PKG</code> goes to the local branch, and <code>git -C packages/PKG push origin BRANCH</code> pushes it.</p>
   <table class="compact">
   <thead><tr><th>Local branch</th><th>checkout</th><th>Row</th></tr></thead>
   <tbody>
   <tr><td>does not exist</td><td>Creates it at the lock commit and attaches the worktree.</td><td>created</td></tr>
   <tr><td>is the lock commit</td><td>Attaches the worktree. Nothing moves.</td><td>none (<code>in-sync</code>)</td></tr>
   <tr><td>is an ancestor of the lock commit</td><td>Fast-forwards the branch to the lock commit.</td><td>moved</td></tr>
-  <tr><td>is a descendant of the lock commit</td><td>Keeps the branch and its commits.</td><td><code>ahead</code>, warning <code>worktree.dirty</code>, hint <code>repoctl pin DIR</code></td></tr>
+  <tr><td>is a descendant of the lock commit</td><td>Keeps the branch and its commits.</td><td><code>ahead</code>, warning <code>worktree.dirty</code>, hint <code>repoctl pin PKG</code></td></tr>
   <tr><td>has diverged from the lock commit</td><td>Keeps the branch and its commits.</td><td><code>diverged</code>, warning <code>worktree.dirty</code>, hint: rebase on the lock commit</td></tr>
   <tr><td>is checked out in another worktree, for example a shared branch of a second set directory</td><td>Makes the worktree with a detached HEAD at the lock commit.</td><td>note "detached: BRANCH is checked out in PATH"</td></tr>
   </tbody>
   </table>
   <ul>
     <li>checkout moves a local branch only forward. It never moves a branch back, and it never discards a commit or a change.</li>
-    <li>A worktree with uncommitted changes stays as it is: <code>dirty</code>, warning <code>worktree.dirty</code>, hint: commit, then <code>repoctl pin DIR</code>.</li>
-    <li>A worktree that the human moved to another branch or to a detached HEAD stays as it is. Its lock state comes from its HEAD. <code>git -C packages/DIR switch BRANCH</code> attaches it again.</li>
-    <li>For a commit on a detached HEAD, each hint gives <code>git -C packages/DIR push origin HEAD:BRANCH</code>.</li>
+    <li>A worktree with uncommitted changes stays as it is: <code>dirty</code>, warning <code>worktree.dirty</code>, hint: commit, then <code>repoctl pin PKG</code>.</li>
+    <li>A worktree that the human moved to another branch or to a detached HEAD stays as it is. Its lock state comes from its HEAD. <code>git -C packages/PKG switch BRANCH</code> attaches it again.</li>
+    <li>For a commit on a detached HEAD, each hint gives <code>git -C packages/PKG push origin HEAD:BRANCH</code>.</li>
     <li>A kept worktree is a warning, not an error. It gives exit 0 on every surface: CLI, web UI and MCP.</li>
-    <li>With more than one dir, checkout continues after a dir that fails. Each failed dir gets a row with its problem code, and checkout exits 1. The other worktrees stay.</li>
+    <li>With more than one package, checkout continues after a package that fails. Each failed package gets a row with its problem code, and checkout exits 1. The other worktrees stay.</li>
   </ul>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
   <tr><td><code>--fetch</code></td><td>Fetch the remote first.</td></tr>
   <tr><td><code>--force</code></td><td>Reset the local branch to the lock commit and discard the changes. Commits that only this branch holds are lost.</td></tr>
-  <tr><td><code>-j N</code></td><td>Work on at most N dirs at the same time.</td></tr>
+  <tr><td><code>-j N</code></td><td>Work on at most N packages at the same time.</td></tr>
   <tr><td><code>--create</code></td><td>Make the branch of a new package from exactly one start point: <code>--from-set SET</code>, <code>--from REF</code>, <code>--from fedora[:BRANCH]</code> or <code>--orphan</code> (<a href="lifecycle.html#checkout-create">lifecycle.html#checkout-create</a>).</td></tr>
   </tbody>
   </table>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>worktrees, local branches, <code>.git/worktrees/</code>, <code>.git/info/exclude</code>, external clones; never pushes</dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0, also with kept worktrees; 1 a dir failed: a fetch failed, <code>branch.exists-remote</code>, <code>branch.start-missing</code>, <code>git.unreachable</code>; 2 <code>--create</code> without one start point; 7</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd>worktrees, local branches, <code>.git/worktrees/</code>, <code>.git/info/exclude</code>, external clones; never pushes</dd><dt>Output</dt><dd>kind <code>Lock</code></dd><dt>Exit</dt><dd>0, also with kept worktrees; 1 a package failed: a fetch failed, <code>branch.exists-remote</code>, <code>branch.start-missing</code>, <code>git.unreachable</code>; 2 <code>--create</code> without one start point; 7</dd></dl>
   <pre class="term">$ repoctl checkout                       # A. Admin on hpc-a2, after a pull of the set commit 9a0c4e2
 11 packages: 4 moved (ucx slurm openmpi slurm-singularity-exec), 6 in-sync, 1 in tree  (-v shows all)</pre>
 </section>
 
 <section class="cmd" id="cmd-pin">
   <h4><code>repoctl pin</code> <span class="tag local">local write</span></h4>
-  <pre class="synopsis">repoctl pin [DIR...] [--fetch] [--older]
+  <pre class="synopsis">repoctl pin [PKG...] [--fetch] [--older]
 repoctl pin --orphans</pre>
-  <p>Write the HEAD commit of each selected worktree into <code>repoctl.lock</code>, with the branch and the URL of <code>repoctl.yaml</code> (<a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>). Without DIR, pin takes all packages. pin does not commit and does not push.</p>
+  <p>Write the HEAD commit of each selected worktree into <code>repoctl.lock</code>, with the branch and the URL of <code>repoctl.yaml</code> (<a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>). Without PKG, pin takes all packages. pin does not commit and does not push.</p>
   <table class="compact">
-  <thead><tr><th>Lock state</th><th><code>pin</code></th><th><code>pin DIR</code></th></tr></thead>
+  <thead><tr><th>Lock state</th><th><code>pin</code></th><th><code>pin PKG</code></th></tr></thead>
   <tbody>
   <tr><td><code>ahead</code>, <code>unpinned</code></td><td>Writes the HEAD commit.</td><td>Writes the HEAD commit.</td></tr>
   <tr><td><code>in-sync</code></td><td>Keeps the commit. Writes a changed branch or URL.</td><td>The same.</td></tr>
-  <tr><td><code>behind</code></td><td>Keeps the line. Warning <code>lock.behind</code>, hint <code>repoctl checkout DIR</code>.</td><td>Stops: <code>lock.behind</code>, exit 5. With <code>--older</code>, writes the older HEAD commit and warns.</td></tr>
-  <tr><td><code>diverged</code></td><td colspan="2">Stops: <code>lock.diverged</code>, exit 5. Hint: rebase <code>packages/DIR</code> on the lock commit.</td></tr>
+  <tr><td><code>behind</code></td><td>Keeps the line. Warning <code>lock.behind</code>, hint <code>repoctl checkout PKG</code>.</td><td>Stops: <code>lock.behind</code>, exit 5. With <code>--older</code>, writes the older HEAD commit and warns.</td></tr>
+  <tr><td><code>diverged</code></td><td colspan="2">Stops: <code>lock.diverged</code>, exit 5. Hint: rebase <code>packages/PKG</code> on the lock commit.</td></tr>
   <tr><td><code>dirty</code></td><td colspan="2">Stops: <code>lock.dirty</code>, exit 5. Uncommitted changes are never pinned.</td></tr>
-  <tr><td><code>missing</code></td><td colspan="2">Keeps the line. Warning <code>worktree.missing</code>, hint <code>repoctl checkout DIR</code>.</td></tr>
+  <tr><td><code>missing</code></td><td colspan="2">Keeps the line. Warning <code>worktree.missing</code>, hint <code>repoctl checkout PKG</code>.</td></tr>
   <tr><td><code>in-tree</code></td><td colspan="2">Has no lock line. pin writes nothing for it.</td></tr>
-  <tr><td><code>orphaned</code></td><td>Removes the line.</td><td>Usage error (exit 2): DIR is not in <code>repoctl.yaml</code>.</td></tr>
+  <tr><td><code>orphaned</code></td><td>Removes the line.</td><td>Usage error (exit 2): PKG is not in <code>repoctl.yaml</code>.</td></tr>
   </tbody>
   </table>
   <ul>
     <li>pin checks every selected package before it writes. When one stops, pin writes nothing.</li>
-    <li>After a git conflict in <code>repoctl.lock</code>, keep both lines when they name two dirs. When both name one dir, keep the line whose commit is the descendant: <code>git merge-base --is-ancestor OLD NEW</code> is true for the kept line NEW. Then run <code>repoctl checkout</code>.</li>
-    <li>A dir that is two times in the file gives <code>config.invalid</code> (exit 1), and the hint gives these steps.</li>
+    <li>After a git conflict in <code>repoctl.lock</code>, keep both lines when they name two packages. When both name one package, keep the line whose commit is the descendant: <code>git merge-base --is-ancestor OLD NEW</code> is true for the kept line NEW. Then run <code>repoctl checkout</code>.</li>
+    <li>A package id that is two times in the file gives <code>config.invalid</code> (exit 1), and the hint gives these steps.</li>
   </ul>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
   <tr><td><code>--fetch</code></td><td>Fetch first, so that the warning for a commit that is not on its remote branch is current.</td></tr>
-  <tr><td><code>--older</code></td><td>With DIR: write a HEAD commit that is behind the lock.</td></tr>
+  <tr><td><code>--older</code></td><td>With PKG: write a HEAD commit that is behind the lock.</td></tr>
   <tr><td><code>--orphans</code></td><td>Remove only the orphaned lines; change no other line (<a href="lifecycle.html#retire">lifecycle.html#retire</a>).</td></tr>
   </tbody>
   </table>
-  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.lock</code> (atomic)</dd><dt>Output</dt><dd>kind <code>Lock</code> (previous, commit, changed)</dd><dt>Exit</dt><dd>0; 1 a dir is two times in <code>repoctl.lock</code>. 2 a dir that is not in <code>repoctl.yaml</code>, <code>--older</code> without DIR. 5 a worktree is dirty or diverged, or a named worktree is behind; pin then writes nothing. 7</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock</dd><dt>Writes</dt><dd><code>repoctl.lock</code> (atomic)</dd><dt>Output</dt><dd>kind <code>Lock</code> (previous, commit, changed)</dd><dt>Exit</dt><dd>0; 1 a package is two times in <code>repoctl.lock</code>. 2 a package that is not in <code>repoctl.yaml</code>, <code>--older</code> without PKG. 5 a worktree is dirty or diverged, or a named worktree is behind; pin then writes nothing. 7</dd></dl>
   <pre class="term">$ repoctl pin                            # 2026-11-02 17:46, after the rebuild
 ucx  907c60d → 4b1e9c2  ucx/slurm-26.05  "Bump to 1.22.1"
 warning: ucx 4b1e9c2 is not on origin/ucx/slurm-26.05
@@ -565,8 +565,8 @@ Next: git add repoctl.lock &amp;&amp; git commit &amp;&amp; git push</pre>
 
 <section class="cmd" id="cmd-rebuild">
   <h4><code>repoctl rebuild</code> <span class="tag local">local write</span></h4>
-  <pre class="synopsis">repoctl rebuild DIR... --reason TEXT [--dry-run]</pre>
-  <p>Add an empty commit <code>Rebuild: TEXT</code> to the <a href="#local-branch">local branch</a> of each package and pin it (<a href="build.html#rebuild">build.html#rebuild</a>). The release goes up by one on all targets. DIR is a package selector, also a glob: <code>repoctl rebuild '*'</code> selects each package of the set (<a href="lifecycle.html#mass-rebuild">rebuild the set</a>).</p>
+  <pre class="synopsis">repoctl rebuild PKG... --reason TEXT [--dry-run]</pre>
+  <p>Add an empty commit <code>Rebuild: TEXT</code> to the <a href="#local-branch">local branch</a> of each package and pin it (<a href="build.html#rebuild">build.html#rebuild</a>). The release goes up by one on all targets. PKG is a package selector, also a glob: <code>repoctl rebuild '*'</code> selects each package of the set (<a href="lifecycle.html#mass-rebuild">rebuild the set</a>).</p>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
@@ -833,9 +833,9 @@ el9  latest p-20260912-1403-c21 → staging r-20261102-1750-a3f
 
 <section class="cmd" id="cmd-repo-provenance">
   <h4><code>repoctl repo provenance</code> <span class="tag read">read</span></h4>
-  <pre class="synopsis">repoctl repo provenance NVR|DIR@TARGET [--snapshot REF] [--raw]</pre>
-  <p>Show the provenance record of one build (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>). It holds the commit, the run, the builder, the subjects and the buildroot changes since the previous build of the same dir.</p>
-  <p>The default is the build in the local copy of latest; <code>DIR@TARGET</code> selects the newest build of that node. repoctl checks the record against the RepoManifest first. An adopted build has no provenance: <code>records.missing</code>.</p>
+  <pre class="synopsis">repoctl repo provenance NVR|PKG@TARGET [--snapshot REF] [--raw]</pre>
+  <p>Show the provenance record of one build (<a href="supply-chain.html#provenance">supply-chain.html#provenance</a>). It holds the commit, the run, the builder, the subjects and the buildroot changes since the previous build of the same package.</p>
+  <p>The default is the build in the local copy of latest; <code>PKG@TARGET</code> selects the newest build of that node. repoctl checks the record against the RepoManifest first. An adopted build has no provenance: <code>records.missing</code>.</p>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
@@ -1042,7 +1042,7 @@ a.admin   …E93F 52A7   active    no record                                   2
 wrote keys/a.admin.asc                          A. Admin &lt;a.admin@gsi.de&gt; · expires 2028-03-01
 wrote packages/slurm-release/RPM-GPG-KEY-slurm  3 keys: a.admin, d.klein, hpc-repo
 committed 7e21d0a "Trust key a.admin C2F9…52A7", signed by a.admin
-Next: git push origin builder/slurm-26.05</pre>
+Next: git push origin set/slurm-26.05</pre>
 </section>
 
 <section class="cmd" id="cmd-sign-retire">
@@ -1099,7 +1099,7 @@ release  slurm-release-26.05-3.el9 in latest of el9 · key file holds a.admin C2
 Type the key id to confirm that all clients have this release: a.admin
 committed keys/deployed.yaml "Deployed a.admin on el9 with slurm-release-26.05-3", signed by d.klein
 pin      el9/RPM-GPG-KEY-slurm 1c7f3e2d…  (client bootstrap: update the pin in config management)
-Next: git push origin builder/slurm-26.05</pre>
+Next: git push origin set/slurm-26.05</pre>
 </section>
 
 <section class="cmd" id="cmd-sign-removed">
@@ -1190,7 +1190,7 @@ suggests  rebuild pmix against hwloc 2.11, or change its spec
 
 <section class="cmd" id="cmd-upstream">
   <h4><code>repoctl upstream</code> <span class="tag read">read</span></h4>
-  <pre class="synopsis">repoctl upstream [DIR...] [--check] [--releases] [--refresh] [-j N]</pre>
+  <pre class="synopsis">repoctl upstream [PKG...] [--check] [--releases] [--refresh] [-j N]</pre>
   <p>Compare the version of each package at its lock commit with the newest upstream release. The sources come from <code>packages[].upstream</code>: GitHub releases or tags, a tag filter, and Fedora rawhide. repoctl drops pre-releases and vendor tags, and it compares versions with the RPM version order.</p>
   <p>The version of a tag comes from <code>upstream.version</code>: the capture groups of that regular expression, joined with <code>.</code>. For example, <code>'^slurm-(\d+)-(\d+)-(\d+)'</code> maps the tag <code>slurm-26-05-5-1</code> to 26.05.5. Without the key, the version is the tag without a leading <code>v</code>.</p>
   <table class="compact">
@@ -1515,8 +1515,8 @@ Each row names its dependencies, so the graph is clear without the lanes.
 <table class="compact">
 <thead><tr><th>Where</th><th>Candidates</th></tr></thead>
 <tbody>
-<tr><td>selectors</td><td>package dirs with version and lock state; after <code>DIR@</code> the targets of the package; after <code>@</code> all target ids</td></tr>
-<tr><td>packages (checkout, pin, rebuild, upstream)</td><td>package dirs; pin offers the packages that are ahead first</td></tr>
+<tr><td>selectors</td><td>packages with version and lock state; after <code>PKG@</code> the targets of the package; after <code>@</code> all target ids</td></tr>
+<tr><td>packages (checkout, pin, rebuild, upstream)</td><td>packages; pin offers the packages that are ahead first</td></tr>
 <tr><td><code>--target</code>, <code>mock shell TARGET</code></td><td>target ids with the mock config</td></tr>
 <tr><td><code>--run</code>, <code>runs</code>, <code>logs</code>, <code>cancel</code></td><td>run ids, newest first, and <code>latest</code>; cancel offers only running runs; <code>logs RUN NODE</code> the nodes, failed first</td></tr>
 <tr><td>advisory ids, <code>--accept-advisory</code></td><td>ids of the last check; <code>--accept-advisory</code> only the blocking ids</td></tr>
@@ -1528,13 +1528,13 @@ Each row names its dependencies, so the graph is clear without the lanes.
 </table>
 
 <h2 id="migration">Migration from today's scripts</h2>
-<p>Each script of the bash era (builder branch <code>builder/slurm-26.05</code>) maps to repoctl. The import of the published repositories is a runbook for an agent, not a command (<a href="../runbooks/import.html">../runbooks/import.html</a>).</p>
+<p>Each script of the bash era (set branch <code>set/slurm-26.05</code>) maps to repoctl. The import of the published repositories is a runbook for an agent, not a command (<a href="../runbooks/import.html">../runbooks/import.html</a>).</p>
 <table class="compact">
 <thead><tr><th>Today</th><th>repoctl</th><th>Notes</th></tr></thead>
 <tbody>
 <tr><td><code>./scripts/setup</code></td><td><code>dnf install repoctl-release</code>, then <code>dnf install repoctl</code>; <code>repoctl doctor</code></td><td>The RPM requires the tools. repoctl runs on Fedora. The first install checks the key fingerprint by hand (<a href="tool.html#tool-bootstrap">first install</a>).</td></tr>
 <tr><td><code>./scripts/checkout</code></td><td><code>repoctl checkout</code></td><td>The same worktrees. <code>REMOTE=…</code> becomes <code>defaults.git.remote</code>.</td></tr>
-<tr><td><code>./scripts/pin [dir…]</code></td><td><code>repoctl pin [DIR…]</code></td><td>The same "push it" warning.</td></tr>
+<tr><td><code>./scripts/pin [dir…]</code></td><td><code>repoctl pin [PKG…]</code></td><td>The same "push it" warning.</td></tr>
 <tr><td><code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code></td><td><code>repoctl.lock</code>, <code>repoctl.yaml</code>, <code>rpm/macros</code></td><td><code>repoctl migrate</code> converts them once.</td></tr>
 <tr><td><code>./scripts/build</code></td><td><code>repoctl build</code>, then <code>repoctl publish</code></td><td>The order comes from the graph. Only nodes with a new commit build. Signing moves to publish.</td></tr>
 <tr><td>build lines commented out</td><td><code>repoctl build slurm</code></td><td>Selectors.</td></tr>
@@ -1547,8 +1547,8 @@ Each row names its dependencies, so the graph is clear without the lanes.
 <tr><td><code>build/el9/PKG/*.log</code></td><td><code>repoctl logs NODE --file root|build</code></td><td></td></tr>
 <tr><td><code>mock -r … --shell</code></td><td><code>repoctl mock shell el9</code></td><td>The same macros and plugins as a build.</td></tr>
 <tr><td><code>gpg --list-secret-keys</code></td><td><code>repoctl doctor</code>, <code>repoctl sign ls</code></td><td><code>sign.key</code> names the key of the human.</td></tr>
-<tr><td>new package: <code>git worktree add --orphan</code> and an edit of <code>scripts/build</code></td><td><code>repoctl checkout --create DIR --from fedora</code>; commit; push; <code>repoctl pin DIR</code></td><td><code>repoctl help packages</code> has the steps.</td></tr>
-<tr><td>skill <code>/package-info</code>, <code>get-package-info</code></td><td><code>repoctl upstream DIR --json</code></td><td><code>REPO_MAP</code> becomes <code>packages[].upstream</code>.</td></tr>
+<tr><td>new package: <code>git worktree add --orphan</code> and an edit of <code>scripts/build</code></td><td><code>repoctl checkout --create PKG --from fedora</code>; commit; push; <code>repoctl pin PKG</code></td><td><code>repoctl help packages</code> has the steps.</td></tr>
+<tr><td>skill <code>/package-info</code>, <code>get-package-info</code></td><td><code>repoctl upstream PKG --json</code></td><td><code>REPO_MAP</code> becomes <code>packages[].upstream</code>.</td></tr>
 <tr><td>skill <code>/list-package-updates</code></td><td>skill package-updates</td><td>It calls <code>repoctl upstream --releases --json</code>.</td></tr>
 <tr><td>the bash-era repositories</td><td>the import runbook</td><td>No import command in the CLI or the UI.</td></tr>
 </tbody>

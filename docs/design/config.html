@@ -76,7 +76,7 @@ ui.open        true          default</pre>
 </ul>
 <pre class="term">$ cd ~/src/slurm-repo/packages/ucx
 $ repoctl status -q | head -1
-set       slurm-26.05  ~/src/slurm-repo  (branch builder/slurm-26.05)
+set       slurm-26.05  ~/src/slurm-repo  (branch set/slurm-26.05)
 $ cd /tmp
 $ repoctl status
 repoctl: error: no set: no repoctl.yaml in /tmp or in a parent directory
@@ -85,7 +85,7 @@ hint: start a new set here. run: repoctl init</pre>
 <p>These commands work without a set: <code>version</code>, <code>completion</code>, <code>help</code>, <code>schema</code>, <code>skills ls|show|path</code>, <code>mcp tools</code>, <code>init</code>, <code>migrate</code> and <code>repo ls --path DIR</code>. Three more work in part: <code>config paths</code> (user paths only), <code>doctor</code> (host checks only) and <code>ui</code> (it opens the overview of the known sets).</p>
 
 <h2 id="set-config">repoctl.yaml</h2>
-<p>The set config says what to build. It is committed on the builder branch. This is the file of the set <code>slurm-26.05</code>:</p>
+<p>The set config says what to build. It is committed on the set branch. This is the file of the set <code>slurm-26.05</code>:</p>
 <pre><code class="language-yaml">apiVersion: repoctl/v1alpha1
 name: slurm-26.05                  # set id: in all local paths and OCI package names
 minRepoctl: 0.4.0                  # optional: an older repoctl stops on this set
@@ -137,41 +137,41 @@ defaults:
     remote: origin                 # the package branches are in this repository
 
 packages:
-  - dir: munge
+  - id: munge
     branch: munge/slurm-26.05
     upstream: {github: dun/munge, fedora: munge}
-  - dir: ucx
+  - id: ucx
     branch: ucx/slurm-26.05
     upstream: {github: openucx/ucx, fedora: ucx}
-  - dir: rocm-smi
+  - id: rocm-smi
     git: {url: https://git.gsi.de/SDE/packages/rocm-smi.git}   # external repository
     branch: slurm-26.05
     targets: [el9]                 # build only for these targets
     upstream: {github: ROCm/rocm-systems, tags: '^therock-[0-9]'}
     notes: Follow the TheRock stream. rocm-X.Y.Z is frozen at 7.2.4.
-  - dir: pmix
+  - id: pmix
     branch: pmix/slurm-26.05
     upstream: {github: openpmix/openpmix, tags: '^v6', fedora: pmix}
-  - dir: pmix_v5
+  - id: pmix_v5
     branch: pmix/slurm-26.05-v5
     upstream: {github: openpmix/openpmix, tags: '^v5'}
-  - dir: pmix_v4
+  - id: pmix_v4
     branch: pmix/slurm-26.05-v4
     upstream: {github: openpmix/openpmix, tags: '^v4', frozen: 4.2.9}
     notes: Upstream 4.x is frozen at 4.2.9.
-  - dir: prrte
+  - id: prrte
     branch: prrte/slurm-26.05
     upstream: {github: openpmix/prrte, fedora: prrte}
-  - dir: slurm
+  - id: slurm
     branch: slurm/slurm-26.05
     upstream: {github: SchedMD/slurm, tags: '^slurm-', version: '^slurm-(\d+)-(\d+)-(\d+)', fedora: slurm}
-  - dir: openmpi
+  - id: openmpi
     branch: openmpi/slurm-26.05
     upstream: {github: open-mpi/ompi, tags: '^v5\.', fedora: openmpi}
-  - dir: slurm-singularity-exec
+  - id: slurm-singularity-exec
     branch: slurm-singularity-exec/slurm-26.05
     upstream: {github: GSI-HPC/slurm-singularity-exec}
-  - dir: slurm-release
+  - id: slurm-release
     path: packages/slurm-release   # in-tree: no branch, %autorelease in its spec
     role: release                  # "repoctl release write" writes its key file and .repo files
 
@@ -196,7 +196,7 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tr><td><code>targets[].state</code></td><td>no</td><td><code>active</code> (default) or <code>retired</code>. A retired target has no nodes, but the repo commands still act on its published repo (<a href="lifecycle.html#targets">retire a target</a>).</td></tr>
 <tr><td><code>targets[].closure_repos[]</code>: <code>id</code>, <code>url</code></td><td>no</td><td>The RPM repos that the clients of the target have. The closure check, <code>buildroot.drift</code> and the publish gate read them (<a href="advisories.html#check">advisories.html#check</a>). Default: the enabled repos of the mock config of the target, plus <code>.repos</code>.</td></tr>
 <tr><td><code>defaults.git.remote</code></td><td>no</td><td>The remote of the package branches. Default <code>origin</code>.</td></tr>
-<tr><td><code>packages[].dir</code></td><td>yes</td><td>The worktree name below <code>packages/</code> and the DIR of <code>DIR@TARGET</code>.</td></tr>
+<tr><td><code>packages[].id</code></td><td>yes</td><td>The package id: the worktree name below <code>packages/</code> and the PKG of <code>PKG@TARGET</code>.</td></tr>
 <tr><td><code>packages[].branch</code> or <code>.path</code></td><td>exactly one of them</td><td>The package branch, or the path of an in-tree package.</td></tr>
 <tr><td><code>packages[].git.url</code></td><td>no</td><td>An external repository (<a href="#external">external</a>).</td></tr>
 <tr><td><code>packages[].targets</code></td><td>no</td><td>The targets of this package. Default all.</td></tr>
@@ -258,7 +258,7 @@ packages:
   <li>The lock is a separate file, like <code>go.sum</code>. A version bump changes one line in the lock and nothing in <code>repoctl.yaml</code>.</li>
   <li>An entry has <code>branch</code> and <code>commit</code>. An external package also has <code>url</code>.</li>
   <li>An in-tree package has no lock line, and it is never unpinned. A Lock result gives it with <code>path</code> and its commit: the last set commit that changes its path (<a href="model.html#identity">build identity</a>).</li>
-  <li>A dir that is two times in the file, for example after a git merge, gives <code>config.invalid</code> (exit 1). <a href="cli.html#cmd-pin">repoctl pin</a> gives the steps after a merge conflict.</li>
+  <li>A package id that is two times in the file, for example after a git merge, gives <code>config.invalid</code> (exit 1). <a href="cli.html#cmd-pin">repoctl pin</a> gives the steps after a merge conflict.</li>
   <li>A missing lock file counts as an empty lock. <code>repoctl migrate</code> converts <code>packages.lock</code> once (<a href="cli.html#cmd-migrate">cli.html#cmd-migrate</a>).</li>
   <li>The lock states, for example <code>unpinned</code>, <code>orphaned</code> and <code>in-tree</code>, are in <a href="lifecycle.html#lock-states">lifecycle.html#lock-states</a>.</li>
 </ul>
@@ -376,7 +376,7 @@ sets:
 <text class="t-small t-on" x="36" y="88">rpm/macros, keys/</text>
 <text class="t-small t-on" x="36" y="108">.repoctl/advisories.yaml</text>
 <text class="t-small t-on" x="36" y="128">packages/slurm-release</text>
-<text class="t-small t-on" x="36" y="148">packages/DIR: worktrees,</text>
+<text class="t-small t-on" x="36" y="148">packages/PKG: worktrees,</text>
 <text class="t-small t-on" x="36" y="166">ignored by git</text>
 <rect class="box" x="300" y="20" width="580" height="46" rx="8"/>
 <text class="t-title" x="316" y="40">$XDG_CONFIG_HOME/repoctl/</text>

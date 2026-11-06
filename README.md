@@ -34,11 +34,11 @@ The JSON Schemas and examples of the machine contract are in
 | Branch | Content |
 |---|---|
 | `main` | repoctl and its design record (this branch) |
-| `builder/slurm-<version>[-testing]` | one package set |
-| `<pkg>/slurm-<version>[-<variant>]` | one package: spec file and its history |
+| `set/slurm-<version>[-testing]` | one package set |
+| `<project>/slurm-<version>[-<variant>]` | one package: spec file and its history |
 
-The branches do not share history. Today the builder branches hold the
-build scripts of the bash era. The [import runbook](docs/runbooks/import.html)
+The branches do not share history. Today the set branches hold the
+build scripts of the bash era. Their old name is `builder/<set>`. The [import runbook](docs/runbooks/import.html)
 moves a set to `repoctl.yaml` and `repoctl.lock`.
 
 ## Build the docs site
