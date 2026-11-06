@@ -6,7 +6,8 @@ rpmautospec plugin), `rpmsign` and `createrepo_c`. It has a CLI, a local web
 UI and an MCP server for agents. It is built on
 [GSI-HPC/go-clikit](https://github.com/GSI-HPC/go-clikit).
 
-Status: design. No code yet.
+Status: first implementation of the design (phases 1 to 3, 5, 6 and 7 of
+the [delivery plan](docs/design/delivery.html)), not released yet.
 
 License: [Apache-2.0](LICENSE), for the code and the design record on this
 branch. The fonts and the vendored script in `docs/assets/` keep their own
@@ -40,6 +41,37 @@ The JSON Schemas and examples of the machine contract are in
 The branches do not share history. Today the set branches hold the
 build scripts of the bash era. Their old name is `builder/<set>`. The [import runbook](docs/runbooks/import.html)
 moves a set to `repoctl.yaml` and `repoctl.lock`.
+
+## Build and test repoctl
+
+repoctl needs Go 1.26. The tests also need `rpmbuild`, `createrepo_c`,
+`modifyrepo_c`, `rpmsign` and `gpg` (on Ubuntu: `apt-get install rpm
+createrepo-c gnupg`). The tests never call the real mock: a fake mock in
+`internal/testkit/fakemock` builds with `rpmbuild` on the host.
+
+```sh
+make build          # bin/repoctl
+make test           # unit tests
+make e2e            # end-to-end tests on the story fixture (build tag e2e)
+make lint           # golangci-lint
+make generate       # the contract types from docs/design/contract/schema
+```
+
+| Path | Content |
+|---|---|
+| `cmd/repoctl` | the binary |
+| `internal/api` | the machine contract: types generated from the JSON Schemas, problem codes, exit codes |
+| `internal/cli` | the command tree, the help topics and the terminal output |
+| `internal/config`, `internal/lock`, `internal/workspace` | repoctl.yaml, repoctl.lock, the user config, worktrees and lock states |
+| `internal/mock`, `internal/manifest`, `internal/tools` | the mock adapter, the RepoManifest, child processes and git |
+| `internal/srpm`, `internal/graph`, `internal/plan` | sources, SRPMs, the graph per target and the plan |
+| `internal/build`, `internal/journal`, `internal/staging` | build runs, the event journal and the staging |
+| `internal/publish`, `internal/snapshot`, `internal/localcopy`, `internal/records` | publish, snapshots in the OCI registry, the local copy of latest, provenance and SBOM |
+| `internal/sign`, `internal/release` | keys, gates, the deployment record and the release package |
+| `internal/advisory`, `internal/upstream`, `internal/doctor` | advisories, upstream versions and host checks |
+| `internal/mcp`, `internal/skills`, `internal/ui` | the MCP server, the agent skills and the web UI |
+| `internal/testkit` | the story fixture, the fake mock and the contract validator |
+| `contrib/mirror` | the mirror job of the HTTP server (shell, curl, jq, gpgv, rpmkeys) and its systemd units |
 
 ## Build the docs site
 

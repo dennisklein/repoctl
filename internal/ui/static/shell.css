@@ -1,0 +1,129 @@
+/* shell.css: the one app shell of repoctl ui. Top bar, sidebar, main, offline banner, keyboard help.
+   Link it after repoctl.css. Area stylesheets never restyle these classes.
+   Below 760 px the sidebar is a drawer that the menu button opens. */
+
+/* ---------- frame ---------- */
+.skip{position:absolute;left:8px;top:-40px;z-index:100;padding:6px 10px;border-radius:var(--r-md);background:var(--c-surface);border:1px solid var(--c-border)}
+.skip:focus{top:8px}
+.app{display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr);grid-template-rows:var(--topbar-h) 1fr;min-height:100vh;
+  background:linear-gradient(90deg,var(--c-surface) calc(var(--sidebar-w) - 1px),var(--c-border) 0 var(--sidebar-w),transparent 0)}
+.main{grid-column:2;min-width:0;padding:20px 24px 32px;container:main / inline-size}
+body[data-drawer] .main{transition:padding .15s}
+@media (min-width:1101px){body[data-drawer] .main{padding-right:calc(var(--drawer-w) + 24px)}}
+
+/* ---------- top bar ---------- */
+.topbar{grid-column:1/-1;position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;min-width:0;padding:0 16px;
+  background:var(--c-surface);border-bottom:1px solid var(--c-border)}
+.topbar .spacer{flex:1}
+.nav-toggle{display:none}
+.brand{display:flex;align-items:center;gap:8px;flex:none;color:var(--c-text);font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brand:hover{text-decoration:none}
+.brand-mark{display:grid;place-items:center;width:22px;height:22px;border-radius:5px;background:var(--c-primary);color:var(--c-on-primary);font:600 12px var(--font-mono)}
+.brand small{margin-left:-2px;font:500 11px var(--font-mono);color:var(--c-text-3)}
+
+/* set switcher: a details menu, so it works without script */
+.set-menu{position:relative;flex:none}
+.set-menu>summary{list-style:none;cursor:pointer}
+.set-menu>summary::-webkit-details-marker{display:none}
+.set-switch{display:flex;align-items:center;gap:6px;height:30px;padding:0 8px 0 10px;border:1px solid var(--c-border);border-radius:var(--r-md);
+  background:var(--c-surface-2);color:var(--c-text);font:13px var(--font-mono);white-space:nowrap}
+.set-switch .dot{width:7px;height:7px}
+.set-switch .caret{width:14px;height:14px;stroke:var(--c-text-3);fill:none;stroke-width:2}
+.set-menu[open]>.set-switch{border-color:var(--c-border-strong)}
+.set-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:40;width:340px;padding:6px;background:var(--c-surface);border:1px solid var(--c-border);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-2)}
+.set-pop a{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:2px 10px;padding:8px 10px;border-radius:var(--r-md);color:var(--c-text)}
+.set-pop a:hover,.set-pop a[aria-current]{background:var(--c-surface-2);text-decoration:none}
+.set-pop a b{font:500 13px var(--font-mono)}
+.set-pop .path{grid-column:2/-1;font:12px var(--font-mono);color:var(--c-text-3)}
+.set-pop hr{border:0;border-top:1px solid var(--c-border);margin:6px 4px}
+.set-pop .foot{padding:6px 10px;font-size:12px;color:var(--c-text-3)}
+
+/* jump box: packages, nodes, runs and pages; "/" focuses it */
+.jump{display:flex;align-items:center;gap:8px;width:min(400px,30vw);min-width:180px;height:32px;padding:0 8px 0 10px;border:1px solid var(--c-border);
+  border-radius:var(--r-md);background:var(--c-bg);color:var(--c-text-3);font-size:13px}
+.jump svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.jump input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--c-text);font:inherit}
+.jump input::placeholder{color:var(--c-text-3)}
+.jump:focus-within{border-color:var(--c-focus);box-shadow:0 0 0 2px color-mix(in srgb,var(--c-focus) 25%,transparent)}
+
+/* run chip: the one place that says a run is active. One format on every page:
+   r-…a3f 2/8 builds · 1 failed · 11m02s. Hidden when no run is active. */
+.run-chip{display:inline-flex;align-items:center;gap:8px;flex:none;height:28px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--c-border);
+  background:var(--s-running-bg);color:var(--c-text);font-size:12.5px;white-space:nowrap}
+.run-chip:hover{text-decoration:none;border-color:var(--s-running)}
+.run-chip .spin{width:12px;height:12px;flex:none;border-radius:50%;border:2px solid color-mix(in srgb,var(--s-running) 30%,transparent);border-top-color:var(--s-running);
+  animation:spin 1s linear infinite}
+.run-chip .id{color:var(--c-text)}
+.run-chip .n{color:var(--c-text-2);font-variant-numeric:tabular-nums}
+.run-chip .bad{color:var(--s-failed);font-weight:600}
+.run-chip .sep{color:var(--c-text-3);margin:0 1px}
+
+/* live indicator: a dot while the stream is up, the word "offline" when it is down */
+.live{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:12px;color:var(--c-text-3)}
+.live .dot{width:7px;height:7px;color:var(--s-ok)}
+.live .t{display:none}
+body[data-sse="down"] .live .dot{color:var(--s-failed)}
+body[data-sse="down"] .live .t{display:inline;color:var(--s-failed)}
+.who{flex:none;font:12px var(--font-mono);color:var(--c-text-3);white-space:nowrap}
+
+/* ---------- sidebar ---------- */
+.sidebar{grid-column:1;grid-row:2;position:sticky;top:var(--topbar-h);height:calc(100vh - var(--topbar-h));overflow-y:auto;
+  display:flex;flex-direction:column;gap:2px;padding:10px 8px;background:var(--c-surface);border-right:1px solid var(--c-border)}
+.nav-label{padding:12px 10px 4px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--c-text-3)}
+.nav-label:first-child{padding-top:6px}
+.nav-label .set-name{font:500 12px var(--font-mono);text-transform:none;letter-spacing:0;color:var(--c-text-2)}
+.nav-item{position:relative;display:flex;align-items:center;gap:10px;min-height:32px;padding:5px 10px;border-radius:var(--r-md);color:var(--c-text-2);font-weight:500}
+.nav-item:hover{background:var(--c-surface-2);text-decoration:none}
+.nav-item[aria-current="page"]{background:var(--c-primary-soft);color:var(--c-primary-strong)}
+.nav-item svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* domains: the icon of an item and the label of a group have the colour of the glossary domain */
+.nav-label[data-domain]{display:flex;align-items:center;gap:6px;color:var(--gl-c)}
+.nav-label .nav-dom{width:12px;height:12px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item[data-domain] svg{stroke:var(--gl-c)}
+.nav-item svg.dom{stroke-width:1.15}
+.nav-item[data-domain][aria-current="page"]{background:color-mix(in srgb,var(--gl-c) 13%,transparent);color:var(--c-text)}
+.nav-item[data-domain][aria-current="page"]::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--gl-c)}
+.nav-item .count{margin-left:auto;font-size:11.5px;font-weight:400;color:var(--c-text-3);white-space:nowrap}
+.nav-item .count.attn{color:var(--c-text-2);font-weight:600}
+.nav-item .count.hot{color:var(--s-running);font-weight:600}
+.side-foot{margin-top:auto;padding:12px 10px 4px;font:12px var(--font-mono);color:var(--c-text-3)}
+.nav-scrim{display:none}
+
+/* ---------- offline banner: the first child of main; it sticks under the top bar ---------- */
+.offline{display:none;position:sticky;top:var(--topbar-h);z-index:25;align-items:center;margin:-20px -24px 16px;border-radius:0;border-width:0 0 1px}
+body[data-sse="down"] .offline{display:flex}
+body[data-sse="down"] [data-live]{opacity:.55;transition:opacity .3s}
+
+/* ---------- keyboard help ---------- */
+.keys{width:100%;border-collapse:collapse;font-size:13px}
+.keys td{padding:5px 0;border-bottom:1px solid var(--c-border);vertical-align:middle}
+.keys tr:last-child td{border-bottom:0}
+.keys td:first-child{width:96px;white-space:nowrap}
+
+/* ---------- pages without a set (All sets) and without the shell (session) ---------- */
+.app.nosb{grid-template-columns:minmax(0,1fr);background:none}
+.app.nosb .main{grid-column:1;width:100%;max-width:1160px;margin:0 auto}
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){
+  .who{display:none}
+}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:var(--topbar-h) 1fr;background:none}
+  .main{grid-column:1;padding:16px 16px 28px}
+  .offline{margin:-16px -16px 12px}
+  .topbar{gap:8px;padding:0 10px}
+  .nav-toggle{display:inline-grid}
+  .brand small,.brand-name,.jump,.live,.topbar [data-help],.topbar [data-theme-toggle]{display:none}
+  .set-switch{max-width:150px;overflow:hidden}
+  .set-pop{position:fixed;left:8px;right:8px;width:auto;top:calc(var(--topbar-h) + 4px)}
+  .run-chip{gap:6px;padding:0 10px 0 8px}
+  .run-chip .id,.run-chip .w,.run-chip .el{display:none}
+  /* the sidebar becomes a drawer from the left */
+  .sidebar{position:fixed;top:var(--topbar-h);left:0;bottom:0;z-index:45;width:min(290px,86vw);height:auto;padding:10px 10px 16px;
+    border-right:1px solid var(--c-border);box-shadow:var(--shadow-2);transform:translateX(-102%);visibility:hidden;transition:transform .2s,visibility .2s}
+  .sidebar:target,body[data-nav="open"] .sidebar{transform:none;visibility:visible}
+  body[data-nav="open"] .nav-scrim{display:block;position:fixed;inset:var(--topbar-h) 0 0 0;z-index:44;background:var(--c-scrim)}
+  .nav-item{min-height:40px}
+}

@@ -1,0 +1,81 @@
+{{/* Runs, one run with its failures first and its progress, one node with its live log. */}}
+{{define "page-runs"}}{{template "simple-head" dict "H" "Runs" "Sub" .Set.Name "CLI" .CLI}}
+{{template "runs-list" .Data}}{{end}}
+
+{{define "runs-list"}}<section class="card" id="runs-list" sse-swap="runs-list" hx-swap="outerHTML">
+  {{if .Runs}}<ul class="rows runs">{{range .Runs}}
+  <li id="{{elemID "run" .Run.ID}}"><span class="t"><a href="{{runURL $.Set .Run.ID}}" title="{{.Run.ID}}">{{runLabel .Run.ID}}</a> <span class="id">{{shortRun .Run.ID}}</span>
+    {{if pill .Run.State}}<span class="pill {{st .Run.State}}">{{.Run.State}}</span>{{else}}<span class="qs {{qs .Run.State}}">{{.Run.State}}</span>{{end}}</span>
+    <span class="s">{{if .Publish}}publish{{with .Run.Publish}} of {{len .}} {{if eq (len .) 1}}target{{else}}targets{{end}}{{end}}{{else}}{{.Run.Kind}} · {{plural (len .Builds) "build"}}{{with .Run.Counts.Failed}} · <span class="bad">{{.}} failed</span>{{end}}{{end}}{{with .Run.Origin.User}} · by {{.}}{{end}}{{with .Run.Origin.Via}} from the {{upper (print .)}}{{end}}{{with .Run.DurationMs}} · {{dur .}}{{end}}</span></li>
+  {{end}}</ul>{{else}}<div class="card-body empty"><p>No run yet.</p></div>{{end}}
+</section>{{end}}
+
+{{define "page-run"}}{{$set := .Set.Name}}{{with .Data}}<div class="crumbs"><a href="{{setURL $set "/runs"}}">Runs</a><span class="sep">/</span><span>{{with .Run}}{{runLabel .ID}}{{end}}</span></div>
+{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{with .Run}}<div class="page-head rd-head" id="run-header">
+  <div><div class="rd-title"><h1>{{runLabel .ID}}</h1><span class="id" title="{{.ID}}">{{shortRun .ID}}</span><button class="copy" type="button" data-copy="{{.ID}}" aria-label="Copy run id {{.ID}}">⧉</button></div>
+    <div class="sub" id="run-meta"><span>Started {{when .StartedAt}}{{with .Origin.User}} by {{.}}{{end}}{{with .Origin.Via}} from the {{upper (print .)}}{{end}}</span><span class="sep">·</span><code>repoctl {{.Kind}}</code>
+      <details class="meta-more"><summary>Details</summary><dl class="kv">
+        <dt>Run</dt><dd class="mono">{{.ID}}</dd><dt>Host</dt><dd>{{.Origin.Host}}{{with .Origin.PID}} (pid {{.}}){{end}}</dd>
+        {{with .Selection}}<dt>Selection</dt><dd>{{if .Packages}}{{join .Packages ", "}}{{else}}all packages{{end}}{{with .Targets}} on {{join . ", "}}{{end}}{{with .From}}, from {{.}}{{end}}</dd>{{end}}
+        {{with .SetCommit}}<dt>Set commit</dt><dd class="hashc" title="{{.}}">{{commit .}}</dd>{{end}}
+        <dt>Journal</dt><dd><code>{{tilde .Files.Journal}}</code></dd></dl></details></div></div>
+  <div class="actions">{{template "cli-toggle" $.CLI}}
+    {{if or (eq (print .State) "running") (eq (print .State) "planning")}}<button class="btn" type="button" hx-get="{{setURL $set "/-/dialog/cancel"}}?run={{q .ID}}" hx-target="#modal">Cancel run…</button>{{end}}</div>
+</div>
+{{template "run-body" $.Data}}{{end}}{{end}}{{end}}
+
+{{define "run-body"}}{{$set := .Set}}<div id="run-body" sse-swap="run:{{.Run.ID}}" hx-swap="outerHTML">{{with .Run}}
+{{if $.Publish}}{{template "publish-steps" $}}{{else}}
+<div class="run-prog" id="run-progress">
+  <div class="progress lg" role="progressbar" aria-valuemin="0" aria-valuemax="{{len $.Builds}}" aria-valuenow="{{$.Done}}" aria-label="{{$.Done}} of {{len $.Builds}} builds settled">{{range $.Segs}}<i class="{{.Class}} fx-{{.Pct}}" title="{{.Label}}: {{.N}}"></i>{{end}}</div>
+  <p class="prog-line"><span><b>{{$.Done}} of {{len $.Builds}}</b> builds settled</span>{{with .Counts.Failed}}<span class="sep">·</span><span class="bad">{{.}} failed</span>{{end}}{{with .Counts.Running}}<span class="sep">·</span><span>{{.}} running</span>{{end}}{{with $.Current}}<span class="sep">·</span><span>{{.}} current</span>{{end}}
+    <span class="right">{{if pill .State}}<span class="pill {{st .State}}">{{.State}}</span>{{else}}<span class="qs {{qs .State}}">{{.State}}</span>{{end}}{{with .DurationMs}} · {{dur .}}{{end}}</span></p>
+  {{with .CancelRequested}}<p class="banner warn">Cancel requested{{with .User}} by {{.}}{{end}} {{when .At}}. The run stops its builds.</p>{{end}}
+</div>
+{{range $.Failed}}<section class="card fail-card" id="{{elemID "fail" .Node}}">
+  <div class="fv-body">
+    <h2><a class="node" href="{{nodeURL $set $.Run.ID .Node}}">{{.Node}}</a> failed{{with .Error}}: {{.Message}}{{end}}</h2>
+    <p class="fv-meta">{{with .Error}}Step {{.Step}} failed{{with .ExitCode}} with exit {{.}}{{end}}. <span class="code-sub">{{.Class}}</span>{{end}}{{with .BlockedBy}} It blocks {{join . ", "}}.{{end}}</p>
+    {{with .Error}}{{with .Excerpt}}<pre class="log excerpt">{{range .Lines}}{{.}}
+{{end}}</pre>{{end}}{{end}}
+  </div>
+  <div class="fv-next"><div class="acts"><a class="btn btn-primary" href="{{nodeURL $set $.Run.ID .Node}}">Open log</a>
+    {{if $.Agent}}<button class="btn btn-agent" type="button" hx-post="{{setURL $set "/-/agent/explain-failure"}}" hx-vals='{{json (dict "run" $.Run.ID "node" .Node)}}' hx-target="#drawer" hx-swap="outerHTML" title="{{agentTitle "explain-failure"}}">Explain failure</button>{{end}}</div></div>
+</section>{{end}}
+<section class="card tree" id="run-tree" aria-labelledby="tree-t">
+  <div class="card-head"><h2 id="tree-t">Builds</h2><span class="right"><a href="{{setURL $set "/graph"}}">Graph view ›</a></span></div>
+  {{range $.Builds}}<div class="trow" id="{{elemID "node" .Node}}" data-node="{{.Node}}">
+    <div class="tname"><a class="name" href="{{nodeURL $set $.Run.ID .Node}}">{{.Node}}</a><span class="why">{{range $i, $r := .Reasons}}{{if $i}}, {{end}}{{reason $r}}{{end}}</span></div>
+    {{if pill .State}}<span class="pill {{st .State}}">{{.State}}</span>{{else}}<span class="qs {{qs .State}}">{{.State}}</span>{{end}}
+    <div class="det">{{range stepsOf .}}{{if ne .State "waiting"}}<span class="step {{st .State}}">{{.Step}}{{with .Ms}} {{dur .}}{{end}}</span> {{end}}{{end}}{{with .BlockedBy}}after {{join . ", "}}{{end}}</div>
+    <span class="dur">{{with .DurationMs}}{{dur .}}{{else}}{{if eq (print .State) "running"}}<span data-since="{{.StartedAt}}"></span>{{end}}{{end}}</span>
+    <span class="lnk"><a href="{{nodeURL $set $.Run.ID .Node}}">{{if eq (print .State) "running"}}Follow ›{{else}}Log{{end}}</a></span>
+    {{if eq (print .State) "running"}}{{with index $.LastLine .Node}}<div class="tail" title="last log line">{{.}}</div>{{end}}{{end}}
+  </div>{{else}}<div class="card-body empty"><p>{{if eq (print .State) "planning"}}The run plans its builds.{{else}}The run built nothing: every node was current.{{end}}</p></div>{{end}}
+</section>
+{{with $.Warnings}}<details class="fold card"><summary><b>{{plural (len .) "warning"}}</b></summary><ul class="rows">{{range .}}<li><span class="t">{{.Message}}</span><span class="s"><span class="code-sub">{{.Code}}</span></span></li>{{end}}</ul></details>{{end}}
+{{with .Publishable}}<div class="fv-next card"><div class="txt"><b>{{join . " and "}} can be published.</b></div><div class="acts"><a class="btn btn-primary" href="{{setURL $set "/publish"}}?run={{q $.Run.ID}}">Review publish ›</a></div></div>{{end}}
+{{end}}{{end}}</div>{{end}}
+
+{{define "publish-steps"}}<section class="card" id="publish-progress"><div class="card-head"><h2>Publish</h2><span class="right">{{if pill .Run.State}}<span class="pill {{st .Run.State}}">{{.Run.State}}</span>{{else}}<span class="qs {{qs .Run.State}}">{{.Run.State}}</span>{{end}}</span></div>
+  {{range $t, $p := .Run.Publish}}<div class="tgt-row"><h3 class="mono">{{$t}}</h3><ol class="stepper">{{range $p.Steps}}<li class="{{st .State}}">{{.Step}}{{with .Count}} · {{.}}{{end}} <span class="qs {{qs .State}}">{{.State}}</span></li>{{end}}</ol>
+    {{with $p.Snapshot}}<p>Snapshot <span class="mono">{{.Tag}}</span> <span class="hashc" title="{{.Digest}}">{{digest .Digest}}</span></p>{{end}}</div>
+  {{else}}<div class="card-body empty"><p>The publish prepares its steps.</p></div>{{end}}
+</section>{{end}}
+
+{{define "page-node"}}{{$set := .Set.Name}}{{with .Data}}<div class="crumbs"><a href="{{setURL $set "/runs"}}">Runs</a><span class="sep">/</span>{{with .Run}}<a href="{{runURL $set .ID}}">{{runLabel .ID}}</a><span class="sep">/</span>{{end}}<span>{{.ID}}</span></div>
+{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{if .Node}}{{template "node-head" .}}
+<section class="card log-card"><div class="card-head"><h2>Log</h2><span class="right">{{with .Log}}{{if .Truncated}}the last 2,000 lines · {{end}}<code>{{tilde .Path}}</code>{{end}}</span></div>
+  {{with .Log}}{{if .Missing}}<div class="card-body empty"><p>No log yet. It starts with the first step of the node.</p></div>{{end}}{{end}}
+  <div class="logview"{{if .Live}} data-follow{{end}} sse-swap="log:{{.ID}}" hx-swap="beforeend">{{with .Log}}{{template "log-lines" .Lines}}{{end}}</div>
+</section>{{end}}{{end}}{{end}}
+
+{{define "node-head"}}<div class="page-head node-head" id="node-head" sse-swap="node:{{.ID}}" hx-swap="outerHTML">{{with .Node}}
+  <div><h1 class="mono">{{.Node}}</h1>
+    <div class="sub">{{if pill .State}}<span class="pill {{st .State}}">{{.State}}</span>{{else}}<span class="qs {{qs .State}}">{{.State}}</span>{{end}}{{with .Commit}}<span class="sep">·</span>commit <span class="hashc" title="{{.}}">{{commit .}}</span>{{end}}{{with .DurationMs}}<span class="sep">·</span>{{dur .}}{{end}}{{with .NVRs}}<span class="sep">·</span>{{nvr (index . 0)}}{{end}}</div>
+    <ol class="steps-bar">{{range $.Steps}}<li class="{{st .State}}">{{.Step}}{{with .Ms}} {{dur .}}{{end}}</li>{{end}}</ol>
+    {{with .Error}}<p class="ui-err"><b>{{.Message}}</b> <span class="code-sub">{{.Class}}</span></p>{{end}}</div>
+  <div class="actions">{{if and $.Agent (eq (print .State) "failed")}}<button class="btn btn-agent" type="button" hx-post="{{setURL $.Set "/-/agent/explain-failure"}}" hx-vals='{{json (dict "run" $.Run.ID "node" .Node)}}' hx-target="#drawer" hx-swap="outerHTML" title="{{agentTitle "explain-failure"}}">Explain failure</button>{{end}}</div>
+{{end}}</div>{{end}}

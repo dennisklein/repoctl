@@ -1,0 +1,107 @@
+{{/* The pages of a set besides the overview, the runs, the graph and the repository. */}}
+{{define "simple-head"}}<div class="page-head"><div><h1>{{.H}}</h1>{{with .Sub}}<div class="sub">{{.}}</div>{{end}}</div>
+  <div class="actions">{{template "cli-toggle" .CLI}}</div></div>{{end}}
+
+{{define "page-packages"}}{{template "simple-head" dict "H" "Packages" "Sub" .Set.Name "CLI" .CLI}}{{$set := .Set.Name}}
+{{with .Data}}<section class="card">
+  {{if .Packages}}<div class="table-wrap"><table class="table pkgs">
+    <thead><tr><th>Package</th><th>Role</th><th>Source</th><th>Lock</th>{{range $.Data.Targets}}<th>{{.}}</th>{{end}}</tr></thead><tbody>
+    {{range .Packages}}{{$p := .}}<tr><td><a class="mono pkg" href="{{setURL $set (print "/packages/" (pe .Package))}}">{{.Package}}</a></td><td>{{.Role}}</td>
+      <td>{{.Source.Kind}}{{with .Source.Branch}} <code>{{.}}</code>{{end}}</td>
+      <td>{{with .Lock}}<span class="hashc" title="{{.Commit}}">{{commit .Commit}}</span>{{end}}{{with (index $.Data.Status .Package).Lock}}{{if ne (print .) "in-sync"}} <span class="qs warn">{{.}}</span>{{end}}{{end}}</td>
+      {{range $.Data.Targets}}{{$t := .}}<td>{{range $p.Targets}}{{if eq .ID $t}}{{with .NVR}}{{nvr .}}{{else}}<span class="muted">·</span>{{end}}{{end}}{{end}}</td>{{end}}</tr>
+    {{end}}</tbody></table></div>
+  {{else}}{{with .NA}}{{template "na" .}}{{end}}
+    {{if .Conf}}<div class="table-wrap"><table class="table pkgs"><thead><tr><th>Package</th><th>Role</th><th>Source</th><th>Targets</th></tr></thead><tbody>
+    {{range .Conf}}<tr><td><a class="mono pkg" href="{{setURL $set (print "/packages/" (pe .ID))}}">{{.ID}}</a></td><td>{{or .Role "package"}}</td>
+      <td>{{if .Path}}in tree <code>{{.Path}}</code>{{else if .Git}}<code>{{.Git.URL}}</code>{{else}}branch <code>{{or .Branch (print "pkg/" .ID)}}</code>{{end}}</td>
+      <td>{{if .Targets}}{{join .Targets ", "}}{{else}}all{{end}}</td></tr>{{end}}
+    </tbody></table></div><p class="ui-note">From repoctl.yaml.</p>{{end}}
+  {{end}}
+</section>{{end}}{{end}}
+
+{{define "page-package"}}{{$set := .Set.Name}}{{with .Data}}<div class="crumbs"><a href="{{setURL $set "/packages"}}">Packages</a><span class="sep">/</span><span>{{.ID}}</span></div>
+<div class="page-head pkg-head"><div><h1 class="mono">{{.ID}}</h1>
+  <div class="sub">{{with .Pkg}}{{.Role}} · {{.Source.Kind}}{{with .Source.Branch}} <code>{{.}}</code>{{end}}{{else}}{{with .Conf}}{{or .Role "package"}}{{with .Branch}} · branch <code>{{.}}</code>{{end}}{{end}}{{end}}</div></div>
+  <div class="actions">{{template "cli-toggle" $.CLI}}
+    <button class="btn" type="button" hx-get="{{setURL $set "/-/dialog/build"}}?packages={{q .ID}}" hx-target="#modal">Build…</button>
+    <button class="btn" type="button" hx-get="{{setURL $set "/-/dialog/rebuild"}}?packages={{q .ID}}" hx-target="#modal">Rebuild…</button></div></div>
+{{if and (not .Pkg) (not .Conf)}}<section class="card"><div class="card-body"><p>The set has no package {{.ID}}.</p></div></section>{{end}}
+{{with .Pkg}}<section class="card"><div class="card-head"><h2>Targets</h2></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Target</th><th>Version</th><th>Plan</th><th>Depends on</th><th>Used by</th><th>Published</th></tr></thead><tbody>
+  {{range .Targets}}<tr><td class="mono">{{.ID}}</td><td>{{with .NVR}}{{nvr .}}{{end}}</td><td>{{with .Action}}<span class="qs {{qs .}}">{{.}}</span>{{end}}{{range .Reasons}} <span class="muted">{{reason .Code}}</span>{{end}}</td>
+    <td>{{join .DependsOn ", "}}</td><td>{{join .UsedBy ", "}}</td><td>{{with .Published}}{{.Publish}}{{end}}</td></tr>{{end}}
+  </tbody></table></div></section>
+  <section class="card"><div class="card-head"><h2>Source</h2></div><div class="card-body"><dl class="kv">
+    <dt>Kind</dt><dd>{{.Source.Kind}}</dd>{{with .Source.URL}}<dt>URL</dt><dd><code>{{.}}</code></dd>{{end}}{{with .Source.Path}}<dt>Path</dt><dd><code>{{.}}</code></dd>{{end}}
+    {{with .Lock}}<dt>Lock</dt><dd><span class="hashc" title="{{.Commit}}">{{commit .Commit}}</span></dd>{{end}}
+    {{with .Worktree}}<dt>Worktree</dt><dd><code>{{tilde .Path}}</code> at <span class="hashc">{{commit .Head}}</span>{{with .State}} <span class="qs {{qs .}}">{{.}}</span>{{end}}</dd>{{end}}
+    {{with .Notes}}<dt>Notes</dt><dd>{{.}}</dd>{{end}}</dl></div></section>
+{{else}}{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+  {{with .Conf}}<section class="card"><div class="card-head"><h2>From repoctl.yaml</h2></div><div class="card-body"><dl class="kv">
+    <dt>Targets</dt><dd>{{join $.Data.Targets ", "}}</dd>{{with .Branch}}<dt>Branch</dt><dd><code>{{.}}</code></dd>{{end}}{{with .Path}}<dt>Path</dt><dd><code>{{.}}</code></dd>{{end}}
+    {{with .Git}}<dt>Git</dt><dd><code>{{.URL}}</code></dd>{{end}}{{with .Notes}}<dt>Notes</dt><dd>{{.}}</dd>{{end}}</dl></div></section>{{end}}
+{{end}}
+<section class="card"><div class="card-head"><h2>Builds</h2></div>
+  {{if .Runs}}<ul class="rows">{{range .Runs}}<li><span class="t"><a href="{{nodeURL $set .Run.Run.ID .Node.Node}}">{{.Node.Node}}</a> in <a href="{{runURL $set .Run.Run.ID}}" title="{{.Run.Run.ID}}">{{runLabel .Run.Run.ID}}</a></span>
+    <span class="s">{{if pill .Node.State}}<span class="pill {{st .Node.State}}">{{.Node.State}}</span>{{else}}<span class="qs {{qs .Node.State}}">{{.Node.State}}</span>{{end}}{{with .Node.NVRs}} {{nvr (index . 0)}}{{end}}{{with .Node.DurationMs}} · {{dur .}}{{end}}</span></li>{{end}}</ul>
+  {{else}}<div class="card-body empty"><p>No run built {{.ID}} yet.</p></div>{{end}}</section>
+{{end}}{{end}}
+
+{{define "page-plan"}}{{template "set-head" .Data.Head}}
+{{template "plan-body" .Data}}{{end}}
+
+{{define "plan-body"}}<div id="plan-body" sse-swap="plan" hx-swap="outerHTML">{{$set := .Head.Set.Name}}
+{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{with .Plan}}<section class="card"><div class="card-head"><h2>Plan</h2><span class="right">{{.Summary.Build}} build · {{.Summary.Staged}} staged · {{.Summary.Current}} current{{with .Summary.Skip}} · {{.}} skip{{end}}</span></div>
+  {{if $.Build}}<ul class="rows">{{range $.Build}}<li id="{{elemID "plan" .Node}}"><span class="t"><a class="mono" href="{{setURL $set "/graph"}}?node={{q .Node}}">{{.Node}}</a>{{with .EVR}} <span class="mono muted">{{.}}</span>{{end}}</span>
+    <span class="s">{{range $i, $r := .Reasons}}{{if $i}}; {{end}}{{if $r.Message}}{{$r.Message}}{{else}}{{reason $r.Code}}{{end}}{{end}}{{with .Deps}} · after {{join . ", "}}{{end}}</span></li>{{end}}</ul>
+  {{else}}<div class="card-body empty"><p>Nothing to build: every node is current or staged.</p></div>{{end}}
+  {{with $.Staged}}<details class="fold"><summary><b>{{plural (len .) "staged node"}}</b><span class="sum">built in a run, not published yet</span></summary><ul class="rows">{{range .}}<li><span class="t mono">{{.Node}}</span><span class="s">{{with .FromRun}}from <a href="{{runURL $set .}}">{{runLabel .}}</a>{{end}}</span></li>{{end}}</ul></details>{{end}}
+  {{with $.Others}}<details class="fold"><summary><b>{{plural (len .) "current node"}}</b><span class="sum">in latest</span></summary><ul class="rows">{{range .}}<li><span class="t mono">{{.Node}}</span><span class="s">{{.Action}}{{with .SkipBecause}}: {{.}}{{end}}</span></li>{{end}}</ul></details>{{end}}
+</section>{{end}}
+</div>{{end}}
+
+{{define "page-advisories"}}{{template "simple-head" dict "H" "Advisories" "Sub" .Set.Name "CLI" .CLI}}
+{{template "advisories-body" .Data}}{{end}}
+
+{{define "advisories-body"}}<div id="advisories-body" sse-swap="advisories" hx-swap="outerHTML">
+{{with .Card.NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{with .List}}<section class="card"><div class="card-head"><h2>{{if $.All}}All{{else}}Open{{end}}</h2><span class="right">{{with .Check.At}}checked {{when .}}{{end}}</span></div>
+  {{if .Advisories}}<ul class="rows">{{range .Advisories}}{{template "adv-row" dict "A" . "Set" $.Set}}{{end}}</ul>{{else}}<div class="card-body empty"><p>No advisory.</p></div>{{end}}
+</section>{{end}}
+</div>{{end}}
+
+{{define "page-upstream"}}{{template "simple-head" dict "H" "Upstream" "Sub" .Set.Name "CLI" .CLI}}{{$set := .Set.Name}}
+{{with .Data}}<section class="card">{{with .NA}}{{template "na" .}}{{end}}
+  {{if .Items}}<div class="table-wrap"><table class="table"><thead><tr><th>Package</th><th>Version</th><th>Upstream</th><th>State</th></tr></thead><tbody>
+  {{range .Items}}<tr><td><a class="mono" href="{{setURL $set (print "/packages/" (pe .Package))}}">{{.Package}}</a></td><td class="mono">{{.Current.Version}}</td><td class="mono">{{.Latest}}</td>
+    <td>{{if eq (print .Status) "update-available"}}<span class="upd">update</span>{{else}}<span class="qs {{qs .Status}}">{{.Status}}</span>{{end}}{{with .Github}}{{with .ReleaseNotesURL}} <a href="{{.}}" rel="noreferrer">notes</a>{{end}}{{end}}</td></tr>{{end}}
+  </tbody></table></div>{{end}}</section>{{end}}{{end}}
+
+{{define "page-config"}}{{template "simple-head" dict "H" "Config and lock" "Sub" .Set.Name "CLI" .CLI}}
+{{with .Data}}<section class="card"><div class="card-head"><h2>Settings</h2></div>{{with .NA}}{{template "na" .}}{{end}}
+  {{if .Settings}}<div class="table-wrap"><table class="table ui-kv-table"><thead><tr><th>Key</th><th>Value</th><th>From</th></tr></thead><tbody>
+  {{range .Settings}}<tr><td class="mono">{{.Key}}</td><td class="mono">{{.Value}}</td><td>{{.Source}}{{with .Env}} <code>{{.}}</code>{{end}}{{with .File}} <code>{{tilde .}}</code>{{end}}</td></tr>{{end}}
+  </tbody></table></div>{{end}}</section>
+{{if .Paths}}<section class="card"><div class="card-head"><h2>Paths</h2></div><div class="table-wrap"><table class="table ui-kv-table"><tbody>
+  {{range .Paths}}<tr><td>{{.Name}}</td><td class="mono">{{tilde .Path}}</td><td>{{if .Exists}}<span class="qs ok">exists</span>{{else}}<span class="qs cur">missing</span>{{end}}</td></tr>{{end}}</tbody></table></div></section>{{end}}
+{{with .Set.Conf}}<section class="card"><div class="card-head"><h2>repoctl.yaml</h2></div><div class="card-body"><dl class="kv">
+  <dt>Name</dt><dd class="mono">{{.Name}}</dd><dt>Repository</dt><dd class="mono">{{.Repo.Name}}{{with .Repo.URL}} · {{.}}{{end}}</dd>
+  {{with .Store.OCI}}<dt>Store</dt><dd class="mono">{{.}}</dd>{{end}}
+  <dt>Targets</dt><dd>{{range $i, $t := .Targets}}{{if $i}}, {{end}}<b class="mono" title="{{$t.Mock}}">{{$t.ID}}</b>{{if $t.Retired}} (retired){{end}}{{end}}</dd>
+  <dt>Packages</dt><dd>{{len .Packages}}</dd></dl></div></section>{{end}}
+{{end}}{{end}}
+
+{{define "page-signing"}}{{template "simple-head" dict "H" "Signing" "Sub" .Set.Name "CLI" .CLI}}{{$set := .Set.Name}}
+{{with .Data}}<section class="card"><div class="card-head"><h2>Trusted keys</h2>{{with .List}}{{with .Current}}<span class="right">this host signs with <span class="mono">{{.}}</span></span>{{end}}{{end}}</div>
+  {{with .NA}}{{template "na" .}}{{end}}
+  {{if .Keys}}<ul class="rows">{{range .Keys}}<li><span class="t"><b class="mono">{{.ID}}</b> <span class="mono muted" title="{{.Fingerprint}}">{{fpr .Fingerprint}}</span>{{if pill .State}} <span class="pill st-{{.State}}">{{.State}}</span>{{else if .State}} <span class="qs ok">{{.State}}</span>{{end}}</span>
+    <span class="s">{{if .Deployed}}on the clients{{else}}not recorded as deployed{{end}}</span>
+    <span class="acts"><a class="btn btn-sm" href="{{setURL $set "/signing"}}?key={{q .ID}}">Onboarding</a>
+      {{if not .Deployed}}<button class="btn btn-sm" type="button" hx-get="{{setURL $set "/-/dialog/sign-deployed"}}?key={{q .ID}}" hx-target="#modal"{{with $.Data.Busy}} disabled title="{{.}}"{{end}}>Record deployed…</button>{{end}}</span></li>{{end}}</ul>
+  {{else}}<div class="card-body empty"><p>No trusted key yet. Run <code>repoctl sign add ID --fingerprint FPR</code>.</p></div>{{end}}
+</section>
+{{with .Onboard}}<section class="card"><div class="card-head"><h2>Onboarding of {{.Key}}</h2></div><ol class="todo-list">{{range .Steps}}<li class="{{if .Ok}}t-info{{else}}t-warn{{end}}"><span class="no">{{.N}}</span><div class="what"><div class="t">{{.Name}} {{if .Ok}}<span class="qs ok">done</span>{{else}}<span class="pill st-blocked">not ready</span>{{end}}</div>{{with .Detail}}<p class="s">{{.}}</p>{{end}}</div></li>{{end}}</ol>
+  {{with .Next}}<p class="ui-note">Next: {{.}}</p>{{end}}</section>{{end}}
+{{end}}{{end}}

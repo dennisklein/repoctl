@@ -1,0 +1,21 @@
+EMERGENCY
+
+A key is compromised (another human can sign with it):
+  1. Remove the access: GitHub team, registry tokens of its hosts.
+  2. repoctl sign revoke ID          type the key id; push the commit
+  3. repoctl sign offboard ID        the commands for config management:
+     install the new key file (pinned sum), erase the key, rm pubring;
+     on the HTTP server first, then on every client. Do not wait.
+     Clients refuse the files of the key until step 5.
+  4. Check each listed publish. An unknown one: repoctl repo restore REF
+  5. repoctl repo resign --signer ID --target T   (another deployed key)
+  6. Publish the release package with the next publish.
+
+A key is lost (card broken, all PINs blocked, file key deleted):
+  repoctl sign retire ID, then the normal rotation (help signing).
+  The last deployed signer is lost:
+    repoctl sign add NEW --fingerprint FPR; push
+    repoctl sign keyfile --checksum; config management installs it
+    repoctl sign deployed NEW --keyfile SHA256 --target T; push
+
+Keep two deployed keys for each target.

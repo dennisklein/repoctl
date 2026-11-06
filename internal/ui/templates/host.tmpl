@@ -1,0 +1,47 @@
+{{/* The host pages: all sets, doctor. */}}
+{{define "page-sets"}}<div class="page-head sets-head">
+  <div><h1>Sets</h1><div class="sub">{{plural (len .Data.Sets) "set"}} on this host. One repoctl ui server serves them all.</div></div>
+  <div class="actions">{{template "cli-toggle" .CLI}}</div>
+</div>
+{{template "sets-list" .Data}}{{end}}
+
+{{define "sets-list"}}<div class="sets" id="sets-list" sse-swap="sets-list" hx-swap="outerHTML">
+{{range .Sets}}{{$n := .Name}}<section class="card setc" id="{{elemID "set" .Name}}" aria-labelledby="{{elemID "set-t" .Name}}">
+  <div class="card-head"><h2 id="{{elemID "set-t" .Name}}"><a class="name" href="/s/{{pe .Name}}/">{{.Name}}</a></h2>
+    {{if pill .State}}<span class="pill {{st .State}}">{{.Word}}</span>{{else}}<span class="qs {{qs .State}}">{{.Word}}</span>{{end}}
+    <span class="right"><details class="more"><summary class="btn btn-sm btn-ghost" aria-label="More actions for {{.Name}}">⋯</summary><div class="more-pop" role="menu">
+      <a href="/s/{{pe .Name}}/" role="menuitem">Open overview</a>
+      <button type="button" role="menuitem" data-copy="{{.Dir}}">Copy path <span class="code-sub">{{.Dir}}</span></button>
+      <hr>
+      <button type="button" role="menuitem" hx-post="/-/sets/{{pe .Name}}/remove" hx-confirm="Remove {{.Name}} from this list? The files stay.">Remove from list…</button>
+    </div></details></span></div>
+  <div class="card-body">
+    <p class="path mono">{{tilde .Dir}}</p>
+    <dl class="kv">
+      {{if .Gone}}<dt>Directory</dt><dd>missing. Remove the set from the list, or run <code>repoctl ui</code> in its new directory.</dd>{{end}}
+      {{with .Active}}<dt>Running</dt><dd><a href="{{runURL $n .Run.ID}}" title="{{.Run.ID}}">{{runLabel .Run.ID}}</a> · {{.Done}} of {{len .Builds}} builds done</dd>{{end}}
+      {{with .Last}}<dt>Newest run</dt><dd><a href="{{runURL $n .Run.ID}}" title="{{.Run.ID}}">{{runLabel .Run.ID}}</a> · {{.Run.State}}{{with .Run.DurationMs}} · {{dur .}}{{end}}</dd>{{end}}
+      {{range .Latest}}{{$t := .Target}}{{with .Latest}}<dt>Published {{$t}}</dt><dd>{{.Publish}} · {{when .At}}</dd>{{end}}{{end}}
+    </dl>
+  </div>
+</section>
+{{else}}<section class="card"><div class="card-body empty"><p><b>No set yet.</b> Run <code>repoctl ui</code> in the directory of a set to add it here.</p></div></section>
+{{end}}</div>{{end}}
+
+{{define "page-doctor"}}<div class="page-head"><div><h1>Doctor</h1><div class="sub">The checks of this host and of the UI.</div></div>
+  <div class="actions">{{template "cli-toggle" .CLI}}</div></div>
+{{with .Data}}
+<section class="card" aria-labelledby="ui-checks-t">
+  <div class="card-head"><h2 id="ui-checks-t">This UI</h2></div>
+  <ul class="rows">{{range .UI}}{{template "check-row" .}}{{end}}</ul>
+</section>
+<section class="card" aria-labelledby="dr-t">
+  <div class="card-head"><h2 id="dr-t">repoctl doctor</h2>{{with .Report}}<span class="right">{{.Counts.Ok}} ok · {{.Counts.Warning}} warnings · {{.Counts.Failed}} failed</span>{{end}}</div>
+  {{with .NA}}{{template "na" .}}{{end}}
+  {{range .Groups}}{{if .Bad}}<h3 class="ui-note">{{.Name}}</h3><ul class="rows">{{range .Checks}}{{template "check-row" .}}{{end}}</ul>
+  {{else}}<details class="fold"><summary><b>{{.Name}}</b><span class="sum">all {{len .Checks}} checks pass</span></summary><ul class="rows">{{range .Checks}}{{template "check-row" .}}{{end}}</ul></details>{{end}}{{end}}
+</section>
+{{end}}{{end}}
+
+{{define "check-row"}}<li><span class="t">{{if eq .Status "ok"}}<span class="qs ok">ok</span>{{else if eq .Status "failed"}}<span class="pill st-failed">failed</span>{{else}}<span class="qs warn">warning</span>{{end}} <code>{{.Name}}</code> {{.Detail}}</span>
+  {{with .Remediation}}<span class="s">Run <code>{{.}}</code></span>{{end}}</li>{{end}}

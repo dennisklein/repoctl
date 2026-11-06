@@ -1,0 +1,46 @@
+PACKAGES
+
+Change a spec or bump a version:
+  1. repoctl status         PKG is in-sync; else repoctl checkout PKG
+  2. edit the spec; git -C packages/PKG commit -am "Bump to X"   package branch
+  3. git -C packages/PKG push origin BRANCH
+  4. repoctl pin PKG
+  5. git commit repoctl.lock; git push                set branch
+  6. repoctl plan           expect: PKG "commit-changed"
+  7. repoctl build          read the soname result of PKG
+  8. repoctl publish; repoctl status    expect: served same
+Add a package in this repository:
+  1. add id, branch, upstream to repoctl.yaml
+  2. repoctl checkout --create PKG --from fedora      (or --orphan)
+  3. write the spec; git -C packages/PKG commit          package branch
+  4. git -C packages/PKG push origin BRANCH
+  5. repoctl pin PKG
+  6. git commit repoctl.yaml repoctl.lock; git push    set branch
+  7. repoctl plan           expect: PKG "new-package"
+     provider.changed names dependents to rebuild
+  8. repoctl build; repoctl publish
+Add an external package: create the project on the git server first.
+  Then the same steps, with git: {url: ...} in the entry.
+Add a second stream: repoctl checkout --create PKG --from FIRST-BRANCH
+Some targets only: targets: [el9] in the entry.
+Remove a package:
+  1. delete the entry; repoctl pin --orphans; commit and push
+  2. its RPMs stay published (retired.published, info)
+  3. optional: repoctl repo prune --target T --package NAME --all
+     (dry run), then again with --apply
+  4. optional: remove it on the clients (config management or Obsoletes)
+Rename: a package id or branch rename does not build. An RPM rename is a
+  spec change; add Obsoletes, then the old name is retired.
+Move to an external server: push the history there, add git: {url: ...},
+  then checkout and pin. plan shows current. A move from the set tree
+  to a branch makes new commits: rebuild it, else publish refuses it.
+Add a target: plan shows "new-target". Retire a target: state: retired
+  in its entry; it stays published, and the repo commands still act on it.
+Rebuild the set: repoctl mock update; repoctl rebuild '*' --reason TEXT;
+  push the package branches; commit and push repoctl.lock;
+  repoctl build; repoctl publish. In-tree packages: change a file.
+Two admins pinned in the same week and git reports a conflict in
+  repoctl.lock: keep both lines when they name two packages. For one package,
+  keep the line with the newer commit NEW, where
+  git merge-base --is-ancestor OLD NEW is true. Then run repoctl checkout.
+  A pin without arguments never writes an older commit back.

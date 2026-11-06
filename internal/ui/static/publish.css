@@ -1,0 +1,159 @@
+/* publish.css: the publish flow after the review (accept, confirm, progress, failed, done, blocked) and the Signing page.
+   Link it after repoctl.css, shell.css and pkg.css. It adds page classes only and never restyles the shell or the
+   base components. Colours come from the tokens in repoctl.css. */
+
+/* ---------- mockup note: the page shows a variant state, not the story ---------- */
+.variant-note{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 0 16px;padding:8px 12px;border:1px dashed var(--c-border-strong);
+  border-radius:var(--r-md);font-size:12.5px;color:var(--c-text-2)}
+.variant-note>b{flex:none;padding:1px 7px;border-radius:var(--r-sm);background:var(--c-text-2);color:var(--c-surface);
+  font:600 10.5px/1.6 var(--font-sans);text-transform:uppercase;letter-spacing:.07em}
+.variant-note>span{flex:1 1 300px;min-width:0}
+
+/* ---------- the one blocker of a publish and its acceptance ---------- */
+/* the red edge stays after the acceptance: an accepted risk stays visible until the publish is done */
+.blocker{padding:14px 16px 16px;box-shadow:inset 4px 0 0 var(--s-failed)}
+.blocker-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:4px}
+.blocker-top h3{margin:0;font-size:14.5px;line-height:1.4}
+.blocker>p{margin:0 0 4px;font-size:13.5px;color:var(--c-text-2);max-width:72ch}
+.accept{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--c-border-strong)}
+.accept .ck{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer}
+.accept .ck .check{width:18px;height:18px}
+.accept .grow{flex:1}
+.reason-f{display:grid;gap:6px;margin-top:10px}
+.reason-f label{font-size:12.5px;color:var(--c-text-2)}
+.reason-f .after{margin:0;font-size:12.5px;color:var(--c-text-3)}
+.blocker+.rows{border-top:1px solid var(--c-border)}
+
+/* a target outside this publish, as one quiet line without a fold */
+.tgt-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:10px 16px 10px 44px;border-top:1px solid var(--c-border);font-size:13.5px;color:var(--c-text-2)}
+.tgt-line b{font-weight:600;color:var(--c-text)}
+
+/* ---------- step 2: the confirm dialog ---------- */
+.cf-intro{color:var(--c-text-2)}
+.cf-facts{display:grid;gap:7px;margin:0;padding-left:20px}
+.cf-facts li{padding-left:2px}
+.cf-facts .muted{font-size:12.5px}
+.cf-field{display:grid;gap:6px;padding-top:2px}
+.cf-field label{font-size:13px;color:var(--c-text-2)}
+.cf-field .input{width:100%;height:38px;font-size:14px}
+.cf-field .match{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--s-ok)}
+.cf-field .match::before{content:"\2713";font-weight:700}
+
+/* ---------- step 3: the eight steps (progress, failed, done) ---------- */
+.steps8{list-style:none;margin:0;padding:0}
+.steps8>li{display:grid;grid-template-columns:18px 96px minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding:9px 16px;border-top:1px solid var(--c-border);font-size:13px}
+.steps8>li:first-child{border-top:0}
+.steps8 .mk{justify-self:center;font-weight:700;color:var(--c-text-3)}
+.steps8 .mk.ok{color:var(--s-ok)}
+.steps8 .mk.run{color:var(--s-running);animation:pulse 1.2s ease-in-out infinite}
+.steps8 .mk.stop{color:var(--c-text)}
+.steps8 .nm{font-weight:600;white-space:nowrap}
+.steps8 .nm .no{display:inline-block;width:1.4em;color:var(--c-text-3);font-weight:500;font-variant-numeric:tabular-nums}
+.steps8 .tx{min-width:0;color:var(--c-text-2)}
+.steps8 .tx .sub{display:block;margin-top:2px;font-size:12.5px;color:var(--c-text-3)}
+.steps8 .tm{color:var(--c-text-3);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.steps8 li.now{box-shadow:inset 3px 0 0 var(--s-running);background:color-mix(in srgb,var(--s-running-bg) 55%,transparent)}
+.steps8 li.now .tx{color:var(--c-text)}
+.steps8 li.todo .nm{font-weight:500;color:var(--c-text-2)}
+.steps8 li.stopped .tx{color:var(--c-text)}
+@container main (max-width:560px){
+  .steps8>li{grid-template-columns:18px minmax(0,1fr) auto}
+  .steps8 .mk,.steps8 .nm,.steps8 .tm{grid-row:1}
+  .steps8 .tm{grid-column:3}
+  .steps8 .tx{grid-column:2/-1;grid-row:2}
+}
+/* a fold that holds steps in their normal state: the list fills the fold body */
+.steps-fold .fold-body{padding:0 0 4px}
+.steps-fold .steps8>li:first-child{border-top:1px solid var(--c-border)}
+.steps-fold+.steps8>li:first-child{border-top:1px solid var(--c-border)}
+
+/* the journal path and its last lines */
+.jpath{display:flex;align-items:center;gap:4px;min-width:0;margin:0 0 8px;font:12.5px var(--font-mono);color:var(--c-text-2);overflow-wrap:anywhere}
+.jlines{font-size:12px}
+
+/* ---------- failed: what to do, right under the banner ---------- */
+.recover .card-body{display:grid;gap:10px}
+.recover .card-body>p{margin:0;max-width:76ch}
+.recover .cmds{display:grid;gap:6px}
+.recover .note{font-size:12.5px;color:var(--c-text-3)}
+.page-banner{margin-bottom:var(--gap-card)}
+.page-banner .lead{display:block;margin-bottom:2px}
+.page-banner .code-sub{display:block;margin-top:4px}
+
+/* ---------- done: the snapshot ref and its facts ---------- */
+.snap-ref{display:flex;align-items:center;gap:6px;min-width:0;margin-bottom:14px}
+.snap-ref code{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--c-border);border-radius:var(--r-md);background:var(--c-surface-2);
+  font-size:13px;overflow-wrap:anywhere}
+.res-kv{grid-template-columns:96px minmax(0,1fr);gap:7px 16px}
+.res-kv dd{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
+.res-kv a.pill:hover{text-decoration:none;filter:brightness(.97)}
+.next .rows .t{font-size:13.5px}
+
+/* ---------- blocked: the target card with its reasons ---------- */
+.why-list{list-style:none;display:grid;gap:8px;margin:0;padding:0}
+.why-list li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:13.5px;color:var(--c-text-2)}
+.fix-line{margin:12px 0 0;font-size:13px;color:var(--c-text-3)}
+.go-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px}
+.go-row .grow{flex:1 1 200px;font-size:13.5px;color:var(--c-text-2)}
+.go-row b{color:var(--c-text);font-weight:600}
+.term-out{margin:0}
+
+/* ---------- Signing: one row per key, each opens to its full fingerprint ---------- */
+.keylist .colh,.krow>summary{display:grid;grid-template-columns:14px minmax(170px,1.3fr) 104px 92px minmax(210px,1.7fr) 88px 72px;
+  gap:12px;align-items:center;padding:10px 16px}
+.keylist .colh{padding-top:9px;padding-bottom:8px;border-bottom:1px solid var(--c-border);font-size:12px;color:var(--c-text-3)}
+.keylist .num{text-align:right;font-variant-numeric:tabular-nums}
+.krow{border-top:1px solid var(--c-border)}
+.krow:first-of-type{border-top:0}
+.krow>summary{list-style:none;cursor:pointer;font-size:13px}
+.krow>summary::-webkit-details-marker{display:none}
+.krow>summary::before{content:"";justify-self:center;border:4px solid transparent;border-left:6px solid var(--c-text-3);transition:transform .15s}
+.krow[open]>summary::before{transform:rotate(90deg) translateX(2px)}
+.krow>summary:hover{background:var(--c-surface-2)}
+.krow .kid{font:600 13px var(--font-mono);color:var(--c-text)}
+.krow .you{margin-left:6px;font-size:12.5px;color:var(--c-text-3)}
+.krow .uid{display:block;font-size:12.5px;color:var(--c-text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.krow .kd{min-width:0;color:var(--c-text-2)}
+.krow .kd .muted{display:block;font-size:12px}
+.krow .ex{font-variant-numeric:tabular-nums;color:var(--c-text-2)}
+.krow-body{padding:2px 16px 14px 42px;font-size:13px;color:var(--c-text-2)}
+.krow-body .kv{grid-template-columns:120px minmax(0,1fr)}
+.krow-body .fpr{display:inline-flex;align-items:center;gap:4px}
+@container main (max-width:900px){
+  .keylist .colh{display:none}
+  .krow>summary{grid-template-columns:14px minmax(0,1fr) auto;gap:4px 12px;align-items:start}
+  .krow>summary>.c{grid-column:2/-1;display:grid;grid-template-columns:84px minmax(0,1fr);gap:8px}
+  .krow>summary>.c::before{content:attr(data-l);font-size:12px;color:var(--c-text-3)}
+  .krow>summary>.c.k{grid-column:2;grid-row:1;display:block;margin-bottom:4px}
+  .krow>summary>.c.st{grid-column:3;grid-row:1;display:block}
+  .krow>summary>.c.k::before,.krow>summary>.c.st::before{content:none}
+  .krow>summary>.c.num{text-align:left}
+  .krow-body{padding-left:42px}
+}
+
+/* onboarding: the open steps show, the done steps fold */
+.onb{list-style:none;margin:0;padding:0}
+.onb>li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:3px 12px;align-items:start;padding:12px 16px;border-top:1px solid var(--c-border)}
+.onb .no{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--c-border-strong);background:var(--c-surface);
+  font:600 11.5px var(--font-sans);color:var(--c-text-2)}
+.onb .no.ok{border-color:var(--s-ok);background:var(--s-ok-bg);color:var(--s-ok)}
+.onb .t{grid-column:2;font-size:13.5px;font-weight:600;line-height:22px}
+.onb .s{grid-column:2;font-size:13px;color:var(--c-text-2);max-width:70ch}
+.onb .s .muted{font-size:12.5px}
+.onb .acts{grid-column:3;grid-row:1/span 2;align-self:center;display:flex;gap:8px}
+.onb-done .fold-body{padding:0 0 2px}
+.onb-done .onb>li{padding-top:9px;padding-bottom:9px}
+.onb-done .onb .t{font-weight:500}
+@container main (max-width:700px){
+  .onb>li{grid-template-columns:24px minmax(0,1fr)}
+  .onb .acts{grid-column:2;grid-row:auto;margin-top:8px}
+}
+.rules{display:grid;gap:5px;margin:0;padding-left:18px}
+
+/* the head line of a publish run, under the stepper */
+.page-head .stepper+.sub{margin-top:10px}
+.hosts-b p{max-width:76ch}
+.hosts-b p:last-child{margin-bottom:0}
+
+/* on a narrow page the head actions wrap to the left edge, so their popover opens to the right */
+@container main (max-width:560px){.pops-left .cli-pop,.pops-left .more-pop{right:auto;left:0}}

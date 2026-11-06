@@ -1,0 +1,92 @@
+{{/* The overview of a set: Needs you first (R1), advisories, runs, last publish, the matrix. */}}
+{{define "page-overview"}}{{template "set-head" .Data.Head}}
+<div class="ov">
+<div class="ov-main">
+{{template "attention" .Data}}
+{{template "adv-card" .Data}}
+</div>
+<div class="ov-side">
+{{template "recent-runs" .Data}}
+{{template "last-publish" .Data}}
+</div>
+{{template "matrix-card" .Data}}
+</div>{{end}}
+
+{{define "set-head"}}<div class="page-head set-head" id="set-head" sse-swap="set-head" hx-swap="outerHTML">
+  <div><h1 class="mono">{{.Set.Name}}</h1>
+    <div class="sub"><span class="mono">{{tilde .Set.Dir}}</span>{{with .Branch}}<span class="sep">·</span><span>branch <code>{{.}}</code>{{if $.Dirty}} <span class="qs warn">changed</span>{{end}}</span>{{end}}
+      {{with .Set.Targets}}<span class="sep">·</span><span>targets {{range $i, $t := .}}{{if $i}}, {{end}}<b class="mono">{{$t}}</b>{{end}}</span>{{end}}</div>
+    {{with .Set.ConfErr}}<p class="ui-err">repoctl.yaml does not load: {{.}}</p>{{end}}</div>
+  <div class="actions">
+    {{template "cli-toggle" .CLI}}
+    <a class="btn" href="{{setURL .Set.Name "/plan"}}">Plan</a>
+    {{if .Busy}}<button class="btn" type="button" disabled title="{{.Busy}}">Build…</button>
+    {{else}}<button class="btn" type="button" hx-get="{{setURL .Set.Name "/-/dialog/build"}}" hx-target="#modal">Build…</button>{{end}}
+    <a class="btn" href="{{setURL .Set.Name "/publish"}}">Publish…</a>
+  </div>
+</div>{{end}}
+
+{{define "attention"}}<section class="card" id="attention" aria-labelledby="attn-t" sse-swap="attention" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="attn-t">Needs you</h2><span class="right">{{if .Todo}}{{plural (len .Todo) "item"}}, in work order{{end}}</span></div>
+  {{if .Todo}}<ol class="todo-list">
+  {{range $i, $t := .Todo}}<li class="{{$t.Class}}{{if not $i}} first{{end}}" id="todo-{{add $i 1}}"><span class="no" aria-hidden="true">{{add $i 1}}</span>
+    <div class="what">
+      <div class="t"><span class="kind">{{$t.Kind}}</span>{{with $t.Node}}<a class="node-chip {{st $t.State}}" href="{{or $t.Href "#"}}" title="{{.}}{{with $t.State}}: {{.}}{{end}}"><b>{{pkgOf .}}</b>@{{tgtOf .}}</a> {{end}}{{$t.Text}}{{with $t.Pill}} <span class="pill st-failed">{{.}}</span>{{end}}</div>
+      {{with $t.Detail}}<p class="s">{{.}}{{with $t.Code}} <span class="code-sub">{{.}}</span>{{end}}</p>{{end}}
+      {{with $t.ErrLine}}<pre class="errline">{{.}}</pre>{{end}}
+    </div>
+    <div class="acts">{{with $t.Href}}<a class="btn btn-sm btn-primary" href="{{.}}">{{$t.HrefTxt}}</a>{{end}}
+      {{with $t.Dialog}}<button class="btn btn-sm" type="button" hx-get="{{setURL $.Head.Set.Name (print "/-/dialog/" .)}}" hx-target="#modal">Rebuild…</button>{{end}}
+      {{if and $t.Agent (not $.AgentOff)}}<button class="btn btn-sm btn-agent" type="button" hx-post="{{setURL $.Head.Set.Name (print "/-/agent/" $t.Agent)}}" hx-vals='{{json $t.AgentQ}}' hx-target="#drawer" hx-swap="outerHTML" title="{{agentTitle $t.Agent}}">{{if eq $t.Agent "explain-failure"}}Explain failure{{else}}Is a rebuild necessary?{{end}}</button>{{end}}</div></li>
+  {{end}}</ol>
+  {{else}}<div class="card-body empty"><p>Nothing needs you now.{{with .StatusNA}} {{.What}} is not available in this build, so the lock and the publish age are not checked here.{{end}}</p></div>{{end}}
+</section>{{end}}
+
+{{define "adv-card"}}<section class="card adv-card" id="advisories" aria-labelledby="adv-t" sse-swap="advisories" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="adv-t">Advisories</h2>
+    <span class="right">{{with .Adv.Required}}<a href="#attention">{{len .}} required: in Needs you</a><span class="sep">·</span>{{end}}{{with .Adv.Dismissed}}<a href="{{setURL $.Head.Set.Name "/advisories?dismissed=1"}}">{{.}} dismissed</a><span class="sep">·</span>{{end}}{{with .Adv.CheckedAt}}<span class="hide-n">checked {{when .}}</span>{{end}}
+      <button class="btn btn-sm btn-ghost" type="button" hx-post="{{setURL .Head.Set.Name "/-/actions/check"}}" hx-swap="none">Check now</button></span></div>
+  {{with .Adv.NA}}{{template "na" .}}{{else}}
+  {{if .Adv.Warn}}<ul class="rows">{{range .Adv.Warn}}{{template "adv-row" dict "A" . "Set" $.Head.Set.Name}}{{end}}</ul>{{end}}
+  {{with .Adv.Info}}<details class="fold"><summary><b>{{plural (len .) "info advisory"}}</b><span class="sum">{{range $i, $a := .}}{{if $i}} · {{end}}{{$a.Subject}}{{end}}</span></summary>
+    <ul class="rows">{{range .}}{{template "adv-row" dict "A" . "Set" $.Head.Set.Name}}{{end}}</ul></details>{{end}}
+  {{if not (or .Adv.Warn .Adv.Info .Adv.Required)}}<div class="card-body empty"><p>No open advisory.</p></div>{{end}}
+  {{end}}
+</section>{{end}}
+
+{{define "adv-row"}}{{$a := .A}}<li id="{{elemID "adv" $a.ID}}"><span class="t">{{if $a.Title}}{{$a.Title}}{{else}}<span class="mono">{{$a.Subject}}</span>{{end}}{{if eq (print $a.Level) "required"}} <span class="pill st-failed">required</span>{{end}}{{if eq (print $a.State) "dismissed"}} <span class="qs cur">dismissed</span>{{end}}</span>
+  <span class="s">{{with $a.Suggestion}}{{.Text}} {{end}}<span class="code-sub">{{$a.Code}}</span></span>
+  <span class="acts">{{if eq (print $a.State) "dismissed"}}<button class="btn btn-sm" type="button" hx-post="{{setURL .Set "/-/actions/advisory-undismiss"}}" hx-vals='{{json (dict "advisory" $a.ID)}}' hx-swap="none">Undismiss</button>
+    {{else if ne (print $a.Level) "required"}}<button class="btn btn-sm" type="button" hx-get="{{setURL .Set "/-/dialog/dismiss"}}?advisory={{q $a.ID}}" hx-target="#modal">Dismiss…</button>{{end}}</span></li>{{end}}
+
+{{define "recent-runs"}}<section class="card" id="recent-runs" aria-labelledby="runs-t" sse-swap="recent-runs" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="runs-t">Runs</h2><span class="right"><a href="{{setURL .Head.Set.Name "/runs"}}">All runs</a></span></div>
+  {{if .Recent}}<ul class="rows mini">{{range .Recent}}
+    <li{{if .Active}} id="current-run"{{end}}><span class="t"><a href="{{runURL $.Head.Set.Name .Run.ID}}" title="{{.Run.ID}}">{{runLabel .Run.ID}}</a>{{if .Active}} <span class="muted">current run</span>{{end}}</span>
+      <span class="s">{{if .Publish}}publish{{else}}{{plural (len .Builds) "build"}}{{end}} · {{if pill .Run.State}}<span class="pill {{st .Run.State}}">{{.Run.State}}</span>{{else}}{{.Run.State}}{{end}}{{with .Run.DurationMs}} · {{dur .}}{{end}}{{with .Run.Origin.Via}} · {{upper (print .)}}{{end}}</span>
+      {{if .Active}}<span class="acts"><button class="btn btn-sm btn-ghost" type="button" hx-get="{{setURL $.Head.Set.Name "/-/dialog/cancel"}}?run={{q .Run.ID}}" hx-target="#modal">Cancel…</button></span>{{end}}</li>
+  {{end}}</ul>{{else}}<div class="card-body empty"><p>No run yet. <b>Build…</b> starts the first one.</p></div>{{end}}
+</section>{{end}}
+
+{{define "last-publish"}}<section class="card pub-card" id="last-publish" aria-labelledby="pub-t" sse-swap="last-publish" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="pub-t">Last publish</h2></div>
+  {{if .Snapshots}}<div class="card-body">{{range .Snapshots}}{{$t := .Target}}
+    {{with .Latest}}<p class="l1"><b>{{$t}}</b>: snapshot <span class="id" title="{{.Publish}}">{{shortRun .Publish}}</span>, {{when .At}}{{with .User}} by {{.}}{{end}}</p>{{else}}<p class="l1"><b>{{$t}}</b>: never published</p>{{end}}{{end}}
+  </div>
+  <details class="fold"><summary>Snapshot digests</summary><div class="fold-body"><dl class="kv refs">{{range .Snapshots}}{{with .Latest}}<dt>{{.Publish}}</dt><dd><span class="mono">{{digest .Digest}}</span><button class="copy" type="button" data-copy="{{.Digest}}" aria-label="Copy the digest">⧉</button></dd>{{end}}{{end}}</dl></div></details>
+  {{else if .StatusNA}}{{template "na" .StatusNA}}{{else}}<div class="card-body empty"><p>Nothing published yet.</p></div>{{end}}
+</section>{{end}}
+
+{{define "matrix-card"}}<section class="card mat-card" id="matrix" aria-labelledby="mat-t" sse-swap="matrix" hx-swap="outerHTML">
+  <div class="card-head"><h2 id="mat-t">Packages and targets</h2>
+    <span class="right">{{if .Current}}<span class="statline">{{plural .Current "package"}} current on all targets</span>{{end}}<a href="{{setURL .Head.Set.Name "/graph?view=matrix"}}">Matrix</a><a href="{{setURL .Head.Set.Name "/packages"}}">All packages</a></span></div>
+  {{if .Matrix}}<div class="table-wrap"><table class="table matrix">
+    <thead><tr><th>Package</th>{{range .Targets}}<th>{{.}}</th>{{end}}<th>Upstream</th></tr></thead><tbody>
+    {{range .Matrix}}<tr><td><a class="mono pkg" href="{{setURL $.Head.Set.Name (print "/packages/" (pe .Package))}}">{{.Package}}</a></td>
+      {{range .Cells}}<td id="{{elemID "n" .Node}}">{{template "mcell" .}}</td>{{end}}
+      <td>{{with .Update}}<span class="upd" title="upstream.release">{{.}}</span>{{end}}</td></tr>
+    {{end}}</tbody></table></div>
+  {{else}}<div class="card-body empty"><p>{{if .Current}}Every package is current on all its targets.{{else}}No package state yet: no run has built this set.{{end}}</p></div>{{end}}
+</section>{{end}}
+
+{{define "mcell"}}{{if .Absent}}<span class="muted" title="not built for {{.Target}}">–</span>{{else}}<a class="mcell" href="{{or .Href "#"}}">{{if pill .State}}<span class="l1"><span class="pill {{st .State}}">{{.State}}</span>{{with .Note}}<span class="note">{{.}}</span>{{end}}</span>{{else if .State}}<span class="qs {{qs .State}}">{{.State}}</span>{{else}}<span class="qs cur">unknown</span>{{end}}{{with .NVR}}{{nvr .}}{{end}}</a>{{end}}{{end}}

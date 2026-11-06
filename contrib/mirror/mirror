@@ -1,0 +1,778 @@
+#!/bin/bash
+# repoctl mirror job (docs/design/publish.html#mirror).
+#
+# The job serves the snapshot "latest" of each mirror line on the HTTP
+# server: it pulls the OCI artifact that repoctl pushed, makes a tree of hard
+# links, verifies the tree with the keyring of the line and swaps the symlink
+# of the served path in one rename. It writes repoctl-snapshot.json and the
+# heartbeat repoctl-mirror.json into the served tree.
+#
+# Usage:
+#   mirror CONFIG                  one run over all mirror lines of CONFIG
+#   mirror --notify-failed CONFIG  run NOTIFY failed with the last 50 journal
+#                                  lines (repoctl-mirror-failed.service)
+#
+# CONFIG holds one mirror line per set and target:
+#   SET TARGET OCI-PACKAGE SERVED-PATH KEYRING
+# and the settings KEEP_TREES (2), NOTIFY (none), STATE_DIR
+# (/var/lib/repoctl-mirror) and LOCK (/run/lock/repoctl-mirror.lock).
+#
+# The job uses curl, jq, gpgv, rpmkeys, rpm, sha256sum, flock, gzip (the
+# RepoManifest in the repodata is gzip) and coreutils.
+#
+# Test hook: MIRROR_TEST_PLAIN_HTTP=1 talks plain HTTP to the registry, for
+# the in-process registry of the end-to-end tests. Nothing else changes.
+#
+# Exit 0: each line serves latest. Exit 1: a line failed (after the job tried
+# all lines), or CONFIG is not valid.
+
+set -euo pipefail
+shopt -s nullglob
+umask 022
+
+readonly MIRROR_VERSION=0.1.0
+# The apiVersions of the RepoManifest that this release of the job reads.
+readonly READ_API_VERSIONS=(repoctl/v1alpha1)
+# The snapshot format (internal/snapshot).
+readonly MANIFEST_MEDIA_TYPE=application/vnd.oci.image.manifest.v1+json
+readonly ARTIFACT_TYPE=application/vnd.repoctl.repo.v1
+readonly FILE_MEDIA_TYPE=application/vnd.repoctl.file.v1
+readonly ANN_TITLE=org.opencontainers.image.title
+readonly ANN_SET=io.repoctl.set
+readonly ANN_TARGET=io.repoctl.target
+readonly ANN_PUBLISH=io.repoctl.publish
+# The files that the job writes into each tree.
+readonly SNAPSHOT_FILE=repoctl-snapshot.json
+readonly HEARTBEAT_FILE=repoctl-mirror.json
+readonly UA="repoctl-mirror/$MIRROR_VERSION"
+
+# log writes a line to the journal; err writes an error line. Under systemd
+# (JOURNAL_STREAM) the lines carry their syslog priority.
+log() { printf '%s%s\n' "${JOURNAL_STREAM:+<6>}" "$*" >&2; }
+err() { printf '%s%s\n' "${JOURNAL_STREAM:+<3>}" "$*" >&2; }
+die() {
+	err "$*"
+	exit 1
+}
+
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# sha256_of FILE prints the 64 hex digits of the sha256 of FILE.
+sha256_of() {
+	local sum _
+	read -r sum _ < <(sha256sum -- "$1")
+	printf '%s' "$sum"
+}
+
+# safe_path PATH: a relative path whose segments have only A-Z a-z 0-9 . _ +
+# -, and no segment . or .. (publish.html#mirror-run).
+safe_path() {
+	local p=$1 seg
+	local -a segs
+	[[ $p =~ ^[A-Za-z0-9._+-]+(/[A-Za-z0-9._+-]+)*$ ]] || return 1
+	IFS=/ read -r -a segs <<<"$p"
+	for seg in "${segs[@]}"; do
+		[[ $seg != . && $seg != .. ]] || return 1
+	done
+}
+
+# --- config -----------------------------------------------------------------
+
+KEEP_TREES=2
+NOTIFY=
+STATE_DIR=/var/lib/repoctl-mirror
+LOCK=/run/lock/repoctl-mirror.lock
+LINES=()
+
+# unquote VALUE strips one pair of quotes.
+unquote() {
+	local v=$1
+	if [[ $v == \"*\" || $v == \'*\' ]] && ((${#v} >= 2)); then
+		v=${v:1:${#v}-2}
+	fi
+	printf '%s' "$v"
+}
+
+# read_config FILE fills the settings and LINES (one "SET TARGET PKG SERVED
+# KEYRING" per line).
+read_config() {
+	local file=$1 n=0 line key value
+	local -A seen=() seen_path=()
+	[[ -r $file ]] || die "config: $file cannot be read"
+	while IFS= read -r line || [[ -n $line ]]; do
+		n=$((n + 1))
+		line=${line%$'\r'}
+		[[ $line =~ ^[[:space:]]*(#|$) ]] && continue
+		if [[ $line =~ ^[[:space:]]*([A-Z_]+)=(.*)$ ]]; then
+			key=${BASH_REMATCH[1]}
+			value=$(unquote "${BASH_REMATCH[2]}")
+			case $key in
+			KEEP_TREES)
+				[[ $value =~ ^[0-9]+$ ]] || die "config: $file:$n: KEEP_TREES must be a number"
+				KEEP_TREES=$value
+				;;
+			NOTIFY) NOTIFY=$value ;;
+			STATE_DIR) STATE_DIR=$value ;;
+			LOCK) LOCK=$value ;;
+			*) die "config: $file:$n: unknown setting $key" ;;
+			esac
+			continue
+		fi
+		local -a f
+		read -r -a f <<<"$line"
+		((${#f[@]} == 5)) || die "config: $file:$n: a mirror line has 5 fields: set target package served-path keyring"
+		[[ ${f[0]} =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]] || die "config: $file:$n: the set ${f[0]} is not valid"
+		[[ ${f[1]} =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]] || die "config: $file:$n: the target ${f[1]} is not valid"
+		[[ ${f[2]} =~ ^[A-Za-z0-9.:-]+/[a-z0-9._/-]+$ ]] || die "config: $file:$n: the OCI package ${f[2]} is not valid"
+		[[ ${f[3]} == /* && ${f[3]} != */ ]] || die "config: $file:$n: the served path ${f[3]} is not an absolute path"
+		[[ ${f[4]} == /* ]] || die "config: $file:$n: the keyring ${f[4]} is not an absolute path"
+		[[ -z ${seen[${f[0]}-${f[1]}]:-} ]] || die "config: $file:$n: a second line for ${f[0]} ${f[1]}"
+		[[ -z ${seen_path[${f[3]}]:-} ]] || die "config: $file:$n: a second line with the served path ${f[3]}"
+		seen[${f[0]}-${f[1]}]=1
+		seen_path[${f[3]}]=1
+		LINES+=("${f[*]}")
+	done <"$file"
+	[[ $STATE_DIR == /* ]] || die "config: STATE_DIR must be an absolute path"
+	while [[ $STATE_DIR == */ && $STATE_DIR != / ]]; do STATE_DIR=${STATE_DIR%/}; done
+	[[ $LOCK == /* ]] || die "config: LOCK must be an absolute path"
+}
+
+# notify ARGS... runs NOTIFY ARGS with the standard input of the caller. A
+# failed NOTIFY goes to the journal and does not change the result.
+notify() {
+	[[ -n $NOTIFY ]] || return 0
+	local -a cmd
+	read -r -a cmd <<<"$NOTIFY"
+	if ! timeout 120 "${cmd[@]}" "$@"; then
+		err "NOTIFY $*: the command failed"
+	fi
+	return 0
+}
+
+# --- registry ---------------------------------------------------------------
+
+# http_get URL OUT [CURL-ARGS...] writes the body to OUT and the headers to
+# OUT.h, and sets HTTP_CODE. A transport error sets HTTP_CODE to 000.
+http_get() {
+	local url=$1 out=$2
+	shift 2
+	HTTP_CODE=$(curl -sS -A "$UA" --connect-timeout 30 --retry 2 -o "$out" -D "$out.h" -w '%{http_code}' "$@" "$url") || HTTP_CODE=000
+}
+
+# header OUT NAME prints the value of a header of the response in OUT.h.
+header() {
+	local line name=${2,,}
+	while IFS= read -r line; do
+		line=${line%$'\r'}
+		if [[ ${line,,} == "$name":* ]]; then
+			line=${line#*:}
+			printf '%s' "${line# }"
+			return 0
+		fi
+	done <"$1.h"
+	return 0
+}
+
+# --- one mirror line ----------------------------------------------------------
+
+# Set by mirror_line for its subshell.
+LINE='' STEP='' ERROR=''
+SERVED='' SERVED_DIGEST='' LATEST='' PREV_BEHIND='' CHECKED='' SETNAME='' TARGET=''
+
+fail() {
+	ERROR="$STEP: $*"
+	exit 1
+}
+
+# write_heartbeat DIR RESULT SERVED LATEST BEHIND ERROR writes
+# repoctl-mirror.json into DIR with a rename.
+write_heartbeat() {
+	local dir=$1 tmp
+	tmp="$dir/.$HEARTBEAT_FILE.tmp"
+	jq -n --arg set "$SETNAME" --arg target "$TARGET" --arg checked "$CHECKED" --arg result "$2" \
+		--arg served "$3" --arg latest "$4" --arg behind "$5" --arg error "$6" '
+		def orNull: if . == "" then null else . end;
+		{set: $set, target: $target, checked: $checked, result: $result,
+		 served: ($served | orNull), latest: ($latest | orNull),
+		 behindSince: ($behind | orNull), error: ($error | orNull)}' >"$tmp"
+	mv -f -- "$tmp" "$dir/$HEARTBEAT_FILE"
+}
+
+# behind SERVED LATEST gives behindSince: empty when latest is the served
+# digest, else the time of the first run that saw another latest.
+behind() {
+	if [[ -n $2 && $1 == "$2" ]]; then
+		return 0
+	fi
+	if [[ -z $2 ]]; then
+		printf '%s' "$PREV_BEHIND"
+		return 0
+	fi
+	printf '%s' "${PREV_BEHIND:-$CHECKED}"
+}
+
+# on_line_exit writes the heartbeat of a failed line into the served tree
+# and the error into the journal.
+on_line_exit() {
+	local rc=$?
+	if ((rc != 0)); then
+		[[ -n $ERROR ]] || ERROR="$STEP: a command failed (exit $rc)"
+		err "$LINE: $ERROR; the served tree stays"
+		if [[ -L $SERVED && -d $SERVED ]]; then
+			write_heartbeat "$SERVED" failed "$SERVED_DIGEST" "$LATEST" "$(behind "$SERVED_DIGEST" "$LATEST")" "$ERROR" ||
+				err "$LINE: the heartbeat cannot be written"
+		fi
+		[[ -z ${NEW_TREE:-} ]] || rm -rf -- "$NEW_TREE"
+	fi
+	exit "$rc"
+}
+
+# dearmor converts armored OpenPGP public key blocks on stdin to the binary
+# keyring that gpgv reads.
+dearmor() {
+	local inblock=0 hdr=0 line b64=
+	while IFS= read -r line || [[ -n $line ]]; do
+		line=${line%$'\r'}
+		if [[ $line == "-----BEGIN PGP PUBLIC KEY BLOCK-----" ]]; then
+			inblock=1 hdr=1 b64=
+			continue
+		fi
+		((inblock)) || continue
+		if [[ $line == "-----END PGP PUBLIC KEY BLOCK-----" ]]; then
+			printf '%s' "$b64" | base64 -d
+			inblock=0
+			continue
+		fi
+		if ((hdr)); then
+			[[ -n $line ]] || hdr=0
+			continue
+		fi
+		[[ $line == =* ]] && continue
+		b64+=$line
+	done
+}
+
+# mirror_line SET TARGET PKG SERVED KEYRING runs steps 1 to 8 for one line.
+# It runs in a subshell; the exit status is the result (0 same or swapped).
+mirror_line() {
+	SETNAME=$1 TARGET=$2
+	local pkg=$3 keyring=$5
+	SERVED=$4
+	LINE="$SETNAME $TARGET"
+	CHECKED=$(now)
+	local st="$SETNAME-$TARGET"
+	local tdir="$TREES/$st" work="$RUN_TMP/$st"
+	trap on_line_exit EXIT
+	mkdir -p -- "$tdir" "$work"
+
+	# The served path of the line. A changed path drops the old symlink.
+	STEP="served path"
+	if [[ -f $tdir/served-path ]]; then
+		local old
+		old=$(<"$tdir/served-path")
+		if [[ $old != "$SERVED" && -L $old && $(readlink -- "$old") == "$tdir/"* ]]; then
+			rm -f -- "$old"
+			log "$LINE: deleted the symlink $old: the served path is now $SERVED"
+		fi
+	fi
+	printf '%s\n' "$SERVED" >"$tdir/served-path"
+	if [[ -L $SERVED ]]; then
+		local cur
+		cur=$(readlink -- "$SERVED")
+		if [[ $cur == "$tdir/"* ]]; then
+			SERVED_DIGEST="sha256:${cur##*/}"
+		fi
+	fi
+	if [[ -L $SERVED && -f $SERVED/$HEARTBEAT_FILE ]]; then
+		PREV_BEHIND=$(jq -r '.behindSince // empty' "$SERVED/$HEARTBEAT_FILE" 2>/dev/null) || PREV_BEHIND=
+	fi
+
+	# Step 1: an anonymous pull token and the manifest of latest.
+	STEP="step 1 token and manifest"
+	local registry=${pkg%%/*} name=${pkg#*/} scheme=https
+	[[ ${MIRROR_TEST_PLAIN_HTTP:-} == 1 ]] && scheme=http
+	local base="$scheme://$registry/v2/$name"
+	local -a auth=()
+	local mf="$work/manifest.json"
+	http_get "$base/manifests/latest" "$mf" --max-time 120 --max-filesize 4194304 -H "Accept: $MANIFEST_MEDIA_TYPE"
+	if [[ $HTTP_CODE == 401 ]]; then
+		local chal realm service scope tok
+		chal=$(header "$mf" www-authenticate)
+		[[ $chal =~ realm=\"([^\"]+)\" ]] || fail "GET $base/manifests/latest gives HTTP 401 without a bearer realm"
+		realm=${BASH_REMATCH[1]}
+		service='' scope="repository:$name:pull"
+		[[ $chal =~ service=\"([^\"]+)\" ]] && service=${BASH_REMATCH[1]}
+		[[ $chal =~ scope=\"([^\"]+)\" ]] && scope=${BASH_REMATCH[1]}
+		http_get "$realm" "$work/token.json" --max-time 60 -G --data-urlencode "service=$service" --data-urlencode "scope=$scope"
+		[[ $HTTP_CODE == 200 ]] || fail "the token request to $realm gives HTTP $HTTP_CODE"
+		tok=$(jq -r '.token // .access_token // empty' "$work/token.json") || fail "the token answer of $realm is not JSON"
+		[[ -n $tok ]] || fail "the token answer of $realm holds no token"
+		auth=(-H "Authorization: Bearer $tok")
+		http_get "$base/manifests/latest" "$mf" --max-time 120 --max-filesize 4194304 -H "Accept: $MANIFEST_MEDIA_TYPE" "${auth[@]}"
+	fi
+	[[ $HTTP_CODE == 200 ]] || fail "GET $base/manifests/latest gives HTTP $HTTP_CODE"
+	LATEST="sha256:$(sha256_of "$mf")"
+	if [[ $LATEST == "$SERVED_DIGEST" ]]; then
+		STEP="heartbeat"
+		write_heartbeat "$SERVED" same "$SERVED_DIGEST" "$LATEST" "" ""
+		log "$LINE: serves latest $LATEST"
+		return 0
+	fi
+	log "$LINE: latest is $LATEST, the served tree is ${SERVED_DIGEST:-none}"
+
+	# Step 2: check the manifest, else refuse it.
+	STEP="step 2 manifest"
+	local checked
+	checked=$(jq -r --arg set "$SETNAME" --arg target "$TARGET" --arg mmt "$MANIFEST_MEDIA_TYPE" \
+		--arg at "$ARTIFACT_TYPE" --arg fmt "$FILE_MEDIA_TYPE" --arg title "$ANN_TITLE" \
+		--arg aset "$ANN_SET" --arg atarget "$ANN_TARGET" --arg apublish "$ANN_PUBLISH" \
+		--arg snap "$SNAPSHOT_FILE" --arg beat "$HEARTBEAT_FILE" '
+		def safe: type == "string" and test("^[A-Za-z0-9._+-]+(/[A-Za-z0-9._+-]+)*$")
+			and (split("/") | all(. != "." and . != ".."));
+		def ann($k): (.annotations // {})[$k] // "";
+		[ (if .schemaVersion == 2 then empty else "schemaVersion is not 2" end),
+		  (if .mediaType == $mmt then empty else "the media type is not \($mmt)" end),
+		  (if .artifactType == $at then empty else "the artifact type is not \($at)" end),
+		  (if ann($aset) == $set then empty else "the annotation \($aset) is \"\(ann($aset))\", not \($set)" end),
+		  (if ann($atarget) == $target then empty else "the annotation \($atarget) is \"\(ann($atarget))\", not \($target)" end),
+		  (if ann($apublish) | test("^p-[A-Za-z0-9-]+$") then empty
+		   else "the annotation \($apublish) is \"\(ann($apublish))\", not a publish id" end),
+		  (if (.layers | type) == "array" and (.layers | length) > 0 then empty else "the manifest has no layers" end),
+		  ((.layers // [])[] | (.annotations // {})[$title] as $t
+		   | (if ($t | safe) then empty else "the title \($t | tojson) is not a safe relative path" end),
+		     (if $t == $snap or $t == $beat then "the title \($t) is a file of the mirror job" else empty end),
+		     (if .mediaType == $fmt then empty else "the layer \($t | tojson) has the media type \(.mediaType | tojson)" end),
+		     (if (.digest | type) == "string" and (.digest | test("^sha256:[0-9a-f]{64}$")) then empty
+		      else "the layer \($t | tojson) has no sha256 digest" end)),
+		  ([(.layers // [])[] | (.annotations // {})[$title]] | group_by(.) | map(select(length > 1))[]
+		   | "two layers have the title \(.[0] | tojson)")
+		] as $errs
+		| if ($errs | length) > 0 then "ERR\t\($errs[0])"
+		  else "OK\t\(ann($apublish))", (.layers[] | "L\t\(.digest[7:])\t\((.annotations)[$title])") end
+	' "$mf") || fail "the manifest is not JSON"
+	local tag rest hex title publish=
+	local -a layers=()
+	local -A sha=()
+	while IFS=$'\t' read -r tag rest; do
+		case $tag in
+		ERR) fail "refused: $rest" ;;
+		OK) publish=$rest ;;
+		L)
+			hex=${rest%%$'\t'*}
+			title=${rest#*$'\t'}
+			layers+=("$hex $title")
+			# verify_tree reads sha through a nameref.
+			# shellcheck disable=SC2034
+			sha[$title]=$hex
+			;;
+		esac
+	done <<<"$checked"
+	((${#layers[@]} > 0)) || fail "refused: the manifest has no layers"
+
+	# Step 3: download the missing blobs into .objects/sha256/ and check the
+	# sha256 of each.
+	STEP="step 3 blobs"
+	local -A got=()
+	local entry obj tmp new=0 known=0
+	for entry in "${layers[@]}"; do
+		hex=${entry%% *}
+		title=${entry#* }
+		[[ -z ${got[$hex]:-} ]] || continue
+		got[$hex]=1
+		obj="$OBJECTS/$hex"
+		if [[ -f $obj ]]; then
+			known=$((known + 1))
+			continue
+		fi
+		tmp="$OBJECTS/.tmp-$hex"
+		http_get "$base/blobs/sha256:$hex" "$tmp" -L --max-time 3600 "${auth[@]}"
+		rm -f -- "$tmp.h"
+		if [[ $HTTP_CODE != 200 ]]; then
+			rm -f -- "$tmp"
+			fail "GET the blob sha256:$hex of $title gives HTTP $HTTP_CODE"
+		fi
+		if [[ $(sha256_of "$tmp") != "$hex" ]]; then
+			rm -f -- "$tmp"
+			fail "the blob of $title does not have the sha256 $hex"
+		fi
+		chmod 0644 -- "$tmp"
+		mv -f -- "$tmp" "$obj"
+		new=$((new + 1))
+	done
+	log "$LINE: $new new blobs, $known known"
+
+	# Step 4: a new tree of hard links; each file gets its path from its
+	# title.
+	STEP="step 4 tree"
+	local digest_hex=${LATEST#sha256:}
+	NEW_TREE="$tdir/.new-$digest_hex"
+	rm -rf -- "$NEW_TREE"
+	mkdir -p -- "$NEW_TREE"
+	local -A dirs=()
+	for entry in "${layers[@]}"; do
+		hex=${entry%% *}
+		title=${entry#* }
+		if [[ $title == */* && -z ${dirs[${title%/*}]:-} ]]; then
+			mkdir -p -- "$NEW_TREE/${title%/*}" || fail "the directory of $title cannot be made"
+			dirs[${title%/*}]=1
+		fi
+		ln -- "$OBJECTS/$hex" "$NEW_TREE/$title" || fail "the link of $title cannot be made"
+	done
+
+	# Step 5: verify the tree with the keyring of the line.
+	STEP="step 5 verify"
+	verify_tree "$NEW_TREE" "$keyring" "$work" sha
+
+	# Step 6: the snapshot does not go back.
+	STEP="step 6 revision"
+	local repo old_rev new_rev
+	for repo in "${REPOS[@]}"; do
+		[[ -f $SERVED/$repo/repodata/repomd.xml ]] || continue
+		new_rev=$(revision "$NEW_TREE/$repo/repodata/repomd.xml")
+		old_rev=$(revision "$SERVED/$repo/repodata/repomd.xml")
+		[[ $new_rev =~ ^[0-9]+$ ]] || fail "the revision \"$new_rev\" of $repo/repodata/repomd.xml is not a number"
+		[[ $old_rev =~ ^[0-9]+$ ]] || continue
+		if ((10#$new_rev < 10#$old_rev)); then
+			fail "the revision of $repo/repodata/repomd.xml goes back from $old_rev to $new_rev"
+		fi
+	done
+
+	# Step 7: write repoctl-snapshot.json and the heartbeat into the tree.
+	STEP="step 7 write"
+	jq -n --arg set "$SETNAME" --arg target "$TARGET" --arg digest "$LATEST" --arg publish "$publish" \
+		--arg pulled "$(now)" '{set: $set, target: $target, digest: $digest, publish: $publish, pulled: $pulled}' \
+		>"$NEW_TREE/$SNAPSHOT_FILE"
+	write_heartbeat "$NEW_TREE" swapped "$LATEST" "$LATEST" "" ""
+	rm -rf -- "${tdir:?}/$digest_hex"
+	mv -T -- "$NEW_TREE" "$tdir/$digest_hex"
+	NEW_TREE=
+
+	# Step 8: swap the symlink of the served path in one rename, keep
+	# KEEP_TREES old trees.
+	STEP="step 8 swap"
+	if [[ -e $SERVED && ! -L $SERVED ]]; then
+		fail "the served path $SERVED is not a symlink; the job replaces only its own symlink"
+	fi
+	mkdir -p -- "${SERVED%/*}" || fail "the directory of $SERVED cannot be made"
+	local link="${SERVED%/*}/.${SERVED##*/}.new"
+	rm -f -- "$link"
+	ln -s -- "$tdir/$digest_hex" "$link" || fail "the symlink $link cannot be made"
+	mv -Tf -- "$link" "$SERVED" || fail "the symlink $SERVED cannot be replaced"
+	: >"$RUN_TMP/swapped"
+	log "$LINE: serves $publish ($LATEST) at $SERVED"
+	keep_trees "$tdir" "$digest_hex"
+
+	# NOTIFY served SET TARGET gets the annotations of the new latest.
+	jq -c --arg set "$SETNAME" --arg target "$TARGET" --arg digest "$LATEST" '
+		(.annotations // {}) as $a
+		| {set: $set, target: $target, digest: $digest, kind: $a["io.repoctl.kind"],
+		   publish: $a["io.repoctl.publish"], signer: $a["io.repoctl.signer"],
+		   user: $a["io.repoctl.user"], host: $a["io.repoctl.host"], created: $a["io.repoctl.created"]}' \
+		"$mf" >"$work/notify.json" || : >"$work/notify.json"
+	notify served "$SETNAME" "$TARGET" <"$work/notify.json"
+	return 0
+}
+
+# revision FILE prints the <revision> of a repomd.xml.
+revision() {
+	local xml re='<revision>([^<]*)</revision>'
+	xml=$(<"$1")
+	[[ $xml =~ $re ]] && printf '%s' "${BASH_REMATCH[1]}"
+	return 0
+}
+
+# keep_trees TDIR SERVED_HEX keeps the newest KEEP_TREES trees besides the
+# served one and deletes the others.
+keep_trees() {
+	local tdir=$1 cur=$2 d hex m n=0
+	local -a list=()
+	for d in "$tdir"/*/; do
+		d=${d%/}
+		hex=${d##*/}
+		[[ $hex =~ ^[0-9a-f]{64}$ && $hex != "$cur" ]] || continue
+		m=$(stat -c %Y -- "$d/$SNAPSHOT_FILE" 2>/dev/null || stat -c %Y -- "$d")
+		list+=("$m $hex")
+	done
+	((${#list[@]} > 0)) || return 0
+	while read -r m hex; do
+		n=$((n + 1))
+		((n > KEEP_TREES)) || continue
+		rm -rf -- "${tdir:?}/$hex"
+		log "$LINE: deleted the old tree sha256:$hex (KEEP_TREES=$KEEP_TREES)"
+	done < <(printf '%s\n' "${list[@]}" | sort -rn)
+}
+
+# verify_tree TREE KEYRING WORK SHA-ARRAY: the checks of step 5. SHA-ARRAY
+# names the associative array title → sha256 of the verified blobs. It sets
+# REPOS to the repositories of the tree.
+verify_tree() {
+	local tree=$1 keyring=$2 work=$3
+	local -n sums=$4
+	local d repo f title
+
+	# The keyring for gpgv and a temporary rpmdb for rpmkeys.
+	[[ -f $keyring && -r $keyring ]] || fail "the keyring $keyring cannot be read"
+	dearmor <"$keyring" >"$work/keyring.gpg" || fail "the keyring $keyring is not valid"
+	[[ -s $work/keyring.gpg ]] || cp -- "$keyring" "$work/keyring.gpg"
+	mkdir -p -- "$work/rpmdb"
+	rpmkeys --dbpath "$work/rpmdb" --import "$keyring" 2>"$work/rpmkeys.err" ||
+		fail "rpmkeys cannot import the keyring $keyring: $(head -n 1 "$work/rpmkeys.err")"
+
+	REPOS=()
+	for d in "$tree"/*/; do
+		d=${d%/}
+		[[ -f $d/repodata/repomd.xml ]] && REPOS+=("${d##*/}")
+	done
+	((${#REPOS[@]} > 0)) || fail "the tree has no repository with repodata/repomd.xml"
+
+	# gpgv on each repomd.xml.asc (exactly one signature), then the
+	# checksums in repomd.xml.
+	local status newsig manifest_href='' bin='' block rest type ctype csum href
+	local re_type='type="([^"]+)"' re_sum='<checksum type="([^"]+)">([^<]+)</checksum>' re_loc='<location href="([^"]+)"'
+	for repo in "${REPOS[@]}"; do
+		f="$tree/$repo/repodata/repomd.xml"
+		[[ -f $f.asc ]] || fail "$repo/repodata/repomd.xml.asc is missing"
+		status=$(gpgv --keyring "$work/keyring.gpg" --status-fd 1 "$f.asc" "$f" 2>/dev/null) ||
+			fail "$repo/repodata/repomd.xml.asc does not verify with the keyring $keyring"
+		newsig=0
+		while read -r _ tag _; do
+			[[ $tag == NEWSIG ]] && newsig=$((newsig + 1))
+		done <<<"$status"
+		((newsig == 1)) || fail "$repo/repodata/repomd.xml.asc holds $newsig signatures; it must hold exactly one"
+		[[ $status == *"[GNUPG:] VALIDSIG "* ]] || fail "$repo/repodata/repomd.xml.asc has no valid signature"
+
+		rest=$(<"$f")
+		while [[ $rest == *"<data "* ]]; do
+			rest=${rest#*"<data "}
+			block=${rest%%"</data>"*}
+			rest=${rest#*"</data>"}
+			[[ $block =~ $re_type ]] || fail "$repo/repodata/repomd.xml has a data entry without a type"
+			type=${BASH_REMATCH[1]}
+			[[ $block =~ $re_sum ]] || fail "$repo/repodata/repomd.xml: $type has no checksum"
+			ctype=${BASH_REMATCH[1]} csum=${BASH_REMATCH[2]}
+			[[ $block =~ $re_loc ]] || fail "$repo/repodata/repomd.xml: $type has no location"
+			href=${BASH_REMATCH[1]}
+			safe_path "$href" || fail "$repo/repodata/repomd.xml: the location $href is not a safe relative path"
+			[[ $ctype == sha256 ]] || fail "$repo/$href has the checksum type $ctype, not sha256"
+			title="$repo/$href"
+			[[ -n ${sums[$title]:-} ]] || fail "$title is in repomd.xml but not in the tree"
+			[[ ${sums[$title]} == "$csum" ]] || fail "$title does not have the checksum of repomd.xml"
+			if [[ $type == repoctl ]]; then
+				manifest_href=$href bin=$repo
+			fi
+		done
+	done
+
+	# rpmkeys --checksig on each RPM, with the temporary rpmdb.
+	local -a rpms=() batch
+	local -A ok=()
+	local line name res i
+	for title in "${!sums[@]}"; do
+		[[ $title == *.rpm ]] && rpms+=("$tree/$title")
+	done
+	for ((i = 0; i < ${#rpms[@]}; i += 100)); do
+		batch=("${rpms[@]:i:100}")
+		res=$(rpmkeys --dbpath "$work/rpmdb" --checksig "${batch[@]}") || true
+		ok=()
+		while IFS= read -r line; do
+			name=${line%%: *}
+			[[ $name != "$line" ]] || continue
+			if [[ ${line#*: } == *"signatures OK"* && ${line#*: } != *"NOT OK"* ]]; then
+				ok[$name]=1
+			elif [[ ${line#*: } == *"NOT OK"* ]]; then
+				fail "${name#"$tree"/}: the signature does not verify with the keyring $keyring (${line#*: })"
+			else
+				fail "${name#"$tree"/}: the RPM has no signature (${line#*: })"
+			fi
+		done <<<"$res"
+		for f in "${batch[@]}"; do
+			[[ -n ${ok[$f]:-} ]] || fail "${f#"$tree"/}: rpmkeys gives no result"
+		done
+	done
+
+	# The root key file has the sha256 of the key file in the root release
+	# RPM.
+	local -a root_rpms=() root_keys=()
+	for title in "${!sums[@]}"; do
+		[[ $title == */* ]] && continue
+		if [[ $title == *.rpm ]]; then
+			root_rpms+=("$title")
+		else
+			root_keys+=("$title")
+		fi
+	done
+	if ((${#root_rpms[@]} + ${#root_keys[@]} > 0)); then
+		((${#root_rpms[@]} == 1)) || fail "the tree has ${#root_rpms[@]} root release RPMs, not one"
+		((${#root_keys[@]} > 0)) || fail "the tree has no root key file"
+		local dump path fsum found k
+		dump=$(rpm --dbpath "$work/rpmdb" -qp --nosignature --dump "$tree/${root_rpms[0]}" 2>/dev/null) ||
+			fail "rpm cannot read the root release RPM ${root_rpms[0]}"
+		for k in "${root_keys[@]}"; do
+			found=
+			while read -r path _ _ fsum _; do
+				[[ ${path##*/} == "$k" ]] || continue
+				found=$fsum
+			done <<<"$dump"
+			[[ -n $found ]] || fail "the root release RPM ${root_rpms[0]} has no key file $k"
+			[[ $found == "${sums[$k]}" ]] || fail "the root key file $k differs from the key file in ${root_rpms[0]}"
+		done
+	fi
+
+	# The RepoManifest: an apiVersion that this release of the job reads.
+	[[ -n $manifest_href ]] || fail "the tree has no RepoManifest (repodata type repoctl)"
+	local rm="$work/repomanifest.json"
+	case $manifest_href in
+	*.gz) gzip -dc -- "$tree/$bin/$manifest_href" >"$rm" || fail "the RepoManifest $bin/$manifest_href cannot be read" ;;
+	*.json) cp -- "$tree/$bin/$manifest_href" "$rm" ;;
+	*) fail "the RepoManifest $bin/$manifest_href has a compression that the job does not read" ;;
+	esac
+	local versions
+	versions=$(jq -cn '$ARGS.positional' --args "${READ_API_VERSIONS[@]}")
+	res=$(jq -r --argjson versions "$versions" --arg set "$SETNAME" --arg target "$TARGET" '
+		if type != "object" or .kind != "RepoManifest" then "the RepoManifest has the kind \(.kind? | tojson)"
+		elif (.apiVersion as $v | $versions | map(select(. == $v)) | length) == 0 then
+			"the RepoManifest has the apiVersion \(.apiVersion | tojson), which this release of the job (\($versions | join(", "))) does not read"
+		elif .set != $set or .target != $target then "the RepoManifest is of \(.set) \(.target)"
+		else "" end' "$rm") || fail "the RepoManifest $bin/$manifest_href is not JSON"
+	[[ -z $res ]] || fail "$res"
+
+	# Each supply chain record has its sha256 in the RepoManifest, and each
+	# record subject has the sha256 of its file (supply-chain.html#verify).
+	local -A rpm_sums=()
+	for title in "${!sums[@]}"; do
+		[[ $title == */*.rpm ]] && rpm_sums[${title##*/}]=${sums[$title]}
+	done
+	local kind rpath rsum rfile n=0 subj ssum
+	while IFS=$'\t' read -r kind rpath rsum; do
+		[[ -n $kind ]] || continue
+		safe_path "$rpath" || fail "the record path $rpath is not a safe relative path"
+		rfile="$tree/$bin/$rpath"
+		[[ -f $rfile && -n ${sums[$bin/$rpath]:-} ]] || fail "the record $bin/$rpath is missing"
+		[[ $(sha256_of "$rfile") == "$rsum" ]] || fail "the record $bin/$rpath does not have the sha256 of the RepoManifest"
+		n=$((n + 1))
+		case $kind in
+		provenance)
+			res=$(jq -r '.subject[]? | "\(.name)\t\(.digest.sha256 // "")"' "$rfile") || fail "the record $bin/$rpath is not JSON"
+			;;
+		sbom)
+			res=$(jq -r '
+				def prop($n): [(.properties // [])[] | select(.name == $n) | .value][0] // "";
+				def sha: [(.hashes // [])[] | select(.alg == "SHA-256") | .content][0] // "";
+				([.metadata.component // empty] + (.components // []))[]
+				| select(prop("repoctl:type") != "upstream" and prop("repoctl:file") != "" and sha != "")
+				| "\(prop("repoctl:file"))\t\(sha)"' "$rfile") || fail "the record $bin/$rpath is not JSON"
+			;;
+		repository-sbom)
+			res=$(jq -r '
+				def sha: [(.hashes // [])[] | select(.alg == "SHA-256") | .content][0] // "";
+				(.components // [])[] | select(sha != "") | "\(.name)\t\(sha)"' "$rfile") || fail "the record $bin/$rpath is not JSON"
+			while IFS=$'\t' read -r subj ssum; do
+				[[ -n $subj ]] || continue
+				safe_path "$subj" || fail "the build SBOM $subj of $bin/$rpath is not a safe relative path"
+				[[ ${sums[$bin/$subj]:-} == "$ssum" ]] || fail "the build SBOM $subj of $bin/$rpath does not have its sha256"
+			done <<<"$res"
+			continue
+			;;
+		esac
+		while IFS=$'\t' read -r subj ssum; do
+			[[ -n $subj ]] || continue
+			[[ -n ${rpm_sums[$subj]:-} ]] || fail "the subject $subj of $bin/$rpath is not in the tree"
+			[[ ${rpm_sums[$subj]} == "$ssum" ]] || fail "the subject $subj of $bin/$rpath does not have the sha256 of its file"
+		done <<<"$res"
+	done < <(jq -r '
+		((.builds // [])[] | .records // {} | (.provenance // empty | "provenance\t\(.path)\t\(.sha256)"),
+		                                     (.sbom // empty | "sbom\t\(.path)\t\(.sha256)")),
+		(.records.sbom // empty | "repository-sbom\t\(.path)\t\(.sha256)")' "$rm")
+	log "$LINE: verified ${#REPOS[@]} repositories, ${#REPOS[@]} repomd.xml.asc, ${#rpms[@]} RPM files, $n records"
+}
+
+# --- removed lines and objects ---------------------------------------------------
+
+# cleanup_removed deletes the symlink, the trees of each line that is no
+# longer in the config.
+cleanup_removed() {
+	local -A keep=()
+	local l d st sp
+	local -a f
+	for l in "${LINES[@]}"; do
+		read -r -a f <<<"$l"
+		keep[${f[0]}-${f[1]}]=1
+	done
+	for d in "$TREES"/*/; do
+		d=${d%/}
+		st=${d##*/}
+		[[ -z ${keep[$st]:-} ]] || continue
+		if [[ -f $d/served-path ]]; then
+			sp=$(<"$d/served-path")
+			if [[ -L $sp && $(readlink -- "$sp") == "$d/"* ]]; then
+				rm -f -- "$sp"
+				log "$st: the line is no longer in the config: deleted the symlink $sp"
+			fi
+		fi
+		rm -rf -- "$d"
+		log "$st: the line is no longer in the config: deleted its trees"
+		: >"$RUN_TMP/removed"
+	done
+}
+
+# gc_objects deletes the objects that no tree uses: the objects with one
+# link.
+gc_objects() {
+	local mode links name n=0
+	while read -r mode links _ _ _ _ name; do
+		[[ $mode == -* && $links == 1 && $name =~ ^[0-9a-f]{64}$ ]] || continue
+		rm -f -- "${OBJECTS:?}/$name"
+		n=$((n + 1))
+	done < <(ls -ln --time-style=+%s -- "$OBJECTS")
+	((n == 0)) || log "deleted $n objects that no tree uses"
+}
+
+# --- main ---------------------------------------------------------------------------
+
+main() {
+	if [[ ${1:-} == --notify-failed ]]; then
+		(($# == 2)) || die "usage: mirror --notify-failed CONFIG"
+		read_config "$2"
+		{ journalctl -u repoctl-mirror.service -n 50 --no-pager -o short-iso || true; } | notify failed
+		return 0
+	fi
+	(($# == 1)) || die "usage: mirror CONFIG"
+	read_config "$1"
+
+	mkdir -p -- "$(dirname -- "$LOCK")"
+	exec {lockfd}>>"$LOCK"
+	flock "$lockfd"
+
+	TREES="$STATE_DIR/.trees"
+	OBJECTS="$STATE_DIR/.objects/sha256"
+	mkdir -p -- "$TREES" "$OBJECTS"
+	# Under the lock, any work file of an earlier run is stale.
+	rm -rf -- "$STATE_DIR"/.run-* "$OBJECTS"/.tmp-*
+	RUN_TMP=$(mktemp -d "$STATE_DIR/.run-XXXXXX")
+	trap 'rm -rf -- "$RUN_TMP"' EXIT
+
+	local l failed=0 rc
+	local -a f
+	for l in "${LINES[@]}"; do
+		read -r -a f <<<"$l"
+		set +e
+		(
+			set -e
+			mirror_line "${f[@]}"
+		)
+		rc=$?
+		set -e
+		((rc == 0)) || failed=$((failed + 1))
+	done
+	cleanup_removed
+	if [[ -e $RUN_TMP/swapped || -e $RUN_TMP/removed ]]; then
+		gc_objects
+	fi
+	if ((failed > 0)); then
+		err "$failed of ${#LINES[@]} mirror lines failed"
+		return 1
+	fi
+	return 0
+}
+
+main "$@"

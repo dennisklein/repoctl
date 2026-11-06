@@ -1,0 +1,45 @@
+{{/* The repository of a target, the comparison with latest, and the publish review. */}}
+{{define "page-repo"}}{{$set := .Set.Name}}{{with .Data}}<div class="page-head repo-head"><div><h1 class="mono">{{.Target}}</h1>
+  <div class="sub">{{if .Run}}staging of <a href="{{runURL $set .Run}}">{{runLabel .Run}}</a>{{else}}latest{{end}}</div></div>
+  <div class="actions">{{template "cli-toggle" $.CLI}}{{if .Run}}<a class="btn" href="{{setURL $set (print "/repo/" .Target "/diff")}}?run={{q .Run}}">Compare with latest</a>{{end}}</div></div>
+<nav class="tabs" aria-label="Source"><a class="tab" href="{{setURL $set (print "/repo/" .Target)}}"{{if not .Run}} aria-current="page"{{end}}>latest</a>{{range .Staging}}<a class="tab" href="{{setURL $set (print "/repo/" $.Data.Target)}}?run={{q .Run.ID}}"{{if eq .Run.ID $.Data.Run}} aria-current="page"{{end}}>staging {{runLabel .Run.ID}}</a>{{end}}</nav>
+{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{range .Contents}}<section class="card"><div class="card-head"><h2>{{.Repo}} · {{.Kind}}</h2><span class="right">{{plural (len .Packages) "RPM"}}{{if .Signed}} · signed{{end}}{{with .Snapshot}} · {{.}}{{end}}</span></div>
+  <div class="table-wrap"><table class="table rpms"><thead><tr><th>RPM</th><th>Node</th><th>Signature</th></tr></thead><tbody>
+  {{range .Packages}}<tr><td>{{nvr .NVRA}}</td><td class="mono">{{.Node}}</td><td>{{with .Signature}}<span class="mono" title="{{.}}">{{fpr .}}</span>{{end}}</td></tr>{{end}}
+  </tbody></table></div>
+  {{with .Removed}}<details class="fold"><summary><b>{{plural (len .) "removed NVR"}}</b></summary><ul class="rows">{{range .}}<li><span class="t">{{nvr .NVR}}</span><span class="s">{{.Reason}} · {{.Publish}}</span></li>{{end}}</ul></details>{{end}}
+</section>{{end}}{{end}}{{end}}
+
+{{define "page-diff"}}{{$set := .Set.Name}}{{with .Data}}<div class="crumbs"><a href="{{setURL $set (print "/repo/" .Target)}}">{{.Target}}</a><span class="sep">/</span><span>compare</span></div>
+<div class="page-head"><div><h1>Compare {{.Target}}</h1><div class="sub">{{if .Run}}staging of {{runLabel .Run}}{{else}}latest{{end}} with latest</div></div><div class="actions">{{template "cli-toggle" $.CLI}}</div></div>
+{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{range .Diffs}}<section class="card changes"><div class="card-head"><h2>{{.Repo}}</h2><span class="right">{{len .Added}} added · {{len .Changed}} changed · {{len .Removed}} removed{{with .Unchanged}} · {{.}} unchanged{{end}}</span></div>
+  <ul class="rows">{{range .Added}}<li><span class="t"><span class="qs ok">added</span> {{nvr .}}</span></li>{{end}}
+  {{range .Changed}}<li><span class="t"><span class="qs run">changed</span> <span class="mono">{{.Name}}</span> {{.From}} → {{.To}}</span></li>{{end}}
+  {{range .Removed}}<li><span class="t"><span class="qs warn">removed</span> {{nvr .}}</span></li>{{end}}</ul>
+</section>{{end}}{{end}}{{end}}
+
+{{define "page-publish"}}{{template "set-head" .Data.Head}}
+{{template "publish-body" .Data}}{{end}}
+
+{{define "publish-body"}}{{$set := .Head.Set.Name}}<div id="publish-body" sse-swap="publish" hx-swap="outerHTML">
+<ol class="stepper" aria-label="Publish steps"><li class="{{if .Active}}done{{else}}cur{{end}}">Review</li><li>Confirm</li><li class="{{if .Active}}cur{{end}}">Progress</li><li>Done</li></ol>
+{{with .Active}}<div class="banner info" role="status"><div class="grow"><b>A publish runs.</b> <a href="{{runURL $set .Run.ID}}">Follow {{runLabel .Run.ID}} ›</a></div></div>{{end}}
+{{with .NA}}<section class="card">{{template "na" .}}</section>{{end}}
+{{with .Problem}}<section class="card"><div class="card-body"><p><b>{{.Message}}</b> <span class="code-sub">{{.Code}}</span></p>{{with .Hint}}<p>{{.}}</p>{{end}}</div></section>{{end}}
+{{with .Plan}}
+{{range $.Blockers}}<section class="card fail-card"><div class="fv-body"><h2>{{.Target}}: {{or .Message .Code}}</h2><p class="fv-meta"><span class="pill st-blocked">blocked</span> <span class="code-sub">{{.Code}}</span>{{with .Nodes}} · {{join . ", "}}{{end}}</p></div></section>{{end}}
+{{range $t := $.Order}}{{with index $.Plan.Publish $t}}<section class="card tgt-row" id="{{elemID "pub" $t}}"><div class="card-head"><h2 class="mono">{{$t}}</h2><span class="right">{{with .Sign}}{{.New}} to sign · {{.Keep}} kept{{with .Resign}} · {{.}} re-signed{{end}}{{end}}</span></div>
+  <div class="card-body"><dl class="kv">{{with .Store}}<dt>Store</dt><dd class="mono">{{.}}</dd>{{end}}{{with .Base}}<dt>Base</dt><dd class="hashc" title="{{.}}">{{digest .}}</dd>{{end}}
+    {{with .Held}}<dt>Held</dt><dd>{{range .}}{{.Node}} ({{.Reason}}) {{end}}</dd>{{end}}</dl></div>
+  {{with .Gate}}<ul class="rows gate">{{range .}}<li><span class="t mono">{{.ID}}</span><span class="s">{{if .Accepted}}<span class="pill st-accepted">accepted</span>{{else if .Blocks}}<span class="pill st-failed">required</span>{{else}}passes{{end}}{{with .Reason}} · {{.}}{{end}}</span></li>{{end}}</ul>{{end}}
+</section>{{end}}{{end}}
+{{with $.Plan.Nodes}}<details class="fold card"><summary><b>{{plural (len .) "node"}} in this publish</b></summary><ul class="rows">{{range .}}<li><span class="t mono">{{.Node}}</span><span class="s">{{with .NVRs}}{{nvr (index . 0)}}{{end}}</span></li>{{end}}</ul></details>{{end}}
+<div class="footer-bar sticky-foot"><div class="txt">{{if $.Blocked}}Fix what blocks the publish first.{{else if $.Required}}{{plural (len $.Required) "required advisory"}} must be accepted with a reason.{{else}}Next: type the set name to confirm.{{end}}</div>
+  <div class="acts">{{if $.Head.Busy}}<button class="btn btn-primary" type="button" disabled title="{{$.Head.Busy}}">Confirm…</button>
+    {{else if $.Blocked}}<button class="btn btn-primary" type="button" disabled>Confirm…</button>
+    {{else}}<button class="btn btn-primary" type="button" hx-get="{{setURL $set "/-/dialog/publish"}}?target={{q $.Target}}&amp;run={{q $.FromRun}}" hx-target="#modal">Confirm…</button>{{end}}</div></div>
+{{end}}
+{{with .Last}}<p class="ui-note">Last publish: <a href="{{runURL $set .Run.ID}}">{{runLabel .Run.ID}}</a>, {{.Run.State}}.</p>{{end}}
+</div>{{end}}

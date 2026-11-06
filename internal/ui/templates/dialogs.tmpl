@@ -1,0 +1,107 @@
+{{/* Dialogs (swapped into #modal; shell.js opens them as modal) and the agent drawer. */}}
+{{define "dialog-build"}}<dialog class="dlg" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/build"}}" hx-swap="none" class="ui-form">
+  <header><h2 id="dlg-t">Build</h2></header>
+  <div class="body">
+    {{with .Busy}}<p class="banner warn">{{.}}</p>{{end}}
+    <p>repoctl builds the nodes whose commit is not in latest yet, into the staging of a new run. Nothing is signed or published.</p>
+    <label class="ui-type">Packages <span class="muted">(empty: all that need a build)</span>
+      <input type="text" name="packages" value="{{.Q.Get "packages"}}" list="dlg-pkgs" autocomplete="off"></label>
+    <datalist id="dlg-pkgs">{{range .Packages}}<option value="{{.}}">{{end}}</datalist>
+    <label class="ui-type">Target <select name="target"><option value="">all targets</option>{{range .Targets}}<option>{{.}}</option>{{end}}</select></label>
+    <label><input type="checkbox" name="from" value="worktree"> Take the commits of the worktrees, not of repoctl.lock</label>
+    <p class="muted">The same as <code>{{cli .Set.Dir}} build</code>.</p>
+  </div>
+  <footer><button class="btn" type="button" data-close-dialog>Cancel</button><button class="btn btn-primary" type="submit"{{if .Busy}} disabled{{end}}>Start build</button></footer>
+</form></dialog>{{end}}
+
+{{define "dialog-cancel"}}<dialog class="dlg" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/cancel"}}" hx-swap="none">
+  <header><h2 id="dlg-t">Cancel {{runLabel (.Q.Get "run")}}?</h2></header>
+  <div class="body"><input type="hidden" name="run" value="{{.Q.Get "run"}}">
+    <p>The running mock builds stop. Nodes that are ok stay in staging, and a new build takes them over.</p>
+    <label><input type="checkbox" name="force" value="1"> Stop the mock roots at once (the run ends abandoned)</label></div>
+  <footer><button class="btn" type="button" data-close-dialog>Keep running</button><button class="btn btn-danger" type="submit">Cancel run</button></footer>
+</form></dialog>{{end}}
+
+{{define "dialog-rebuild"}}<dialog class="dlg" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/rebuild"}}" hx-swap="none" class="ui-form" data-typed>
+  <header><h2 id="dlg-t">Rebuild</h2></header>
+  <div class="body">
+    {{with .Q.Get "advisory"}}<p>For the advisory <code>{{.}}</code>.</p>{{end}}
+    <p>repoctl adds a rebuild commit to each package branch and pins it in repoctl.lock. The next build then makes a new release.</p>
+    <label class="ui-type">Packages <input type="text" name="packages" value="{{.Q.Get "packages"}}" required></label>
+    <label class="ui-type">Reason <span class="muted">(8 characters or more; it goes into the changelog)</span>
+      <input type="text" name="reason" data-min="8" required></label>
+  </div>
+  <footer><button class="btn" type="button" data-close-dialog>Cancel</button><button class="btn btn-primary" type="submit" disabled>Add rebuild commits</button></footer>
+</form></dialog>{{end}}
+
+{{define "dialog-dismiss"}}<dialog class="dlg" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/advisory-dismiss"}}" hx-swap="none" class="ui-form" data-typed>
+  <header><h2 id="dlg-t">Dismiss <code>{{.Q.Get "advisory"}}</code></h2></header>
+  <div class="body"><input type="hidden" name="advisory" value="{{.Q.Get "advisory"}}">
+    <p>The advisory leaves the overview until its facts change. Required advisories cannot be dismissed; a publish accepts them.</p>
+    <label class="ui-type">Note <span class="muted">(why; 8 characters or more)</span><input type="text" name="note" data-min="8" required></label></div>
+  <footer><button class="btn" type="button" data-close-dialog>Cancel</button><button class="btn btn-primary" type="submit" disabled>Dismiss</button></footer>
+</form></dialog>{{end}}
+
+{{define "dialog-pin"}}<dialog class="dlg" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/pin"}}" hx-swap="none">
+  <header><h2 id="dlg-t">Pin</h2></header>
+  <div class="body"><input type="hidden" name="packages" value="{{.Q.Get "packages"}}"><p>repoctl writes the commits of the worktrees into repoctl.lock. Commit and push the lock afterwards.</p></div>
+  <footer><button class="btn" type="button" data-close-dialog>Cancel</button><button class="btn btn-primary" type="submit">Pin</button></footer>
+</form></dialog>{{end}}
+
+{{define "dialog-checkout"}}<dialog class="dlg" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/checkout"}}" hx-swap="none">
+  <header><h2 id="dlg-t">Check out</h2></header>
+  <div class="body"><input type="hidden" name="packages" value="{{.Q.Get "packages"}}"><p>repoctl creates or updates the package worktrees from repoctl.lock. It keeps local changes.</p></div>
+  <footer><button class="btn" type="button" data-close-dialog>Cancel</button><button class="btn btn-primary" type="submit">Check out</button></footer>
+</form></dialog>{{end}}
+
+{{define "dialog-sign-deployed"}}{{$key := .Q.Get "key"}}<dialog class="dlg" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/sign-deployed"}}" hx-swap="none" class="ui-form" data-typed>
+  <header><h2 id="dlg-t">Record that the clients have {{$key}}</h2></header>
+  <div class="body"><input type="hidden" name="key" value="{{$key}}">
+    {{with .Busy}}<p class="banner warn">{{.}}</p>{{end}}
+    <p>The record says that every client has the release package with this key. Publishes signed by the key then pass the trust check.</p>
+    <fieldset><legend>Targets whose clients have the release</legend>{{range .Targets}}<label><input type="checkbox" name="target" value="{{.}}"> {{.}}</label>{{end}}</fieldset>
+    <label class="ui-type">Release package on the clients <input type="text" name="release" placeholder="slurm-release-26.05-3" autocomplete="off" required></label>
+    <label class="ui-type">How you checked the clients <input type="text" name="note"></label>
+    <label class="ui-type">Type the key id <code>{{$key}}</code> to confirm<input type="text" name="typed" data-must="{{$key}}" autocomplete="off" required></label></div>
+  <footer><button class="btn" type="button" data-close-dialog>Cancel</button><button class="btn btn-primary" type="submit" disabled>Record</button></footer>
+</form></dialog>{{end}}
+
+{{define "dialog-publish"}}{{$p := .Publish}}<dialog class="dlg dlg-wide" aria-labelledby="dlg-t">
+<form hx-post="{{setURL .Set.Name "/-/actions/publish"}}" hx-swap="none" class="ui-form" data-typed>
+  <header><h2 id="dlg-t">Publish {{.Set.Name}}{{with .Q.Get "target"}} to {{.}}{{end}}</h2></header>
+  <div class="body">
+    <input type="hidden" name="target" value="{{.Q.Get "target"}}"><input type="hidden" name="run" value="{{.Q.Get "run"}}">
+    {{with $p}}{{with .Plan}}<input type="hidden" name="planDigest" value="{{.PlanDigest}}">{{end}}
+    {{with .NA}}{{template "na" .}}{{end}}
+    {{if .Blocked}}<p class="banner err">Something blocks this publish. Close this and fix it first.</p>{{end}}
+    {{with .Required}}<fieldset><legend>Accept the required advisories</legend>{{range .}}<label><input type="checkbox" name="accept" value="{{.ID}}" required> <code>{{.ID}}</code>{{with .Reason}} · {{.}}{{end}}</label>{{end}}
+      <label class="ui-type">Reason <span class="muted">(8 characters or more; it goes into the snapshot)</span><input type="text" name="reason" data-min="8"></label></fieldset>{{end}}{{end}}
+    {{with .Busy}}<p class="banner warn">{{.}}</p>{{end}}
+    <p>The publish signs the staged RPMs with your key and makes them the new <b>latest</b> of each target. The clients get them on their next update.</p>
+    <label class="ui-type">Type the set name <code>{{.Set.Name}}</code> to confirm<input type="text" name="typed" data-must="{{.Set.Name}}" autocomplete="off" required></label>
+    <p class="muted">repoctl gets this confirmation on file descriptor 3, never <code>--yes</code>.</p>
+  </div>
+  <footer><button class="btn" type="button" data-close-dialog>Cancel</button><button class="btn btn-primary" type="submit" disabled>Sign and publish</button></footer>
+</form></dialog>{{end}}
+
+{{define "agent-drawer"}}<aside class="drawer agent-drawer" id="drawer" aria-labelledby="ag-t">
+  <div class="dr-head"><div class="dr-title"><h2 id="ag-t">{{.Label}}</h2>
+    <button class="icon-btn" type="button" data-drawer-close aria-label="Close the agent panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <p class="dr-sub">Agent · read only · it changes nothing</p></div>
+  <div class="dr-body" {{with .ID}}sse-swap="agent:{{.}}" hx-swap="innerHTML"{{end}}>{{template "agent-body" .}}</div>
+</aside>{{end}}
+
+{{define "agent-body"}}{{if .Off}}<div class="ui-na"><p><b>No agent is configured.</b></p><p>{{.Off}}</p>
+  <p>Set <code>agent.command</code> (for example <code>claude</code>) in <code>~/.config/repoctl/config.yaml</code>, then reload this page.</p></div>
+{{else}}<p class="muted">{{.Skill}}{{with .Input}} · {{.}}{{end}} · started {{clock .Started}}{{if .Running}} <span class="pill st-running">running</span>{{else}} · {{.State}}{{end}}</p>
+  {{with .Error}}<p class="ui-err">{{.}}</p>{{end}}
+  {{if .Text}}<pre class="agent-text">{{.Text}}</pre>{{else if .Running}}<p>The agent reads the set with the read-only tools of repoctl…</p>{{end}}
+  {{if .Running}}<form hx-post="/-/agent/{{pe .ID}}/stop" hx-target="#drawer" hx-swap="outerHTML"><button class="btn btn-sm" type="submit">Stop</button></form>{{end}}
+{{end}}{{end}}

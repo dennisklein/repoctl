@@ -4755,7 +4755,7 @@
         },
         "rpms": {
           "type": "integer",
-          "description": "Binary RPMs in the snapshot."
+          "description": "All RPM files of the snapshot: the binary, source and debuginfo RPMs of the three repositories of the target."
         },
         "added": {
           "type": "integer",
@@ -5072,12 +5072,11 @@
     },
     "KeyDeploymentEntry": {
       "type": "object",
-      "description": "One entry of keys/deployed.yaml: a human confirmed that all clients of the target, and the keyring of its mirror line, have the release NVR with the key.",
+      "description": "One entry of keys/deployed.yaml: a human confirmed that all clients of the target, and the keyring of its mirror line, have the key. A release record gives the release NVR with the key; a key file record gives the sha256 and the set commit of a key file that config management installed without a release package (signing.html#record-forms).",
       "required": [
         "key",
         "target",
         "fingerprint",
-        "release",
         "confirmedBy",
         "at"
       ],
@@ -5097,7 +5096,15 @@
         },
         "release": {
           "type": "string",
-          "description": "NVR of the release package with the dist tag, e.g. slurm-release-26.05-3.el9."
+          "description": "Release record: NVR of the release package with the dist tag, e.g. slurm-release-26.05-3.el9."
+        },
+        "keyfile": {
+          "$ref": "#/$defs/Sha256",
+          "description": "Key file record: the sha256 of the key file, as repoctl sign keyfile --checksum prints it."
+        },
+        "commit": {
+          "$ref": "#/$defs/Commit",
+          "description": "Key file record: the set commit of the key file."
         },
         "confirmedBy": {
           "type": "string",
@@ -5109,7 +5116,20 @@
         "note": {
           "type": "string"
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "release"
+          ]
+        },
+        {
+          "required": [
+            "keyfile",
+            "commit"
+          ]
+        }
+      ]
     },
     "KeyRemoval": {
       "type": "object",

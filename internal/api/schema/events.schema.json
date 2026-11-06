@@ -1,0 +1,905 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gsi-hpc.github.io/repoctl/schema/v1alpha1/events.json",
+  "title": "repoctl run journal line (runs/<run>.jsonl), format v1",
+  "type": "object",
+  "required": [
+    "v",
+    "run",
+    "seq",
+    "time",
+    "type"
+  ],
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "run": {
+      "$ref": "output.json#/$defs/RunId"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Gapless per run, from 1. The one order of the run."
+    },
+    "time": {
+      "$ref": "output.json#/$defs/Time"
+    },
+    "type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "span": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "description": "go-clikit span id this event is about (same id as in runs/<run>.progress.jsonl)."
+    },
+    "parent": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "node": {
+      "$ref": "output.json#/$defs/NodeId"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.started"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/RunStarted"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "plan.ready"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/PlanReady"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "node.state"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/NodeStateEvent"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "node.step"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/NodeStepEvent"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "node.log"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/NodeLogEvent"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "artifact.added"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/ArtifactAdded"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "staging.updated"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/StagingUpdated"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "warning"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/WarningEvent"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.cancel-requested"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/CancelRequested"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.finished"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/RunFinished"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "publish.started"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/PublishStarted"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "publish.step"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/PublishStep"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "publish.finished"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/PublishFinished"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "advisory"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/AdvisoryEvent"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "advisory.gone"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/AdvisoryGone"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "advisory.accepted"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/AdvisoryAccepted"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "gc.deleted"
+          }
+        }
+      },
+      "then": {
+        "$ref": "#/$defs/GcDeleted"
+      }
+    }
+  ],
+  "$defs": {
+    "EventType": {
+      "description": "Open: a reader skips a line whose type it does not know.",
+      "enum": [
+        "run.started",
+        "plan.ready",
+        "node.state",
+        "node.step",
+        "node.log",
+        "artifact.added",
+        "staging.updated",
+        "warning",
+        "run.cancel-requested",
+        "run.finished",
+        "publish.started",
+        "publish.step",
+        "publish.finished",
+        "advisory",
+        "advisory.gone",
+        "advisory.accepted",
+        "gc.deleted"
+      ]
+    },
+    "RunStarted": {
+      "required": [
+        "set",
+        "kind",
+        "trace",
+        "origin"
+      ],
+      "properties": {
+        "set": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "build",
+            "publish",
+            "check",
+            "gc"
+          ]
+        },
+        "trace": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "traceParent": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "description": "Span of the program that started the run (TRACEPARENT), for example the MCP server or the web UI."
+        },
+        "origin": {
+          "type": "object",
+          "required": [
+            "via",
+            "user",
+            "host"
+          ],
+          "properties": {
+            "via": {
+              "$ref": "output.json#/$defs/RunOrigin"
+            },
+            "user": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string"
+            },
+            "pid": {
+              "type": "integer"
+            },
+            "client": {
+              "type": "string"
+            },
+            "session": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$",
+              "description": "via mcp or ui: the random id that the MCP server or the web UI server picks at its start, one per server process. repoctl_run_cancel compares it with its own id."
+            }
+          }
+        },
+        "selection": {
+          "$ref": "output.json#/$defs/Selection"
+        },
+        "setCommit": {
+          "$ref": "output.json#/$defs/Commit"
+        },
+        "lockDigest": {
+          "$ref": "output.json#/$defs/Digest",
+          "description": "sha256 of the bytes of repoctl.lock that the run read. The set commit can differ: the lock is often not committed yet."
+        },
+        "repoctl": {
+          "type": "string"
+        },
+        "publishKind": {
+          "enum": [
+            "publish",
+            "restore",
+            "prune",
+            "resign",
+            "import",
+            "reseed"
+          ]
+        }
+      }
+    },
+    "PlanReady": {
+      "description": "Gives every node its first state. Build nodes start waiting. When the dependencies of a node are done, the node starts if a job slot is free, else it is queued. Current and staged nodes keep their plan state. No node.state line is written for a first state. commits gives the package commit of each node: journal.Fold and the staged rule read the commit of a node only here.",
+      "required": [
+        "summary",
+        "build",
+        "current",
+        "commits"
+      ],
+      "properties": {
+        "summary": {
+          "type": "object",
+          "required": [
+            "build",
+            "current",
+            "staged",
+            "skip"
+          ],
+          "properties": {
+            "build": {
+              "type": "integer"
+            },
+            "current": {
+              "type": "integer"
+            },
+            "staged": {
+              "type": "integer"
+            },
+            "skip": {
+              "type": "integer"
+            }
+          }
+        },
+        "build": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "node",
+              "reasons"
+            ],
+            "properties": {
+              "node": {
+                "$ref": "output.json#/$defs/NodeId"
+              },
+              "reasons": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "output.json#/$defs/PlanReasonCode"
+                }
+              },
+              "deps": {
+                "type": "array",
+                "items": {
+                  "$ref": "output.json#/$defs/NodeId"
+                }
+              }
+            }
+          }
+        },
+        "current": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/NodeId"
+          }
+        },
+        "staged": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/NodeId"
+          }
+        },
+        "skip": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/NodeId"
+          }
+        },
+        "commits": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "output.json#/$defs/NodeId"
+          },
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/Commit"
+          },
+          "description": "One key per node of build[], current[] and staged[]: the package commit that the node builds or reuses. With from lock, the commit of repoctl.lock; with from worktree, the worktree HEAD at plan time."
+        },
+        "fromRun": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "output.json#/$defs/NodeId"
+          },
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/RunId"
+          },
+          "description": "One key per node of staged[]: the build run whose staging the node reuses."
+        }
+      }
+    },
+    "NodeStateEvent": {
+      "description": "A change of the node state after its first state. A terminal state is the last node.state of the node.",
+      "required": [
+        "node",
+        "state",
+        "prev"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "output.json#/$defs/NodeState"
+        },
+        "prev": {
+          "$ref": "output.json#/$defs/NodeState"
+        },
+        "durationMs": {
+          "$ref": "output.json#/$defs/DurationMs"
+        },
+        "error": {
+          "$ref": "output.json#/$defs/NodeError"
+        },
+        "blockedBy": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/NodeId"
+          }
+        },
+        "nvrs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "checks": {
+          "$ref": "output.json#/$defs/NodeChecks"
+        }
+      }
+    },
+    "NodeStepEvent": {
+      "required": [
+        "node",
+        "step",
+        "phase"
+      ],
+      "properties": {
+        "step": {
+          "$ref": "output.json#/$defs/Step"
+        },
+        "phase": {
+          "enum": [
+            "started",
+            "ended"
+          ]
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "failed",
+            "canceled"
+          ]
+        },
+        "exitCode": {
+          "type": "integer"
+        },
+        "durationMs": {
+          "$ref": "output.json#/$defs/DurationMs"
+        },
+        "root": {
+          "type": "string",
+          "description": "phase started of srpm and rpm: the mock root of the step."
+        }
+      }
+    },
+    "NodeLogEvent": {
+      "description": "Sampled: at most one line per node every 2 s, plus each line that matches an error pattern. The full text is in logs/<run>/<node>.log.",
+      "required": [
+        "node",
+        "step",
+        "line",
+        "offset"
+      ],
+      "properties": {
+        "step": {
+          "$ref": "output.json#/$defs/Step"
+        },
+        "line": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte offset of this line in the node log."
+        },
+        "dropped": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lines written to the node log since the previous node.log event of this node and not sent here."
+        },
+        "level": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        }
+      }
+    },
+    "ArtifactAdded": {
+      "required": [
+        "node",
+        "kind",
+        "repo",
+        "nvra",
+        "sizeBytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "rpm",
+            "srpm",
+            "debuginfo",
+            "debugsource"
+          ]
+        },
+        "repo": {
+          "type": "string"
+        },
+        "nvra": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "sizeBytes": {
+          "type": "integer"
+        },
+        "sha256": {
+          "$ref": "output.json#/$defs/Sha256"
+        }
+      }
+    },
+    "StagingUpdated": {
+      "required": [
+        "target",
+        "repo",
+        "packages"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "output.json#/$defs/TargetId"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "packages": {
+          "type": "integer"
+        },
+        "revision": {
+          "type": "string"
+        }
+      }
+    },
+    "WarningEvent": {
+      "description": "A warning, with the same code as in warnings[] of the result.",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "output.json#/$defs/ProblemCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "output.json#/$defs/TargetId"
+        }
+      }
+    },
+    "CancelRequested": {
+      "description": "A human, a signal, the UI or the MCP server asked the run to stop.",
+      "required": [
+        "by"
+      ],
+      "properties": {
+        "by": {
+          "$ref": "output.json#/$defs/RunOrigin"
+        },
+        "user": {
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "signal",
+            "ui",
+            "mcp",
+            "deadline"
+          ],
+          "description": "deadline: build.timeout.run of the user config ended. A step limit fails one node with class timeout and writes no run.cancel-requested."
+        },
+        "force": {
+          "type": "boolean",
+          "description": "A second Ctrl-C or repoctl cancel --force: mock --orphanskill on the roots of the run without a wait, and the run ends without run.finished."
+        }
+      }
+    },
+    "RunFinished": {
+      "description": "The last line of a run.",
+      "required": [
+        "state",
+        "counts",
+        "durationMs",
+        "exitCode"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "output.json#/$defs/RunState"
+        },
+        "counts": {
+          "$ref": "output.json#/$defs/StateCounts"
+        },
+        "durationMs": {
+          "$ref": "output.json#/$defs/DurationMs"
+        },
+        "exitCode": {
+          "type": "integer"
+        },
+        "publishable": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/TargetId"
+          },
+          "description": "Targets whose nodes are all current or staged."
+        }
+      }
+    },
+    "PublishStarted": {
+      "required": [
+        "targets",
+        "by",
+        "signer"
+      ],
+      "properties": {
+        "fromRuns": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/RunId"
+          },
+          "description": "Build runs whose staged nodes this publish takes."
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/TargetId"
+          }
+        },
+        "by": {
+          "type": "string"
+        },
+        "dryRun": {
+          "type": "boolean"
+        },
+        "signer": {
+          "$ref": "output.json#/$defs/Signer"
+        },
+        "base": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "output.json#/$defs/Digest"
+          },
+          "description": "Per target: latest when the publish started."
+        },
+        "unattended": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PublishStep": {
+      "description": "Start or end of one publish step for one target.",
+      "required": [
+        "target",
+        "step",
+        "phase"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "output.json#/$defs/TargetId"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "step": {
+          "enum": [
+            "check",
+            "sign",
+            "repodata",
+            "verify",
+            "verify-el",
+            "push",
+            "tag",
+            "cache"
+          ]
+        },
+        "phase": {
+          "enum": [
+            "started",
+            "ended"
+          ]
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "failed",
+            "canceled",
+            "skipped"
+          ]
+        },
+        "count": {
+          "type": "integer"
+        },
+        "digest": {
+          "$ref": "output.json#/$defs/Digest"
+        }
+      }
+    },
+    "PublishFinished": {
+      "required": [
+        "state",
+        "targets"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "ok",
+            "failed",
+            "canceled"
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "output.json#/$defs/TargetId"
+          }
+        },
+        "exitCode": {
+          "type": "integer"
+        },
+        "snapshots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "tag": {
+                "type": "string"
+              },
+              "digest": {
+                "$ref": "output.json#/$defs/Digest"
+              }
+            }
+          },
+          "description": "Per target: the new snapshot."
+        }
+      }
+    },
+    "AdvisoryEvent": {
+      "description": "A plan, a node build or a check found an advisory, or gave it a new state.",
+      "required": [
+        "id",
+        "state",
+        "level"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "output.json#/$defs/AdvisoryState"
+        },
+        "level": {
+          "$ref": "output.json#/$defs/AdvisoryLevel"
+        },
+        "factsDigest": {
+          "$ref": "output.json#/$defs/Digest"
+        }
+      }
+    },
+    "AdvisoryGone": {
+      "description": "A check, or the end of a run, does not find the advisory any more.",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "AdvisoryAccepted": {
+      "description": "A human accepted a blocking advisory for one publish.",
+      "required": [
+        "id",
+        "factsDigest",
+        "reason",
+        "user",
+        "host"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "factsDigest": {
+          "$ref": "output.json#/$defs/Digest"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 8,
+          "description": "The --reason of the publish, 8 characters or more."
+        },
+        "user": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        }
+      }
+    },
+    "GcDeleted": {
+      "description": "repo gc --apply deleted one package version (one snapshot).",
+      "required": [
+        "target",
+        "publish",
+        "digest"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "output.json#/$defs/TargetId"
+        },
+        "publish": {
+          "type": "string",
+          "description": "Publish id of the deleted snapshot."
+        },
+        "digest": {
+          "$ref": "output.json#/$defs/Digest"
+        }
+      }
+    }
+  }
+}

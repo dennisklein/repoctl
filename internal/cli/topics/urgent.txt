@@ -1,0 +1,45 @@
+URGENT FIX
+
+A failed, blocked or unbuilt node of another package makes its target
+not publishable. For an urgent fix, the human holds that node back for
+one publish. A held node keeps its build in the base, or stays out of
+the snapshot when the base has no build of it. The publish takes the
+other staged nodes as usual.
+
+  - --hold NODE needs --reason TEXT with 8 characters or more. A held
+    node that is current or staged is a usage error (exit 2), so nobody
+    holds in advance.
+  - The advisory gate runs on the result tree with the base build of
+    each held node. When a taken node needs the new build of a held
+    node, the gate finds the broken requirement and blocks the publish.
+  - The summary shows each held node with the NVR that it keeps and the
+    reason. The annotation io.repoctl.held and the publish history
+    record the held nodes with the reason.
+  - The lock does not change. The next plan shows each held node with
+    the action build again.
+
+A variant of the story, not the story: ucx 1.22.1 is a security fix, and
+el10 must get it before the fix of slurm@el10. ucx@el10 and openmpi@el10
+are staged in r-20261102-1750-a3f.
+
+  $ repoctl publish --target el10 --hold slurm@el10 --hold slurm-singularity-exec@el10 \
+      --reason "ucx 1.22.1 security fix before the fix of slurm@el10"
+  publish  p-20261103-1520-0d4  el10 of slurm-26.05  from run r-20261102-1750-a3f
+  …
+  held     slurm@el10 keeps 26.05.4-1.el10 · slurm-singularity-exec@el10 keeps 3.2.0-1.el10
+           reason: ucx 1.22.1 security fix before the fix of slurm@el10
+
+repoctl help urgent prints the steps:
+
+  URGENT
+
+  Publish a fix fast, while another node of the target is not ready.
+    1. Commit the fix in packages/PKG and push the package branch.
+    2. repoctl pin PKG, then commit and push repoctl.lock.
+    3. repoctl build PKG --target TARGET
+    4. repoctl publish --target TARGET --dry-run
+       A node that is not current or staged stops it: publish.not-ready.
+    5. repoctl publish --target TARGET --hold NODE --reason "TEXT"
+       Each held node keeps its published build for this publish only.
+    6. repoctl status          served: same after the mirror job ran
+  The held nodes build again with the next plan. Fix them, then publish.
