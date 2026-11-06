@@ -653,7 +653,7 @@ note: closure.broken/pmix@el9 is open. This plan does not change pmix, so the ad
   <tr><td><code>--fail-fast</code></td><td>Start no new node after the first failure, and cancel the running nodes (<a href="build.html#failures">build.html#failures</a>).</td></tr>
   </tbody>
   </table>
-  <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run; the host mock lock, shared</dd><dt>Preflight</dt><dd>mock, the mock configs, rpmautospec and free disk (<a href="build.html#run">build.html#run</a>); no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
+  <dl class="facts"><dt>Lock</dt><dd>set lock, for the whole run; the host mock lock, shared</dd><dt>Preflight</dt><dd>mock, podman, the mock configs, rpmautospec and free disk (<a href="build.html#run">build.html#run</a>); no GPG check</dd><dt>Writes</dt><dd>staging <code>~/.local/share/repoctl/SET/staging/RUN/TARGET/</code>; mock roots; journal and logs in <code>~/.local/state/repoctl/SET/</code> (<a href="contract.html#journal">contract.html#journal</a>)</dd><dt>Output</dt><dd>kind <code>Run</code></dd><dt>Exit</dt><dd>0 every node is ok, current or staged; 1; 2; 3; 5; 7; 9; 13; 130</dd></dl>
   <pre class="term">$ repoctl build
 note: run r-20261102-1750-a3f: 8 to build, 13 current, 3 at a time
 ✓ plan  4.2s    8 build, 13 current
@@ -1283,7 +1283,7 @@ repoctl skills uninstall [--user | --project] [NAME...]</pre>
   <h4><code>repoctl doctor</code> <span class="tag read">read</span></h4>
   <pre class="synopsis">repoctl doctor [--strict] [--only host|set|sign|registry|check]</pre>
   <p>Check this host and the set for build, sign and registry. Each check is ok, warning or failed. Passed checks are dim, and each warning or failure has its fix under it (<a href="terminal.html#doctor">terminal.html#doctor</a>).</p>
-  <p>Required for build: git, mock, the group mock, the mock configs, rpmautospec, rpmspec, createrepo_c, the XDG directories and a valid <code>repoctl.yaml</code>. Required for publish: also rpmsign, gpg, the secret key, gates 1 and 3. A missing secret key is a warning, so a host that only builds gets exit 0.</p>
+  <p>Required for build: git, mock, podman, the group mock, the mock configs, rpmautospec, rpmspec, createrepo_c, the XDG directories and a valid <code>repoctl.yaml</code>. Required for publish: also rpmsign, gpg, the secret key, gates 1 and 3. A missing secret key is a warning, so a host that only builds gets exit 0.</p>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
@@ -1349,7 +1349,7 @@ would free 7.0 GiB</pre>
   <h4><code>repoctl mock</code> <span class="tag staging">staging</span></h4>
   <pre class="synopsis">repoctl mock update | clean
 repoctl mock shell TARGET [-- COMMAND...]</pre>
-  <p>Run mock with the config, macros and plugins of each selected target, as a build does (<a href="build.html#mock">build.html#mock</a>). update runs <code>mock --update</code> and updates the verify roots. clean runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots of this user that repoctl made (<code>repoctl-UID-…</code>). shell opens <code>mock --shell</code> in a shell root of one target (<code>repoctl-UID-shell-PID</code>).</p>
+  <p>Run mock with the config, macros and plugins of each selected target, as a build does (<a href="build.html#mock">build.html#mock</a>). update runs <code>mock --update</code> and updates the verify roots. clean runs <code>mock --clean</code> and <code>--scrub=bootstrap</code> on the roots of this user that repoctl made (<code>--uniqueext repoctl-UID-…</code>). shell opens <code>mock --shell</code> in a shell root of one target (<code>repoctl-UID-shell-PID</code>).</p>
   <dl class="facts"><dt>Lock</dt><dd>update and clean: set lock and the host mock lock, exclusive; shell: the host mock lock, shared</dd><dt>Writes</dt><dd>mock roots and verify roots</dd><dt>Output</dt><dd>one line per target; no <code>--json</code></dd><dt>Exit</dt><dd>0; 1; 7 <code>set.busy</code> or <code>mock.busy</code>; 9; shell: the status of the shell</dd></dl>
   <pre class="term">$ repoctl mock shell el10 -- rpm -q --whatprovides rocm-smi-devel
 no package provides rocm-smi-devel</pre>

@@ -191,8 +191,8 @@ skills: [.claude/skills]           # optional set-local skills; they can only ad
 <tr><td><code>sign.checks.key_expiry_warn</code>, <code>.key_min_validity</code></td><td>no</td><td>Defaults 180d and 30d (<a href="signing.html#expiry">signing.html#expiry</a>).</td></tr>
 <tr><td><code>retention.snapshots.keep</code>, <code>.keep_days</code>, <code>.keep_removed</code></td><td>no</td><td>Rules for <code>repo gc</code>. Defaults 10, 90d and 1y (<a href="publish.html#gc">publish.html#gc</a>).</td></tr>
 <tr><td><code>targets[].id</code>, <code>.mock</code></td><td>yes</td><td>The target id and the mock config name.</td></tr>
-<tr><td><code>targets[].plugins</code></td><td>yes</td><td>Must contain <code>rpmautospec</code> (<a href="#rules">rules</a>). doctor and status show the plugins of each target.</td></tr>
-<tr><td><code>targets[].macros</code>, <code>.path</code>, <code>.repos</code></td><td>no</td><td>Macro files, the client path below <code>repo.url</code>, extra RPM repos for mock (<a href="#targets">targets</a>).</td></tr>
+<tr><td><code>targets[].plugins</code></td><td>yes</td><td>Must contain <code>rpmautospec</code> (<a href="#rules">rules</a>). repoctl adds <code>buildroot_lock</code> and <code>chroot_scan</code> itself (<a href="build.html#mock-config">mock config of a target</a>). doctor and status show the plugins of each target.</td></tr>
+<tr><td><code>targets[].macros</code>, <code>.path</code>, <code>.repos</code></td><td>no</td><td>Macro files in list order, the client path below <code>repo.url</code>, extra RPM repos for mock (<a href="#targets">targets</a>).</td></tr>
 <tr><td><code>targets[].state</code></td><td>no</td><td><code>active</code> (default) or <code>retired</code>. A retired target has no nodes, but the repo commands still act on its published repo (<a href="lifecycle.html#targets">retire a target</a>).</td></tr>
 <tr><td><code>targets[].closure_repos[]</code>: <code>id</code>, <code>url</code></td><td>no</td><td>The RPM repos that the clients of the target have. The closure check, <code>buildroot.drift</code> and the publish gate read them (<a href="advisories.html#check">advisories.html#check</a>). Default: the enabled repos of the mock config of the target, plus <code>.repos</code>.</td></tr>
 <tr><td><code>defaults.git.remote</code></td><td>no</td><td>The remote of the package branches. Default <code>origin</code>.</td></tr>
@@ -290,6 +290,8 @@ sets:
 <tr><td><code>agent.command</code>, <code>agent.args</code></td><td>none</td><td>The local agent of the agent buttons. Without it, the web UI shows no agent buttons (<a href="agents.html#agent-config">agents.html#agent-config</a>).</td></tr>
 <tr><td><code>agent.timeout</code></td><td>10m</td><td>The time limit of one agent run (<a href="agents.html#agent-buttons">agents.html#agent-buttons</a>).</td></tr>
 <tr><td><code>build.timeout.srpm</code>, <code>.rpm</code>, <code>.stage</code>, <code>.idle</code>, <code>.run</code></td><td>30m, 12h, 30m, 1h, 0</td><td>The time limits of a build step, of a mock child without output, and of a whole run; 0 is no limit (<a href="build.html#failures">build.html#failures</a>).</td></tr>
+<tr><td><code>mock.nosync</code></td><td>false</td><td>dnf and rpm in the mock root skip fsync. Needs the package nosync (<a href="build.html#mock-config">build.html#mock-config</a>).</td></tr>
+<tr><td><code>mock.tmpfs</code></td><td>none</td><td>A size, for example <code>32g</code>: the mock root is a tmpfs of this maximum size. Each job slot needs this RAM.</td></tr>
 <tr><td><code>state.keep_runs</code></td><td>50</td><td>The number of finished build runs whose journals and logs stay (<a href="contract.html#retention">contract.html#retention</a>).</td></tr>
 <tr><td><code>state.keep_publishes</code></td><td>100</td><td>The number of publish runs whose journals stay.</td></tr>
 <tr><td><code>state.keep_checks</code></td><td>30</td><td>The number of check runs whose journals stay (<a href="contract.html#writing">contract.html#writing</a>).</td></tr>
@@ -440,7 +442,7 @@ sets:
   <li><b>Client path.</b> <code>targets[].path</code> is the path below <code>repo.url</code>. The mirror job serves each target there.</li>
   <li><b>One architecture per target.</b> The architecture of a target is the last part of its mock config name: <code>x86_64</code> in <code>rocky+epel-9-x86_64</code>. This release supports only <code>x86_64</code>. Another architecture, or a mock config name that does not end with one, gives <code>config.unsupported</code> (exit 1).</li>
   <li><b>No <code>$basearch</code>.</b> The client path names the target, so it has no <code>$basearch</code>. A <code>noarch</code> package builds on each target, with the dist tag of that target.</li>
-  <li><b>Macro files.</b> repoctl gives <code>targets[].macros</code> to mock after the macros of the mock config. Thus a macro file can set <code>%dist</code>, for example <code>%dist .el9~testing</code> in a testing set (<a href="lifecycle.html#testing">lifecycle.html#testing</a>).</li>
+  <li><b>Macro files.</b> repoctl joins the files of <code>targets[].macros</code> in list order into one macro file (<a href="build.html#mock-config">mock config of a target</a>). mock reads it after the macros of the mock config. A later file wins over an earlier one. Thus a macro file can set <code>%dist</code>, for example <code>%dist .el9~testing</code> in a testing set (<a href="lifecycle.html#testing">lifecycle.html#testing</a>).</li>
 </ul>
 <p>The tasks are in the lifecycle chapter: <a href="lifecycle.html#some-targets">build a package for some targets only</a>, <a href="lifecycle.html#targets">add or retire a target</a>.</p>
 

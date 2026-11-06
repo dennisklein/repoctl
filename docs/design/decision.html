@@ -10,7 +10,7 @@
 <p class="lede">This chapter gives the reasons for the design of repoctl. It starts from the bash scripts today, the real build graph and six problems, and scores six options against seven criteria. It then specifies the choice: its layers, Go packages, branches, name and license.</p>
 <ul class="keypoints">
   <li>repoctl is one Go binary on <code>GSI-HPC/go-clikit</code>. It is the only part that builds, signs and publishes.</li>
-  <li>mock with the rpmautospec plugin stays the build isolation. repoctl calls git, mock, rpmsign, createrepo_c and modifyrepo_c as child processes.</li>
+  <li>mock with the rpmautospec plugin stays the build isolation. repoctl calls git, mock, rpmsign, createrepo_c and modifyrepo_c as child processes. It uses the mock CLI and the plugins that ship with mock, and has no mock plugin of its own.</li>
   <li>The build graph is real but small: 11 packages, 14 edges, 4 levels. Dagger and BuildKit add a privileged second isolation layer for little gain.</li>
   <li>Agent skills alone are not deterministic. A signed release must be repeatable. The agent does judgment work only.</li>
   <li>A CLI, a local web UI and an MCP server share one core, one plan and one journal.</li>
@@ -189,6 +189,8 @@
 <tr><td>P6 copies of the scripts</td><td>A fix to the tool is one commit on <code>main</code> and one release for all sets (<a href="#home">where the tool lives</a>).</td></tr>
 </tbody>
 </table>
+<aside class="callout rule" id="mock-cli"><p class="callout-title">Rule: mock through its CLI only</p><p>repoctl calls the mock CLI with a wrapper config per target (<a href="build.html#mock-config">mock config of a target</a>). It turns on plugins that ship with mock: rpmautospec, buildroot_lock and chroot_scan. It installs no mock plugin of its own.</p></aside>
+<aside class="callout why"><p class="callout-title">Why no repoctl plugin for mock</p><p>A mock plugin is Python code in a directory of root, and mock runs it as root. It must match the plugin API version of mock exactly, so a mock update can stop it.</p><p>No hook of the API runs during rpmbuild. Thus a plugin sees no more of a build than the CLI, the logs and the result directory. The CLI and the plugins of mock give each fact that repoctl needs.</p></aside>
 
 <h2 id="layers">Layers</h2>
 <figure class="diagram wide">

@@ -12,7 +12,7 @@
   <li>Eight phases, 0 to 7. Each phase gives a tool that works on its own and ends with a "done when" in the terms of the data story.</li>
   <li>The bash-era scripts stay on the set branches until the first publish with repoctl.</li>
   <li>Each requirement gives a value from the data story and a design limit for scale, time or disk.</li>
-  <li>Tests V1 to V36 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
+  <li>Tests V1 to V39 run on Rocky 9, Rocky 10 and the Fedora host. Each test names the phase that it gates.</li>
   <li>Each open question names the phase that needs the answer.</li>
 </ul>
 
@@ -30,7 +30,7 @@
 <rect class="box" x="488" y="24" width="208" height="72" rx="8"/>
 <text class="t-title" x="504" y="48">2 Build</text>
 <text class="t-small t-muted" x="504" y="68">plan, staging, manifest</text>
-<text class="t-small t-mono" x="504" y="86">V6 V19 V20 V22 V23 V35 V36</text>
+<text class="t-small t-mono" x="504" y="86">V6 V19 V20 V22 V23 V35–V39</text>
 <rect class="box" x="720" y="24" width="208" height="72" rx="8"/>
 <text class="t-title" x="736" y="48">3 Publish</text>
 <text class="t-small t-muted" x="736" y="68">GHCR, mirror job, gates</text>
@@ -263,7 +263,7 @@
 </table>
 <ul>
   <li><b>Story fixture.</b> The <dfn>story fixture</dfn> is the data story as test data: the set <code>slurm-26.05</code> with a set branch and 11 package branches. The specs are small, but they keep the names, versions, <code>BuildRequires</code> and <code>Provides</code> of the story. A script replays the story: the bump of ucx, the rebuild commits, run <code>r-20261102-1750-a3f</code> with the failure of slurm@el10, and publish <code>p-20261103-1412-5e1</code>. The fixture also holds the recorded tool output: <code>rpmspec</code> output, <code>buildroot_lock.json</code> and the mock logs of the story.</li>
-  <li><b>Mock stub.</b> The integration tests put a stub with the name <code>mock</code> first in <code>PATH</code>. It reads the arguments of repoctl and writes the recorded RPMs, logs and <code>buildroot_lock.json</code> of the node into <code>--resultdir</code>. It exits with the recorded exit code (0, 1 or 30). Thus CI needs no mock chroot and no network.</li>
+  <li><b>Mock stub.</b> The integration tests put a stub with the name <code>mock</code> first in <code>PATH</code>. It reads the arguments of repoctl and writes the recorded RPMs, logs and <code>buildroot_lock.json</code> of the node into <code>--resultdir</code>. It exits with the recorded exit code (0, 1 or 30). It answers <code>--chroot</code> with the recorded <code>rpm -qa</code> lines of the buildroot facts, <code>--debug-config</code> with a recorded config, and <code>--clean</code> with exit 0. Thus CI needs no mock chroot and no network.</li>
   <li><b>Golden files.</b> A <dfn>golden file</dfn> is the expected output of one command or one UI fragment in the story state. <code>go test -update</code> writes the golden files again, and a human reviews the change. The mockups are the reference for what a human sees. When a golden file changes what a human sees, the same pull request changes the mockup and its screenshot.</li>
   <li><b>Code.</b> Unit tests are next to their Go package. The fixture is in <code>testdata/story/</code>, the helpers are in <code>internal/testkit</code> (<a href="decision.html#code-layout">Go packages</a>). The end-to-end tests and the scale tests have the Go build tags <code>e2e</code> and <code>scale</code>, so <code>go test ./...</code> does not run them.</li>
   <li><b>Test keys.</b> The integration tests use the keys A, B and C of the verification tests. No test uses a key of a set.</li>
@@ -296,8 +296,8 @@
 <tr id="v20"><td>V20</td><td>A failed <code>dnf builddep</code> with the mock version of <code>hpc-a1</code>.</td><td>mock exits with 30. The error lines show "Failed build dependencies".</td><td>2</td></tr>
 <tr id="v21"><td rowspan="2">V21</td><td>Claude Code with the permission rule <code>Bash(git -C packages/:*)</code> and the guard hook, once from the plugin, once from <code>skills install --user</code>. Commits: <code>git -C packages/ucx commit …</code>; a commit in a package that <code>repoctl.yaml</code> adds after the install.</td><td>The commits in a package worktree match the prefix rule.</td><td rowspan="2">6</td></tr>
 <tr><td>The other calls: <code>git -C packages/ucx push origin ucx/slurm-26.05</code>, <code>git -C packages/ucx/.. commit -a</code>, <code>git -C packages/.. push</code>, an Edit of <code>keys/deployed.yaml</code>.</td><td>The <a href="agents.html#guard">guard hook</a> denies them, also in mode bypassPermissions.</td></tr>
-<tr id="v22"><td>V22</td><td>mock on Fedora with <code>rocky+epel-9-x86_64</code> and <code>rocky+epel-10-x86_64</code>, with the plugin <code>buildroot_lock</code>, <code>--uniqueext</code> and the rpmautospec plugin.</td><td><code>buildroot_lock.json</code> is in the result directory, with a signer for each Rocky and EPEL RPM.</td><td>2</td></tr>
-<tr id="v23"><td>V23</td><td>Read <code>SHA256HEADER</code> of each buildroot RPM after the build, before mock deletes the root.</td><td>A sha256 for each lock entry. If it fails, the provenance keeps <code>SIGMD5</code>.</td><td>2</td></tr>
+<tr id="v22"><td>V22</td><td>mock on Fedora with <code>rocky+epel-9-x86_64</code> and <code>rocky+epel-10-x86_64</code>, with the plugin <code>buildroot_lock</code>, <code>--uniqueext</code> and the rpmautospec plugin.</td><td><code>buildroot_lock.json</code> is in the result directory, with each buildroot RPM and the digest of the bootstrap image.</td><td>2</td></tr>
+<tr id="v23"><td>V23</td><td>The buildroot facts after a good build with the wrapper config: <code>mock --chroot -- rpm -qa</code> with <code>SHA256HEADER</code> and <code>RSAHEADER:pgpsig</code>, then <code>mock --clean</code>.</td><td>A header digest for each entry of <code>buildroot_lock.json</code>, and a signer key id for each Rocky and EPEL RPM. Only <code>gpg-pubkey</code> has no signer. The root is gone after the clean.</td><td>2</td></tr>
 <tr id="v24"><td>V24</td><td><code>rpmsign --resign</code> on a v4 RPM: compare the file sha256, <code>SHA256HEADER</code>, <code>PAYLOADDIGEST</code> and <code>SIGMD5</code> before and after.</td><td>Only the file sha256 changes.</td><td>3</td></tr>
 <tr id="v25"><td>V25</td><td>Size of the records of the publish of el9 (4 builds), and of a full target.</td><td>A number for the publish summary. Expected: under 1 MB per publish.</td><td>3</td></tr>
 <tr id="v26"><td>V26</td><td>Mirror job on EL9 with jq and sha256sum: check the records of a snapshot.</td><td>Pass on a good snapshot. Fail on a snapshot with one changed record.</td><td>3</td></tr>
@@ -312,6 +312,9 @@
 <tr id="v34"><td>V34</td><td>Fedora host: <code>dnf repoclosure --newest</code> with <code>--repofrompath</code> on a local el9 and el10 repo plus the Rocky and EPEL closure repos of each target. Repeat in <code>rocky:9</code> and <code>rocky:10</code>. Add one RPM with a requirement that no repo provides.</td><td>The same broken requirements on the Fedora host and in the EL container, and the added RPM is in both lists. If not, the check runs repoclosure in the verify root.</td><td>5</td></tr>
 <tr id="v35"><td>V35</td><td><code>mock --buildsrpm</code> after an empty commit, with a git worktree, a shallow clone and a source clone in <code>--sources</code>.</td><td>Only the source clone gives the release plus one. The worktree and the shallow clone give release 1, and the plugin writes no message.</td><td>2</td></tr>
 <tr id="v36"><td>V36</td><td>For each package of the import: the release from the clone of the bash scripts and from the source clone, with <code>rpmautospec calculate-release</code>.</td><td>The same release for each package. git ignores <code>--depth</code> for a local path, so the clones of the bash scripts have the full history.</td><td>2</td></tr>
+<tr id="v37"><td>V37</td><td><code>mock -r rocky+epel-9-x86_64 --debug-config</code> on a terminal, to a pipe, with <code>-v</code>, and twice in a row.</td><td>After repoctl removes the four keys of the <a href="build.html#mock-config">mock config hash</a>, the hashes are equal.</td><td>2</td></tr>
+<tr id="v38"><td>V38</td><td>Build with the data directory in a home directory on NFS with root_squash.</td><td>dnf in the bootstrap root reads the <code>--addrepo</code> path of the staging, or doctor names the problem.</td><td>2</td></tr>
+<tr id="v39"><td>V39</td><td>A failed build and a failed <code>dnf builddep</code> with the wrapper config. Two macro files with <code>--macro-file</code>, and the joined macro file.</td><td>The failed root stays, and <code>config.log</code> is in the result directory. <code>state.log</code> has a Finish line for each Start line. Only the last <code>--macro-file</code> applies; the joined file gives the macros of both.</td><td>2</td></tr>
 </tbody>
 </table>
 
@@ -327,6 +330,7 @@
 <tr><td>GHCR has no tag compare-and-swap. The race window between the checks of latest in step 1 and step 7 is acceptable, because the team coordinates in its own channel.</td><td><a href="publish.html#admins">two admins</a></td><td>—</td></tr>
 <tr><td>The GHCR packages are public, so the mirror job pulls without a token. A push needs a classic token with <code>write:packages</code> and a team with write access.</td><td><a href="publish.html#registry">registry access</a></td><td>V2, V3</td></tr>
 <tr><td>rpmautospec raises the release for each commit of a package branch, also for an empty one, when the sources directory is a full clone. It does nothing for an in-tree package or a git worktree.</td><td><a href="build.html#source-clone">source clone</a></td><td>V19, V35, V6</td></tr>
+<tr><td>The signer field of <code>buildroot_lock.json</code> reads only <code>SIGPGP</code>. Rocky and EPEL RPMs have <code>RSAHEADER</code>, so repoctl reads the signer from the root.</td><td><a href="build.html#buildroot-facts">buildroot facts</a></td><td>V23</td></tr>
 <tr><td>go-clikit gives the span id (<code>Span.TraceContext()</code>), the doctor format and the progress log. repoctl needs no change in go-clikit for the journal.</td><td><a href="contract.html#journal">journal</a></td><td>—</td></tr>
 <tr><td>The UI agent is Claude Code (<code>agent: {command: claude}</code>). repoctl reads its stream-json output.</td><td><a href="agents.html#agent-config">agent config</a></td><td>—</td></tr>
 <tr><td>mock exits with 30 when <code>dnf builddep</code> fails.</td><td>—</td><td>V20</td></tr>
