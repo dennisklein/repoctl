@@ -21,6 +21,15 @@ Needs: bash, coreutils, curl, jq, gnupg2 (gpgv), rpm (rpm, rpmkeys), gzip
 
 Install
 
+  From the RPM repo of repoctl (Fedora and EL), after the first install of
+  repoctl-release (docs/design/tool.html#tool-bootstrap):
+
+  dnf install repoctl-mirror
+  # edit /etc/repoctl-mirror.conf
+  systemctl enable --now repoctl-mirror.timer
+
+  By hand:
+
   install -D -m 0755 mirror /usr/libexec/repoctl-mirror/mirror
   install -D -m 0644 repoctl-mirror.sysusers /usr/lib/sysusers.d/repoctl-mirror.conf
   install -D -m 0644 repoctl-mirror.tmpfiles /usr/lib/tmpfiles.d/repoctl-mirror.conf

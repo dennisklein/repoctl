@@ -6,8 +6,26 @@ rpmautospec plugin), `rpmsign` and `createrepo_c`. It has a CLI, a local web
 UI and an MCP server for agents. It is built on
 [GSI-HPC/go-clikit](https://github.com/GSI-HPC/go-clikit).
 
-Status: first implementation of the design (phases 1 to 3, 5, 6 and 7 of
-the [delivery plan](docs/design/delivery.html)), not released yet.
+Status: first implementation of the design (phases 1 to 7 of the
+[delivery plan](docs/design/delivery.html)), not released yet. The release
+job is ready; the first release needs the tool repository key
+([packaging/README](packaging/README)).
+
+## Install
+
+repoctl comes as signed RPMs from its RPM repo on GitHub Pages
+([Tool releases](docs/design/tool.html)). The first install on a host:
+
+1. Download `https://dennisklein.github.io/repoctl/rpm/repoctl-release-1-1.noarch.rpm`.
+2. Compare its sha256 with the value in the notes of the newest
+   [GitHub Release](https://github.com/dennisklein/repoctl/releases).
+3. `sudo dnf install ./repoctl-release-1-1.noarch.rpm`
+4. Compare the fingerprint of `gpg --show-keys /etc/pki/rpm-gpg/RPM-GPG-KEY-repoctl`
+   with the tool repository key of the release notes.
+5. On an admin host (Fedora): `sudo dnf install repoctl`, then
+   `repoctl doctor --only host`. On the HTTP server: `sudo dnf install repoctl-mirror`.
+
+The fingerprint and the sha256 come here with the first release.
 
 License: [Apache-2.0](LICENSE), for the code and the design record on this
 branch. The fonts and the vendored script in `docs/assets/` keep their own
@@ -72,6 +90,7 @@ make generate       # the contract types from docs/design/contract/schema
 | `internal/mcp`, `internal/skills`, `internal/ui` | the MCP server, the agent skills and the web UI |
 | `internal/testkit` | the story fixture, the fake mock and the contract validator |
 | `contrib/mirror` | the mirror job of the HTTP server (shell, curl, jq, gpgv, rpmkeys) and its systemd units |
+| `packaging` | the spec files, the RPM repo on GitHub Pages and the scripts of the release job ([README](packaging/README)) |
 
 ## Build the docs site
 
