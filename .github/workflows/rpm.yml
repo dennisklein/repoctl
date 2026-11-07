@@ -1,0 +1,113 @@
+# Builds, signs and installs the RPMs of repoctl with a test key, the same
+# way as the release job does with the tool repository key
+# (docs/design/tool.html). The test key never leaves the run.
+name: rpm
+
+on:
+  pull_request:
+    paths:
+      - "packaging/**"
+      - "contrib/mirror/**"
+      - "cmd/**"
+      - "internal/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/rpm.yml"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/yank.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packaging/**"
+      - "contrib/mirror/**"
+      - ".github/workflows/rpm.yml"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/yank.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install the RPM tools
+        run: sudo apt-get update && sudo apt-get install -y rpm createrepo-c gnupg
+
+      # A key in place of TOOL_REPO_KEY. The binary lists it as current, so
+      # the check tool.repo-key can pass in the install test.
+      - name: Make a test key
+        run: |
+          export GNUPGHOME=$RUNNER_TEMP/gnupg
+          mkdir -m 0700 "$GNUPGHOME"
+          gpg --batch --quiet --passphrase '' --quick-gen-key 'repoctl tool repository (CI test)' rsa4096 sign 1y
+          fpr=$(gpg --list-keys --with-colons | awk -F: '$1 == "fpr" { print $10; exit }')
+          gpg --armor --export "$fpr" >"$RUNNER_TEMP/RPM-GPG-KEY-repoctl"
+          {
+            echo "GNUPGHOME=$GNUPGHOME"
+            echo "SIGNER=$fpr"
+            echo "REPOCTL_TOOL_KEYS=$fpr:current:$(date -u -d '+1 year' +%F)"
+          } >>"$GITHUB_ENV"
+
+      - name: Build the binary and the RPMs
+        run: packaging/build.sh "v0.0.${{ github.run_number }}" "$RUNNER_TEMP/RPM-GPG-KEY-repoctl" dist
+
+      - name: Sign and make the tree
+        run: packaging/sign-tree.sh "$SIGNER" "$RUNNER_TEMP/RPM-GPG-KEY-repoctl" dist "" out
+
+      # The yank job and the next release start from this tree. A released
+      # file keeps its bytes.
+      - name: Make the tree again from the tree (yank job, no new RPM)
+        run: |
+          mkdir empty
+          packaging/sign-tree.sh "$SIGNER" "$RUNNER_TEMP/RPM-GPG-KEY-repoctl" empty out/tree out2
+          test ! -s out2/added.txt
+          diff <(cd out/tree && sha256sum rpm/*.rpm rpm/*/x86_64/*.rpm) <(cd out2/tree && sha256sum rpm/*.rpm rpm/*/x86_64/*.rpm)
+
+      - name: The install matrix
+        id: matrix
+        run: |
+          . packaging/releasevers
+          echo "matrix=$(jq -nc --arg f "$FEDORA" --arg e "$EL" '[
+            ($f | split(" ")[] | {name: "Fedora \(.)", image: "quay.io/fedora/fedora:\(.)", packages: "repoctl repoctl-mirror"}),
+            ($e | split(" ")[] | {name: "EL \(.)", image: "quay.io/rockylinux/rockylinux:\(.)", packages: "repoctl-mirror"})
+          ]')" >>"$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm-repo
+          path: out/rpm-repo.tar
+          retention-days: 7
+
+  install:
+    needs: build
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.build.outputs.matrix) }}
+    name: install (${{ matrix.name }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: rpm-repo
+
+      - name: First install from the signed tree
+        run: |
+          mkdir tree
+          tar -xf rpm-repo.tar -C tree
+          docker run --rm -v "$PWD/tree:/repo:ro" -v "$PWD/packaging:/packaging:ro" \
+            "${{ matrix.image }}" bash /packaging/test-install.sh /repo ${{ matrix.packages }}
