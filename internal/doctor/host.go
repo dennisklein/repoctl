@@ -39,6 +39,7 @@ func init() {
 	Register(Spec{Group: GroupHost, Needs: []string{NeedBuild, NeedPublish, NeedCheck}, Run: checkXDG})
 	Register(Spec{Group: GroupHost, Run: checkLinger})
 	Register(Spec{Group: GroupHost, Run: checkSharedState})
+	Register(Spec{Group: GroupHost, Run: checkToolRepoKey})
 	registerSetLate()
 	// The sign group belongs to another part of repoctl. Until it registers
 	// its checks, one line says that they did not run.
