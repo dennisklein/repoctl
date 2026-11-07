@@ -1,5 +1,9 @@
 # Builds the design record (docs/) and publishes it on GitHub Pages.
 # A pull request only builds; a push to main or a manual run also deploys.
+# A deploy also publishes the RPM repo of repoctl at /rpm/: the signed tree
+# rpm-repo.tar of the newest GitHub Release (docs/design/tool.html#pages).
+# The release job and the yank job start this workflow on main. It needs
+# no key.
 name: docs
 
 on:
@@ -36,6 +40,19 @@ jobs:
       # Fails when a mockup misses the glossary links of the current glossary.
       - name: Check the glossary links of the mockups
         run: python3 tools/site/glossary.py mockups --check
+
+      # Only for a deploy: the RPM repo of the newest release, if any.
+      - if: github.event_name != 'pull_request'
+        name: Add the RPM repo of the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download --repo "$GITHUB_REPOSITORY" --pattern rpm-repo.tar --dir "$RUNNER_TEMP"; then
+            tar -xf "$RUNNER_TEMP/rpm-repo.tar" -C _site
+            find _site/rpm -name repomd.xml
+          else
+            echo "No release has rpm-repo.tar yet: the site has no /rpm/."
+          fi
 
       # Only for a deploy: the artifact that deploy-pages publishes.
       - if: github.event_name != 'pull_request'

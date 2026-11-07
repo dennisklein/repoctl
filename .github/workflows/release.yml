@@ -1,0 +1,161 @@
+# The release job of repoctl (docs/design/tool.html#pages). A tag v* on main
+# builds the binary and the RPMs, signs them with the tool repository key,
+# and puts the RPMs, the signed tree rpm-repo.tar and the attestations on a
+# GitHub Release. Then it starts docs.yml on main, which deploys the docs
+# with the tree of the newest release. A pre-release tag (v0.5.0-rc.1) makes
+# a GitHub pre-release; the Pages repo does not take it.
+#
+# Only the job "sign" reads the key: it runs in the environment tool-release,
+# which admits main and the tags v* and needs the approval of a maintainer.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tool-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag
+        run: |
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::the commit of $GITHUB_REF_NAME is not on main"
+            exit 1
+          fi
+          if [ ! -s packaging/RPM-GPG-KEY-repoctl ]; then
+            echo "::error::packaging/RPM-GPG-KEY-repoctl is missing: commit the public tool repository key first (packaging/README)"
+            exit 1
+          fi
+          v=${GITHUB_REF_NAME#v}
+          if sed 's/#.*//' packaging/yanked.txt | tr -d ' \t' | sed 's/^v//' | grep -qxF "$v"; then
+            echo "::error::$GITHUB_REF_NAME is in packaging/yanked.txt"
+            exit 1
+          fi
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build the binary and the RPMs
+        run: packaging/build.sh "$GITHUB_REF_NAME" packaging/RPM-GPG-KEY-repoctl dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  sign:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: tool-release
+    permissions:
+      contents: write # the GitHub Release
+      id-token: write # the Sigstore certificate of the attestations
+      attestations: write # the attestation store
+      actions: write # start docs.yml
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install the RPM tools
+        run: sudo apt-get update && sudo apt-get install -y rpm createrepo-c gnupg
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Import the tool repository key
+        env:
+          TOOL_REPO_KEY: ${{ secrets.TOOL_REPO_KEY }}
+        run: |
+          export GNUPGHOME=$RUNNER_TEMP/gnupg
+          fpr=$(packaging/import-key.sh)
+          echo "GNUPGHOME=$GNUPGHOME" >>"$GITHUB_ENV"
+          echo "SIGNER=$fpr" >>"$GITHUB_ENV"
+
+      - name: Get the tree of the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir old
+          if gh release download --repo "$GITHUB_REPOSITORY" --pattern rpm-repo.tar --dir "$RUNNER_TEMP"; then
+            tar -xf "$RUNNER_TEMP/rpm-repo.tar" -C old
+          else
+            echo "No release has rpm-repo.tar yet: the tree starts empty."
+          fi
+
+      - name: Sign and make the tree
+        run: packaging/sign-tree.sh "$SIGNER" packaging/RPM-GPG-KEY-repoctl dist old out
+
+      - name: Collect the files of the release
+        run: |
+          mkdir release
+          cp dist/repoctl-*-linux-x86_64.tar.gz out/rpm-repo.tar release/
+          while read -r f; do cp "dist/$f" release/; done <out/added.txt
+          (cd release && sha256sum -- * >SHA256SUMS)
+
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: release/*
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rel=$(cd out/tree/rpm && ls repoctl-release-*.noarch.rpm)
+          sum=$(cd out/tree/rpm && sha256sum "$rel" | cut -d' ' -f1)
+          {
+            echo "## Install"
+            echo
+            echo "First install on a host (https://dennisklein.github.io/repoctl/design/tool.html#tool-bootstrap):"
+            echo
+            echo "1. Download https://dennisklein.github.io/repoctl/rpm/$rel"
+            echo "2. Compare its sha256 with \`$sum\`."
+            echo "3. \`sudo dnf install ./$rel\`"
+            echo "4. Compare the fingerprint of \`gpg --show-keys /etc/pki/rpm-gpg/RPM-GPG-KEY-repoctl\` with the current key below."
+            echo "5. Admin host: \`sudo dnf install repoctl\`. HTTP server: \`sudo dnf install repoctl-mirror\`."
+            echo
+            echo "Upgrade: \`repoctl help upgrade\`."
+            echo
+            echo "## Tool repository keys"
+            echo
+            go run ./packaging/rpmtree keys | while read -r fpr state expires; do
+              echo "- \`$fpr\`: $state, expires $expires"
+            done
+            echo
+            echo "This release is signed with \`$SIGNER\`."
+            echo
+            echo "## Verify a download"
+            echo
+            echo "\`gh attestation verify FILE --repo $GITHUB_REPOSITORY\`"
+          } >notes.md
+          pre=()
+          case $GITHUB_REF_NAME in *-*) pre=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" --verify-tag "${pre[@]}" \
+            --title "repoctl ${GITHUB_REF_NAME#v}" --notes-file notes.md release/*
+
+      - name: Deploy the docs with the new tree
+        if: ${{ !contains(github.ref_name, '-') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs.yml --repo "$GITHUB_REPOSITORY" --ref main
