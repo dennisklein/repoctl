@@ -1,0 +1,104 @@
+repoctl packaging
+=================
+
+The RPMs of repoctl and its RPM repo on GitHub Pages. The design is in
+docs/design/tool.html, the phase in docs/design/delivery.html#phase-4.
+
+Files
+
+  repoctl.spec          the tool RPM, one per Fedora release; it packages
+                        the binary that build.sh makes with the Go of go.mod
+  repoctl-release.spec  the release RPM: the key file and the repo file
+  repoctl-mirror.spec   the mirror job RPM (contrib/mirror), noarch
+  repoctl.repo          /etc/yum.repos.d/repoctl.repo
+  RPM-GPG-KEY-repoctl   the public tool repository key (not here yet: see
+                        "Before the first release")
+  releasevers           the Fedora and EL releases of the RPM repo
+  yanked.txt            the bad releases (tool.html#tool-yank)
+  build.sh              the binary and the unsigned RPMs, in containers
+  sign-tree.sh          signs the RPMs, makes and checks the RPM repo
+  import-key.sh         imports TOOL_REPO_KEY in the release and yank jobs
+  test-install.sh       the first install in a container (CI)
+  rpmtree/              the layout of the RPM repo: retention and yank list
+
+Workflows (.github/workflows/)
+
+  rpm.yml      pull requests: build, sign with a test key, install in a
+               container of each release of releasevers
+  release.yml  a tag v* on main: build; after a maintainer approves the
+               job sign in the environment tool-release: sign, GitHub
+               Release with attestations, then docs.yml
+  yank.yml     manual, on main: the RPM repo without the yanked versions
+  docs.yml     deploys the docs and the rpm-repo.tar of the newest release
+
+Before the first release (once)
+
+  1. Make the key on a host without network (tool.html#tool-key). Give it
+     a passphrase:
+
+       export GNUPGHOME=$(mktemp -d)
+       gpg --quick-gen-key 'repoctl tool repository' rsa4096 sign 2y
+       gpg --list-keys --with-colons | awk -F: '$1 == "fpr" { print $10; exit }'
+
+     Keep one copy of the secret key offline: the export keeps the
+     passphrase.
+
+       gpg --armor --export-secret-keys FPR >repoctl-tool-key.offline.asc
+
+     The environment secret needs the key without a passphrase. Remove the
+     passphrase in a copy of GNUPGHOME only:
+
+       cp -a "$GNUPGHOME" "$GNUPGHOME.ci"
+       GNUPGHOME=$GNUPGHOME.ci gpg --passwd FPR        # empty passphrase
+       GNUPGHOME=$GNUPGHOME.ci gpg --armor --export-secret-keys FPR >ci.asc
+
+  2. In the repository settings, add the environment tool-release:
+     required reviewers are the maintainers; deployment branches and tags
+     are main and v*. Add the environment secret TOOL_REPO_KEY with the
+     content of ci.asc. Then delete ci.asc and GNUPGHOME.ci (shred -u).
+     No repository or organization secret holds the key.
+
+  3. Commit on main, in one reviewed commit:
+       - packaging/RPM-GPG-KEY-repoctl: gpg --armor --export FPR
+       - internal/doctor/toolkey.go: ToolKeys = "FPR:current:YYYY-MM-DD"
+         (the expiry date of the key)
+       - the fingerprint in README.md and in the key table of
+         docs/design/tool.html
+
+  4. Tag the first release on main and push the tag:
+
+       git tag -s v0.1.0 -m 'repoctl 0.1.0' && git push origin v0.1.0
+
+     Approve the job sign of the workflow release in the Actions tab.
+
+  5. Put the sha256 of repoctl-release-1-1.noarch.rpm (in the release notes)
+     into README.md and into the row "First install" of the key table of
+     docs/design/tool.html.
+
+Each release
+
+  Tag on main (git tag -s vX.Y.Z), push the tag, approve the job sign. A
+  pre-release tag (vX.Y.Z-rc.N) makes a GitHub pre-release, which the
+  Pages repo does not take.
+
+  A change of RPM-GPG-KEY-repoctl or repoctl.repo raises Version in
+  repoctl-release.spec, and changes the sha256 of the first install
+  (step 5) after the release. A version of repoctl-release that the RPM
+  repo already has keeps its released file.
+
+  A new Fedora release: add it to releasevers. A Fedora release at end of
+  life: remove it; the next release drops its directory.
+
+Bad release, key rotation, key compromise
+
+  tool.html#tool-yank, #tool-rotation and #tool-compromise. The yank job
+  is the workflow yank on main.
+
+Test the scripts on a host with docker (or CONTAINER=podman):
+
+  export GNUPGHOME=$(mktemp -d)
+  gpg --batch --passphrase '' --quick-gen-key 'test' rsa4096 sign 1y
+  FPR=$(gpg --list-keys --with-colons | awk -F: '$1 == "fpr" { print $10; exit }')
+  gpg --armor --export "$FPR" >/tmp/key.asc
+  packaging/build.sh v0.0.1 /tmp/key.asc dist
+  packaging/sign-tree.sh "$FPR" /tmp/key.asc dist "" out
