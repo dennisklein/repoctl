@@ -18,5 +18,8 @@ starts after 0.1.0, the first release.
 - `repoctl help team` and the hint of the doctor check `tool.repo-key` link to
   [First install](https://dennisklein.github.io/repoctl/manual/install.html#first-install)
   in the manual.
+- The runbooks are now part IV of the
+  [user manual](https://dennisklein.github.io/repoctl/manual/), at
+  `manual/runbooks/`. The old URLs redirect to the new pages.
 
 [Unreleased]: https://github.com/dennisklein/repoctl/compare/v0.1.0...HEAD

@@ -398,8 +398,8 @@ Next: steps 3 to 14 of "repoctl help new-set":
   <h4><code>repoctl migrate</code> <span class="tag local">local write</span></h4>
   <pre class="synopsis">repoctl migrate [--name NAME] [--dry-run] [--force]
 repoctl migrate --api [--dry-run]</pre>
-  <p>Convert a set branch of the bash scripts to a set (<a href="../runbooks/import.html#convert">import runbook</a>). migrate reads <code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code>, the build lines of <code>scripts/build</code> and the tables <code>REPO_MAP</code> and <code>DEFAULT_FILTERS</code> of the package-info skill. It deletes no old file. It reports each difference between the hand order of <code>scripts/build</code> and the graph.</p>
-  <p>migrate does not import the published RPMs; an agent does that with the <a href="../runbooks/import.html">import runbook</a>.</p>
+  <p>Convert a set branch of the bash scripts to a set (<a href="../manual/runbooks/import.html#convert">import runbook</a>). migrate reads <code>packages.lock</code>, <code>scripts/common.sh</code>, <code>scripts/macros</code>, the build lines of <code>scripts/build</code> and the tables <code>REPO_MAP</code> and <code>DEFAULT_FILTERS</code> of the package-info skill. It deletes no old file. It reports each difference between the hand order of <code>scripts/build</code> and the graph.</p>
+  <p>migrate does not import the published RPMs; an agent does that with the <a href="../manual/runbooks/import.html">import runbook</a>.</p>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
@@ -420,7 +420,7 @@ Next: check the files, then:
   1. add the el10 target, store.oci, repo.url and the release package
   2. update CLAUDE.md: it still tells agents to run ./scripts/build
   3. repoctl doctor; repoctl plan
-  4. import the published repo: https://dennisklein.github.io/repoctl/runbooks/import.html
+  4. import the published repo: https://dennisklein.github.io/repoctl/manual/runbooks/import.html
      keep packages.lock and scripts/ until the first publish with repoctl</pre>
 </section>
 
@@ -896,7 +896,7 @@ repoctl repo push --reseed --target ID [--from DIR] [--dry-run] [--yes]</pre>
   <table class="compact">
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
-  <tr><td><code>--from DIR --manifest FILE</code></td><td>Make the first snapshot <code>p-import-YYYYMMDD</code> of a target from a signed tree (<a href="publish.html#first-publish">publish.html#first-publish</a>, <a href="../runbooks/import.html#push">import runbook</a>). A wrong import after the tag step needs the <a href="../runbooks/import.html#stop">recovery of the runbook</a>.</td></tr>
+  <tr><td><code>--from DIR --manifest FILE</code></td><td>Make the first snapshot <code>p-import-YYYYMMDD</code> of a target from a signed tree (<a href="publish.html#first-publish">publish.html#first-publish</a>, <a href="../manual/runbooks/import.html#push">import runbook</a>). A wrong import after the tag step needs the <a href="../manual/runbooks/import.html#stop">recovery of the runbook</a>.</td></tr>
   <tr><td><code>--reseed</code></td><td>Make the snapshot <code>p-reseed-YYYYMMDD</code> of a target again after the loss of its OCI package (<a href="publish.html#disaster">publish.html#disaster</a>). DIR is a copy of the last latest; the default is the local copy.</td></tr>
   <tr><td><code>--dry-run</code>, <code>--yes</code></td><td>As for <a href="#shared-rules">shared state</a>.</td></tr>
   </tbody>
@@ -1086,7 +1086,7 @@ repoctl sign deployed ID --target ID... --withdraw [--note TEXT] [--dry-run]</pr
   <tr><td><code>--release NVR</code></td><td>The release in latest of each target whose key file holds the key.</td></tr>
   <tr><td><code>--keyfile SHA256</code></td><td>A key file record: the sum of <code>repoctl sign keyfile --checksum</code>, for an emergency or a target that is not publishable (<a href="signing.html#emergency">signing.html#emergency</a>).</td></tr>
   <tr><td><code>--target ID</code></td><td>Required; without it, exit 2.</td></tr>
-  <tr><td><code>--path DIR</code></td><td>For an import: the signed tree in place of latest (<a href="../runbooks/import.html#record-key">import runbook</a>).</td></tr>
+  <tr><td><code>--path DIR</code></td><td>For an import: the signed tree in place of latest (<a href="../manual/runbooks/import.html#record-key">import runbook</a>).</td></tr>
   <tr><td><code>--withdraw</code></td><td>Remove the entry of the key and each target (<a href="signing.html#deployment-repair">signing.html#deployment-repair</a>).</td></tr>
   <tr><td><code>--note TEXT</code></td><td>How the human checked the clients. It is public in the set repository (<a href="security.html#public">security.html#public</a>).</td></tr>
   <tr><td><code>--dry-run</code></td><td>Run the checks, show the entries and write nothing.</td></tr>
@@ -1528,7 +1528,7 @@ Each row names its dependencies, so the graph is clear without the lanes.
 </table>
 
 <h2 id="migration">Migration from today's scripts</h2>
-<p>Each script of the bash era (set branch <code>set/slurm-26.05</code>) maps to repoctl. The import of the published repositories is a runbook for an agent, not a command (<a href="../runbooks/import.html">../runbooks/import.html</a>).</p>
+<p>Each script of the bash era (set branch <code>set/slurm-26.05</code>) maps to repoctl. The import of the published repositories is a runbook for an agent, not a command (<a href="../manual/runbooks/import.html">../runbooks/import.html</a>).</p>
 <table class="compact">
 <thead><tr><th>Today</th><th>repoctl</th><th>Notes</th></tr></thead>
 <tbody>

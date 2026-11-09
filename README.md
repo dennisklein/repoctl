@@ -59,7 +59,7 @@ ad8eebea41eef412fd15cb7cf09e04a49c17622bd6dcaae0d2fd855e38c7e054
 
 The branches do not share history. Today the set branches hold the build
 scripts of the bash era (old name `builder/<set>`). The
-[import runbook](https://dennisklein.github.io/repoctl/runbooks/import.html) moves a set to `repoctl.yaml` and
+[import runbook](https://dennisklein.github.io/repoctl/manual/runbooks/import.html) moves a set to `repoctl.yaml` and
 `repoctl.lock`.
 
 ## License

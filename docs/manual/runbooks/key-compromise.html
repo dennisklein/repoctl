@@ -7,7 +7,7 @@
 </head>
 <body>
 <h1>Key compromise or lost key</h1>
-<p class="lede">Use this runbook when another human can use a signing key, or when nobody can use it any more. The rules and reasons are in <a href="../design/signing.html#emergency">Signing and trust: emergency</a>.</p>
+<p class="lede">Use this runbook when another human can use a signing key, or when nobody can use it any more. The rules and reasons are in <a href="../../design/signing.html#emergency">Signing and trust: emergency</a>.</p>
 <ul class="keypoints">
   <li>Compromised: <code>repoctl sign revoke</code>, then config management installs the new key file on all hosts at once. The clients refuse the files of the key until the re-sign.</li>
   <li>Lost: <code>repoctl sign retire</code>, then the normal rotation. The signatures of a lost key stay valid.</li>
@@ -17,7 +17,7 @@
 <aside class="callout rule" id="rules">
 <p class="callout-title">Rules</p>
 <ul>
-<li>A human does each step. An agent can read <code>repoctl sign ls</code>, <code>repoctl status</code> and the snapshots, and it can show the commands. It does not sign, push, revoke or change config management (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>A human does each step. An agent can read <code>repoctl sign ls</code>, <code>repoctl status</code> and the snapshots, and it can show the commands. It does not sign, push, revoke or change config management (<a href="../../design/agents.html#deny">deny list</a>).</li>
 <li>When you are not sure if a key is lost or compromised, treat it as compromised.</li>
 <li>When a check fails, stop and tell the team.</li>
 </ul>
@@ -40,7 +40,7 @@
 <tr><td>Another human can sign with the key, or maybe can</td><td><a href="#compromise">Compromise</a></td></tr>
 <tr><td>Nobody can sign with the key any more, and another active key is deployed for each target</td><td><a href="#lost">Lost key</a></td></tr>
 <tr><td>Nobody can sign with the key any more, and it is the only deployed key of a target</td><td><a href="#last-signer">Last deployed signer</a></td></tr>
-<tr><td>The PIN is blocked, and the reset code or the Admin PIN works</td><td>No key change: unblock the PIN (<a href="../design/signing.html#card">card and key failures</a>).</td></tr>
+<tr><td>The PIN is blocked, and the reset code or the Admin PIN works</td><td>No key change: unblock the PIN (<a href="../../design/signing.html#card">card and key failures</a>).</td></tr>
 </tbody>
 </table>
 
@@ -62,19 +62,19 @@
 <h2 id="lost">Lost key</h2>
 <ol class="steps">
 <li>Run <code>repoctl sign retire ID</code>. It needs no secret key. Push the set commit.</li>
-<li>The human of the lost key makes a new key (<a href="../design/signing.html#help-key">help key</a>) and onboards it (<a href="../design/signing.html#onboarding">onboarding</a>).</li>
-<li>With another active, deployed key, run <code>repoctl repo resign --signer ID</code> for each target. Then run <code>repoctl sign remove ID</code> and publish the new release package (<a href="../design/signing.html#offboarding">offboarding and rotation</a>).</li>
+<li>The human of the lost key makes a new key (<a href="../../design/signing.html#help-key">help key</a>) and onboards it (<a href="../../design/signing.html#onboarding">onboarding</a>).</li>
+<li>With another active, deployed key, run <code>repoctl repo resign --signer ID</code> for each target. Then run <code>repoctl sign remove ID</code> and publish the new release package (<a href="../../design/signing.html#offboarding">offboarding and rotation</a>).</li>
 </ol>
 
 <h2 id="last-signer">Last deployed signer</h2>
 <p><code>sign retire</code> refuses the last deployed signer (<code>sign.last-signer</code>). A key file record deploys a new key without a release package.</p>
 <ol class="steps">
-<li>The human makes a new key (<a href="../design/signing.html#help-key">help key</a>) and runs <code>repoctl sign add NEW --fingerprint FPR</code>. Push the set commit.</li>
+<li>The human makes a new key (<a href="../../design/signing.html#help-key">help key</a>) and runs <code>repoctl sign add NEW --fingerprint FPR</code>. Push the set commit.</li>
 <li>For a compromised key, run <code>repoctl sign revoke ID</code> now and push. For a lost key, skip this step.</li>
 <li>Run <code>repoctl sign keyfile --checksum</code>. Config management installs the key file with this pinned sum. It installs it on the HTTP server and on all clients of each target. For a compromised key, it also does the client commands of <code>repoctl sign offboard ID</code>.</li>
 <li>For each target, run <code>repoctl sign deployed NEW --keyfile SHA256 --target ID</code> and type the key id. Push the set commit.</li>
 <li>For a lost key, run <code>repoctl sign retire ID</code> now. Then continue with step 3 of <a href="#lost">Lost key</a>, with NEW as the signer. For a compromised key, continue with step 4 of <a href="#compromise">Compromise</a>.</li>
-<li>Onboard a second key for each target (<a href="../design/signing.html#recovery">two deployed signers</a>).</li>
+<li>Onboard a second key for each target (<a href="../../design/signing.html#recovery">two deployed signers</a>).</li>
 </ol>
 
 <h2 id="stop">Stop conditions</h2>
