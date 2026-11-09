@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CLI reference</title>
+<meta name="description" content="The commands of repoctl in seven groups with their main flags, the global flags, selectors, environment variables, files, help topics and exit codes.">
+</head>
+<body>
+<h1>CLI reference</h1>
+<p class="lede">This page lists each command of repoctl with its main flags. <code>repoctl COMMAND --help</code> always shows the full list of flags for your version. The design of each command is in <a href="../design/cli.html">CLI (design)</a>.</p>
+<ul class="keypoints">
+  <li>Run repoctl in a set directory, or give it with <code>-C DIR</code>.</li>
+  <li>Add <code>--json</code> to any command for a machine-readable result.</li>
+  <li>A command that changes shared state has <code>--dry-run</code>, a summary and a confirmation.</li>
+  <li>A command that writes the set waits for the set lock only with <code>--lock-wait</code>.</li>
+</ul>
+
+<h2 id="map">Map of the commands</h2>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 230" role="img" aria-labelledby="map-t">
+<title id="map-t">The command groups: workspace, build, repository, sign, check, upstream, agent and UI, admin</title>
+<rect class="zone" x="8" y="10" width="226" height="100" rx="10"/>
+<text class="t-title" x="22" y="34">Workspace</text>
+<text class="t-mono t-small" x="22" y="56">init migrate status list</text>
+<text class="t-mono t-small" x="22" y="74">show checkout pin rebuild</text>
+<rect class="zone" x="246" y="10" width="226" height="100" rx="10"/>
+<text class="t-title" x="260" y="34">Build</text>
+<text class="t-mono t-small" x="260" y="56">graph plan build</text>
+<text class="t-mono t-small" x="260" y="74">runs logs cancel</text>
+<rect class="zone" x="484" y="10" width="226" height="100" rx="10"/>
+<text class="t-title" x="498" y="34">Repository</text>
+<text class="t-mono t-small" x="498" y="56">publish</text>
+<text class="t-mono t-small" x="498" y="74">repo ls|diff|verify|pull|push|…</text>
+<rect class="zone" x="722" y="10" width="230" height="100" rx="10"/>
+<text class="t-title" x="736" y="34">Sign</text>
+<text class="t-mono t-small" x="736" y="56">sign ls|add|retire|deployed|…</text>
+<text class="t-mono t-small" x="736" y="74">release write</text>
+<rect class="zone" x="8" y="122" width="226" height="100" rx="10"/>
+<text class="t-title" x="22" y="146">Check and upstream</text>
+<text class="t-mono t-small" x="22" y="168">check advisories</text>
+<text class="t-mono t-small" x="22" y="186">upstream</text>
+<rect class="zone" x="246" y="122" width="226" height="100" rx="10"/>
+<text class="t-title" x="260" y="146">Agent and UI</text>
+<text class="t-mono t-small" x="260" y="168">ui mcp skills</text>
+<rect class="zone" x="484" y="122" width="468" height="100" rx="10"/>
+<text class="t-title" x="498" y="146">Admin</text>
+<text class="t-mono t-small" x="498" y="168">doctor clean mock config schema</text>
+<text class="t-mono t-small" x="498" y="186">version completion help</text>
+</svg>
+<figcaption>Seven groups. Most days you use status, plan, build, publish and doctor.</figcaption>
+</figure>
+
+<h2 id="global-flags">Global flags</h2>
+<p>These flags work on every command.</p>
+<table>
+<thead><tr><th>Flag</th><th>Meaning</th><th>Environment</th></tr></thead>
+<tbody>
+<tr><td><code>-C, --dir DIR</code></td><td>Start in this directory.</td><td><code>REPOCTL_DIR</code></td></tr>
+<tr><td><code>--config FILE</code></td><td>User config file.</td><td><code>REPOCTL_CONFIG</code></td></tr>
+<tr><td><code>--target ID[,ID]</code></td><td>Use only these targets.</td><td><code>REPOCTL_TARGET</code></td></tr>
+<tr><td><code>--json</code></td><td>Write the result as JSON.</td><td><code>REPOCTL_JSON</code></td></tr>
+<tr><td><code>--progress MODE</code></td><td><code>auto</code>, <code>tree</code>, <code>counter</code>, <code>plain</code> or <code>none</code>.</td><td><code>REPOCTL_PROGRESS</code></td></tr>
+<tr><td><code>--progress-log FILE</code></td><td>Append the progress events as JSONL.</td><td><code>REPOCTL_PROGRESS_LOG</code></td></tr>
+<tr><td><code>-q, --quiet</code></td><td>Write only errors.</td><td><code>REPOCTL_QUIET</code></td></tr>
+<tr><td><code>-v, -vv, -vvv</code></td><td>Show all rows and log more. <code>-vvv</code> shows every command that repoctl runs.</td><td><code>REPOCTL_VERBOSE</code></td></tr>
+<tr><td><code>--no-color</code></td><td>Draw without colour.</td><td><code>NO_COLOR</code></td></tr>
+</tbody>
+</table>
+
+<h2 id="workspace">Workspace commands</h2>
+<table>
+<thead><tr><th>Command</th><th>What it does</th><th>Main flags</th></tr></thead>
+<tbody>
+<tr><td><code>init</code></td><td>Write a starter <code>repoctl.yaml</code>, or fork a new set.</td><td><code>--name</code>, <code>--repo</code>, <code>--add-target ID=MOCKCFG</code>, <code>--from SET</code>, <code>--force</code></td></tr>
+<tr><td><code>migrate</code></td><td>Convert <code>packages.lock</code> and <code>scripts/</code> of the bash era, or move to a new apiVersion.</td><td><code>--api</code>, <code>--dry-run</code>, <code>--force</code></td></tr>
+<tr><td><code>status</code></td><td>Show the set, latest, the run, the advisories, the packages and the open setup steps.</td><td>—</td></tr>
+<tr><td><code>list [SELECTOR…]</code></td><td>List the packages of the set.</td><td><code>--buildrequires</code>, <code>--provides</code></td></tr>
+<tr><td><code>show SELECTOR</code></td><td>Show one package for each target.</td><td>—</td></tr>
+<tr><td><code>checkout [PKG…]</code></td><td>Make or update the package worktrees from the lock.</td><td><code>--create</code>, <code>--from-set SET</code>, <code>--from REF|fedora[:BRANCH]</code>, <code>--orphan</code>, <code>--fetch</code>, <code>--force</code>, <code>-j</code></td></tr>
+<tr><td><code>pin [PKG…]</code></td><td>Write the commits of the worktrees into the lock.</td><td><code>--fetch</code>, <code>--older</code>, <code>--orphans</code></td></tr>
+<tr><td><code>rebuild PKG…</code></td><td>Add an empty rebuild commit to package branches and pin it.</td><td><code>--reason TEXT</code> (required), <code>--dry-run</code></td></tr>
+</tbody>
+</table>
+<pre class="term">$ repoctl status
+$ repoctl list --provides
+$ repoctl checkout --fetch
+$ repoctl rebuild openmpi --reason "soname change of ucx"</pre>
+
+<h2 id="build">Build commands</h2>
+<table>
+<thead><tr><th>Command</th><th>What it does</th><th>Main flags</th></tr></thead>
+<tbody>
+<tr><td><code>graph [SELECTOR…]</code></td><td>Show the dependency graph of each target.</td><td><code>--format text|matrix|dot|json</code>, <code>--run RUN</code>, <code>--with-deps</code>, <code>--rdeps</code></td></tr>
+<tr><td><code>plan [SELECTOR…]</code></td><td>Show what a build does, and why.</td><td><code>--check</code> (exit 11 if a node builds), <code>--from lock|worktree</code>, <code>--force</code></td></tr>
+<tr><td><code>build [SELECTOR…]</code></td><td>Build packages into the staging of a new run.</td><td><code>-j N</code>, <code>--from lock|worktree</code>, <code>--fail-fast</code>, <code>--force</code>, <code>--lock-wait</code></td></tr>
+<tr><td><code>runs [RUN]</code></td><td>List the runs, or show one run.</td><td><code>--follow</code>, <code>--kind</code>, <code>--state</code>, <code>--limit</code></td></tr>
+<tr><td><code>logs [RUN] [NODE]</code></td><td>Show the build log of a node.</td><td><code>-f</code>, <code>--file repoctl|root|build|state</code>, <code>--step srpm|rpm|stage</code></td></tr>
+<tr><td><code>cancel [RUN]</code></td><td>Stop a running build.</td><td><code>--wait</code>, <code>--force</code></td></tr>
+</tbody>
+</table>
+<p>To try the commits of your worktrees before you pin them, run <code>repoctl build ucx --from worktree</code>. Such a run never stages a node.</p>
+
+<h2 id="repository">Repository commands</h2>
+<table>
+<thead><tr><th>Command</th><th>What it does</th><th>Main flags</th></tr></thead>
+<tbody>
+<tr><td><code>publish</code></td><td>Sign the staged nodes and make them the new latest.</td><td><code>--dry-run</code>, <code>-y</code>, <code>--run RUN</code>, <code>--accept-advisory ID --reason TEXT</code>, <code>--hold NODE</code></td></tr>
+<tr><td><code>repo ls</code></td><td>List the RPMs of a repository.</td><td><code>--repo binary|source|debuginfo</code>, <code>--name GLOB</code>, <code>--run RUN</code>, <code>--removed</code></td></tr>
+<tr><td><code>repo diff</code></td><td>Compare the staging of a run, or two snapshots.</td><td><code>--run</code>, <code>--from</code>, <code>--to</code>, <code>--rpms</code>, <code>--check</code></td></tr>
+<tr><td><code>repo verify</code></td><td>Check signatures, checksums and records.</td><td><code>--snapshot</code>, <code>--run</code>, <code>--served</code>, <code>--path</code>, <code>--el</code></td></tr>
+<tr><td><code>repo provenance</code>, <code>repo sbom</code></td><td>Show the provenance of one build, or the SBOM of each target.</td><td>—</td></tr>
+<tr><td><code>repo snapshots</code></td><td>List the snapshots of each target.</td><td><code>--history</code>, <code>--all</code>, <code>--limit</code></td></tr>
+<tr><td><code>repo pull [REF]</code></td><td>Make the local copy equal to a snapshot.</td><td>—</td></tr>
+<tr><td><code>repo push [PUBLISH]</code></td><td>Complete a publish that stopped, import a tree, or re-seed a target.</td><td><code>--dry-run</code>, <code>--from TREE</code>, <code>--manifest</code>, <code>--reseed</code></td></tr>
+<tr><td><code>repo restore REF</code></td><td>Make a new snapshot with the files of an older one.</td><td><code>--reason</code>, <code>--dry-run</code>, <code>--accept-advisory</code></td></tr>
+<tr><td><code>repo prune</code></td><td>Remove NVRs in a new snapshot. Without <code>--apply</code> it is a dry run.</td><td><code>--package</code>, <code>--all</code>, <code>--nvr</code>, <code>--keep-last</code>, <code>--older-than</code>, <code>--apply</code></td></tr>
+<tr><td><code>repo gc</code></td><td>Delete old snapshots in the registry. Without <code>--apply</code> it is a dry run.</td><td><code>--keep</code>, <code>--keep-days</code>, <code>--keep-removed</code>, <code>--apply</code></td></tr>
+<tr><td><code>repo resign</code></td><td>Re-sign the RPMs of a key with your key.</td><td>—</td></tr>
+</tbody>
+</table>
+<aside class="callout warn">
+<p class="callout-title">Shared state</p>
+<p>Always run <code>--dry-run</code> first for publish, restore, push and resign. For prune and gc, run the command without <code>--apply</code> first.</p>
+</aside>
+
+<h2 id="sign">Sign commands</h2>
+<table>
+<thead><tr><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>sign ls</code></td><td>List the keys, their deployment record and their RPMs.</td></tr>
+<tr><td><code>sign add ID --fingerprint FPR</code></td><td>Add a trusted key. It reads the key from gpg, the card or <code>--file</code>.</td></tr>
+<tr><td><code>sign onboard ID</code>, <code>sign offboard ID</code></td><td>Check the steps to add or remove a key.</td></tr>
+<tr><td><code>sign deployed ID --release NVR</code></td><td>Record that the clients have the release with the key. Add <code>--target</code>, <code>--note</code>, <code>--dry-run</code>.</td></tr>
+<tr><td><code>sign removed ID</code></td><td>Record that the clients no longer have the key.</td></tr>
+<tr><td><code>sign retire ID</code>, <code>sign activate ID</code>, <code>sign remove ID</code></td><td>Move a key between <code>active</code>, <code>retiring</code> and <code>removed</code>.</td></tr>
+<tr><td><code>sign revoke ID</code></td><td>End the trust in a compromised key. Read <code>repoctl help emergency</code>.</td></tr>
+<tr><td><code>sign keyfile</code></td><td>Print the key file in latest of each target. <code>--checksum</code> prints the sha256.</td></tr>
+<tr><td><code>release write</code></td><td>Write the key file and the .repo files of the release package.</td></tr>
+</tbody>
+</table>
+
+<h2 id="check">Check and upstream commands</h2>
+<table>
+<thead><tr><th>Command</th><th>What it does</th><th>Main flags</th></tr></thead>
+<tbody>
+<tr><td><code>check</code></td><td>Compute the advisories that need no build.</td><td><code>--check</code>, <code>--min-level info|warn|required</code>, <code>--code CODE</code>, <code>--install-timer</code>, <code>--remove-timer</code></td></tr>
+<tr><td><code>advisories ls</code></td><td>List the advisories.</td><td><code>--level</code>, <code>--dismissed</code>, <code>--refresh</code></td></tr>
+<tr><td><code>advisories show ID</code></td><td>Show one advisory.</td><td>—</td></tr>
+<tr><td><code>advisories dismiss ID…</code></td><td>Dismiss info and warn advisories.</td><td><code>--note TEXT</code> (required, 8 characters or more)</td></tr>
+<tr><td><code>advisories undismiss ID…</code></td><td>Remove dismissals.</td><td>—</td></tr>
+<tr><td><code>upstream [PKG…]</code></td><td>Compare package versions with upstream releases.</td><td><code>--releases</code>, <code>--check</code>, <code>--refresh</code>, <code>-j</code></td></tr>
+</tbody>
+</table>
+
+<h2 id="agents">Agent and UI commands</h2>
+<table>
+<thead><tr><th>Command</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>ui</code></td><td>Start the local web UI and open your browser. Flags: <code>--no-browser</code>, <code>--listen ADDR</code> (loopback only), <code>--stop</code>, <code>--remove SET</code>.</td></tr>
+<tr><td><code>mcp start</code></td><td>Run the MCP server on stdio. <code>--tools read|all|NAME,…</code> limits the tools.</td></tr>
+<tr><td><code>mcp tools</code></td><td>Print the tool definitions.</td></tr>
+<tr><td><code>skills ls|show|path</code></td><td>List and read the agent skills.</td></tr>
+<tr><td><code>skills install</code>, <code>skills uninstall</code></td><td>Install or remove the skills, the deny list and the guard hook. <code>--user</code> (default) or <code>--project</code>.</td></tr>
+</tbody>
+</table>
+
+<h2 id="admin">Admin commands</h2>
+<table>
+<thead><tr><th>Command</th><th>What it does</th><th>Main flags</th></tr></thead>
+<tbody>
+<tr><td><code>doctor</code></td><td>Check this host and the set.</td><td><code>--only host|set|sign|registry|check</code>, <code>--strict</code></td></tr>
+<tr><td><code>clean</code></td><td>Delete files that repoctl can make again.</td><td><code>--dry-run</code>, <code>--cache</code>, <code>--logs</code>, <code>--git</code>, <code>--staging</code>, <code>--all</code>, <code>--older-than</code>, <code>-y</code></td></tr>
+<tr><td><code>mock update|clean|shell</code></td><td>Update, clean or open the mock roots. <code>mock shell TARGET</code> opens a shell in the root.</td><td>—</td></tr>
+<tr><td><code>config show</code>, <code>config paths</code></td><td>Show each setting and the layer that gave it, or the files and directories of this set and user.</td><td>—</td></tr>
+<tr><td><code>schema [NAME]</code></td><td>Print a JSON Schema of a file, the output or a kind.</td><td><code>--list</code></td></tr>
+<tr><td><code>version</code></td><td>Print the version and the commit of the build.</td><td>—</td></tr>
+<tr><td><code>completion SHELL</code></td><td>Write the completion script to stdout.</td><td>—</td></tr>
+</tbody>
+</table>
+
+<h2 id="help-topics">Help topics</h2>
+<p><code>repoctl help TOPIC</code> prints a longer text. These topics exist:</p>
+<table>
+<thead><tr><th>Topic</th><th>About</th></tr></thead>
+<tbody>
+<tr><td><code>config</code>, <code>environment</code>, <code>xdg</code></td><td>Config layers, the variables and the files.</td></tr>
+<tr><td><code>selectors</code>, <code>graph</code>, <code>build-state</code></td><td>How to name nodes, read the graph, and what builds.</td></tr>
+<tr><td><code>advisories</code>, <code>urgent</code></td><td>Advisories and the publish gate. A fix while another node is not ready.</td></tr>
+<tr><td><code>signing</code>, <code>key</code>, <code>emergency</code>, <code>team</code></td><td>Keys, a new key, a lost key, a new admin or host.</td></tr>
+<tr><td><code>new-set</code>, <code>end-set</code>, <code>packages</code></td><td>Start and end a set. Change the packages.</td></tr>
+<tr><td><code>upgrade</code>, <code>exit-codes</code></td><td>Upgrade repoctl. The exit status of each failure.</td></tr>
+</tbody>
+</table>
+
+<h2 id="files">Files and variables</h2>
+<p>The set directory holds only committed files and the package worktrees. repoctl keeps all other files in the XDG directories of the user.</p>
+<table>
+<thead><tr><th>Where</th><th>What</th><th>Safe to delete?</th></tr></thead>
+<tbody>
+<tr><td><code>$XDG_CONFIG_HOME/repoctl/config.yaml</code></td><td>The user config. Edit it by hand.</td><td>No</td></tr>
+<tr><td><code>$XDG_CACHE_HOME/repoctl/</code></td><td>SRPMs, sources, upstream answers, mock files.</td><td>Yes: <code>repoctl clean --cache</code></td></tr>
+<tr><td><code>$XDG_DATA_HOME/repoctl/SET/staging/RUN/</code></td><td>The RPMs of a run.</td><td>Use <code>repoctl clean</code></td></tr>
+<tr><td><code>$XDG_DATA_HOME/repoctl/SET/repo/TARGET/</code></td><td>The local copy of latest.</td><td>Yes: <code>repoctl repo pull</code></td></tr>
+</tbody>
+</table>
+<p>The user config changes only how and where repoctl works, for example <code>jobs</code>, <code>sign.key</code> and <code>ui.listen</code>. It never changes what repoctl builds. The variable <code>REPOCTL_JOBS</code> sets <code>--jobs</code>, <code>REPOCTL_LOCK_WAIT</code> sets <code>--lock-wait</code>, and <code>REPOCTL_SIGN_KEY</code> sets <code>sign.key</code>.</p>
+
+<h2 id="exit-codes">Exit codes</h2>
+<table>
+<thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>Success. Warnings do not change the status.</td></tr>
+<tr><td>1</td><td>The command ran and failed, or repoctl found no set.</td></tr>
+<tr><td>2</td><td>Usage error: an unknown flag, a bad value, or a selector without nodes.</td></tr>
+<tr><td>3</td><td>A node failed, or a failed node blocks it. Staging and logs stay.</td></tr>
+<tr><td>4</td><td>Nothing to publish, prune, gc or resign.</td></tr>
+<tr><td>5</td><td>A worktree is not in-sync with the lock, or a set input is not committed or not pushed.</td></tr>
+<tr><td>6</td><td>A human must confirm, and the confirmation is missing or wrong.</td></tr>
+<tr><td>7</td><td>Another process holds a lock, and <code>--lock-wait</code> ended.</td></tr>
+<tr><td>8</td><td>Only with <code>doctor --strict</code>: a check gave a warning.</td></tr>
+<tr><td>9</td><td>A required host check failed.</td></tr>
+<tr><td>10</td><td>A signature, a checksum, a record or the repodata is wrong.</td></tr>
+<tr><td>11</td><td>Only with <code>--check</code>: plan, check, upstream or repo diff found something.</td></tr>
+<tr><td>12</td><td>A rule refuses the publish: an NVR rule, an advisory, a signing gate or a retired set.</td></tr>
+<tr><td>13</td><td>The registry or the remote stops the command: latest moved, or a push failed.</td></tr>
+<tr><td>130</td><td>Interrupted by SIGINT, SIGTERM or <code>repoctl cancel</code>.</td></tr>
+</tbody>
+</table>
+<p>With <code>--json</code>, a failed command gives the problem code in <code>errors[].code</code>. Use <code>repoctl schema --list</code> for the schemas. The machine contract is in <a href="../design/contract.html">Machine contract</a>.</p>
+
+</body>
+</html>

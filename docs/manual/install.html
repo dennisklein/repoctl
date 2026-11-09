@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Install repoctl</title>
+<meta name="description" content="Install repoctl on a Fedora admin host, prepare mock and the registry login, check the host with repoctl doctor, install the mirror job, and upgrade.">
+</head>
+<body>
+<h1>Install repoctl</h1>
+<p class="lede">repoctl comes as signed RPMs from its own RPM repo. Install it on each admin host, check the host with <code>repoctl doctor</code>, and log in to the registry.</p>
+<ul class="keypoints">
+  <li>An admin host runs Fedora on x86_64. The targets are EL9 and EL10, built in mock chroots.</li>
+  <li>Check the key of the RPM repo by hand at the first install. dnf checks it after that.</li>
+  <li>The HTTP server needs only the package <code>repoctl-mirror</code>.</li>
+  <li>The first release is not out yet. The sha256 and the key fingerprint come with it.</li>
+</ul>
+
+<h2 id="hosts">Which host needs what</h2>
+<figure class="diagram wide">
+<svg viewBox="0 0 900 190" role="img" aria-labelledby="hosts-t">
+<title id="hosts-t">Three kinds of host: the admin host with repoctl, the HTTP server with the mirror job, the client with the release package</title>
+<rect class="zone" x="8" y="10" width="280" height="170" rx="12"/>
+<text class="t-title" x="24" y="36">Admin host (Fedora)</text>
+<rect class="box-accent" x="24" y="52" width="248" height="42" rx="8"/>
+<text class="t-mono t-on" x="38" y="78">dnf install repoctl</text>
+<text class="t-small t-muted" x="24" y="120">mock, podman, rpm-sign, createrepo_c,</text>
+<text class="t-small t-muted" x="24" y="138">git and gnupg2 come as dependencies</text>
+<text class="t-small t-muted" x="24" y="162">You build, sign and publish here.</text>
+<rect class="zone" x="310" y="10" width="280" height="170" rx="12"/>
+<text class="t-title" x="326" y="36">HTTP server</text>
+<rect class="box" x="326" y="52" width="248" height="42" rx="8"/>
+<text class="t-mono" x="340" y="78">dnf install repoctl-mirror</text>
+<text class="t-small t-muted" x="326" y="120">A timer pulls latest from the registry,</text>
+<text class="t-small t-muted" x="326" y="138">verifies it and serves it over HTTPS.</text>
+<rect class="zone" x="612" y="10" width="280" height="170" rx="12"/>
+<text class="t-title" x="628" y="36">EL9 and EL10 clients</text>
+<rect class="box" x="628" y="52" width="248" height="42" rx="8"/>
+<text class="t-mono" x="642" y="78">slurm-release package</text>
+<text class="t-small t-muted" x="628" y="120">The release package of your set carries</text>
+<text class="t-small t-muted" x="628" y="138">the team keys and the .repo file.</text>
+<line class="edge" x1="288" y1="75" x2="308" y2="75" marker-end="url(#arrow)"/>
+<line class="edge" x1="590" y1="75" x2="610" y2="75" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>Only the admin host runs repoctl. The server and the clients need no admin tool.</figcaption>
+</figure>
+
+<h2 id="first-install">First install on an admin host</h2>
+<p>The RPM repo of repoctl is on GitHub Pages. You check its key at the first install, because dnf cannot check it yet.</p>
+<ol class="steps">
+<li>Download <code>https://dennisklein.github.io/repoctl/rpm/repoctl-release-1-1.noarch.rpm</code>.</li>
+<li>Compare its sha256 with the value in the notes of the newest <a href="https://github.com/dennisklein/repoctl/releases">GitHub Release</a>.</li>
+<li>Install it: <code>sudo dnf install ./repoctl-release-1-1.noarch.rpm</code>.</li>
+<li>Run <code>gpg --show-keys /etc/pki/rpm-gpg/RPM-GPG-KEY-repoctl</code>. Compare the fingerprint with the tool repository key in the release notes.</li>
+<li>Install the tool: <code>sudo dnf install repoctl</code>.</li>
+</ol>
+<pre class="term">$ repoctl version
+$ repoctl doctor --only host</pre>
+<aside class="callout warn">
+<p class="callout-title">Check by hand, once</p>
+<p>Do not skip steps 2 and 4. They are the only point where you, not dnf, decide to trust the key of the tool.</p>
+</aside>
+
+<h2 id="host-setup">Prepare the host</h2>
+<ol class="steps">
+<li>Add your user to the group <code>mock</code>: <code>sudo usermod -a -G mock $USER</code>. Log in again.</li>
+<li>Run <code>repoctl doctor --only host</code>. Fix each failed check. The hint of a check tells you the fix.</li>
+<li>Make a signing key, or use the key of your team. Read <code>repoctl help key</code> for a YubiKey or a file key.</li>
+<li>Log in to the registry. For GHCR, use a token with the scope <code>write:packages</code>: <code>oras login ghcr.io -u USER --password-stdin</code>.</li>
+<li>Run <code>repoctl doctor</code> inside a set directory. The groups <code>sign</code> and <code>registry</code> now pass.</li>
+</ol>
+<p>A build needs free disk: 10 GiB in the data directory and in the cache directory, and 20 GiB in <code>/var/lib/mock</code>. <code>repoctl doctor</code> checks this, and a build stops early with exit 9 when the host is not ready.</p>
+
+<h2 id="shell">Shell completion</h2>
+<p>The RPM installs the completions for bash, zsh and fish. For another shell, run <code>repoctl completion bash|zsh|fish|powershell</code>. It writes the script to stdout.</p>
+
+<h2 id="mirror">The HTTP server</h2>
+<p>On the server that serves the repositories to the clients, run <code>sudo dnf install repoctl-mirror</code>. The mirror job pulls <code>latest</code> of each target, verifies the signatures, and swaps the served tree. You add one mirror line per target at the first publish of a set. The <a href="../runbooks/mirror-job.html">mirror job runbook</a> has the details.</p>
+
+<h2 id="upgrade">Upgrade</h2>
+<p>These steps are the text of <code>repoctl help upgrade</code>. A running build ends with the old binary, so wait for it.</p>
+<ol class="steps">
+<li>Read the release notes. They name new keys, a new apiVersion and a new <code>minRepoctl</code>.</li>
+<li>Run <code>repoctl runs --state running</code> in each set. Wait until no run is active.</li>
+<li>Run <code>repoctl ui --stop</code>.</li>
+<li>Run <code>sudo dnf upgrade repoctl repoctl-release</code>.</li>
+<li>Run <code>repoctl skills install</code>. Add <code>--project</code> in each set that has skills.</li>
+<li>Run <code>repoctl check --install-timer</code> in each set with a timer.</li>
+<li>Restart each agent session that runs <code>repoctl mcp start</code>.</li>
+<li>Run <code>repoctl doctor</code>.</li>
+</ol>
+<p>On the HTTP server, run <code>sudo dnf upgrade repoctl-mirror</code>. The design of the tool releases is in <a href="../design/tool.html">Tool releases</a>.</p>
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tutorial: start a new set</title>
+<meta name="description" content="A step-by-step tutorial that starts the set slurm-26.11 from the set slurm-26.05: fork the branches, bump slurm, pin, plan, build, publish and roll out to the clients.">
+</head>
+<body>
+<h1>Tutorial: start a new set</h1>
+<p class="lede">In this tutorial you start the set <code>slurm-26.11</code> from the set <code>slurm-26.05</code>. You fork the package branches, bump slurm, build for EL9 and EL10, publish the first snapshots and roll them out to the clients.</p>
+<ul class="keypoints">
+  <li>You need an installed repoctl, a signing key, a registry login and a set <code>slurm-26.05</code> that you can read. Read <a href="install.html">Install repoctl</a> first.</li>
+  <li>The steps are those of <code>repoctl help new-set</code>. Each step names the repository that gets the commit.</li>
+  <li>repoctl never pushes for you. It prints the push command.</li>
+  <li>If you stop, run <code>repoctl status</code>. It lists the steps that are still open.</li>
+</ul>
+
+<h2 id="overview">The plan</h2>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 190" role="img" aria-labelledby="plan-t">
+<title id="plan-t">The tutorial has four stages: prepare the set in git, build, publish, and roll out to the clients</title>
+<rect class="zone" x="8" y="10" width="300" height="170" rx="12"/>
+<text class="t-title" x="24" y="36">1 Prepare in git</text>
+<text class="t-small" x="24" y="62">Steps 1 to 5</text>
+<text class="t-small t-muted" x="24" y="84">Fork the set branch and the</text>
+<text class="t-small t-muted" x="24" y="102">package branches. Set the URL.</text>
+<text class="t-small t-muted" x="24" y="120">Bump slurm. Pin and push.</text>
+<rect class="zone" x="330" y="10" width="190" height="170" rx="12"/>
+<text class="t-title" x="346" y="36">2 Build</text>
+<text class="t-small" x="346" y="62">Steps 6 to 8</text>
+<text class="t-small t-muted" x="346" y="84">Doctor, plan, build.</text>
+<text class="t-small t-muted" x="346" y="102">Nothing is public yet.</text>
+<rect class="zone" x="542" y="10" width="190" height="170" rx="12"/>
+<text class="t-title" x="558" y="36">3 Publish</text>
+<text class="t-small" x="558" y="62">Step 9</text>
+<text class="t-small t-muted" x="558" y="84">Sign, push the first</text>
+<text class="t-small t-muted" x="558" y="102">snapshot of each target.</text>
+<rect class="zone" x="754" y="10" width="198" height="170" rx="12"/>
+<text class="t-title" x="770" y="36">4 Roll out</text>
+<text class="t-small" x="770" y="62">Steps 10 to 13</text>
+<text class="t-small t-muted" x="770" y="84">Registry access, mirror,</text>
+<text class="t-small t-muted" x="770" y="102">clients, check timer.</text>
+<line class="edge" x1="308" y1="95" x2="328" y2="95" marker-end="url(#arrow)"/>
+<line class="edge" x1="520" y1="95" x2="540" y2="95" marker-end="url(#arrow-accent)"/>
+<line class="edge" x1="732" y1="95" x2="752" y2="95" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>Only stage 3 changes what other humans see. Until then, you can stop and start again.</figcaption>
+</figure>
+
+<h2 id="stage-1">Stage 1: prepare the set in git</h2>
+
+<h3 id="s1">Step 1: make a worktree for the new set branch</h3>
+<p>Work in the git directory of your set. Make a new worktree on a new branch, from the old set branch. Repository: the set repository.</p>
+<pre class="term">$ git fetch origin
+$ git worktree add -b set/slurm-26.11 ../slurm-repo-26.11 origin/set/slurm-26.05
+$ cd ../slurm-repo-26.11</pre>
+
+<h3 id="s2">Step 2: fork the set files</h3>
+<p><code>repoctl init --from</code> copies the config of the old set and renames each branch from <code>slurm-26.05</code> to <code>slurm-26.11</code>. It writes an empty lock.</p>
+<pre class="term">$ repoctl init --from set/slurm-26.05 --name slurm-26.11
+wrote repoctl.yaml   set slurm-26.11, 10 branches renamed (slurm-26.05 → slurm-26.11), 0 shared branches
+wrote repoctl.lock   empty
+Next: steps 3 to 15 of "repoctl help new-set": …</pre>
+<p>The new set takes the repo name and the targets of the old set. To change them, edit <code>repoctl.yaml</code> later. Do not use <code>--repo</code> or <code>--add-target</code> with <code>--from</code>.</p>
+
+<h3 id="s3">Step 3: set the URL and the release package</h3>
+<ol class="steps">
+<li>In <code>repoctl.yaml</code>, set <code>repo.url</code> to the public URL of the new set, for example <code>https://repo.example.org/slurm-26.11</code>.</li>
+<li>In the spec file of the in-tree package <code>packages/slurm-release</code>, set <code>Version: 26.11</code>.</li>
+<li>Run <code>repoctl release write</code>. It writes the key file and the .repo files of the release package.</li>
+<li>Commit all of it. Repository: the set branch.</li>
+</ol>
+<pre class="term">$ repoctl release write
+$ git commit -am "feat: start set slurm-26.11"</pre>
+
+<h3 id="s4">Step 4: fork the package branches</h3>
+<p><code>checkout --create --from-set</code> makes one new branch for each package, at the lock commit of the old set. The history, the rpmautospec release counter and the changelog continue.</p>
+<pre class="term">$ repoctl checkout --create --from-set set/slurm-26.05
+munge   munge/slurm-26.11   forked from munge/slurm-26.05 at 1723823
+ucx     ucx/slurm-26.11     forked from ucx/slurm-26.05 at 1d1a9eb
+…
+slurm   slurm/slurm-26.11   forked from slurm/slurm-26.05 at 60e1f6d
+…
+10 branches created, 0 exist on the remote
+Next: git push origin munge/slurm-26.11 ucx/slurm-26.11 …
+      git -C packages/rocm-smi push origin slurm-26.11
+      repoctl pin</pre>
+<p>The in-tree package <code>slurm-release</code> has no branch. Thus 10 of the 11 packages get a branch. An external package, for example <code>rocm-smi</code>, gets its branch in its own repository. The project must exist on that git server.</p>
+
+<h3 id="s5">Step 5: bump slurm, push and pin</h3>
+<ol class="steps">
+<li>Find the newest release: <code>repoctl upstream slurm --releases</code>.</li>
+<li>Edit the spec in the worktree <code>packages/slurm</code>. Set <code>Version</code> to the new release, for example <code>26.11.0</code>. Change the sources if needed.</li>
+<li>Commit in that worktree: <code>git -C packages/slurm commit -am "Bump to 26.11.0"</code>. Repository: the package branch.</li>
+<li>Push all package branches. Copy the command from the output of step 4.</li>
+<li>Run <code>repoctl pin</code>. It writes one line for each package into <code>repoctl.lock</code>.</li>
+<li>Commit and push the lock. Repository: the set branch.</li>
+</ol>
+<pre class="term">$ repoctl pin
+munge   new → 1723823  munge/slurm-26.11   "Import munge 0.5.18"
+…
+$ git commit repoctl.lock -m "feat: pin the packages of slurm-26.11"
+$ git push origin set/slurm-26.11</pre>
+<aside class="callout warn">
+<p class="callout-title">Push the package branches</p>
+<p>If you pin before you push, <code>pin</code> warns for each package: "is not on origin/…". Push the package branches before you publish. Clients and other admins need these commits.</p>
+</aside>
+
+<h2 id="stage-2">Stage 2: build</h2>
+
+<h3 id="s6">Step 6: check the host and the set</h3>
+<pre class="term">$ repoctl doctor</pre>
+<p>Fix each failed check. Until step 10 is done, <code>repoctl doctor</code> shows the open step <code>registry.public</code> for the new set. This is normal now.</p>
+
+<h3 id="s7">Step 7: read the plan</h3>
+<pre class="term">$ repoctl plan</pre>
+<p>Expect the action <code>build</code> with the reason <code>new-package</code> for every node. The new set has no snapshot yet, so nothing is current. Run <code>repoctl graph</code> to see the build order of each target.</p>
+
+<h3 id="s8">Step 8: build</h3>
+<pre class="term">$ repoctl build</pre>
+<p>repoctl builds each node in a mock chroot, as soon as its dependencies are done. The result goes to the staging of a new run. Nothing is public.</p>
+<ul>
+<li>Watch the run in the web UI: <code>repoctl ui</code>, or in the terminal with <code>repoctl runs --follow</code>.</li>
+<li>Read the log of a node: <code>repoctl logs RUN NODE</code>.</li>
+<li>A failed node stops the nodes that need it. Fix the package, commit, push, <code>repoctl pin PKG</code>, and run <code>repoctl build</code> again. It builds only what is not built.</li>
+<li>Stop a build with <code>repoctl cancel</code>.</li>
+</ul>
+
+<h2 id="stage-3">Stage 3: publish</h2>
+
+<h3 id="s9">Step 9: publish the first snapshots</h3>
+<p>Run a dry run first. It shows the summary and runs all checks. It signs nothing.</p>
+<pre class="term">$ repoctl publish --dry-run
+$ repoctl publish
+Type the set name to publish el9 el10 of slurm-26.11:</pre>
+<p>Type <code>slurm-26.11</code> to confirm. repoctl signs the RPMs with your key, pushes one snapshot for each target, and moves the tag <code>latest</code>. The first publish of a target needs no deployment record, because no client uses the target yet. A required advisory can block the publish. Read <code>repoctl advisories ls</code>.</p>
+<aside class="callout rule">
+<p class="callout-title">Rule: the first publish needs a free URL</p>
+<p>The first publish stops with exit 12 when <code>repo.url</code> already serves a repo. Use a new URL for each set.</p>
+</aside>
+
+<h2 id="stage-4">Stage 4: roll out to the clients</h2>
+
+<h3 id="s10">Step 10: make the new OCI packages public</h3>
+<p>An organization owner opens each new OCI package in GHCR, sets it to public, and turns on "Inherit access from source repository". <code>repoctl doctor</code> then passes <code>registry.public</code>.</p>
+
+<h3 id="s11">Step 11: serve the repository</h3>
+<p>On the HTTP server, add one mirror line for each target to the mirror job. Put the key file of the release at its keyring. Read the <a href="../runbooks/mirror-job.html">mirror job runbook</a>.</p>
+
+<h3 id="s12">Step 12: install the release package on the clients</h3>
+<p>Install the release package <code>slurm-release</code> on the EL9 and EL10 clients with your configuration management. Then record it for each active key and target. repoctl asks you to type the key id.</p>
+<pre class="term">$ repoctl sign deployed d.klein --release slurm-release-26.11-1 --target el9
+$ repoctl sign deployed d.klein --release slurm-release-26.11-1 --target el10</pre>
+<p>Commit and push the changed files of <code>keys/</code>. Repository: the set branch. The release NVR is in <code>repoctl repo ls --name 'slurm-release*'</code>.</p>
+
+<h3 id="s13">Step 13: start the check timer</h3>
+<pre class="term">$ repoctl check --install-timer</pre>
+<p>This writes and starts a user systemd timer. It computes the advisories each day, and it opens an advisory when the world changes. Remove it with <code>repoctl check --remove-timer</code>.</p>
+
+<h2 id="done">Done</h2>
+<p>Run <code>repoctl status</code>. It should list no open setup step. A client can now run <code>dnf install slurm-release</code> and then <code>dnf install slurm</code>. To keep the set healthy, read <a href="operate.html">Operate a set</a>.</p>
+
+<h2 id="problems">If something goes wrong</h2>
+<table>
+<thead><tr><th>You see</th><th>Do this</th></tr></thead>
+<tbody>
+<tr><td><code>branch.exists-remote</code> in step 4</td><td>The branch exists on the remote. Run <code>repoctl checkout PKG</code> in place of <code>--create</code>.</td></tr>
+<tr><td>Exit 5 from a command</td><td>A worktree does not match the lock, or a change is not committed or not pushed. Run <code>repoctl status</code>.</td></tr>
+<tr><td>Exit 9 from build</td><td>The host is not ready. Run <code>repoctl doctor</code>.</td></tr>
+<tr><td>Exit 12 from publish</td><td>A rule refuses the publish. Read the error code and the hint.</td></tr>
+<tr><td>Exit 13 from publish</td><td>The registry or the remote stopped the command. Check the login and the network, then run <code>repoctl repo push</code> to complete the publish.</td></tr>
+</tbody>
+</table>
+<p>The reference of the exit codes is in <a href="cli.html#exit-codes">CLI reference</a>. The design of this task is in <a href="../design/lifecycle.html">Sets and packages</a>.</p>
+
+</body>
+</html>
