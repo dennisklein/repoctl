@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -57,5 +58,60 @@ func TestParseValidates(t *testing.T) {
 	_, err := Parse([]byte(cases["missing commit"]))
 	if !strings.Contains(err.Error(), "/builds/0") {
 		t.Errorf("the error does not name the field: %v", err)
+	}
+}
+
+// An import writes the null fields of adopted manifest entries
+// (lifecycle.html#adopted); they survive a round trip.
+func TestAdoptedNulls(t *testing.T) {
+	in := `{"apiVersion": "repoctl/v1alpha1", "kind": "RepoManifest", "set": "slurm-26.05", "target": "el9",
+	  "publish": "p-import-20260828", "removed": [], "history": [], "builds": [
+	  {"package": "munge", "commit": "3a244fd4728f94342beba4a7634c463370a7b877", "url": null, "branch": "munge/slurm-26.05",
+	   "srpm": "munge-0.5.18-1.el9.src.rpm", "rpms": ["munge-0.5.18-1.el9.x86_64.rpm"], "reason": "adopted",
+	   "mockConfig": null, "macros": null, "buildroot": null, "buildrootFile": null, "run": null},
+	  {"package": "munge", "commit": null, "url": null, "srpm": "munge-0.5.17-1.el9.src.rpm",
+	   "rpms": ["munge-0.5.17-1.el9.x86_64.rpm"], "reason": "adopted-unmapped"},
+	  {"package": null, "commit": null, "url": null, "srpm": "old-1.0-1.el9.src.rpm",
+	   "rpms": ["old-1.0-1.el9.x86_64.rpm"], "reason": "adopted-unmapped"}]}`
+	m, err := Parse([]byte(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if m.Builds[1].Commit != "" || m.Builds[2].Package != "" {
+		t.Errorf("builds: %+v", m.Builds)
+	}
+	out, err := m.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), `"commit": null`) || !strings.Contains(string(out), `"package": null`) {
+		t.Errorf("Marshal:\n%s", out)
+	}
+	if _, err := Parse(out); err != nil {
+		t.Errorf("Parse of the Marshal output: %v\n%s", err, out)
+	}
+	// Only adopted-unmapped may lack the commit.
+	m.Builds[1].Reason = "adopted"
+	if err := m.Validate(); err == nil {
+		t.Error("Validate: an adopted build without a commit passes")
+	}
+}
+
+// MarshalJSON of Build writes the fields of Build, in their order.
+func TestBuildMarshalFields(t *testing.T) {
+	b := Build{Package: "p", Branch: "b", Commit: "abcdef1", Reason: "adopted", SRPM: "p-1-1.src.rpm", RPMs: []string{"p-1-1.x86_64.rpm"},
+		Provides: []string{"x"}, Requires: []string{"y"}, MockConfig: "m", Macros: "m", Buildroot: "m", BuildrootFile: "f", Run: "r",
+		Built: "t", Publish: "p", Signer: "s", Records: &Records{}, Sources: map[string]string{"a": "b"}}
+	got, err := json.Marshal(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	type plain Build
+	want, _ := json.Marshal(plain(b))
+	if string(got) != string(want) {
+		t.Errorf("MarshalJSON:\n got %s\nwant %s", got, want)
 	}
 }

@@ -68,6 +68,45 @@ type Build struct {
 	Sources map[string]string `json:"sources,omitempty"`
 }
 
+// ReasonAdoptedUnmapped is the reason of an imported build that no commit
+// gives. Its commit is null, and its package is null for a retired name.
+const ReasonAdoptedUnmapped = "adopted-unmapped"
+
+// MarshalJSON writes an empty package or commit as null, as an
+// adopted-unmapped build has them.
+func (b Build) MarshalJSON() ([]byte, error) {
+	null := func(v string) *string {
+		if v == "" {
+			return nil
+		}
+		return &v
+	}
+	// The fields of Build in the same order, with package and commit as
+	// pointers.
+	return json.Marshal(struct {
+		Package       *string           `json:"package"`
+		Branch        string            `json:"branch,omitempty"`
+		URL           *string           `json:"url"`
+		Commit        *string           `json:"commit"`
+		Reason        string            `json:"reason"`
+		SRPM          string            `json:"srpm"`
+		RPMs          []string          `json:"rpms"`
+		Provides      []string          `json:"provides,omitempty"`
+		Requires      []string          `json:"requires,omitempty"`
+		MockConfig    string            `json:"mockConfig,omitempty"`
+		Macros        string            `json:"macros,omitempty"`
+		Buildroot     string            `json:"buildroot,omitempty"`
+		BuildrootFile string            `json:"buildrootFile,omitempty"`
+		Run           string            `json:"run,omitempty"`
+		Built         string            `json:"built,omitempty"`
+		Publish       string            `json:"publish,omitempty"`
+		Signer        string            `json:"signer,omitempty"`
+		Records       *Records          `json:"records,omitempty"`
+		Sources       map[string]string `json:"sources,omitempty"`
+	}{null(b.Package), b.Branch, b.URL, null(b.Commit), b.Reason, b.SRPM, b.RPMs, b.Provides, b.Requires,
+		b.MockConfig, b.Macros, b.Buildroot, b.BuildrootFile, b.Run, b.Built, b.Publish, b.Signer, b.Records, b.Sources})
+}
+
 // Records are the supply chain records of a build or the repository.
 type Records struct {
 	Provenance *Record `json:"provenance,omitempty"`
@@ -297,7 +336,8 @@ func (m *Manifest) Validate() error {
 		return fmt.Errorf("manifest.invalid: set and target are required")
 	}
 	for _, b := range m.Builds {
-		if b.Package == "" || b.Commit == "" || b.SRPM == "" {
+		unmapped := b.Reason == ReasonAdoptedUnmapped
+		if (b.Package == "" && !unmapped) || (b.Commit == "" && !unmapped) || b.SRPM == "" {
 			return api.Errorf(api.PManifestInvalid, "a build of the RepoManifest of %s misses package, commit or srpm", m.Target)
 		}
 	}

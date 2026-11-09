@@ -82,8 +82,11 @@
       "additionalProperties": false,
       "properties": {
         "package": {
-          "description": "The package id. Information only: the match key is commit, target and SRPM name.",
-          "type": "string",
+          "description": "The package id. Information only: the match key is commit, target and SRPM name. null for an adopted-unmapped build of a name that no package builds (a retired name).",
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         },
         "branch": {
@@ -97,7 +100,11 @@
           ]
         },
         "commit": {
-          "type": "string",
+          "description": "null for an adopted-unmapped build: no commit gives the NVR.",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[0-9a-f]{7,64}$"
         },
         "reason": {
@@ -130,22 +137,49 @@
           }
         },
         "mockConfig": {
-          "description": "The mock config hash.",
-          "$ref": "#/$defs/Sha256Ref"
+          "description": "The mock config hash. null for an adopted build.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sha256Ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "macros": {
-          "description": "The sha256 of the macro file of the target.",
-          "$ref": "#/$defs/Sha256Ref"
+          "description": "The sha256 of the macro file of the target. null for an adopted build.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sha256Ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "buildroot": {
-          "description": "The sha256 of the buildroot file.",
-          "$ref": "#/$defs/Sha256Ref"
+          "description": "The sha256 of the buildroot file. null for an adopted build.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sha256Ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "buildrootFile": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "run": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "built": {
           "type": "string",
