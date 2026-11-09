@@ -1,0 +1,47 @@
+SIGNING
+
+Each admin signs with an own key. repoctl.yaml lists the keys that
+the clients trust (sign.keys), each with a state:
+  active    can sign after its deployment; clients trust it
+  retiring  cannot sign; its RPMs stay; re-sign them, then remove it
+  removed   no RPM in latest carries it; clients must not trust it
+  revoked   compromised; clients must stop to trust it at once; final
+A key is "deployed" when keys/deployed.yaml records that config
+management installed a release package that holds the key.
+
+Make a key:     repoctl help key
+Add a key:      repoctl sign add ID --fingerprint FPR
+                (writes the key file of the release package, commits)
+See the steps:  repoctl sign onboard ID
+Undo a retire:  repoctl sign activate ID
+Confirm:        repoctl sign deployed ID --release NVR --target T
+                (one entry per key and target in keys/deployed.yaml)
+                or --keyfile SHA256, when config management
+                installed the key file without a release package
+Withdraw:       repoctl sign deployed ID --target T --withdraw
+                (a confirmation that came too early; then re-sign)
+Replace a key:  add and deploy the new key, then "repoctl sign retire
+                OLD", "repoctl repo resign --signer OLD", "repoctl
+                sign remove OLD", and publish the new release package.
+Clients:        "repoctl sign offboard ID" prints the commands. Then
+                record it: repoctl sign removed ID --target T
+Several sets:   each set has its own sign.keys and release package.
+                Repeat the steps in each set that the key signs.
+Set commits:    sign each commit that changes repoctl.yaml,
+                repoctl.lock, keys/, a macros file or an in-tree
+                package (git config commit.gpgsign true). publish
+                refuses a change without a signature of an active
+                key, or of the key that the change adds.
+Compromise:     "repoctl sign revoke ID" ends the trust at once
+                (repoctl help emergency).
+
+A new expiry date does not reach the clients. Treat an expiring key
+as a key change, and re-sign its RPMs before it expires.
+
+Git conflict in keys/deployed.yaml: keep the entries of both sides,
+then commit. The newest "at" wins for one key and target.
+Git conflict in sign.keys: keep the keys of both sides, then run
+"repoctl release write" and commit.
+
+publish signs only with an active, deployed key. It re-signs no old
+RPM; only "repoctl repo resign" does. "repoctl doctor" checks sign.*.

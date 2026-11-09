@@ -1,0 +1,32 @@
+REQUIRED ADVISORIES
+
+A required advisory blocks a publish only when the publish changes a
+package in its closure.
+
+  1. repoctl advisories show ID          read the facts and the closure
+  2. Fix the package, one of:
+       repoctl rebuild PKG --reason "..."   a rebuild is enough (it pins)
+       change the spec in packages/PKG, commit, then repoctl pin PKG
+  3. git -C packages/PKG push origin BRANCH
+     git add repoctl.lock && git commit && git push
+  4. repoctl build PKG
+  5. repoctl publish --target T          the gate checks the result tree
+  6. Optional: repoctl repo prune --nvr OLD-NVR   remove the old broken NVR
+
+An unrelated publish on the same target does not wait for this path.
+
+To publish with a required advisory open, give the reason:
+  repoctl publish --target T --accept-advisory ID --reason "..."
+Only info and warn advisories can be dismissed:
+  repoctl advisories dismiss ID --note "..."
+
+A REQUIRED ADVISORY THAT IS WRONG OR HAS NO FIX
+
+A required advisory is never dismissed. Remove its cause:
+  - The clients get the provider from a repo that the check does not
+    read: add the repo to targets[].closure_repos in repoctl.yaml,
+    commit, push, then repoctl check. The advisory is gone.
+  - The requirement in the spec is wrong: fix the spec (step 2).
+  - The package is not needed any more: retire it (repoctl help
+    packages). Its closure.broken is then a warn advisory, and a
+    dismissal can hide it.

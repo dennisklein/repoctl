@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gsi-hpc.github.io/repoctl/schema/v1alpha1/manifest.json",
+  "title": "RepoManifest",
+  "description": "The build state of one target repo, in the repodata of the binary repository of each snapshot (model.html#manifest). publish writes it; plan, build, publish, repo pull and the repo commands read it and stop with manifest.invalid when it does not agree with this schema.",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "set",
+    "target",
+    "publish",
+    "builds",
+    "removed",
+    "history"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "description": "The apiVersion of the stored file (contract.html#stored).",
+      "type": "string",
+      "pattern": "^repoctl/v[0-9]+((alpha|beta)[0-9]+)?$"
+    },
+    "kind": {
+      "const": "RepoManifest"
+    },
+    "set": {
+      "description": "The set of the snapshot that holds the manifest.",
+      "type": "string",
+      "minLength": 1
+    },
+    "target": {
+      "description": "The target of the snapshot that holds the manifest.",
+      "type": "string",
+      "minLength": 1
+    },
+    "publish": {
+      "description": "The publish id of the snapshot that holds the manifest.",
+      "type": "string"
+    },
+    "builds": {
+      "description": "One entry per node build. A publish keeps the entries of its base and adds its own.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Build"
+      }
+    },
+    "removed": {
+      "description": "NVRs that a prune or a restore removed. It only grows.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Removed"
+      }
+    },
+    "history": {
+      "description": "The publish history: one entry per publish of the chain, oldest first. It only grows.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/History"
+      }
+    },
+    "records": {
+      "description": "The SBOM of the repository.",
+      "$ref": "#/$defs/Records"
+    }
+  },
+  "$defs": {
+    "Sha256Ref": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "Build": {
+      "type": "object",
+      "required": [
+        "package",
+        "url",
+        "commit",
+        "reason",
+        "srpm",
+        "rpms"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "package": {
+          "description": "The package id. Information only: the match key is commit, target and SRPM name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "branch": {
+          "type": "string"
+        },
+        "url": {
+          "description": "The git URL; set only for an external package.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,64}$"
+        },
+        "reason": {
+          "description": "The plan reason: commit-changed, new-package, new-target, rebuild: TEXT, adopted or adopted-unmapped.",
+          "type": "string",
+          "pattern": "^(commit-changed|new-package|new-target|adopted|adopted-unmapped|rebuild(: .*)?)$"
+        },
+        "srpm": {
+          "type": "string",
+          "pattern": "\\.src\\.rpm$"
+        },
+        "rpms": {
+          "description": "The binary and debuginfo RPMs of the build.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\.rpm$"
+          }
+        },
+        "provides": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mockConfig": {
+          "description": "The mock config hash.",
+          "$ref": "#/$defs/Sha256Ref"
+        },
+        "macros": {
+          "description": "The sha256 of the macro file of the target.",
+          "$ref": "#/$defs/Sha256Ref"
+        },
+        "buildroot": {
+          "description": "The sha256 of the buildroot file.",
+          "$ref": "#/$defs/Sha256Ref"
+        },
+        "buildrootFile": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        },
+        "built": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "publish": {
+          "description": "The publish that added the build.",
+          "type": "string"
+        },
+        "signer": {
+          "description": "The full fingerprint of the signer.",
+          "type": "string",
+          "pattern": "^[0-9A-F]{40}([0-9A-F]{24})?$"
+        },
+        "records": {
+          "$ref": "#/$defs/Records"
+        },
+        "sources": {
+          "description": "The sha256 of each source file of the build, by file name.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "Records": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provenance": {
+          "$ref": "#/$defs/Record"
+        },
+        "sbom": {
+          "$ref": "#/$defs/Record"
+        }
+      }
+    },
+    "Record": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "description": "The path of the record file in the binary repository.",
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "Removed": {
+      "type": "object",
+      "required": [
+        "nvr",
+        "publish",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "nvr": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "description": "The sha256 of each RPM of the NVR, by file name.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "publish": {
+          "type": "string"
+        },
+        "reason": {
+          "description": "prune or restore.",
+          "type": "string"
+        }
+      }
+    },
+    "History": {
+      "type": "object",
+      "required": [
+        "publish",
+        "kind",
+        "user",
+        "host",
+        "signer",
+        "created"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "publish": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "description": "The kind of the publish (publish.html#per-kind).",
+          "type": "string"
+        },
+        "parent": {
+          "description": "The digest of the base snapshot.",
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "signer": {
+          "type": "string"
+        },
+        "setCommit": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "accepted": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "factsDigest",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "factsDigest": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "held": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "node",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "node": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "trust": {
+          "type": "object",
+          "required": [
+            "added",
+            "removed"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "added": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "removed": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+KEY
+
+Make a signing key on a YubiKey (OpenPGP card). The card makes the
+secret key, and the key never leaves the card. There is no backup:
+a lost card is a key change (repoctl help emergency).
+  1. ykman openpgp reset                    only for a new card
+  2. ykman openpgp access change-pin        default PIN 123456
+     ykman openpgp access change-admin-pin  default 12345678
+     ykman openpgp access change-reset-code
+  3. ykman openpgp keys set-touch sig cached
+  4. gpg --card-edit, then: admin, key-attr (RSA 4096), generate
+     no off-card backup; expiry 3y or less
+  5. gpg --list-keys --with-fingerprint     the full fingerprint
+  6. repoctl sign add ID --fingerprint FPR
+A file key, without a card:
+  gpg --quick-gen-key "NAME <MAIL>" rsa4096 sign 3y
+Make the next key 180 days before this key expires (repoctl doctor:
+sign.expiry). Keep two deployed keys for each target.

@@ -1,0 +1,68 @@
+EXIT CODES
+
+repoctl attaches a code with cobratree.Coded where it knows the cause.
+main reads it with cobratree.Status; a usage error gives 2, every other
+error 1. The constants are in internal/cli/exit.go.
+
+A failed command has the problem code in errors[].code and the exit code
+in errors[].exitCode. contract.html#problems gives each problem code
+with its exit code and hint; each command block names its problem codes.
+
+  0     ExitOK · Success. Warnings do not change the exit status.
+  1     ExitFailed · The command ran and failed: git or a tool failed, a
+        file or a REPOCTL_* value is invalid, or repoctl found no set.
+  2     ExitUsage · repoctl rejected the command line before it acted:
+        an unknown flag or command, a bad value, a selector without
+        nodes, --progress tree without a terminal, or --hold for a node
+        that is current or staged. No envelope.
+  3     ExitBuildFailed · A node failed, or a failed node blocks it. The
+        staging and the logs stay.
+  4     ExitNothingToPublish · Nothing to do: no node is staged, or
+        prune, gc or resign finds nothing.
+  5     ExitLockDirty · A worktree is not in-sync with repoctl.lock, or
+        a set input is not committed or not pushed. A lock that does not
+        agree with repoctl.yaml, a stale key file and a stale .repo file
+        also give 5.
+  6     ExitNeedsConfirmation · A human must confirm, and the
+        confirmation is missing or wrong: no terminal, a wrong answer,
+        no typed key id, or a UI confirmation that does not match
+        (confirmation).
+  7     ExitBusy · Another process holds the set lock, the clone lock of
+        an external package or the host mock lock, and --lock-wait
+        ended. There is no build queue.
+  8     ExitDoctorWarning · Only with doctor --strict: a check gave a
+        warning, none failed.
+  9     ExitHostNotReady · A required host check failed, in doctor or in
+        the preflight of build, publish, check or mock. A UI or MCP
+        server that runs an older binary than the one on disk also gives
+        9.
+  10    ExitVerifyFailed · A signature, a checksum, a record or the
+        repodata is wrong, also in the EL chroot, or an RPM has an
+        unknown signer. repo push finds a tree that did not pass verify
+        and verify-el. repoctl pushes nothing.
+  11    ExitDifferences · Only with --check: plan, check, upstream or
+        repo diff found something.
+  12    ExitNotPublishable · A rule refuses the publish: a node that is
+        not current or staged, an unpinned run, an NVR rule, an
+        advisory, a signing gate, a retired set, or a set input without
+        a valid signature of an allowed key (sign.trust-unverified).
+  13    ExitStateConflict · The registry or the remote stops the
+        command: latest or the tag moved, or a signed publish is not
+        pushed. A failed push, no access or no network also give 13.
+  130   ExitInterrupted · SIGINT, SIGTERM or repoctl cancel. repoctl
+        stopped its children and kept the staging (build.html#cancel).
+
+Restore, resign, prune, sign retire, sign remove, sign deployed and sign
+removed also use exit 12, and build stops with 12 for a retired set. A
+first publish stops with 12 when repo.url already serves a repo
+(publish.served-exists) or the served tree names another set
+(set.renamed).
+
+The remote set branch can stop a publish with 13 (sign.trust-behind). It
+counts only when its tip has another repoctl.yaml or keys/ than the set
+commit of the publish. Exit 13 also comes from an advisory gate that
+cannot read a repo.
+
+Exceptions: mock shell exits with the status of the shell or of its
+command. ui and mcp start exit 0 on SIGINT or SIGTERM, because a signal
+is the normal way to stop a server.

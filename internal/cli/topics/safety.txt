@@ -1,0 +1,112 @@
+SAFETY
+
+Each command has one safety class (model.html#safety), and the class
+decides the rules.
+
+  read          No question, no set lock (repo verify takes it shared).
+                MCP: the read tools.
+  staging       No question, except clean --all. Set lock.
+  local write   Set lock, except init and migrate (without --api).
+                advisories dismiss and undismiss take only the short
+                lock of the dismissal file. It never pushes. MCP:
+                checkout, pin and rebuild only.
+  shared state  The rules below.
+
+A shared-state command has a dry run, a summary, a typed confirmation,
+the set lock, a journal and no MCP tool.
+
+  - Dry run. --dry-run shows the summary and runs the checks; it signs,
+    writes and pushes nothing. repo prune and repo gc do a dry run by
+    default and act only with --apply.
+  - Summary first. The summary goes to stdout before the question
+    (publish.html#summary).
+  - Typed confirmation. The human types the set name (slurm-26.05), not
+    y. For a trust change, the human first types each added key id
+    (signing.html#trust-block). sign deployed and sign removed ask for
+    the key id.
+  - Default answer no. Another text, an empty line or EOF is no: exit 6.
+  - No terminal, exit 6. A terminal means that stdin and stderr are
+    terminals. The question goes to stderr; the answer comes from stdin.
+  - --yes skips the question on a terminal. Without a terminal, it needs
+    REPOCTL_ALLOW_UNATTENDED_PUBLISH=1. It never accepts an advisory
+    (exit 12) and never confirms a trust change (exit 6, sign.trust-
+    change).
+  - REPOCTL_ALLOW_UNATTENDED_PUBLISH=1 allows publish, repo push, repo
+    restore, repo prune and repo resign without a human. It never allows
+    repo gc, sign deployed, sign removed, a trust change or --accept-
+    advisory. repoctl reads it only from the process environment, never
+    from a config file. ui and mcp start remove it from the environment
+    of each child. The journal and the snapshot annotations record
+    unattended: true.
+  - Set lock and journal for the whole run (contract.html#journal).
+  - No MCP tool. The command is in notExposed, in the deny list of the
+    skills and in the guard hook (agents.html#deny). MCP never signs.
+  - humanAction. A skill that reaches such a step stops and gives the
+    human the command (agents.html#human-action). The values are
+    publish, repo-push, restore, prune, gc, resign, sign-deployed, sign-
+    removed, trust-change and accept-advisory.
+  - The UI has the same steps: the summary, the typed key ids of a trust
+    change and the typed set name (ui-publish.html#confirm). It never
+    passes --yes to a child; it gives the child a UI confirmation.
+
+  yes            no · any · Summary, then Type the set name to sign 38
+                 RPMs and publish el9 of slurm-26.05:. Only the exact
+                 name continues. · 0; 6 on another answer
+  yes            yes · any · Summary, no question, act. · 0; 6 trust
+                 change; 12 blocking advisory
+  no             no · any · Summary, then refuse (publish.needs-
+                 confirmation). · 6
+  no             yes · not 1 · Refuse (publish.unattended-refused). · 6
+  no             yes · 1 · Act and record unattended: true. Not for repo
+                 gc, sign deployed, sign removed, a trust change or
+                 --accept-advisory. · 0; 6 for those
+  no             yes · any · With --accept-advisory: refuse
+                 (publish.unattended-refused). An acceptance needs a
+                 human. · 6
+  no (UI child)  no · removed · A valid UI confirmation: check it under
+                 the set lock, act, record origin ui and unattended:
+                 false. Also for sign deployed and a trust change. · 0;
+                 6 a confirmation that does not match, or publish.plan-
+                 changed
+
+A child of the web UI has no terminal, and repoctl ui removes
+REPOCTL_ALLOW_UNATTENDED_PUBLISH from its environment. Thus --yes cannot
+work for it. In its place, the server gives the child a UI confirmation:
+the values that the human typed in the dialog, for one command.
+
+  - Content. One JSON object. It holds the command (publish or sign
+    deployed), the typed set name and the accepted advisory ids. It also
+    holds the typed key ids: each added key of a trust change, or the
+    key of sign deployed. For publish, it holds the plan digest of the
+    review.
+  - One use. The server writes the object into a pipe. The child gets
+    the read end as file descriptor 3 and the hidden flag --confirm-fd
+    3. The child reads the object once and closes the pipe. The object
+    never goes on the command line, into the environment or into a file.
+    The help and the completion do not show the flag.
+  - Origin. The child accepts --confirm-fd only when its parent process
+    is the server that ui.json names (ui.html#sets). Else it stops with
+    publish.needs-confirmation (exit 6).
+  - Match. The child compares the object with its command line: the set
+    name with the set, and the advisory ids with the --accept-advisory
+    flags. The key ids must equal the added keys of the trust block, or
+    the ID of sign deployed. A difference stops it with publish.needs-
+    confirmation (exit 6).
+  - Plan digest under the set lock. publish takes the set lock, runs
+    step check and makes the plan digest again. When it differs from the
+    plan digest of the object, publish stops before the first signature
+    with publish.plan-changed (exit 6). The human must review the
+    publish again.
+  - Record. The journal and the snapshot annotations record origin ui
+    and unattended: false.
+
+The plan digest is the sha256 of the publish summary as canonical JSON.
+It covers the base digest and the NVRs to sign of each target and the
+signer fingerprint. It also covers the added and removed keys of the
+trust block and the accepted advisory ids.
+
+Thus another latest, other staged nodes, another sign.key or another key
+file give another plan digest. publish --dry-run --json gives the plan
+digest in Run.planDigest. The review page shows the summary of that dry
+run, and the confirm dialog sends the plan digest back (ui-
+publish.html#confirm).

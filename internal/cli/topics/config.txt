@@ -1,0 +1,20 @@
+CONFIGURATION
+
+Layers 1 to 3 change only how and where, for example jobs, sign.key,
+sign.backend, lock_wait, progress, ui.* and agent. Only layer 4 changes
+what repoctl builds: packages, branches, commits, targets, mock configs,
+macros and repos. A key of layer 4 in the user config is an error
+(config.unknown-key, exit 1).
+
+repoctl config show prints each value and the layer that gave it
+(cli.html#cmd-config):
+
+  $ repoctl config show
+  KEY            VALUE         SOURCE
+  jobs           3             user config ~/.config/repoctl/config.yaml
+  sign.key       d.klein       user config ~/.config/repoctl/config.yaml
+  sign.backend   gpg           default
+  lock_wait      0             default
+  progress       auto          default
+  ui.listen      127.0.0.1:0   default
+  ui.open        true          default

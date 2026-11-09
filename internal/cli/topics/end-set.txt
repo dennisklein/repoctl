@@ -1,0 +1,19 @@
+END SET
+
+End set slurm-25.11 after its clients use a newer set. Each step names
+where it acts. The OCI packages and the branches stay.
+  1. Move the clients (config management): install the release
+     package of the next set, remove the release package of slurm-25.11.
+  2. Add "state: retired" to each target in repoctl.yaml.
+     git commit -am "feat!: retire set slurm-25.11"; git push   set branch
+  3. repoctl status         expect: set retired
+     build and publish now stop with set.retired. The repo commands and
+     the sign commands still work. A key offboarding skips this set.
+  4. Remove the lines of slurm-25.11 from the mirror job config on the
+     HTTP server. The job deletes the served trees. Keep the lines to
+     keep a frozen tree.
+  5. On each admin host:
+     repoctl check --remove-timer
+     git worktree remove packages/PKG ...; git worktree remove SETDIR
+     repoctl clean --set slurm-25.11
+  6. Keep the set branch, the package branches and the OCI packages.
