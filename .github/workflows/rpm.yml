@@ -75,6 +75,15 @@ jobs:
           test ! -s out2/added.txt
           diff <(cd out/tree && sha256sum rpm/*.rpm rpm/*/x86_64/*.rpm) <(cd out2/tree && sha256sum rpm/*.rpm rpm/*/x86_64/*.rpm)
 
+      # The release job writes the notes the same way, from CHANGELOG.md.
+      - name: Write the release notes
+        shell: bash
+        run: |
+          tr ':' ' ' <<<"$REPOCTL_TOOL_KEYS" >"$RUNNER_TEMP/keys"
+          printf '## [0.0.${{ github.run_number }}]\n\n### Fixed\n\n- A test entry.\n' >"$RUNNER_TEMP/CHANGELOG.md"
+          CHANGELOG=$RUNNER_TEMP/CHANGELOG.md packaging/release-notes.sh notes "v0.0.${{ github.run_number }}-rc.1" out/tree/rpm/repoctl-release-*.noarch.rpm \
+            "$RUNNER_TEMP/keys" "$SIGNER" | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: The install matrix
         id: matrix
         run: |
