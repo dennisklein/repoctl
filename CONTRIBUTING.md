@@ -115,4 +115,12 @@ python3 tools/site/glossary.py report set-lock sigstore/cosign
 
 `.claude/skills/` has the skills for work on the docs: `docs-steward` (the
 checklist for each change), `docs-glossary` (project words and project links)
-and `docs-mockups` (mockups and screenshots).
+and `docs-mockups` (mockups and screenshots). `release-notes` writes the
+entries of [CHANGELOG.md](CHANGELOG.md) from the commits and prepares a
+release.
+
+## Changelog
+
+A pull request that changes what an admin sees adds an entry to the section
+`[Unreleased]` of [CHANGELOG.md](CHANGELOG.md). The release job copies the
+section of a release into the notes of the GitHub Release.

@@ -7,7 +7,8 @@ repoctl, read the [user manual](https://dennisklein.github.io/repoctl/manual/).
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The versions follow [Semantic Versioning](https://semver.org/). This file
-starts after 0.1.0, the first release.
+starts after 0.1.0, the first release. Read the section "Upgrade" of a
+release before you upgrade.
 
 ## [Unreleased]
 

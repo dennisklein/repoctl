@@ -18,6 +18,7 @@ Files
   build.sh              the binary and the unsigned RPMs, in containers
   sign-tree.sh          signs the RPMs, makes and checks the RPM repo
   import-key.sh         imports TOOL_REPO_KEY in the release and yank jobs
+  release-notes.sh      the notes of a GitHub Release, from CHANGELOG.md
   test-install.sh       the first install in a container (CI)
   rpmtree/              the layout of the RPM repo: retention and yank list
 
@@ -77,7 +78,12 @@ Before the first release (once)
 
 Each release
 
-  Tag on main (git tag -s vX.Y.Z), push the tag, approve the job sign. A
+  Rename the section [Unreleased] of CHANGELOG.md to [X.Y.Z] - DATE in a
+  pull request (skill release-notes). The job build stops when the tag
+  has no section. After the merge, tag on main (git tag -s vX.Y.Z), push
+  the tag, approve the job sign. The notes come from
+  packaging/release-notes.sh: the changes, the manual links and the
+  check values. A
   pre-release tag (vX.Y.Z-rc.N) makes a GitHub pre-release, which the
   Pages repo does not take.
 
