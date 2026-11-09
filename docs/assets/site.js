@@ -1,4 +1,4 @@
-/* repoctl design record: site script. No dependencies; highlight.js is optional. */
+/* repoctl documentation: site script. No dependencies; highlight.js is optional. */
 (function () {
   "use strict";
 

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web UI</title>
+<meta name="description" content="Start the local web UI of repoctl, find its pages, read the state of a set, start a build or a publish, and use the agent buttons.">
+</head>
+<body>
+<h1>Web UI</h1>
+<p class="lede">The web UI shows the state of your sets in a browser and starts the same actions as the CLI. It runs on your host, for you only. Use it to see what needs you, to read logs and to review a publish.</p>
+<ul class="keypoints">
+  <li>Run <code>repoctl ui</code>. It opens your browser. Run <code>repoctl ui --stop</code> to stop the server.</li>
+  <li>The server listens on a loopback address only. A launch token works once, for 60 seconds.</li>
+  <li>The UI has no shell. A confirmation in the UI is the same as the one in the terminal.</li>
+  <li>An agent button runs a fixed skill with read-only tools. It changes nothing.</li>
+</ul>
+
+<h2 id="start">Start the UI</h2>
+<pre class="term">$ repoctl ui
+$ repoctl ui --no-browser      # print the URL, open nothing
+$ repoctl ui --stop</pre>
+<p>Run <code>repoctl ui</code> in a set directory. The UI remembers the sets that you opened, and lists them on the first page. <code>repoctl ui --remove SET</code> removes a set from this list. If the session ends, the page tells you to run <code>repoctl ui</code> again.</p>
+<figure class="shot"><a href="../design/mockups/ui/sets.html"><img src="../design/img/ui-sets.webp" alt="Sets page with three set cards and a host line." loading="lazy"></a><figcaption>The Sets page lists each set that you opened, with its last run and publish.</figcaption></figure>
+
+<h2 id="map">The pages</h2>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 250" role="img" aria-labelledby="ui-map-t">
+<title id="ui-map-t">Page map: the Sets page and the Doctor page at the top; for each set the pages Overview, Graph, Plan, Advisories, Upstream, Runs, Packages, Repository, Publish, Signing and Config</title>
+<rect class="box-accent" x="8" y="10" width="140" height="44" rx="8"/>
+<text class="t-title t-on" x="78" y="38" text-anchor="middle">Sets  /</text>
+<rect class="box" x="160" y="10" width="140" height="44" rx="8"/>
+<text class="t-title" x="230" y="38" text-anchor="middle">Doctor  /doctor</text>
+<line class="edge" x1="78" y1="54" x2="78" y2="92" marker-end="url(#arrow)"/>
+<rect class="zone" x="8" y="94" width="944" height="146" rx="12"/>
+<text class="t-title" x="24" y="118">One set  /s/SET/…</text>
+<rect class="box-accent" x="24" y="130" width="110" height="40" rx="8"/><text class="t-title t-on" x="79" y="155" text-anchor="middle">Overview</text>
+<rect class="box" x="146" y="130" width="90" height="40" rx="8"/><text class="t-title" x="191" y="155" text-anchor="middle">Graph</text>
+<rect class="box" x="248" y="130" width="90" height="40" rx="8"/><text class="t-title" x="293" y="155" text-anchor="middle">Plan</text>
+<rect class="box" x="350" y="130" width="120" height="40" rx="8"/><text class="t-title" x="410" y="155" text-anchor="middle">Advisories</text>
+<rect class="box" x="482" y="130" width="100" height="40" rx="8"/><text class="t-title" x="532" y="155" text-anchor="middle">Upstream</text>
+<rect class="box" x="594" y="130" width="90" height="40" rx="8"/><text class="t-title" x="639" y="155" text-anchor="middle">Runs</text>
+<rect class="box" x="696" y="130" width="110" height="40" rx="8"/><text class="t-title" x="751" y="155" text-anchor="middle">Packages</text>
+<rect class="box" x="24" y="184" width="120" height="40" rx="8"/><text class="t-title" x="84" y="209" text-anchor="middle">Repository</text>
+<rect class="box-accent" x="156" y="184" width="100" height="40" rx="8"/><text class="t-title t-on" x="206" y="209" text-anchor="middle">Publish</text>
+<rect class="box" x="268" y="184" width="100" height="40" rx="8"/><text class="t-title" x="318" y="209" text-anchor="middle">Signing</text>
+<rect class="box" x="380" y="184" width="90" height="40" rx="8"/><text class="t-title" x="425" y="209" text-anchor="middle">Config</text>
+<text class="t-small t-muted" x="500" y="209">Runs lead to a run, then to the log of a node.</text>
+<text class="t-small t-muted" x="500" y="225">Packages lead to a package. Repository leads to a diff.</text>
+</svg>
+<figcaption>Each page of a set has a link in the side bar. Overview is the first page of a set.</figcaption>
+</figure>
+<table>
+<thead><tr><th>Page</th><th>Use it to</th><th>CLI</th></tr></thead>
+<tbody>
+<tr><td>Sets</td><td>Pick a set. See the host state.</td><td><code>repoctl ui</code></td></tr>
+<tr><td>Doctor</td><td>See the checks of the host and fix hints.</td><td><code>repoctl doctor</code></td></tr>
+<tr><td>Overview</td><td>See what needs you, in work order, then the runs and the last publish.</td><td><code>repoctl status</code></td></tr>
+<tr><td>Graph</td><td>See the dependency graph of each target and the state of each node.</td><td><code>repoctl graph</code></td></tr>
+<tr><td>Plan</td><td>See what a build does and why. Start a build.</td><td><code>repoctl plan</code>, <code>repoctl build</code></td></tr>
+<tr><td>Advisories</td><td>Read, dismiss and accept advisories.</td><td><code>repoctl advisories</code></td></tr>
+<tr><td>Upstream</td><td>Compare versions with upstream releases.</td><td><code>repoctl upstream</code></td></tr>
+<tr><td>Runs, run, node</td><td>Follow a running build. Read the log of a node.</td><td><code>repoctl runs</code>, <code>repoctl logs</code></td></tr>
+<tr><td>Packages, package</td><td>See the state of each package and its commits.</td><td><code>repoctl list</code>, <code>repoctl show</code></td></tr>
+<tr><td>Repository, diff</td><td>See latest and the staging of a target. Compare snapshots.</td><td><code>repoctl repo</code></td></tr>
+<tr><td>Publish</td><td>Review the summary and the checks. Confirm the publish.</td><td><code>repoctl publish</code></td></tr>
+<tr><td>Signing</td><td>See the keys and their deployment record.</td><td><code>repoctl sign ls</code></td></tr>
+<tr><td>Config</td><td>See the effective settings and where each value comes from.</td><td><code>repoctl config show</code></td></tr>
+</tbody>
+</table>
+
+<h2 id="overview">Read the Overview</h2>
+<p>The Overview tells you what needs action now, and in which order. Each item has one sentence, one button and a code. When nothing needs you, the page says so in one line.</p>
+<figure class="shot"><a href="../design/mockups/ui/overview.html"><img src="../design/img/ui-overview.webp" alt="Overview with the Needs you list, advisories, runs, last publish and a short matrix." loading="lazy"></a><figcaption>The Overview of a set during a run. One filled button shows the next action.</figcaption></figure>
+<p>The UI follows a few rules. It shows exceptions first. It shows one main action. It uses red only for a blocker.</p>
+
+<h2 id="build">Plan and build</h2>
+<ol class="steps">
+<li>Open Plan. Check the action and the reason of each node.</li>
+<li>Press Build…. Name the packages to build, or leave the field empty to build all.</li>
+<li>Open Runs. A run shows its nodes as they go from waiting to building to done.</li>
+<li>Press a failed node to read its log. The log follows a running node.</li>
+</ol>
+<figure class="shot"><a href="../design/mockups/ui/run-detail.html"><img src="../design/img/ui-run-detail.webp" alt="Run detail with the node matrix and a failed node." loading="lazy"></a><figcaption>A run with a failed node and a blocked node.</figcaption></figure>
+
+<h2 id="publish">Publish</h2>
+<p>Press Publish… on the Overview or open Publish. The page shows the same summary as <code>repoctl publish --dry-run</code>: the nodes, the new RPMs, the signing gates and the advisories. A blocker is red and names its fix. To confirm, type the set name in the dialog.</p>
+<figure class="shot"><a href="../design/mockups/ui/publish-review.html"><img src="../design/img/ui-publish-review.webp" alt="Publish review with the summary, the checks and the confirm button." loading="lazy"></a><figcaption>Review before a publish.</figcaption></figure>
+
+<h2 id="agent">Agent buttons</h2>
+<p>Some pages show an agent button. The buttons work when <code>agent.command</code> is set in the user config and the command is on your <code>PATH</code>. Each button runs one fixed skill. The agent can read the state through a read-only MCP server. It cannot change anything.</p>
+<table>
+<thead><tr><th>Button</th><th>Skill</th></tr></thead>
+<tbody>
+<tr><td>Explain failure</td><td><code>triage-build</code></td></tr>
+<tr><td>Is a rebuild necessary?</td><td><code>rebuild-check</code></td></tr>
+<tr><td>Summarize upstream release</td><td><code>package-updates</code></td></tr>
+<tr><td>Draft a version bump</td><td><code>bump-package</code></td></tr>
+</tbody>
+</table>
+<p>Without an agent command, the buttons are off, and the rest of the UI works. To use the same skills in your own agent session, run <code>repoctl skills install</code> and <code>repoctl mcp start</code>. Read <a href="../design/agents.html">Agents</a> for the design.</p>
+
+<p>The design of each page, the states and the mockups are in <a href="../design/ui.html">Web UI (design)</a> and the <a href="../design/mockups/index.html">mockup gallery</a>.</p>
+
+</body>
+</html>

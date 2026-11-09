@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>repoctl user manual</title>
+<meta name="description" content="The user manual of repoctl: install the tool, learn the concepts, follow a tutorial that starts a new set, and look up the commands and the web UI.">
+</head>
+<body class="home">
+
+<section class="hero">
+<div class="hero-inner">
+<div class="hero-head">
+<p class="hero-eyebrow">User manual</p>
+<h1>repoctl</h1>
+<p class="hero-tagline">Build signed RPM repositories from a package set.</p>
+</div>
+<div class="hero-side">
+<p class="hero-text">This manual is for the admin who builds and publishes a set. It tells you how to install repoctl, how it thinks, and which command to run for each task. Start with the tutorial: it builds a new set, slurm 26.11, from the old set.</p>
+<p class="hero-actions"><a class="button button-primary" href="tutorial.html">Start the tutorial</a><a class="button" href="install.html">Install repoctl</a></p>
+</div>
+</div>
+</section>
+
+<section class="home-section" id="workflow">
+<h2 id="the-work-of-an-admin">The work of an admin</h2>
+<p class="section-intro">An admin does the same loop for each change. repoctl does the slow and exact parts. You decide when to publish.</p>
+<figure class="diagram wide">
+<svg viewBox="0 0 960 150" role="img" aria-labelledby="loop-t">
+<title id="loop-t">The loop: change a package in git, pin it, plan, build, publish, clients update</title>
+<rect class="box" x="8" y="40" width="130" height="70" rx="10"/>
+<text class="t-title" x="73" y="68" text-anchor="middle">Change</text>
+<text class="t-small t-muted" x="73" y="88" text-anchor="middle">spec in git, push</text>
+<rect class="box" x="168" y="40" width="130" height="70" rx="10"/>
+<text class="t-title" x="233" y="68" text-anchor="middle">Pin</text>
+<text class="t-small t-muted" x="233" y="88" text-anchor="middle">repoctl pin</text>
+<rect class="box" x="328" y="40" width="130" height="70" rx="10"/>
+<text class="t-title" x="393" y="68" text-anchor="middle">Plan</text>
+<text class="t-small t-muted" x="393" y="88" text-anchor="middle">what and why</text>
+<rect class="box-accent" x="488" y="40" width="130" height="70" rx="10"/>
+<text class="t-title t-on" x="553" y="68" text-anchor="middle">Build</text>
+<text class="t-small t-on" x="553" y="88" text-anchor="middle">mock, to staging</text>
+<rect class="box-accent" x="648" y="40" width="130" height="70" rx="10"/>
+<text class="t-title t-on" x="713" y="68" text-anchor="middle">Publish</text>
+<text class="t-small t-on" x="713" y="88" text-anchor="middle">you: sign, push</text>
+<rect class="box" x="808" y="40" width="142" height="70" rx="10"/>
+<text class="t-title" x="879" y="68" text-anchor="middle">Clients</text>
+<text class="t-small t-muted" x="879" y="88" text-anchor="middle">dnf update</text>
+<line class="edge" x1="138" y1="75" x2="166" y2="75" marker-end="url(#arrow)"/>
+<line class="edge" x1="298" y1="75" x2="326" y2="75" marker-end="url(#arrow)"/>
+<line class="edge" x1="458" y1="75" x2="486" y2="75" marker-end="url(#arrow)"/>
+<line class="edge" x1="618" y1="75" x2="646" y2="75" marker-end="url(#arrow)"/>
+<line class="edge" x1="778" y1="75" x2="806" y2="75" marker-end="url(#arrow)"/>
+</svg>
+<figcaption>The loop of each change. Only the publish step changes what other humans see.</figcaption>
+</figure>
+</section>
+
+<section class="home-section" id="pages">
+<h2 id="pages-of-the-manual">Pages of the manual</h2>
+<p class="section-intro">Read Part I in order. Part II and Part III are for look-up.</p>
+<div data-build="chapters"></div>
+</section>
+
+<section class="home-section" id="more">
+<h2 id="more-help">More help</h2>
+<ul>
+<li>Each command has <code>--help</code>. <code>repoctl help</code> lists the help topics, for example <code>repoctl help new-set</code>.</li>
+<li>Look up a word in the <a href="../design/glossary.html">glossary</a>.</li>
+<li>Read <a href="../design/index.html">the design record</a> to learn why repoctl works as it does.</li>
+</ul>
+</section>
+
+</body>
+</html>

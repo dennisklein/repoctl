@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Operate a set</title>
+<meta name="description" content="The daily and rare tasks of an admin: bump a package, add a package, rebuild, read advisories and upstream versions, manage keys and the team, end a set, and which runbook to open when something breaks.">
+</head>
+<body>
+<h1>Operate a set</h1>
+<p class="lede">After the first publish, the work is a loop of small changes. This page gives the steps of the common tasks. Each step names the repository that gets the commit. For a rare task, it points to the help topic or the runbook.</p>
+<ul class="keypoints">
+  <li>Each change ends with <code>repoctl plan</code>. Check the reason before you build.</li>
+  <li>An advisory suggests. You decide. Dismiss a warning only with a written reason.</li>
+  <li>Old versions stay in the repo. Removal is explicit.</li>
+  <li>When a publish goes wrong, stop and open the runbook. Do not improvise.</li>
+</ul>
+
+<h2 id="bump">Bump a package</h2>
+<ol class="steps">
+<li>Run <code>repoctl upstream PKG --releases</code> to see the newer releases.</li>
+<li>Run <code>repoctl status</code>. The package must be <code>in-sync</code>. If not, run <code>repoctl checkout PKG</code>.</li>
+<li>Edit the spec. Commit in the worktree: <code>git -C packages/PKG commit -am "Bump to X"</code>. Repository: the package branch.</li>
+<li>Push: <code>git -C packages/PKG push origin BRANCH</code>.</li>
+<li>Run <code>repoctl pin PKG</code>. Commit and push <code>repoctl.lock</code>. Repository: the set branch.</li>
+<li>Run <code>repoctl plan</code>. Expect the reason <code>commit-changed</code> for PKG.</li>
+<li>Run <code>repoctl build</code>. Read the soname result of PKG.</li>
+<li>Run <code>repoctl publish</code>, then <code>repoctl status</code>. Expect: served same.</li>
+</ol>
+<p>To test a change before you push it, run <code>repoctl build PKG --from worktree</code>. Such a run is not staged.</p>
+
+<h2 id="add">Add, remove and rename a package</h2>
+<table>
+<thead><tr><th>Task</th><th>Steps</th></tr></thead>
+<tbody>
+<tr><td>Add a package in this repository</td><td>Add <code>id</code>, <code>branch</code> and <code>upstream</code> to <code>repoctl.yaml</code>. Run <code>repoctl checkout --create PKG --from fedora</code> (or <code>--orphan</code>). Write the spec, commit and push the branch. Run <code>repoctl pin PKG</code>. Commit and push <code>repoctl.yaml</code> and <code>repoctl.lock</code>. Plan expects <code>new-package</code>.</td></tr>
+<tr><td>Add an external package</td><td>Create the project on the git server first. Then the same steps, with <code>git: {url: …}</code> in the entry.</td></tr>
+<tr><td>Build for some targets only</td><td>Set <code>targets: [el9]</code> in the entry.</td></tr>
+<tr><td>Remove a package</td><td>Delete the entry. Run <code>repoctl pin --orphans</code>. Commit and push. Its RPMs stay published. To remove them, run <code>repoctl repo prune --package NAME --all</code>, then again with <code>--apply</code>.</td></tr>
+<tr><td>Rename an RPM</td><td>Change the spec and add <code>Obsoletes</code>. A rename of a package id or a branch does not build.</td></tr>
+</tbody>
+</table>
+<p>Read <code>repoctl help packages</code> for the full text. The design is in <a href="../design/lifecycle.html">Sets and packages</a>.</p>
+
+<h2 id="rebuild">Rebuild with the same version</h2>
+<p>A library can change its soname. Its dependents then need a rebuild. repoctl never does this by itself.</p>
+<ol class="steps">
+<li>Run <code>repoctl rebuild PKG… --reason "TEXT"</code>. The reason has 8 characters or more. Add <code>--dry-run</code> to see the new NVRs.</li>
+<li>Push the package branches. Commit and push <code>repoctl.lock</code>.</li>
+<li>Run <code>repoctl plan</code>, <code>repoctl build</code> and <code>repoctl publish</code>.</li>
+</ol>
+<p>To rebuild the whole set, run <code>repoctl mock update</code> first, then <code>repoctl rebuild '*' --reason TEXT</code>.</p>
+
+<h2 id="advisories">Advisories and upstream</h2>
+<p>A daily timer runs <code>repoctl check</code>. You can run it by hand too.</p>
+<pre class="term">$ repoctl check
+$ repoctl advisories ls --level required
+$ repoctl advisories show ID
+$ repoctl advisories dismiss ID --note "known, fixed in the next bump"
+$ repoctl upstream --check</pre>
+<ul>
+<li>A required advisory blocks a publish when it concerns a node of that publish.</li>
+<li>To publish anyway, add <code>--accept-advisory ID --reason TEXT</code>. This is recorded.</li>
+<li>Read <code>repoctl help advisories</code> for the codes and the recovery path.</li>
+</ul>
+
+<h2 id="urgent">Publish a fix while another node is not ready</h2>
+<p>A failed or unbuilt node makes its target not publishable. For an urgent fix, hold that node back for one publish: <code>repoctl publish --hold NODE --reason TEXT</code>. The reason has 8 characters or more. A held node keeps its old build.</p>
+<p>You cannot hold a node that is current or staged. To publish only the targets that are ready, add <code>--target TARGET</code>. Read <code>repoctl help urgent</code>.</p>
+
+<h2 id="keys">Keys and the team</h2>
+<table>
+<thead><tr><th>Task</th><th>Command or topic</th></tr></thead>
+<tbody>
+<tr><td>Make a signing key</td><td><code>repoctl help key</code></td></tr>
+<tr><td>A new admin</td><td>Read <code>repoctl help team</code>. Add the key with <code>repoctl sign add ID --fingerprint FPR</code>. Check the steps with <code>repoctl sign onboard ID</code>.</td></tr>
+<tr><td>A second admin host</td><td>Install repoctl, clone the set repository, then run <code>repoctl doctor</code>, <code>repoctl checkout</code>, <code>repoctl repo pull</code>, <code>repoctl mock update</code> and <code>repoctl check --install-timer</code>.</td></tr>
+<tr><td>Replace a key that expires</td><td>Make the next key 180 days before the old one expires. <code>repoctl doctor</code> warns with <code>sign.expiry</code>. Keep two deployed keys for each target.</td></tr>
+<tr><td>Retire a key</td><td><code>repoctl sign retire ID</code>, then after the clients have a new release, <code>repoctl sign remove ID</code>.</td></tr>
+<tr><td>A lost or compromised key</td><td><code>repoctl help emergency</code> and the <a href="../runbooks/key-compromise.html">key compromise runbook</a>.</td></tr>
+</tbody>
+</table>
+
+<h2 id="end-set">End a set</h2>
+<p>End an old set after its clients move to a newer set. The OCI packages and the branches stay.</p>
+<ol class="steps">
+<li>Move the clients to the release package of the next set.</li>
+<li>Add <code>state: retired</code> to each target in <code>repoctl.yaml</code>. Commit and push. Repository: the set branch. Build and publish now stop with <code>set.retired</code>.</li>
+<li>Remove the lines of the set from the mirror job on the HTTP server.</li>
+<li>On each admin host, run <code>repoctl check --remove-timer</code>, remove the worktrees and run <code>repoctl clean --set NAME</code>.</li>
+</ol>
+<p>Read <code>repoctl help end-set</code> for the full text.</p>
+
+<h2 id="housekeeping">Housekeeping</h2>
+<ul>
+<li>Delete caches and old logs: <code>repoctl clean --dry-run</code>, then <code>repoctl clean</code>.</li>
+<li>Delete old snapshots: <code>repoctl repo gc</code>, then again with <code>--apply</code>.</li>
+<li>Check what the clients get: <code>repoctl repo verify --served</code>.</li>
+<li>Upgrade repoctl: <a href="install.html#upgrade">Install repoctl</a>.</li>
+</ul>
+
+<h2 id="runbooks">When something breaks</h2>
+<table>
+<thead><tr><th>Problem</th><th>Runbook</th></tr></thead>
+<tbody>
+<tr><td>A bad build is in latest</td><td><a href="../runbooks/bad-publish.html">Bad publish</a></td></tr>
+<tr><td>A key is compromised</td><td><a href="../runbooks/key-compromise.html">Key compromise</a></td></tr>
+<tr><td>The registry lost data</td><td><a href="../runbooks/registry-loss.html">Registry loss</a></td></tr>
+<tr><td>The mirror does not update</td><td><a href="../runbooks/mirror-job.html">Mirror job</a></td></tr>
+<tr><td>An admin host is lost</td><td><a href="../runbooks/host-loss.html">Host loss</a></td></tr>
+<tr><td>You move old repos to repoctl</td><td><a href="../runbooks/import.html">Import</a></td></tr>
+</tbody>
+</table>
+
+</body>
+</html>
