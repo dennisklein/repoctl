@@ -1,0 +1,67 @@
+apiVersion: repoctl/v1alpha1
+name: slurm-26.05                  # set id: in all local paths and OCI package names
+
+repo:
+  name: slurm                      # gives slurm, slurm-source and slurm-debuginfo
+  url: http://cluster-mirror.hpc.gsi.de/packages/slurm-26.05 # what the clients use
+
+store:
+  oci: ghcr.io/dennisklein/slurm-repo  # one OCI package SET-TARGET per target
+
+sign:                              # trusted keys; "repoctl sign add" writes them
+  keys:
+    - id: fairsoft
+      fingerprint: 0A05B2C652F8C40D535125C06925EAE660912AD4
+      state: active
+  release:
+    keyfile: RPM-GPG-KEY-slurm     # key file in the release package
+
+targets:                           # one mock chroot each
+  - id: el9
+    mock: rocky+epel-9-x86_64
+    plugins: [rpmautospec]         # required: a rebuild commit needs it
+    macros: [rpm/macros]
+    path: el9                      # client path below repo.url
+
+defaults:
+  git:
+    remote: origin                 # the package branches are in this repository
+
+packages:
+  - id: munge
+    branch: munge/slurm-26.05
+    upstream: {github: dun/munge}
+  - id: ucx
+    branch: ucx/slurm-26.05
+    upstream: {github: openucx/ucx}
+  - id: pmix
+    branch: pmix/slurm-26.05
+    upstream: {github: openpmix/openpmix, tags: '^v6'}
+  - id: pmix_v5
+    branch: pmix/slurm-26.05-v5
+    upstream: {github: openpmix/openpmix, tags: '^v5'}
+  - id: pmix_v4
+    branch: pmix/slurm-26.05-v4
+    upstream: {github: openpmix/openpmix, tags: '^v4'}
+    notes: PMIx 4.x series only; upstream is frozen at 4.2.9
+  - id: prrte
+    branch: prrte/slurm-26.05
+    upstream: {github: openpmix/prrte}
+  - id: rocm-smi
+    branch: rocm-smi/slurm-26.05
+    upstream: {github: ROCm/rocm-systems, tags: '^therock-[0-9]'}
+    notes: >-
+      The spec follows the TheRock stream (therock-X.Y) via %{pkg_src}, as Fedora
+      does. The parallel production stream rocm-X.Y.Z is frozen at 7.2.4.
+  - id: slurm
+    branch: slurm/slurm-26.05
+    upstream: {github: SchedMD/slurm, tags: '^slurm-'}
+  - id: slurm-singularity-exec
+    branch: slurm-singularity-exec/slurm-26.05
+    upstream: {github: GSI-HPC/slurm-singularity-exec}
+  - id: openmpi
+    branch: openmpi/slurm-26.05
+    upstream: {github: open-mpi/ompi, tags: '^v[0-9]'}
+  - id: slurm-release
+    path: packages/slurm-release
+    role: release

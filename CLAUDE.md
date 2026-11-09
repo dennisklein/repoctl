@@ -4,103 +4,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packages for Rocky Linux 9 (EL9) with EPEL dependencies using Mock for isolated, reproducible builds.
+RPM package set `slurm-26.05` for Slurm and HPC components at GSI. repoctl builds
+the set with mock for Rocky Linux 9 (EL9) with EPEL and publishes signed repos.
+Manual: https://dennisklein.github.io/repoctl/manual/
 
-## Build Commands
+## Commands
 
 ```bash
-# Initial setup (install dependencies, configure GPG)
-./scripts/setup
-
-# Check out the pinned package commits into packages/<dir>
-./scripts/checkout
-
-# Build all packages in dependency order
-./scripts/build
-
-# To build specific packages, comment out unwanted builds in scripts/build
-# Build order: munge → ucx → pmix → pmix_v5 → pmix_v4 → prrte → rocm-smi → slurm → slurm-singularity-exec → openmpi → slurm-release
-
-# List packages with dependencies and build requirements
-./scripts/list
-
-# Query built repository contents
-./scripts/rpmlist result/el9/slurm/
-./scripts/rpmlist --format json result/el9/slurm/
-
-# Clean build artifacts
-./scripts/clean
-
-# Update mock environment
-./scripts/update
+repoctl status            # the set, the packages and the published state
+repoctl checkout          # make the package worktrees from repoctl.lock
+repoctl plan              # what to build, and why
+repoctl build             # build the nodes of the plan in graph order
+repoctl check             # advisories that need no build
+repoctl publish           # sign the staged nodes, push a snapshot, move "latest"
+repoctl doctor            # check the host: mock, gpg, registry login
 ```
+
+Read `repoctl help packages` before you bump, add, remove or rename a package.
+Read `repoctl help new-set` before you start the next set from this one.
+Read `repoctl help safety` for the rules for agents: do not sign, publish or
+push to the registry without the human.
 
 ## Repository Structure
 
-- **packages.lock**: Pinned package commits, one line per package: `dir branch sha`
-- **packages/**: Git worktrees with package sources and spec files, created by `scripts/checkout`
-  - `ucx`, `pmix`, `pmix_v4`, `prrte`, `munge`, `rocm-smi`, `slurm`, `slurm-singularity-exec`, `openmpi`
-- **packages/slurm-release/**: Package sources and spec files for the repo pkg that can be used to configure yum/dnf on a target system pointing to the rpm repo
-- **scripts/**: Build tooling
-  - `build`: Main build script with `build()` function for each package
-  - `checkout`: Create or update the package worktrees from `packages.lock`
-  - `pin`: Write the HEAD of the package worktrees into `packages.lock`
-  - `common.sh`: Shared config (mock target, paths, macros)
-  - `macros`: RPM macros passed to mock
-  - `rpmlist`: Python tool to query repo contents (requires `python3-humanize python3-rich`)
-- **build/el9/**: Temporary build artifacts (`SOURCES/`, `SRPMS/`, `RPMS/`)
-- **result/el9/**: Final signed repositories
-  - `slurm/`: Binary RPMs
-  - `slurm-source/`: Source RPMs
-  - `slurm-debuginfo/`: Debug packages
+- **repoctl.yaml**: the set: repo, store, signing keys, target `el9`
+  (`rocky+epel-9-x86_64`), packages and their upstreams
+- **repoctl.lock**: the pinned commit of each package branch (`repoctl pin` writes it)
+- **rpm/macros**: RPM macros for mock
+- **packages/**: git worktrees of the package branches (`repoctl checkout` makes them)
+- **packages/slurm-release/**: the release package (in this branch); it holds
+  the repo file and the key file `RPM-GPG-KEY-slurm`
 
-## Build Configuration
-
-- **Mock target**: `rocky+epel-9-x86_64` (set in `scripts/common.sh`)
-- **GPG signing**: Requires `%_gpg_name` in `~/.rpmmacros` pointing to your GPG key
-
-## Working with Packages
-
-Each package has its own branch `<project>/slurm-<version>[-<variant>]` with its own
-history. The spec file is at the root of the branch, so rpmautospec reads the
-package history unchanged.
-
-```bash
-# Modify a package
-cd packages/<dir>
-git switch <pkg>/slurm-<version>
-# make changes, commit, push the package branch
-cd ../..
-./scripts/pin <dir>
-git add packages.lock && git commit
-
-# Add new package (new orphan branch for the package)
-git worktree add --orphan -b <pkg>/slurm-<version> packages/<dir>
-# add the spec file, commit, push, then add a line to packages.lock
-# Add "build <dir>" line to scripts/build in dependency order
-```
-
-## Troubleshooting
-
-```bash
-# Check build logs
-less build/el9/<package>/sources.log
-
-# Debug in mock shell
-mock -r rocky+epel-9-x86_64 --shell
-
-# Clean corrupted mock cache
-mock -r rocky+epel-9-x86_64 --clean
-
-# Verify GPG setup
-rpm --eval "%{_gpg_name}"
-gpg --list-secret-keys
-```
+The bash-era files `packages.lock`, `scripts/` and the skills `package-info`
+and `list-package-updates` stay until the first publish with repoctl. Then
+they are removed. Do not use them for new work.
 
 ## Git Branching
 
 Branch names: `<component>/slurm-<version>[-<variant>]`
 
-- `set/slurm-<version>[-testing]`: build scripts and `packages.lock`
+- `set/slurm-<version>[-testing]`: `repoctl.yaml`, `repoctl.lock` and the release package
 - `<project>/slurm-<version>[-<variant>]`: one package, e.g. `slurm/slurm-26.05`, `pmix/slurm-26.05-v5`
 - Package branches do not share history with the set branch or with other packages
