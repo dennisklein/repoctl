@@ -15,5 +15,8 @@ starts after 0.1.0, the first release.
 
 - The notes of a GitHub Release are shorter. They list the changes and the
   check values, and link to the manual for the install and the upgrade.
+- `repoctl help team` and the hint of the doctor check `tool.repo-key` link to
+  [First install](https://dennisklein.github.io/repoctl/manual/install.html#first-install)
+  in the manual.
 
 [Unreleased]: https://github.com/dennisklein/repoctl/compare/v0.1.0...HEAD
