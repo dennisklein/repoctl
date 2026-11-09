@@ -82,6 +82,14 @@ gpg --list-keys --with-fingerprint       # the fingerprint of the new key</code>
 
 <h3 id="registry-login">Registry login</h3>
 <p>A publish pushes the snapshots to GHCR, and <code>repoctl repo gc</code> deletes old snapshots. Both need your token. A pull needs no token, because the packages are public. Log in once on each admin host, and again when the token expires.</p>
+<p>Before you log in, decide where the token stays:</p>
+<table>
+<thead><tr><th>Store</th><th>Use it when</th><th>Steps</th></tr></thead>
+<tbody>
+<tr><td>Auth file (plain text, <code>~/.config/containers/auth.json</code>)</td><td>You work over SSH, or the daily check of a set runs on this host.</td><td>The steps below.</td></tr>
+<tr><td>System keyring (Secret Service)</td><td>You work in an open desktop session, and the token must not be on the disk in plain text.</td><td>First steps 1 and 2 of <a href="#registry-keyring">Keep the token in the system keyring</a>, then the steps below.</td></tr>
+</tbody>
+</table>
 <ol class="steps">
 <li>Make a classic personal access token: open <a href="https://github.com/settings/tokens/new?scopes=write:packages,delete:packages&amp;description=repoctl%20GHCR">a new token with write:packages and delete:packages</a>. Set the expiration to one year or less. Click <em>Generate token</em> and copy the token.</li>
 <li>Log in with podman. podman comes with repoctl. Type your GitHub login as the user name, and paste the token as the password:
@@ -108,7 +116,17 @@ Login Succeeded!</pre></li>
 <h3 id="registry-keyring">Keep the token in the system keyring</h3>
 <p>The login above writes the token in plain text into <code>auth.json</code>. To keep it in the system keyring (Secret Service over D-Bus, the store of <code>secret-tool</code>), use a credential helper. podman writes the token through the helper, and repoctl reads it through the same helper.</p>
 <ol class="steps">
-<li>Install <code>docker-credential-secretservice</code> from <a href="https://github.com/docker/docker-credential-helpers/releases">docker/docker-credential-helpers</a> into a directory of your <code>PATH</code>.</li>
+<li>Install <code>docker-credential-secretservice</code>. Fedora and podman do not supply it. With <a href="https://mise.jdx.dev/">mise</a>:
+<pre><code class="language-sh">mise use -g "github:docker/docker-credential-helpers[asset_pattern=docker-credential-secretservice-*.linux-amd64,bin=docker-credential-secretservice]"
+docker-credential-secretservice version</code></pre>
+Without mise, get the release binary of <a href="https://github.com/docker/docker-credential-helpers/releases">docker/docker-credential-helpers</a>. Check its sha256 with <code>checksums.txt</code>:
+<pre><code class="language-sh">v=v0.9.12
+f=docker-credential-secretservice-$v.linux-amd64
+curl -fLO https://github.com/docker/docker-credential-helpers/releases/download/$v/$f
+curl -fLO https://github.com/docker/docker-credential-helpers/releases/download/$v/checksums.txt
+grep " \*$f\$" checksums.txt | sed 's/ \*/  /' | sha256sum -c
+install -D -m 0755 $f ~/.local/bin/docker-credential-secretservice</code></pre>
+The directory <code>~/.local/bin</code> must be in your <code>PATH</code>.</li>
 <li>Tell the auth file to use the helper for GHCR. If the file exists already, add the key <code>credHelpers</code> by hand.
 <pre><code class="language-sh">mkdir -p ~/.config/containers
 echo '{"credHelpers": {"ghcr.io": "secretservice"}}' &gt;~/.config/containers/auth.json</code></pre></li>
