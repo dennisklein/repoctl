@@ -53,6 +53,14 @@ type Store struct {
 	repo *remote.Repository
 }
 
+// LoginCommand is the command that logs in to registry for a push. podman
+// comes with the repoctl RPM. The auth file in ~/.config stays after a
+// reboot; the default file of podman in $XDG_RUNTIME_DIR does not. podman
+// asks for the user name and the token (manual/install.html#registry-login).
+func LoginCommand(registry string) string {
+	return "podman login " + registry + " --authfile ~/.config/containers/auth.json"
+}
+
 // AuthFiles gives the container credential files that repoctl reads, in
 // order: REGISTRY_AUTH_FILE, $XDG_RUNTIME_DIR/containers/auth.json,
 // $XDG_CONFIG_HOME/containers/auth.json, $DOCKER_CONFIG/config.json and
@@ -94,7 +102,7 @@ func CredentialStore(getenv func(string) string) (credentials.Store, error) {
 		s, err := credentials.NewStore(f, credentials.StoreOptions{})
 		if err != nil {
 			return nil, api.Errorf(api.PRegistryDenied, "the container credential file %s cannot be read: %v", f, err).
-				WithHint("log in again", "oras login ghcr.io -u USER --password-stdin")
+				WithHint("log in again", LoginCommand("ghcr.io"))
 		}
 		stores = append(stores, s)
 	}
@@ -180,7 +188,7 @@ func (s *Store) classify(err error, what string) error {
 		switch er.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
 			return api.Errorf(api.PRegistryDenied, "%s: the registry %s denies %s (HTTP %d); the token needs the scope write:packages", s.Ref, s.Registry(), what, er.StatusCode).
-				WithCause(err).WithHint("log in with a token of the scope write:packages", "oras login "+s.Registry()+" -u USER --password-stdin")
+				WithCause(err).WithHint("log in with a token of the scope write:packages", LoginCommand(s.Registry()))
 		}
 		return api.Errorf(api.PSnapshotPushFailed, "%s: %s failed: %v", s.Ref, what, err).WithCause(err)
 	}

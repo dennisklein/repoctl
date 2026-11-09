@@ -61,14 +61,49 @@ $ repoctl doctor --only host</pre>
 </aside>
 
 <h2 id="host-setup">Prepare the host</h2>
+<p>Do these steps once on each admin host, in this order.</p>
 <ol class="steps">
-<li>Add your user to the group <code>mock</code>: <code>sudo usermod -a -G mock $USER</code>. Log in again.</li>
+<li>Add your user to the group <code>mock</code>: <code>sudo usermod -a -G mock $USER</code>. Log out and log in again.</li>
 <li>Run <code>repoctl doctor --only host</code>. Fix each failed check. The hint of a check tells you the fix.</li>
-<li>Make a signing key, or use the key of your team. Read <code>repoctl help key</code> for a YubiKey or a file key.</li>
-<li>Log in to the registry. For GHCR, use a token with the scope <code>write:packages</code>: <code>oras login ghcr.io -u USER --password-stdin</code>.</li>
+<li>Make a signing key, or use your key on a YubiKey (<a href="#signing-key">Signing key</a>).</li>
+<li>Log in to the registry (<a href="#registry-login">Registry login</a>).</li>
 <li>Run <code>repoctl doctor</code> inside a set directory. The groups <code>sign</code> and <code>registry</code> now pass.</li>
 </ol>
 <p>A build needs free disk: 10 GiB in the data directory and in the cache directory, and 20 GiB in <code>/var/lib/mock</code>. <code>repoctl doctor</code> checks this, and a build stops early with exit 9 when the host is not ready.</p>
+
+<h3 id="signing-key">Signing key</h3>
+<p>You sign each publish with your own key. Use a YubiKey for the key of a team member. <code>repoctl help key</code> gives the steps for the card. A file key is for a test set:</p>
+<pre><code class="language-sh">gpg --quick-gen-key "Your Name &lt;you@example.org&gt;" rsa4096 sign 3y
+gpg --list-keys --with-fingerprint       # the fingerprint of the new key</code></pre>
+<p>Then tell repoctl which key is yours. Put the key ID of the set, or the full fingerprint, in the user config <code>~/.config/repoctl/config.yaml</code>:</p>
+<pre><code class="language-yaml">sign:
+  key: d.klein</code></pre>
+<p>A new key also needs <code>repoctl sign add</code> and a deployment record before it can publish. <a href="operate.html#keys">Keys and the team</a> gives these steps.</p>
+
+<h3 id="registry-login">Registry login</h3>
+<p>A publish pushes the snapshots to GHCR, and <code>repoctl repo gc</code> deletes old snapshots. Both need your token. A pull needs no token, because the packages are public. Log in once on each admin host, and again when the token expires.</p>
+<ol class="steps">
+<li>Make a classic personal access token: open <a href="https://github.com/settings/tokens/new?scopes=write:packages,delete:packages&amp;description=repoctl%20GHCR">a new token with write:packages and delete:packages</a>. Set the expiration to one year or less. Click <em>Generate token</em> and copy the token.</li>
+<li>Log in with podman. podman comes with repoctl. Type your GitHub login as the user name, and paste the token as the password:
+<pre class="term">$ podman login ghcr.io --authfile ~/.config/containers/auth.json
+Username: dklein
+Password:
+Login Succeeded!</pre></li>
+<li>Check the login inside a set directory: <code>repoctl doctor --only registry</code>.
+<pre class="term">$ repoctl doctor --only registry
+✓ registry.login: ghcr.io as dklein (container auth file)
+✓ registry.scope: write:packages, delete:packages, expires 2027-11-09
+✓ registry.write: write access to slurm-26.05-el9, slurm-26.05-el10</pre></li>
+</ol>
+<aside class="callout warn">
+<p class="callout-title">Use a token for the registry only</p>
+<p>Do not use the token of <code>gh auth</code> or a fine-grained token. GHCR needs a classic token, and the token of <code>gh</code> has the scope <code>repo</code>. <code>repoctl doctor</code> warns about a scope other than the packages (<code>registry.scope</code>). Without <code>delete:packages</code>, all works but <code>repo gc</code>.</p>
+</aside>
+<aside class="callout why">
+<p class="callout-title">Why the option --authfile</p>
+<p>The default file of podman is in <code>/run/user</code>. It is gone after a reboot, and the daily check of a set runs also when you are logged out. repoctl also reads <code>~/.docker/config.json</code>, so <code>oras login ghcr.io</code> or <code>docker login ghcr.io</code> work too. To get oras, use for example <code>mise use -g oras</code>.</p>
+</aside>
+<p>When a host is lost, delete its token on <a href="https://github.com/settings/tokens">github.com/settings/tokens</a> (<a href="runbooks/host-loss.html#access">host loss runbook</a>).</p>
 
 <h2 id="shell">Shell completion</h2>
 <p>The RPM installs the completions for bash, zsh and fish. For another shell, run <code>repoctl completion bash|zsh|fish|powershell</code>. It writes the script to stdout.</p>
