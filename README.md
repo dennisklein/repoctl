@@ -41,7 +41,11 @@ The fingerprint of the tool repository key:
 F4EBF057DF65EF8D26B1E44128A5286144DD6792
 ```
 
-The sha256 of the release RPM comes here with the first release.
+The sha256 of `repoctl-release-1-1.noarch.rpm`:
+
+```
+ad8eebea41eef412fd15cb7cf09e04a49c17622bd6dcaae0d2fd855e38c7e054
+```
 
 ## Branches in this repository
 
