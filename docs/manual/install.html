@@ -12,7 +12,7 @@
   <li>An admin host runs Fedora on x86_64. The targets are EL9 and EL10, built in mock chroots.</li>
   <li>Check the key of the RPM repo by hand at the first install. dnf checks it after that.</li>
   <li>The HTTP server needs only the package <code>repoctl-mirror</code>.</li>
-  <li>The first release is not out yet. The sha256 and the key fingerprint come with it.</li>
+  <li>The notes of each <a href="https://github.com/dennisklein/repoctl/releases">GitHub Release</a> give the sha256 and the key fingerprint for the checks.</li>
 </ul>
 
 <h2 id="hosts">Which host needs what</h2>
@@ -79,7 +79,7 @@ $ repoctl doctor --only host</pre>
 <h2 id="upgrade">Upgrade</h2>
 <p>These steps are the text of <code>repoctl help upgrade</code>. A running build ends with the old binary, so wait for it.</p>
 <ol class="steps">
-<li>Read the release notes. They name new keys, a new apiVersion and a new <code>minRepoctl</code>.</li>
+<li>Read the release notes or the <a href="https://github.com/dennisklein/repoctl/blob/main/CHANGELOG.md">changelog</a>. The section <em>Upgrade</em> names new keys, a new apiVersion and a new <code>minRepoctl</code>.</li>
 <li>Run <code>repoctl runs --state running</code> in each set. Wait until no run is active.</li>
 <li>Run <code>repoctl ui --stop</code>.</li>
 <li>Run <code>sudo dnf upgrade repoctl repoctl-release</code>.</li>

@@ -6,28 +6,30 @@ rpmautospec plugin), `rpmsign` and `createrepo_c`. It has a CLI, a local web
 UI and an MCP server for agents. It is built on
 [GSI-HPC/go-clikit](https://github.com/GSI-HPC/go-clikit).
 
-Status: first implementation of the design (phases 1 to 7 of the
-[delivery plan](docs/design/delivery.html)), not released yet. The release
-job is ready; the first release needs the tool repository key
-([packaging/README](packaging/README)).
+Status: first implementation of the design (phases 0 to 7 of the
+[delivery plan](https://dennisklein.github.io/repoctl/design/delivery.html#phases)). The
+[releases](https://github.com/dennisklein/repoctl/releases) have the RPMs; the
+[changelog](CHANGELOG.md) lists the changes of each release.
 
-## Documentation
+## Start here
 
-Read the docs at **<https://dennisklein.github.io/repoctl/>**.
+Read the **[user manual](https://dennisklein.github.io/repoctl/manual/)**. Read its pages in this order:
 
-- [User manual](https://dennisklein.github.io/repoctl/manual/): install,
-  concepts, a tutorial that starts a new set, the CLI and the web UI.
-- [Design record](https://dennisklein.github.io/repoctl/design/): why repoctl
-  works as it does, the decisions, the mockups and the machine contract.
+1. [Install repoctl](https://dennisklein.github.io/repoctl/manual/install.html): the first install, the host
+   setup and the upgrade.
+2. [Concepts](https://dennisklein.github.io/repoctl/manual/concepts.html): set, target, node, lock, plan, run,
+   publish and key.
+3. [Tutorial: start a new set](https://dennisklein.github.io/repoctl/manual/tutorial.html).
 
-The source is in [`docs/`](docs/index.html). To build the docs or the code, read
-[CONTRIBUTING](CONTRIBUTING.md).
+Then look up a command in the [CLI reference](https://dennisklein.github.io/repoctl/manual/cli.html) or
+`repoctl help`. The [design record](https://dennisklein.github.io/repoctl/design/) tells why repoctl works as it
+does. To change the code or the docs, read [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Install
 
 repoctl comes as signed RPMs from its RPM repo on GitHub Pages. Check the key
 of the repo by hand at the first install. The steps, with the checks, are in
-[Install repoctl](https://dennisklein.github.io/repoctl/manual/install.html).
+[First install](https://dennisklein.github.io/repoctl/manual/install.html#first-install). In short:
 
 ```sh
 sudo dnf install ./repoctl-release-1-1.noarch.rpm   # after the checks
@@ -57,11 +59,11 @@ ad8eebea41eef412fd15cb7cf09e04a49c17622bd6dcaae0d2fd855e38c7e054
 
 The branches do not share history. Today the set branches hold the build
 scripts of the bash era (old name `builder/<set>`). The
-[import runbook](docs/runbooks/import.html) moves a set to `repoctl.yaml` and
+[import runbook](https://dennisklein.github.io/repoctl/runbooks/import.html) moves a set to `repoctl.yaml` and
 `repoctl.lock`.
 
 ## License
 
 [Apache-2.0](LICENSE), for the code and the design record on this branch. The
 fonts and the vendored script in `docs/assets/` keep their own licenses
-([details](docs/design/decision.html#license)).
+([details](https://dennisklein.github.io/repoctl/design/decision.html#license)).
