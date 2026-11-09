@@ -82,6 +82,14 @@ gpg --list-keys --with-fingerprint       # the fingerprint of the new key</code>
 
 <h3 id="registry-login">Registry login</h3>
 <p>A publish pushes the snapshots to GHCR, and <code>repoctl repo gc</code> deletes old snapshots. Both need your token. A pull needs no token, because the packages are public. Log in once on each admin host, and again when the token expires.</p>
+<p>Before you log in, decide where the token stays:</p>
+<table>
+<thead><tr><th>Store</th><th>Use it when</th><th>Steps</th></tr></thead>
+<tbody>
+<tr><td>Auth file (plain text, <code>~/.config/containers/auth.json</code>)</td><td>You work over SSH, or the daily check of a set runs on this host.</td><td>The steps below.</td></tr>
+<tr><td>System keyring (Secret Service)</td><td>You work in an open desktop session, and the token must not be on the disk in plain text.</td><td>First steps 1 and 2 of <a href="#registry-keyring">Keep the token in the system keyring</a>, then the steps below.</td></tr>
+</tbody>
+</table>
 <ol class="steps">
 <li>Make a classic personal access token: open <a href="https://github.com/settings/tokens/new?scopes=write:packages,delete:packages&amp;description=repoctl%20GHCR">a new token with write:packages and delete:packages</a>. Set the expiration to one year or less. Click <em>Generate token</em> and copy the token.</li>
 <li>Log in with podman. podman comes with repoctl. Type your GitHub login as the user name, and paste the token as the password:
