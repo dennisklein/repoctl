@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Lost admin host</title>
+<title>Recover from a lost admin host</title>
 <meta name="description" content="Runbook for a human: stop the access of a lost or stolen admin host, find the commits and keys that it held, and set up a new host.">
 </head>
 <body>
-<h1>Lost admin host</h1>
-<p class="lede">Use this runbook when an admin host is lost, stolen or broken. The host can hold commits that are not pushed, a key and a registry token. The registry and git keep the team state: see <a href="../design/model.html#records">Core model: records</a> and <a href="../design/model.html#humans">humans and hosts</a>.</p>
+<h1>Recover from a lost admin host</h1>
+<p class="lede">Use this runbook when an admin host is lost, stolen or broken. The host can hold commits that are not pushed, a key and a registry token.</p>
 <ul class="keypoints">
   <li>Stolen, or an attacker controls it: stop its access first. A key on the host is compromised.</li>
   <li>Broken: a file key that has no other copy is lost.</li>
@@ -17,19 +17,19 @@
 <aside class="callout rule" id="rules">
 <p class="callout-title">Rules</p>
 <ul>
-<li>A human does each step. An agent can run <code>repoctl status</code>, <code>repoctl doctor</code>, <code>repoctl repo snapshots</code> and <code>git log</code> on another host, and it can show the commands. It does not sign, push or revoke (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>A human does each step. An agent can run <code>repoctl status</code>, <code>repoctl doctor</code>, <code>repoctl repo snapshots</code> and <code>git log</code> on another host, and it can show the commands. It does not sign, push or revoke (<a href="../../design/agents.html#deny">deny list</a>).</li>
 <li>When you are not sure if another human has the host, treat it as stolen.</li>
 <li>When a check fails, stop and tell the team.</li>
 </ul>
 </aside>
-<p>Example, a variant of the story: on 2026-11-12, the disk of <code>hpc-a2</code> breaks. A. Admin has the YubiKey with the key <code>a.admin</code>. The host had a commit of <code>repoctl.lock</code> after <code>repoctl pin ucx</code> that was not pushed.</p>
+<p>Example: on 2026-11-12, the disk of <code>hpc-a2</code> breaks. A. Admin has the YubiKey with the key <code>a.admin</code>. The host had a commit of <code>repoctl.lock</code> after <code>repoctl pin ucx</code> that was not pushed.</p>
 
-<h2 id="trigger">Trigger</h2>
+<h2 id="trigger">When to use this runbook</h2>
 <ul>
 <li>The disk or the host of an admin is broken, and the host cannot start.</li>
 <li>An admin host is lost or stolen.</li>
 <li>An attacker may control an admin host.</li>
-<li>A host was installed again without the steps "<span class="no-gl">Retire</span> a host" of <a href="../design/signing.html#help-team">help team</a>.</li>
+<li>A host was installed again without the steps "<span class="no-gl">Retire</span> a host" of <code>repoctl help team</code>.</li>
 </ul>
 
 <h2 id="decide">Decide the path</h2>
@@ -46,20 +46,20 @@
 
 <h2 id="access">Stop the access</h2>
 <ol class="steps">
-<li>Delete the registry token of the host. It is the personal access token with <code>write:packages</code> of the admin (<a href="../design/publish.html#registry">registry access</a>).</li>
+<li>Delete the registry token of the host. It is the personal access token with <code>write:packages</code> of the admin (<a href="../../design/publish.html#registry">registry access</a>).</li>
 <li>Delete the git credentials of the host: its SSH key or its token in the GitHub account of the admin.</li>
 <li>When the human leaves the team too, an organization owner removes the human from the GitHub team.</li>
 </ol>
 
 <h2 id="commits">Find the lost commits</h2>
-<p>A publish needs a pushed set commit and pushed package commits (<a href="../design/publish.html#checks">checks</a>). Thus latest never depends on a lost commit: it is only work to make again.</p>
+<p>A publish needs a pushed set commit and pushed package commits (<a href="../../design/publish.html#checks">checks</a>). Thus latest never depends on a lost commit: it is only work to make again.</p>
 <ol class="steps">
 <li>On another admin host, run <code>git fetch origin</code> and <code>git log origin/set/SET</code>. Ask the human of the lost host which commits were not pushed.</li>
 <li>Make each lost commit again, and push it at once:
 <table>
 <thead><tr><th>Lost commit</th><th>Action</th></tr></thead>
 <tbody>
-<tr><td><code>repoctl sign add</code></td><td>Run <code>repoctl sign add ID --fingerprint FPR</code> again. The public key of a new key was in the gpg keyring of the lost host. When nobody has a copy, make a new key (<a href="../design/signing.html#help-key">help key</a>).</td></tr>
+<tr><td><code>repoctl sign add</code></td><td>Run <code>repoctl sign add ID --fingerprint FPR</code> again. The public key of a new key was in the gpg keyring of the lost host. When nobody has a copy, make a new key (<a href="../../design/signing.html#help-key">help key</a>).</td></tr>
 <tr><td><code>repoctl sign deployed</code></td><td>Run it again with the same <code>--release</code> or <code>--keyfile</code> value.</td></tr>
 <tr><td><code>repoctl.lock</code> after <code>repoctl pin</code></td><td>Run <code>repoctl checkout</code>, then <code>repoctl pin PKG</code>, and commit. When the package commit is also lost, make it again first.</td></tr>
 <tr><td><code>.repoctl/advisories.yaml</code> after a dismiss</td><td>Run <code>repoctl advisories dismiss</code> again.</td></tr>
@@ -78,7 +78,7 @@
 
 <h2 id="new-host">Set up a new host</h2>
 <ol class="steps">
-<li>Do the steps "Add a second admin host" of <a href="../design/signing.html#help-team">help team</a>. Install repoctl and clone the set repository. Then run:
+<li>Do the steps "Add a second admin host" of <a href="../../design/signing.html#help-team">help team</a>. Install repoctl and clone the set repository. Then run:
 <pre><code class="language-bash">repoctl doctor
 repoctl checkout
 repoctl repo pull
@@ -88,7 +88,7 @@ repoctl status</code></pre></li>
 <li>Set <code>sign.key</code> in the user config, and log in to the registry with a new token.</li>
 <li>Run <code>repoctl doctor</code>. Each check passes, or warns only for a step of this runbook that is still open.</li>
 </ol>
-<p>The check timers of the other admin hosts still run (<a href="../design/advisories.html#timer">check timer</a>). Thus the team gets the advisories also before the new host is ready.</p>
+<p>The check timers of the other admin hosts still run (<a href="../../design/advisories.html#timer">check timer</a>). Thus the team gets the advisories also before the new host is ready.</p>
 
 <h2 id="stop">Stop conditions</h2>
 <table>
@@ -108,5 +108,9 @@ repoctl status</code></pre></li>
 <li><code>repoctl status</code> on the new host shows <code>local: same</code> for each target.</li>
 <li><code>repoctl doctor</code> on the new host shows no <code>check.never</code> and no <code>check.timer-off</code>.</li>
 </ul>
+<aside class="callout why">
+<p class="callout-title">Why it works this way</p>
+<p>The design record gives the rules and the reasons: <a href="../../design/model.html#records">Core model: records</a> and <a href="../../design/model.html#humans">humans and hosts</a>.</p>
+</aside>
 </body>
 </html>

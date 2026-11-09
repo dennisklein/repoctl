@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Failed mirror job</title>
+<title>Fix a failed mirror job</title>
 <meta name="description" content="Runbook for a human: find why the mirror job on the HTTP server does not serve latest, fix the cause and confirm that the clients get the new snapshot.">
 </head>
 <body>
-<h1>Failed mirror job</h1>
-<p class="lede">Use this runbook when the mirror job does not serve latest. The clients keep working, but they do not get the new snapshot. The rules of the job are in <a href="../design/publish.html#mirror">Publish: mirror job</a> and <a href="../design/publish.html#mirror-health">job health and alerts</a>.</p>
+<h1>Fix a failed mirror job</h1>
+<p class="lede">Use this runbook when the mirror job does not serve latest. The clients keep working, but they do not get the new snapshot.</p>
 <ul class="keypoints">
   <li>When a step fails, the job keeps the old tree.</li>
   <li>The job never serves a tree that the keyring of its mirror line does not verify.</li>
@@ -22,9 +22,9 @@
 <li>Do not write into the served tree. Only the job writes it.</li>
 </ul>
 </aside>
-<p>The examples use the story: the el9 publish <code>p-20261103-1412-5e1</code> at 14:13, and the served path <code>/srv/repos/slurm-repo/slurm-26.05/el9</code>.</p>
+<p>The examples use the el9 publish <code>p-20261103-1412-5e1</code> at 14:13, and the served path <code>/srv/repos/slurm-repo/slurm-26.05/el9</code>.</p>
 
-<h2 id="trigger">Trigger</h2>
+<h2 id="trigger">When to use this runbook</h2>
 <ul>
 <li><code>repoctl status</code> shows <code>served: behind</code> more than 15 minutes (three runs of the timer) after a publish.</li>
 <li><code>repoctl status</code> shows <code>served: unknown</code>: the file <code>repoctl-snapshot.json</code> is not at the URL.</li>
@@ -43,27 +43,27 @@
 <table class="compact">
 <thead><tr><th>Step of the job</th><th>Error</th><th>Cause</th><th>Fix</th></tr></thead>
 <tbody>
-<tr><td>1 token and manifest</td><td>curl fails, or HTTP 401, 403, 404</td><td>GHCR does not answer, the OCI package is private, or the OCI package line in <code>/etc/repoctl-mirror.conf</code> is wrong.</td><td>An outage: runbook <a href="registry-loss.html">Registry outage or loss</a>. A private package: an organization owner sets it to public. A wrong line: correct it.</td></tr>
+<tr><td>1 token and manifest</td><td>curl fails, or HTTP 401, 403, 404</td><td>GHCR does not answer, the OCI package is private, or the OCI package line in <code>/etc/repoctl-mirror.conf</code> is wrong.</td><td>An outage: runbook <a href="registry-loss.html">Recover from a registry outage or loss</a>. A private package: an organization owner sets it to public. A wrong line: correct it.</td></tr>
 <tr><td>2 manifest</td><td>the job refuses the manifest</td><td>An annotation <code>io.repoctl.set</code> or <code>io.repoctl.target</code> is not the set or the target of the line: the OCI package of the line is wrong. Or a title is not a safe relative path, or two layers have the same title.</td><td>A wrong line: correct it. A bad title: stop. repoctl never writes such a manifest.</td></tr>
 <tr><td>3 blobs</td><td>a sha256 does not match</td><td>A download broke.</td><td>The job tries again at its next start. When it fails twice for the same blob, stop.</td></tr>
 <tr><td>4 tree</td><td>no space, or a link fails</td><td>The disk is full. The hard links need one file system for <code>.objects/</code> and <code>.trees/</code>.</td><td>Free space, or set a lower <code>KEEP_TREES</code>.</td></tr>
-<tr><td>5 verify</td><td><code>gpgv</code> or <code>rpmkeys</code> fails for a key</td><td>The keyring of the mirror line does not hold the signer. Config management did not put the key file of the release with that key at the keyring path. Or it removed a revoked key on purpose (<a href="../design/signing.html#compromise">key compromise</a>).</td><td>Compare <code>sha256sum</code> of the keyring path of the line with <code>repoctl sign keyfile --checksum</code>. Put the key file of the release of the deployment record in place.</td></tr>
+<tr><td>5 verify</td><td><code>gpgv</code> or <code>rpmkeys</code> fails for a key</td><td>The keyring of the mirror line does not hold the signer. Config management did not put the key file of the release with that key at the keyring path. Or it removed a revoked key on purpose (<a href="../../design/signing.html#compromise">key compromise</a>).</td><td>Compare <code>sha256sum</code> of the keyring path of the line with <code>repoctl sign keyfile --checksum</code>. Put the key file of the release of the deployment record in place.</td></tr>
 <tr><td>5 verify</td><td>a record does not have its sha256</td><td>The snapshot has a bad supply chain record (<code>records.mismatch</code>).</td><td>Stop.</td></tr>
-<tr><td>5 verify</td><td>the RepoManifest has another apiVersion</td><td>The snapshot comes from a repoctl release that is newer than the release of the job.</td><td>Install the release of <code>repoctl-mirror</code> that reads the apiVersion (<a href="../design/publish.html#mirror">mirror job</a>).</td></tr>
-<tr><td>6 revision</td><td>the revision of a <code>repomd.xml</code> is lower than in the served tree</td><td>latest names an older snapshot: a tag write outside repoctl moved it back. A restore or a prune writes new repodata, so it never gives this error.</td><td>Stop. Compare latest with the local copy on an admin host (<code>repoctl status</code>, <code>repoctl repo snapshots --all</code>). A tag write outside repoctl is the threat S5, a stolen GHCR token (<a href="../design/security.html#threats">threats</a>).</td></tr>
+<tr><td>5 verify</td><td>the RepoManifest has another apiVersion</td><td>The snapshot comes from a repoctl release that is newer than the release of the job.</td><td>Install the release of <code>repoctl-mirror</code> that reads the apiVersion (<a href="../../design/publish.html#mirror">mirror job</a>).</td></tr>
+<tr><td>6 revision</td><td>the revision of a <code>repomd.xml</code> is lower than in the served tree</td><td>latest names an older snapshot: a tag write outside repoctl moved it back. A restore or a prune writes new repodata, so it never gives this error.</td><td>Stop. Compare latest with the local copy on an admin host (<code>repoctl status</code>, <code>repoctl repo snapshots --all</code>). A tag write outside repoctl is the threat S5, a stolen GHCR token (<a href="../../design/security.html#threats">threats</a>).</td></tr>
 <tr><td>7, 8 write and swap</td><td>permission denied</td><td>The system user of the job does not own the served path.</td><td>Fix the owner of the directory.</td></tr>
 </tbody>
 </table>
 <aside class="callout why">
 <p class="callout-title">Why the fix is a deployment of the key</p>
-<p>A signer that is not in the key file of the HTTP server is the second guard behind gate 2 (<a href="../design/signing.html#gates">gates</a>). When the clients also miss the key, a signature of that key would break them. Thus the fix is a deployment of the key, never a change of the keyring.</p>
+<p>A signer that is not in the key file of the HTTP server is the second guard behind gate 2 (<a href="../../design/signing.html#gates">gates</a>). When the clients also miss the key, a signature of that key would break them. Thus the fix is a deployment of the key, never a change of the keyring.</p>
 </aside>
 
 <h2 id="stop">Stop conditions</h2>
 <table>
 <thead><tr><th>Step</th><th>Stop when</th></tr></thead>
 <tbody>
-<tr><td><a href="#find">Find</a> item 2</td><td><code>repo verify</code> of latest fails on an admin host. The snapshot is bad: use the runbook <a href="bad-publish.html">A bad publish reached the clients</a>.</td></tr>
+<tr><td><a href="#find">Find</a> item 2</td><td><code>repo verify</code> of latest fails on an admin host. The snapshot is bad: use the runbook <a href="bad-publish.html">Recover from a bad publish</a>.</td></tr>
 <tr><td><a href="#causes">Causes</a>, step 2</td><td>A title is not a safe relative path, or two layers have the same title.</td></tr>
 <tr><td><a href="#causes">Causes</a>, step 3</td><td>The sha256 of a blob does not match in two runs.</td></tr>
 <tr><td><a href="#causes">Causes</a>, step 5</td><td>A record does not match, or the key file of the HTTP server equals the committed key file and the verify still fails.</td></tr>
@@ -77,5 +77,9 @@
 <li><code>repoctl status</code> shows <code>served: same</code> for each target.</li>
 <li><code>repoctl repo verify --served</code> exits with 0.</li>
 </ul>
+<aside class="callout why">
+<p class="callout-title">Why it works this way</p>
+<p>The design record gives the rules and the reasons: <a href="../../design/publish.html#mirror">Publish: mirror job</a> and <a href="../../design/publish.html#mirror-health">job health and alerts</a>.</p>
+</aside>
 </body>
 </html>

@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Registry outage or loss</title>
+<title>Recover from a registry outage or loss</title>
 <meta name="description" content="Runbook for a human: wait for the end of a GHCR outage without a break-glass path, or re-seed a lost OCI package from a copy of its last latest.">
 </head>
 <body>
-<h1>Registry outage or loss</h1>
-<p class="lede">Use this runbook when GHCR does not answer, or when an OCI package or the GitHub organization is lost. The rules and reasons are in <a href="../design/publish.html#disaster">Publish: registry outage and loss</a>.</p>
+<h1>Recover from a registry outage or loss</h1>
+<p class="lede">Use this runbook when GHCR does not answer, or when an OCI package or the GitHub organization is lost.</p>
 <ul class="keypoints">
   <li>Outage: no break-glass path. The mirror job keeps the served tree, and the clients keep working. Publish waits.</li>
   <li>Loss: re-seed each target from the newest copy of latest with <code>repoctl repo push --reseed</code>. The files and signatures stay as they were, so the clients see no change.</li>
@@ -16,13 +16,13 @@
 <aside class="callout rule" id="rules">
 <p class="callout-title">Rules</p>
 <ul>
-<li>A human does each step. An agent can run <code>repoctl status</code> and <code>repoctl repo snapshots</code>, and compare the copies. It does not push (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>A human does each step. An agent can run <code>repoctl status</code> and <code>repoctl repo snapshots</code>, and compare the copies. It does not push (<a href="../../design/agents.html#deny">deny list</a>).</li>
 <li>Do not copy files to the HTTP server by hand. Only the mirror job writes the served tree.</li>
 <li>When a check fails, stop and tell the team.</li>
 </ul>
 </aside>
 
-<h2 id="trigger">Trigger</h2>
+<h2 id="trigger">When to use this runbook</h2>
 <ul>
 <li>Publish, repo pull or status gives <code>registry.unreachable</code> (exit 13), and the journal of the mirror job has pull errors.</li>
 <li>Publish stops with <code>snapshot.missing</code> (exit 13), or <code>repoctl repo snapshots --target ID</code> lists nothing for a target that was published.</li>
@@ -60,7 +60,7 @@
 <tr><td><a href="#loss">Loss</a> item 3</td><td>The copies disagree, and nobody knows which publish was the last latest. Ask each admin for the last publish in the team channel.</td></tr>
 <tr><td><a href="#reseed">Re-seed</a> item 2</td><td>The re-seed stops with <code>verify.failed</code> or <code>verify.el-failed</code> (exit 10). The copy is not a good tree: use the next newest copy.</td></tr>
 <tr><td><a href="#reseed">Re-seed</a> item 2</td><td>The re-seed stops with <code>snapshot.exists</code>. Somebody pushed already: run <code>repoctl repo pull</code> and compare.</td></tr>
-<tr><td><a href="#reseed">Re-seed</a> item 5</td><td>The mirror job does not serve the new latest. Use the runbook <a href="mirror-job.html">Failed mirror job</a>.</td></tr>
+<tr><td><a href="#reseed">Re-seed</a> item 5</td><td>The mirror job does not serve the new latest. Use the runbook <a href="mirror-job.html">Fix a failed mirror job</a>.</td></tr>
 </tbody>
 </table>
 
@@ -71,5 +71,9 @@
 <li><code>repoctl doctor --only registry</code> passes.</li>
 <li>The next publish passes the freshness check and gate 2.</li>
 </ul>
+<aside class="callout why">
+<p class="callout-title">Why it works this way</p>
+<p>The design record gives the rules and the reasons: <a href="../../design/publish.html#disaster">Publish: registry outage and loss</a>.</p>
+</aside>
 </body>
 </html>

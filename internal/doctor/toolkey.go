@@ -186,7 +186,7 @@ func checkToolRepoFile() (string, string) {
 	f, err := os.Open(toolRepoFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return toolRepoFile + " is missing", "install the release package (tool.html#tool-bootstrap). run: sudo dnf install repoctl-release"
+			return toolRepoFile + " is missing", "install the release package (https://dennisklein.github.io/repoctl/manual/install.html#first-install). run: sudo dnf install repoctl-release"
 		}
 		return "cannot read " + toolRepoFile + ": " + err.Error(), "run: ls -l " + toolRepoFile
 	}

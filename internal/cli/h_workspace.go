@@ -285,7 +285,7 @@ var migrateSteps = []step{
 	{text: "add the targets, store.oci and repo.url; check the release package and sign.keys", action: "other", human: true},
 	{text: "update CLAUDE.md: it still tells agents to run ./scripts/build", action: "other", human: true},
 	{text: "repoctl doctor; repoctl plan", command: "repoctl doctor", action: "other"},
-	{text: "import the published repo: https://dennisklein.github.io/repoctl/runbooks/import.html\nkeep packages.lock and scripts/ until the first publish with repoctl", action: "other", human: true},
+	{text: "import the published repo: https://dennisklein.github.io/repoctl/manual/runbooks/import.html\nkeep packages.lock and scripts/ until the first publish with repoctl", action: "other", human: true},
 }
 
 func hMigrate(ctx context.Context, a *App, cmd *cobra.Command, _ []string) (*Result, error) {

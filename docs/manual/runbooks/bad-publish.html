@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>A bad publish reached the clients</title>
+<title>Recover from a bad publish</title>
 <meta name="description" content="Runbook for a human: find the bad snapshot, fix forward with a newer NVR, or restore an older snapshot when the repository itself is broken.">
 </head>
 <body>
-<h1>A bad publish reached the clients</h1>
-<p class="lede">Use this runbook when a publish that the mirror job served breaks the clients or must not stay. The rules and reasons are in <a href="../design/publish.html#restore">Publish: restore and fix forward</a>.</p>
+<h1>Recover from a bad publish</h1>
+<p class="lede">Use this runbook when a publish that the mirror job served breaks the clients or must not stay.</p>
 <ul class="keypoints">
   <li>A bad build: fix forward with a new build with a higher release. Clients update to the fix.</li>
   <li>A broken repository (bad repodata, a wrong file): <code>repoctl repo restore</code>. latest moves forward to a new snapshot with the older files.</li>
@@ -17,14 +17,14 @@
 <aside class="callout rule" id="rules">
 <p class="callout-title">Rules</p>
 <ul>
-<li>A human publishes and restores. An agent can run <code>repoctl repo diff</code>, <code>repoctl repo verify</code> and the skill triage-build, and it can fix a spec on a package branch. It does not publish (<a href="../design/agents.html#deny">deny list</a>).</li>
+<li>A human publishes and restores. An agent can run <code>repoctl repo diff</code>, <code>repoctl repo verify</code> and the skill triage-build, and it can fix a spec on a package branch. It does not publish (<a href="../../design/agents.html#deny">deny list</a>).</li>
 <li>Do not delete a snapshot with <code>repoctl repo gc</code> to undo a publish.</li>
 <li>When a check fails, stop and tell the team.</li>
 </ul>
 </aside>
-<p>Example, a variant of the story: the el9 publish <code>p-20261103-1412-5e1</code> has ucx-1.22.1-1.el9. Slurm jobs with UCX fail on the clients.</p>
+<p>Example: the el9 publish <code>p-20261103-1412-5e1</code> has ucx-1.22.1-1.el9. Slurm jobs with UCX fail on the clients.</p>
 
-<h2 id="trigger">Trigger</h2>
+<h2 id="trigger">When to use this runbook</h2>
 <ul>
 <li>Clients fail after a <code>dnf upgrade</code> from the repository of the set, and the failure comes from a package of the last publish.</li>
 <li><code>dnf makecache</code> fails on all clients of a target, for example with a repodata or signature error.</li>
@@ -70,7 +70,7 @@
 <thead><tr><th>Step</th><th>Stop when</th></tr></thead>
 <tbody>
 <tr><td><a href="#assess">Find</a> item 2</td><td>No snapshot in the chain is good.</td></tr>
-<tr><td><a href="#assess">Find</a> item 4</td><td>The local copy passes, but the served tree fails. The mirror job or the HTTP server is the cause: use the runbook <a href="mirror-job.html">Failed mirror job</a>.</td></tr>
+<tr><td><a href="#assess">Find</a> item 4</td><td>The local copy passes, but the served tree fails. The mirror job or the HTTP server is the cause: use the runbook <a href="mirror-job.html">Fix a failed mirror job</a>.</td></tr>
 <tr><td><a href="#restore">Restore</a> item 2</td><td>Restore stops with a gate (exit 12) or a verify error (exit 10).</td></tr>
 <tr><td>any</td><td>The bad publish holds a secret. Restore takes it out of latest, but older snapshots in the registry still hold it. Tell the team. This runbook does not delete registry history.</td></tr>
 </tbody>
@@ -82,5 +82,9 @@
 <li><code>repoctl status</code> shows <code>served: same</code>, and <code>repoctl repo verify --served --el</code> exits with 0.</li>
 <li>The clients that had the bad NVR have the fix or the older NVR.</li>
 </ul>
+<aside class="callout why">
+<p class="callout-title">Why it works this way</p>
+<p>The design record gives the rules and the reasons: <a href="../../design/publish.html#restore">Publish: restore and fix forward</a>.</p>
+</aside>
 </body>
 </html>

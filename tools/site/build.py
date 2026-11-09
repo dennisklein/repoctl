@@ -1326,6 +1326,23 @@ class Site:
                 copied_bytes += (d / name).stat().st_size
         self.files.update(["search-index.json", "search-index.js", ".nojekyll"])
 
+        # moved pages: a small page at the old path sends the reader on
+        for old, new in sorted(self.nav.get("redirects", {}).items()):
+            if old in self.files:
+                self.problem(f"redirect {old}: a file has this path", "links")
+            if new not in self.available:
+                self.problem(f"redirect {old}: target {new} is not a page", "links")
+            href = esc(rel(old, new))
+            dest = out / old
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(
+                '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+                f'<title>Moved</title>\n<meta http-equiv="refresh" content="0; url={href}">\n'
+                f'<link rel="canonical" href="{href}">\n</head>\n'
+                f'<body>\n<p>This page moved to <a href="{href}">{href}</a>.</p>\n</body>\n</html>\n',
+                encoding="utf-8")
+            self.files.add(old)
+
         info = {p["path"]: p for p in self.pages}
         for page in wrapped_paths:
             self.wrap(page, info.get(page))
