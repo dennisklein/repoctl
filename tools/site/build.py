@@ -803,11 +803,17 @@ class Site:
         self.template = (HERE / "template.html").read_text(encoding="utf-8")
         self.commit = git_commit()
         self.site = self.nav["site"]
-        self.pages = []       # ordered nav pages with part info
-        for part in self.nav["parts"]:
-            for p in part["pages"]:
-                self.pages.append(dict(p, part=part))
-        self.home = self.site.get("home", "index.html")
+        self.books = [b for b in self.nav["books"] if b["parts"]]   # a book without pages is not built
+        self.pages = []       # ordered nav pages with part and book info
+        self.book_of = {}     # page path -> book (the home of a book belongs to it)
+        for book in self.books:
+            self.book_of[book["home"]] = book
+            for part in book["parts"]:
+                for p in part["pages"]:
+                    self.pages.append(dict(p, part=part, book=book))
+                    self.book_of[p["path"]] = book
+        self.landing = self.site.get("landing", "index.html")
+        self.homes = {b["home"] for b in self.books} | {self.landing}
         self.wrapped = {}     # path -> result dict
         self.files = set()    # all output paths
         # the glossary: data, the domain icons as symbols, the ids of the symbols
@@ -838,14 +844,23 @@ class Site:
         self.warnings.append(msg)
 
     # -- nav html
+    HOME_ICON = ('<span class="nav-num" aria-hidden="true">'
+                 '<svg viewBox="0 0 16 16" width="14" height="14"><path d="M2.5 7.2 8 2.8l5.5 4.4V13a.5.5 0 0 1-.5.5H9.6V10H6.4v3.5H3a.5.5 0 0 1-.5-.5Z"/></svg>'
+                 '</span>')
+
     def sidebar(self, page):
         parts = []
-        home_cls = ' aria-current="page"' if page == self.home else ""
-        parts.append(f'<a class="sidebar-home" href="{rel(page, self.home)}"{home_cls}>'
-                     f'<span class="nav-num" aria-hidden="true">'
-                     f'<svg viewBox="0 0 16 16" width="14" height="14"><path d="M2.5 7.2 8 2.8l5.5 4.4V13a.5.5 0 0 1-.5.5H9.6V10H6.4v3.5H3a.5.5 0 0 1-.5-.5Z"/></svg>'
-                     f'</span><span class="nav-title">Overview</span></a>')
-        for part in self.nav["parts"]:
+        book = self.book_of.get(page)
+        if book is None:      # the landing page lists the books
+            for b in self.books:
+                if b["home"] in self.available:
+                    parts.append(f'<a class="sidebar-home" href="{rel(page, b["home"])}">{self.HOME_ICON}'
+                                 f'<span class="nav-title">{esc(b["label"])}</span></a>')
+            return "".join(parts)
+        home_cls = ' aria-current="page"' if page == book["home"] else ""
+        parts.append(f'<a class="sidebar-home" href="{rel(page, book["home"])}"{home_cls}>{self.HOME_ICON}'
+                     f'<span class="nav-title">Overview</span></a>')
+        for part in book["parts"]:
             items = []
             for p in part["pages"]:
                 num = p.get("number")
@@ -872,7 +887,7 @@ class Site:
                 attrs = ' aria-current="page"'
             elif h["section"] == section:
                 attrs = ' class="is-active"'
-            if h["path"] not in self.available and h["path"] != self.home:
+            if h["path"] not in self.available:
                 continue
             out.append(f'<a href="{href}"{attrs}>{esc(h["title"])}</a>')
         return "".join(out)
@@ -908,7 +923,11 @@ class Site:
         return lst
 
     def pager(self, page):
-        order = [self.home] + [p["path"] for p in self.pages if p["path"] in self.available]
+        book = self.book_of.get(page)
+        if book is None:
+            return ""
+        order = [book["home"]] + [p["path"] for p in self.pages
+                                  if p["book"] is book and p["path"] in self.available]
         if page not in order:
             return ""
         i = order.index(page)
@@ -928,11 +947,23 @@ class Site:
 
         prev = card(order[i - 1], "prev") if i > 0 else '<span class="pager-card pager-empty"></span>'
         nxt = card(order[i + 1], "next") if i + 1 < len(order) else '<span class="pager-card pager-empty"></span>'
-        return f'<nav class="pager" aria-label="Chapters">{prev}{nxt}</nav>'
+        return f'<nav class="pager" aria-label="Pages">{prev}{nxt}</nav>'
+
+    def book_cards(self, page):
+        cards = []
+        for b in self.books:
+            if b["home"] not in self.available:
+                continue
+            n = sum(len(part["pages"]) for part in b["parts"])
+            cards.append(f'<li><a class="chapter-card" href="{rel(page, b["home"])}"><span class="card-body">'
+                         f'<span class="card-title">{esc(b["label"])}</span>'
+                         f'<span class="card-desc">{esc(b["summary"])}</span></span></a></li>')
+        return f'<ul class="chapter-grid book-grid">{"".join(cards)}</ul>'
 
     def chapter_cards(self, page):
         out = []
-        for part in self.nav["parts"]:
+        book = self.book_of.get(page)
+        for part in (book["parts"] if book else []):
             cards = []
             for p in part["pages"]:
                 num = p.get("number")
@@ -1032,7 +1063,8 @@ class Site:
         if fr.description is None:
             self.warn(f"{page}: no <meta name=description>")
         body_cls = (fr.body_attrs.get("class") or "").split()
-        is_home = page == self.home
+        is_home = page in self.homes
+        book = self.book_of.get(page)
         part = (meta or {}).get("part")
         eyebrow = ""
         if part is not None:
@@ -1044,7 +1076,7 @@ class Site:
             "src_root": self.src,
             "eyebrow": eyebrow,
             "custom": is_home or (meta or {}).get("custom", False),
-            "blocks": {"chapters": self.chapter_cards(page)},
+            "blocks": {"chapters": self.chapter_cards(page), "books": self.book_cards(page)},
             "used_ids": set(TEMPLATE_IDS) | self.symbol_ids,
             "toc_marker": not is_home and page != gloss.PAGE,   # the glossary has its filter
         }
@@ -1095,15 +1127,11 @@ class Site:
         if absent:
             self.problem(f"{page}: " + " ".join("#" + a for a in absent), "anchors")
 
-        section = "design"
-        if page == "design/mockups/index.html":
-            section = "mockups"
-        elif page == "design/contract.html":
-            section = "contract"
-        elif page == gloss.PAGE:
+        section = book["key"] if book else ""
+        if page == gloss.PAGE:
             section = "glossary"
-        elif is_home:
-            section = ""
+        record = book["record"] if book else self.site["record"]
+        label = book["label"] if book else ""
         classes = ["page"] + (["page-home"] if is_home else ["page-doc"]) + [f"page-{c}" for c in body_cls]
         toc = self.toc_html(rw.toc)
         rail = ""
@@ -1113,10 +1141,10 @@ class Site:
                     f'<a class="toc-top" href="#top">Back to top</a></div></aside>')
         else:
             classes.append("no-toc")
-        root = rel(page, "index.html")[:-len("index.html")]
-        doc_title = title if not is_home else f'{self.site["title"]} · {self.site["label"]}'
+        root = rel(page, self.landing)[:-len("index.html")]
+        doc_title = title if not is_home else f'{self.site["title"]} · {label or "documentation"}'
         if not is_home:
-            doc_title = f'{title} · {self.site["title"]} {self.site["label"].lower()}'
+            doc_title = f'{title} · {self.site["title"]} {label.lower()}'
         scripts = []
         if rw.has_code:
             scripts.append(f'<script src="{root}assets/vendor/highlight.min.js?v={self.asset_v}" defer></script>')
@@ -1132,18 +1160,18 @@ class Site:
             "root": root,
             "doc_title": esc(doc_title),
             "description": esc(desc),
-            "canonical": esc(self.site["pages_url"] + ("" if page == self.home else page)),
+            "canonical": esc(self.site["pages_url"] + ("" if page == self.landing else page)),
             "site_title": esc(self.site["title"]),
-            "site_label": esc(self.site["label"]),
-            "record": esc(self.site["record"]),
+            "site_label": esc(label),
+            "record": esc(record),
             "og_title": esc(title or self.site["title"]),
             "body_class": " ".join(classes),
-            "home": rel(page, self.home),
+            "home": rel(page, self.landing),
             "header_links": self.header_links(page, section),
             "repo": esc(self.site["repo"]),
             "sidebar": self.sidebar(page),
             "content": content,
-            "pager": self.pager(page) if not is_home else "",
+            "pager": self.pager(page) if page not in self.homes else "",
             "toc": rail,
             "svg_defs": self.svg_defs,
             "asset_v": self.asset_v,
@@ -1269,11 +1297,13 @@ class Site:
         self.missing_nav = set(missing)
         for p in missing:
             self.problem(p, "missing")
-        if not (src / self.home).is_file():
-            self.problem(self.home, "missing")
-        wrapped_paths = [self.home] if (src / self.home).is_file() else []
+        home_paths = [self.landing] + [b["home"] for b in self.books]
+        for h in home_paths:
+            if not (src / h).is_file():
+                self.problem(h, "missing")
+        wrapped_paths = [h for h in home_paths if (src / h).is_file()]
         wrapped_paths += [p for p in nav_paths if p in self.available]
-        self.available.add(self.home)
+        self.available.update(wrapped_paths)
 
         # copy everything else verbatim
         copied, copied_bytes = 0, 0
