@@ -12,6 +12,8 @@ release before you upgrade.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-09
+
 ### Changed
 
 - The notes of a GitHub Release are shorter. They list the changes and the
@@ -23,4 +25,5 @@ release before you upgrade.
   [user manual](https://dennisklein.github.io/repoctl/manual/), at
   `manual/runbooks/`. The old URLs redirect to the new pages.
 
-[Unreleased]: https://github.com/dennisklein/repoctl/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/dennisklein/repoctl/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/dennisklein/repoctl/compare/v0.1.0...v0.1.1
