@@ -1308,7 +1308,7 @@ func hRepoVerify(ctx context.Context, a *App, cmd *cobra.Command, _ []string) (*
 			}
 			tdir = tmp
 		case served:
-			name, fix = t+" served", "read the journal of the mirror job on the HTTP server (runbook Failed mirror job)"
+			name, fix = t+" served", "read the journal of the mirror job on the HTTP server (manual: runbook Fix a failed mirror job)"
 			tmp, err := os.MkdirTemp("", "rv-")
 			if err != nil {
 				return nil, err

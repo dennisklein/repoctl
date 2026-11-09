@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Lost admin host</title>
+<title>Recover from a lost admin host</title>
 <meta name="description" content="Runbook for a human: stop the access of a lost or stolen admin host, find the commits and keys that it held, and set up a new host.">
 </head>
 <body>
-<h1>Lost admin host</h1>
-<p class="lede">Use this runbook when an admin host is lost, stolen or broken. The host can hold commits that are not pushed, a key and a registry token. The registry and git keep the team state: see <a href="../../design/model.html#records">Core model: records</a> and <a href="../../design/model.html#humans">humans and hosts</a>.</p>
+<h1>Recover from a lost admin host</h1>
+<p class="lede">Use this runbook when an admin host is lost, stolen or broken. The host can hold commits that are not pushed, a key and a registry token.</p>
 <ul class="keypoints">
   <li>Stolen, or an attacker controls it: stop its access first. A key on the host is compromised.</li>
   <li>Broken: a file key that has no other copy is lost.</li>
@@ -22,14 +22,14 @@
 <li>When a check fails, stop and tell the team.</li>
 </ul>
 </aside>
-<p>Example, a variant of the story: on 2026-11-12, the disk of <code>hpc-a2</code> breaks. A. Admin has the YubiKey with the key <code>a.admin</code>. The host had a commit of <code>repoctl.lock</code> after <code>repoctl pin ucx</code> that was not pushed.</p>
+<p>Example: on 2026-11-12, the disk of <code>hpc-a2</code> breaks. A. Admin has the YubiKey with the key <code>a.admin</code>. The host had a commit of <code>repoctl.lock</code> after <code>repoctl pin ucx</code> that was not pushed.</p>
 
-<h2 id="trigger">Trigger</h2>
+<h2 id="trigger">When to use this runbook</h2>
 <ul>
 <li>The disk or the host of an admin is broken, and the host cannot start.</li>
 <li>An admin host is lost or stolen.</li>
 <li>An attacker may control an admin host.</li>
-<li>A host was installed again without the steps "<span class="no-gl">Retire</span> a host" of <a href="../../design/signing.html#help-team">help team</a>.</li>
+<li>A host was installed again without the steps "<span class="no-gl">Retire</span> a host" of <code>repoctl help team</code>.</li>
 </ul>
 
 <h2 id="decide">Decide the path</h2>
@@ -108,5 +108,9 @@ repoctl status</code></pre></li>
 <li><code>repoctl status</code> on the new host shows <code>local: same</code> for each target.</li>
 <li><code>repoctl doctor</code> on the new host shows no <code>check.never</code> and no <code>check.timer-off</code>.</li>
 </ul>
+<aside class="callout why">
+<p class="callout-title">Why it works this way</p>
+<p>The design record gives the rules and the reasons: <a href="../../design/model.html#records">Core model: records</a> and <a href="../../design/model.html#humans">humans and hosts</a>.</p>
+</aside>
 </body>
 </html>

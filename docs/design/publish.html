@@ -701,7 +701,7 @@ Type the set name to restore el9 of slurm-26.05: slurm-26.05
 published  el9  p-20261103-1630-b72 (sha256:61ae…)  latest was p-20261103-1412-5e1
 hint: give the 4 packages a new release. run: repoctl rebuild ucx slurm openmpi slurm-singularity-exec --reason "after restore of el9"
 Next: repoctl status</pre>
-<p>Publish has no rollback flag: restore and fix forward cover both cases. The steps for a human are in the runbook <a href="../manual/runbooks/bad-publish.html">A bad publish reached the clients</a>.</p>
+<p>Publish has no rollback flag: restore and fix forward cover both cases. The steps for a human are in the runbook <a href="../manual/runbooks/bad-publish.html">Recover from a bad publish</a>.</p>
 
 <h2 id="gc">gc and retention</h2>
 <p>GHCR has no garbage collection that a user starts. <a href="cli.html#cmd-repo-gc"><code>repoctl repo gc</code></a> deletes old snapshots (package versions) in GHCR with the GitHub REST API, and GitHub then frees the blobs that no version uses. The dry run is the default, and <code>--apply</code> acts. Nothing to delete gives exit 4.</p>
@@ -779,7 +779,7 @@ Next: repoctl status</pre>
   <li>It verifies the tree as <code>repo pull</code> does, and runs verify-el with the client trust set.</li>
   <li>It pushes the snapshot <code>p-reseed-YYYYMMDD</code> of kind reseed without a parent, and moves latest to it.</li>
 </ul>
-<p>Then an organization owner sets the new OCI package to public and turns on the inherited access (<code>registry.public</code>). The steps for a human are in the runbook <a href="../manual/runbooks/registry-loss.html">Registry outage or loss</a>.</p>
+<p>Then an organization owner sets the new OCI package to public and turns on the inherited access (<code>registry.public</code>). The steps for a human are in the runbook <a href="../manual/runbooks/registry-loss.html">Recover from a registry outage or loss</a>.</p>
 
 </body>
 </html>

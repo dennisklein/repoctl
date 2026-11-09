@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Key compromise or lost key</title>
+<title>Replace a compromised or lost key</title>
 <meta name="description" content="Runbook for a human: end the trust in a compromised signing key at once, or replace a lost key, also when it is the last deployed signer.">
 </head>
 <body>
-<h1>Key compromise or lost key</h1>
-<p class="lede">Use this runbook when another human can use a signing key, or when nobody can use it any more. The rules and reasons are in <a href="../../design/signing.html#emergency">Signing and trust: emergency</a>.</p>
+<h1>Replace a compromised or lost key</h1>
+<p class="lede">Use this runbook when another human can use a signing key, or when nobody can use it any more.</p>
 <ul class="keypoints">
   <li>Compromised: <code>repoctl sign revoke</code>, then config management installs the new key file on all hosts at once. The clients refuse the files of the key until the re-sign.</li>
   <li>Lost: <code>repoctl sign retire</code>, then the normal rotation. The signatures of a lost key stay valid.</li>
@@ -22,9 +22,9 @@
 <li>When a check fails, stop and tell the team.</li>
 </ul>
 </aside>
-<p>Example, a variant of the story: on 2026-11-10, A. Admin loses the YubiKey with the key <code>a.admin</code> on a trip. d.klein has an active, deployed key for el9 and el10.</p>
+<p>Example: on 2026-11-10, A. Admin loses the YubiKey with the key <code>a.admin</code> on a trip. d.klein has an active, deployed key for el9 and el10.</p>
 
-<h2 id="trigger">Trigger</h2>
+<h2 id="trigger">When to use this runbook</h2>
 <ul>
 <li>A card with a signing key is lost or stolen, or a human may know its PIN.</li>
 <li>A file key may have a copy, or an attacker may control a host with a key.</li>
@@ -96,5 +96,9 @@
 <li>Each target has two active keys with a deployment record.</li>
 <li>Doctor <code>sign.release</code> passes: the release package in latest has the new key file.</li>
 </ul>
+<aside class="callout why">
+<p class="callout-title">Why it works this way</p>
+<p>The design record gives the rules and the reasons: <a href="../../design/signing.html#emergency">Signing and trust: emergency</a>.</p>
+</aside>
 </body>
 </html>
