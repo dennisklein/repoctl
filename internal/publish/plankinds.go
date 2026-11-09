@@ -458,14 +458,18 @@ func planImport(ctx context.Context, env *Env, p *Plan, tp *TargetPlan) error {
 	if m.Set != env.Set.Name || m.Target != tp.Target {
 		return api.Errorf(api.PManifestInvalid, "the RepoManifest %s is of %s %s, not of %s %s", p.Req.ImportManifest, m.Set, m.Target, env.Set.Name, tp.Target)
 	}
+	p.ID = snapshot.DayID(KindImport, p.Started, 0)
 	for i := range m.Builds {
 		if m.Builds[i].Reason == "" {
 			m.Builds[i].Reason = "adopted"
 		}
+		// The manifest is written before the day of the push is known.
+		if m.Builds[i].Publish == "" {
+			m.Builds[i].Publish = p.ID
+		}
 	}
 	tp.SourceDir, tp.Import = p.Req.ImportDir, m
 	tp.Rows = append(tp.Rows, Row{Package: "(import)", New: fmt.Sprintf("%d builds", len(m.Builds))})
-	p.ID = snapshot.DayID(KindImport, p.Started, 0)
 	_ = ctx
 	return nil
 }

@@ -209,7 +209,7 @@ git worktree remove $TMP/k</code></pre></li>
     "run": null, "built": "2026-06-02T09:41:17Z",
     "publish": "p-import-20260828", "signer": "9F2C0B71E4A6C8D0F1A3B5C7D9E1F3A57C3A19F2"
   }],
-  "removed": []
+  "removed": [], "history": []
 }</code></pre>
 The example values (dates, file lists) are illustrations. Use the values of <a href="#map">Map</a>.</li>
 <li>Get these values from the RPM headers.
@@ -223,7 +223,7 @@ The example values (dates, file lists) are illustrations. Use the values of <a h
 </tbody>
 </table></li>
 <li>Check the file against the schema: <code>repoctl schema manifest &gt; $TMP/m.schema.json</code>, then <code>check-jsonschema --schemafile $TMP/m.schema.json FILE</code>. A failure is a stop.</li>
-<li>Do not change the copy of the served tree. <code>repo push --from</code> adds the manifest and signs <code>repomd.xml</code> (<a href="#push">Push</a>).</li>
+<li>Do not change the copy of the served tree. <code>repo push --from</code> takes only the RPMs that the manifest lists, adds the manifest and signs <code>repomd.xml</code> (<a href="#push">Push</a>).</li>
 </ol>
 
 <h2 id="record-key">Record the deployed key</h2>

@@ -406,18 +406,37 @@ func (r *runner) signStep(ctx context.Context, t *TargetPlan, dir string) (int, 
 		t.Sign.Resign = len(resign)
 		sign = append(sign, resign...)
 	case p.Kind == KindImport:
+		// Only the RPMs of the RepoManifest: a served tree also has RPMs
+		// that its repodata does not list and links such as
+		// slurm-release.rpm.
+		want := map[string]bool{}
+		for _, b := range t.Import.Builds {
+			want[path.Base(b.SRPM)] = true
+			for _, r := range b.RPMs {
+				want[path.Base(r)] = true
+			}
+		}
 		err := filepath.WalkDir(t.SourceDir, func(src string, d os.DirEntry, err error) error {
-			if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".rpm") {
+			if err != nil || !d.Type().IsRegular() || !want[d.Name()] {
 				return err
 			}
 			rel := layout.PathOf(d.Name())
 			if rel == "" {
 				return nil
 			}
+			delete(want, d.Name())
 			return linkInto(src, filepath.Join(dir, rel))
 		})
 		if err != nil {
 			return 0, err
+		}
+		if len(want) > 0 {
+			var missing []string
+			for f := range want {
+				missing = append(missing, f)
+			}
+			sort.Strings(missing)
+			return 0, api.Errorf(api.PManifestInvalid, "the RepoManifest lists RPMs that are not in %s: %s", t.SourceDir, strings.Join(missing, ", ")).WithTarget(t.Target)
 		}
 	case t.SourceDir != "":
 		err := filepath.WalkDir(t.SourceDir, func(src string, d os.DirEntry, err error) error {

@@ -99,7 +99,7 @@ func (t *Tree) releaseBuilds() []manifest.Build {
 	}
 	m, _ := t.Manifest()
 	if m == nil {
-		return nil
+		return t.unmanagedReleaseBuilds(rp.ID)
 	}
 	var out []manifest.Build
 	for _, b := range m.Builds {
@@ -107,6 +107,24 @@ func (t *Tree) releaseBuilds() []manifest.Build {
 			out = append(out, b)
 		}
 	}
+	return out
+}
+
+// unmanagedReleaseBuilds gives the builds of the release package of a tree
+// without a RepoManifest, the signed tree of an import (--path): one build
+// for each binary RPM of the binary repository whose name is the package id.
+func (t *Tree) unmanagedReleaseBuilds(name string) []manifest.Build {
+	var out []manifest.Build
+	_ = filepath.WalkDir(filepath.Join(t.Dir, t.Set.Repo.Name), func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".rpm") || strings.HasSuffix(d.Name(), ".src.rpm") {
+			return nil
+		}
+		nvr := manifest.NVR(d.Name())
+		if n, _, _ := manifest.SplitNVR(nvr); n == name {
+			out = append(out, manifest.Build{Package: name, SRPM: nvr + ".src.rpm", RPMs: []string{d.Name()}})
+		}
+		return nil
+	})
 	return out
 }
 
