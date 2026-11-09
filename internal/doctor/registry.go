@@ -25,13 +25,20 @@ var tokenScopes = map[string]bool{"write:packages": true, "read:packages": true,
 
 // checkRegistryAccess gives registry.login, registry.scope, registry.write
 // and registry.public for the OCI packages of the selected targets.
+//
+// Outside a set, it checks the login and the token of ghcr.io, the
+// registry of the design: the login of a new host comes before its first
+// set (manual/install.html#registry-login).
 func checkRegistryAccess(ctx context.Context, env *Env) []Check {
-	if env.Set == nil || env.Set.Store.OCI == "" {
-		return nil
-	}
-	host := localcopy.RegistryHost(env.Set)
-	if host == "" {
-		return nil
+	host := "ghcr.io"
+	if env.Set != nil {
+		if env.Set.Store.OCI == "" {
+			return nil
+		}
+		host = localcopy.RegistryHost(env.Set)
+		if host == "" {
+			return nil
+		}
 	}
 	getenv := env.getenv
 	var out []Check
@@ -51,6 +58,9 @@ func checkRegistryAccess(ctx context.Context, env *Env) []Check {
 	}
 	if login != nil && localcopy.IsGHCR(host, getenv) {
 		out = append(out, checkScope(ctx, env, login))
+	}
+	if env.Set == nil {
+		return out
 	}
 	var pkgs, names []string
 	for _, t := range env.TargetIDs() {

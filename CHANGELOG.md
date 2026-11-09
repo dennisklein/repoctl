@@ -18,6 +18,15 @@ release before you upgrade.
   exactly one secret key in gpg matches it. Before, it had to be an ID of
   `sign.keys` or a full fingerprint.
 
+### Changed
+
+- `repoctl doctor --only registry` checks the login and the token of ghcr.io
+  also outside a set directory. Before, it gave no check there.
+- The hints of the registry login show
+  `podman login ghcr.io --authfile ~/.config/containers/auth.json`. podman
+  comes with repoctl; oras is not necessary
+  ([Registry login](https://dennisklein.github.io/repoctl/manual/install.html#registry-login)).
+
 ### Fixed
 
 - The hint of the doctor check `sign.key` names the user config file and the
