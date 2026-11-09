@@ -35,8 +35,13 @@ sudo dnf install repoctl
 repoctl doctor --only host
 ```
 
-The tool repository key fingerprint and the sha256 of the release RPM come
-here with the first release.
+The fingerprint of the tool repository key:
+
+```
+F4EBF057DF65EF8D26B1E44128A5286144DD6792
+```
+
+The sha256 of the release RPM comes here with the first release.
 
 ## Branches in this repository
 

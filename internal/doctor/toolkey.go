@@ -18,7 +18,7 @@ import (
 // commit. A build can set it with
 // -ldflags "-X github.com/dennisklein/repoctl/internal/doctor.ToolKeys=…";
 // the RPM test of CI does so with its test key.
-var ToolKeys = ""
+var ToolKeys = "F4EBF057DF65EF8D26B1E44128A5286144DD6792:current:2028-11-08"
 
 // The states of a tool repository key.
 const (
