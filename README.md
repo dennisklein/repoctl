@@ -6,11 +6,6 @@ rpmautospec plugin), `rpmsign` and `createrepo_c`. It has a CLI, a local web
 UI and an MCP server for agents. It is built on
 [GSI-HPC/go-clikit](https://github.com/GSI-HPC/go-clikit).
 
-Status: first implementation of the design (phases 0 to 7 of the
-[delivery plan](https://dennisklein.github.io/repoctl/design/delivery.html#phases)). The
-[releases](https://github.com/dennisklein/repoctl/releases) have the RPMs; the
-[changelog](CHANGELOG.md) lists the changes of each release.
-
 ## Start here
 
 Read the **[user manual](https://dennisklein.github.io/repoctl/manual/)**. Read its pages in this order:
