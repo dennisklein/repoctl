@@ -62,14 +62,14 @@
 <h2 id="lost">Lost key</h2>
 <ol class="steps">
 <li>Run <code>repoctl sign retire ID</code>. It needs no secret key. Push the set commit.</li>
-<li>The human of the lost key makes a new key (<a href="../../design/signing.html#help-key">help key</a>) and onboards it (<a href="../../design/signing.html#onboarding">onboarding</a>).</li>
+<li>The human of the lost key makes a new key (<a href="../install.html#signing-key">Signing key</a>) and onboards it (<a href="../../design/signing.html#onboarding">onboarding</a>).</li>
 <li>With another active, deployed key, run <code>repoctl repo resign --signer ID</code> for each target. Then run <code>repoctl sign remove ID</code> and publish the new release package (<a href="../../design/signing.html#offboarding">offboarding and rotation</a>).</li>
 </ol>
 
 <h2 id="last-signer">Last deployed signer</h2>
 <p><code>sign retire</code> refuses the last deployed signer (<code>sign.last-signer</code>). A key file record deploys a new key without a release package.</p>
 <ol class="steps">
-<li>The human makes a new key (<a href="../../design/signing.html#help-key">help key</a>) and runs <code>repoctl sign add NEW --fingerprint FPR</code>. Push the set commit.</li>
+<li>The human makes a new key (<a href="../install.html#signing-key">Signing key</a>) and runs <code>repoctl sign add NEW --fingerprint FPR</code>. Push the set commit.</li>
 <li>For a compromised key, run <code>repoctl sign revoke ID</code> now and push. For a lost key, skip this step.</li>
 <li>Run <code>repoctl sign keyfile --checksum</code>. Config management installs the key file with this pinned sum. It installs it on the HTTP server and on all clients of each target. For a compromised key, it also does the client commands of <code>repoctl sign offboard ID</code>.</li>
 <li>For each target, run <code>repoctl sign deployed NEW --keyfile SHA256 --target ID</code> and type the key id. Push the set commit.</li>

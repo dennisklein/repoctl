@@ -142,7 +142,7 @@ func (g *GitHubDeleter) Delete(ctx context.Context, s *Store, snap *Snapshot) er
 	cred, err := cs.Get(ctx, credentials.ServerAddressFromRegistry(s.Registry()))
 	if err != nil || (cred.Password == "" && cred.AccessToken == "") {
 		return api.Errorf(api.PRegistryDenied, "no credentials for %s: gc needs a token with the scope delete:packages", s.Registry()).
-			WithHint("log in with the token", "oras login ghcr.io -u USER --password-stdin")
+			WithHint("log in with the token", LoginCommand(s.Registry()))
 	}
 	token := cred.Password
 	if token == "" {

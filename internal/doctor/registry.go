@@ -9,6 +9,7 @@ import (
 
 	"github.com/dennisklein/repoctl/internal/api"
 	"github.com/dennisklein/repoctl/internal/localcopy"
+	"github.com/dennisklein/repoctl/internal/snapshot"
 )
 
 // The checks of the group registry (publish.html#registry): the
@@ -35,7 +36,7 @@ func checkRegistryAccess(ctx context.Context, env *Env) []Check {
 	getenv := env.getenv
 	var out []Check
 	login, err := localcopy.FindLogin(ctx, host, getenv)
-	loginFix := "log in with a token of the scope write:packages. run: oras login " + host + " -u USER --password-stdin"
+	loginFix := "log in with a classic token of the scope write:packages (manual/install.html#registry-login). run: " + snapshot.LoginCommand(host)
 	switch {
 	case err != nil:
 		out = append(out, Warn("registry.login", fmt.Sprintf("the container credentials cannot be read: %v", err), loginFix))
@@ -74,7 +75,7 @@ func checkRegistryAccess(ctx context.Context, env *Env) []Check {
 		}
 		if len(denied) > 0 {
 			out = append(out, Warn("registry.write", fmt.Sprintf("no write access to %s: %v", strings.Join(denied, ", "), firstErr),
-				"log in with a token of the scope write:packages and ask for the team access to the packages. run: oras login "+host+" -u USER --password-stdin"))
+				"log in with a classic token of the scope write:packages and ask for the team access to the packages. run: "+snapshot.LoginCommand(host)))
 		} else {
 			out = append(out, Ok("registry.write", "registry.write: write access to "+strings.Join(names, ", ")))
 		}
