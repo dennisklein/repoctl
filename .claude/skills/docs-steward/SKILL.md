@@ -48,7 +48,7 @@ pull request which steps you did.
   the English verb "run" where the build wrongly links the glossary term).
 - Headings, code, links, `<dfn>`, `<th>`, `<dt>` and `.callout-title` never get
   links. Thus a definition list or a table head stays plain.
-- The authoring classes are in the README ("Write a page"): `p.lede`,
+- The authoring classes are in CONTRIBUTING.md ("Write a page"): `p.lede`,
   `ul.keypoints`, `aside.callout` (`note`, `rule`, `why`, `warn`, `tip`),
   `pre.term`, `pre > code.language-*`, `span.tag`, `figure.diagram`,
   `figure.shot`.
