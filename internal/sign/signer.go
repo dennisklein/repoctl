@@ -40,7 +40,8 @@ func (s *Signer) KeyID() string {
 }
 
 // NewSigner resolves the signer of the user settings: sign.key (an id of
-// sign.keys or a full fingerprint; default rpm --eval %{_gpg_name}),
+// sign.keys, a full fingerprint, or a user ID that matches one secret key
+// in gpg; default rpm --eval %{_gpg_name}),
 // sign.backend and sign.gpg.homedir. The trust may be nil outside a set.
 func NewSigner(ctx context.Context, trust *Trust, eff *config.Effective) (*Signer, error) {
 	backend, homedir, value := "gpg", "", ""
@@ -57,7 +58,7 @@ func NewSigner(ctx context.Context, trust *Trust, eff *config.Effective) (*Signe
 	}
 	if value == "" {
 		return nil, api.Errorf(api.PSignNoKey, "sign.key is not set: repoctl does not know the key of this human").
-			WithHint("set sign.key in the user config to your id of sign.keys", "repoctl config show")
+			WithHint("set sign.key in ~/.config/repoctl/config.yaml to your id of sign.keys or the fingerprint of your key", "gpg --list-secret-keys")
 	}
 	s := &Signer{GPG: NewGPG(expandHome(homedir)), Backend: "gpg"}
 	if trust != nil {
@@ -68,10 +69,29 @@ func NewSigner(ctx context.Context, trust *Trust, eff *config.Effective) (*Signe
 	}
 	fpr := NormalizeFingerprint(value)
 	if !IsFingerprint(fpr) {
-		return nil, api.Errorf(api.PSignNotActive, "sign.key %q is not an id of sign.keys and not a full fingerprint", value).
-			WithHint("set sign.key to your id of sign.keys", "repoctl sign ls")
+		// A user ID of gpg, for example the mail address of %_gpg_name.
+		found, err := s.GPG.FindSecret(ctx, value)
+		if err != nil {
+			return nil, api.Errorf(api.PSignNoKey, "gpg cannot list the secret keys: %v", err).WithCause(err).
+				WithHint("check gpg", "gpg --list-secret-keys")
+		}
+		switch len(found) {
+		case 1:
+			fpr = found[0]
+		case 0:
+			return nil, api.Errorf(api.PSignNotActive, "sign.key %q is not an id of sign.keys, not a full fingerprint and no user ID of a secret key in gpg", value).
+				WithHint("set sign.key in ~/.config/repoctl/config.yaml to your id of sign.keys or the fingerprint of your key (40 hex digits)", "gpg --list-secret-keys")
+		default:
+			return nil, api.Errorf(api.PSignNotActive, "sign.key %q matches %d secret keys in gpg: %s", value, len(found), strings.Join(found, ", ")).
+				WithHint("set sign.key to one full fingerprint in ~/.config/repoctl/config.yaml", "gpg --list-secret-keys "+value)
+		}
 	}
 	s.FPR = fpr
+	if trust != nil {
+		if k := trust.ByFingerprint(fpr); k != nil {
+			s.ID, s.Key = k.ID, k
+		}
+	}
 	return s, nil
 }
 
