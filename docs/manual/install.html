@@ -105,6 +105,22 @@ Login Succeeded!</pre></li>
 </aside>
 <p>When a host is lost, delete its token on <a href="https://github.com/settings/tokens">github.com/settings/tokens</a> (<a href="runbooks/host-loss.html#access">host loss runbook</a>).</p>
 
+<h3 id="registry-keyring">Keep the token in the system keyring</h3>
+<p>The login above writes the token in plain text into <code>auth.json</code>. To keep it in the system keyring (Secret Service over D-Bus, the store of <code>secret-tool</code>), use a credential helper. podman writes the token through the helper, and repoctl reads it through the same helper.</p>
+<ol class="steps">
+<li>Install <code>docker-credential-secretservice</code> from <a href="https://github.com/docker/docker-credential-helpers/releases">docker/docker-credential-helpers</a> into a directory of your <code>PATH</code>.</li>
+<li>Tell the auth file to use the helper for GHCR. If the file exists already, add the key <code>credHelpers</code> by hand.
+<pre><code class="language-sh">mkdir -p ~/.config/containers
+echo '{"credHelpers": {"ghcr.io": "secretservice"}}' &gt;~/.config/containers/auth.json</code></pre></li>
+<li>Log in as above: <code>podman login ghcr.io --authfile ~/.config/containers/auth.json</code>.</li>
+<li>Check that the keyring has the token: <code>docker-credential-secretservice list</code> shows <code>ghcr.io</code>. <code>auth.json</code> has no token.</li>
+<li>Run <code>repoctl doctor --only registry</code>.</li>
+</ol>
+<aside class="callout warn">
+<p class="callout-title">The keyring must be open</p>
+<p>repoctl asks the helper at each access to GHCR, also for a pull. This includes <code>repo pull</code> and the daily check of a set. A locked keyring stops the command, for example in an SSH session or in the timer of the check. Use the keyring only on a host with an open desktop session.</p>
+</aside>
+
 <h2 id="shell">Shell completion</h2>
 <p>The RPM installs the completions for bash, zsh and fish. For another shell, run <code>repoctl completion bash|zsh|fish|powershell</code>. It writes the script to stdout.</p>
 
