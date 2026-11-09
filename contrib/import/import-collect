@@ -1,0 +1,158 @@
+#!/bin/bash
+# import-collect: runbook "Import the existing repositories", step 2 (Copy and verify).
+#
+# Runs on the host that holds the byte copy of the served tree. It:
+#   1. copies SRC to the import directory $IMPORT (a new, empty directory),
+#   2. does all checks of step 2 and writes the result to the log,
+#   3. writes a small data directory (repodata + RPM headers) for the agent.
+#
+# Usage: import-collect SET SRC
+#   SET  slurm-26.05 | slurm-25.11 | slurm-25.11-testing
+#   SRC  your byte copy of the served el9 tree (it has slurm/, slurm-source/,
+#        slurm-debuginfo/). The script does not write into SRC.
+#
+# Environment:
+#   URL     served el9 tree (default http://cluster-mirror.hpc.gsi.de/packages/SET/el9)
+#   KEYURL  release key file (default: RPM-GPG-KEY-slurm of the set branch on GitHub)
+#
+# Exit status: 0 = all checks pass, 1 = one or more checks fail (a stop), 2 = usage.
+set -uo pipefail
+
+set_=${1:-} src=${2:-}
+if [[ -z $set_ || -z $src || ! -d $src ]]; then
+  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 2
+fi
+src=$(readlink -f "$src")
+for t in curl gpg gpgv rpm rpmkeys rsync sha256sum python3 zstd; do
+  command -v $t >/dev/null || { echo "missing tool: $t"; exit 2; }
+done
+
+state=${XDG_STATE_HOME:-$HOME/.local/state}/repoctl/import
+IMPORT=$state/$set_/el9
+LOG=$state/$set_.log
+OUT=$PWD/import-data-$set_
+URL=${URL:-http://cluster-mirror.hpc.gsi.de/packages/$set_/el9}
+KEYURL=${KEYURL:-https://raw.githubusercontent.com/dennisklein/repoctl/set/$set_/packages/slurm-release/RPM-GPG-KEY-slurm}
+REPOS="slurm slurm-source slurm-debuginfo"
+
+if [[ -e $IMPORT ]] && [[ -n $(ls -A "$IMPORT" 2>/dev/null) ]]; then
+  echo "stop: $IMPORT is not empty. Remove it or use it as it is (it is not changed)."; exit 2
+fi
+if [[ -e $OUT ]]; then echo "stop: $OUT exists. Remove it first."; exit 2; fi
+mkdir -p "$IMPORT" "$OUT"
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+mkdir -m 700 "$TMP/gnupg"; export GNUPGHOME=$TMP/gnupg
+fail=0
+log() { echo "$*" | tee -a "$LOG"; }
+bad() { log "FAIL: $*"; fail=1; }
+run() { log "\$ $*"; "$@" 2>&1 | tee -a "$LOG"; return "${PIPESTATUS[0]}"; }
+
+log "=== import-collect $set_ $(date -u +%FT%TZ) on $(hostname)"
+log "SRC=$src IMPORT=$IMPORT URL=$URL"
+
+# 1. Copy.
+run rsync -a "$src/" "$IMPORT/" || bad "rsync"
+
+# Release key.
+run curl -fsS -o "$TMP/key.asc" "$KEYURL" || bad "key download"
+run gpg --show-keys --with-fingerprint "$TMP/key.asc"
+gpg --dearmor < "$TMP/key.asc" > "$TMP/key.gpg"
+cp "$TMP/key.asc" "$OUT/RPM-GPG-KEY-slurm.used"
+
+# Python helper: list the files of repomd.xml and the packages of primary.xml with checksums.
+cat > "$TMP/repo.py" <<'PY'
+import sys, subprocess, xml.etree.ElementTree as ET, os
+R = "{http://linux.duke.edu/metadata/repo}"
+C = "{http://linux.duke.edu/metadata/common}"
+root = sys.argv[2]
+def cat(path):
+    for ext, cmd in ((".zst", "zstd"), (".gz", "gzip"), (".xz", "xz"), (".bz2", "bzip2")):
+        if path.endswith(ext):
+            return subprocess.run([cmd, "-dc", path], check=True, capture_output=True).stdout
+    return open(path, "rb").read()
+md = ET.parse(os.path.join(root, "repodata/repomd.xml")).getroot()
+if sys.argv[1] == "repomd":
+    for d in md.findall(R + "data"):
+        c = d.find(R + "checksum")
+        print(d.get("type"), c.get("type"), c.text, d.find(R + "location").get("href"))
+elif sys.argv[1] == "primary":
+    href = [d.find(R + "location").get("href") for d in md.findall(R + "data") if d.get("type") == "primary"][0]
+    p = ET.fromstring(cat(os.path.join(root, href)))
+    for pk in p.findall(C + "package"):
+        c = pk.find(C + "checksum")
+        print(c.get("type"), c.text, pk.find(C + "location").get("href"))
+PY
+
+for r in $REPOS; do
+  d=$IMPORT/$r
+  log "--- repo $r"
+  [[ -f $d/repodata/repomd.xml ]] || { bad "$r: no repodata/repomd.xml"; continue; }
+  # Copy == served.
+  a=$(curl -fsS "$URL/$r/repodata/repomd.xml" | sha256sum | cut -d' ' -f1)
+  b=$(sha256sum < "$d/repodata/repomd.xml" | cut -d' ' -f1)
+  log "repomd served=$a copy=$b"
+  [[ -n $a && $a == "$b" ]] || bad "$r: repomd.xml of the copy differs from the served one (or the URL is not reachable)"
+  # Files of repomd.xml.
+  python3 "$TMP/repo.py" repomd "$d" > "$TMP/$r.repomd" || bad "$r: cannot read repomd.xml"
+  while read -r type ctype sum href; do
+    s=$(${ctype}sum < "$d/$href" 2>/dev/null | cut -d' ' -f1)
+    [[ $s == "$sum" ]] && log "ok $r/$href ($type)" || bad "$r/$href: checksum"
+  done < "$TMP/$r.repomd"
+  # Packages of primary.xml.
+  python3 "$TMP/repo.py" primary "$d" > "$TMP/$r.primary" || bad "$r: cannot read primary"
+  n=0
+  while read -r ctype sum href; do
+    n=$((n+1))
+    [[ -f $d/$href ]] || { bad "$r/$href: missing"; continue; }
+    s=$(${ctype}sum < "$d/$href" | cut -d' ' -f1)
+    [[ $s == "$sum" ]] || bad "$r/$href: checksum"
+  done < "$TMP/$r.primary"
+  log "$r: $n packages in primary.xml"
+  # Metadata signature.
+  run gpgv --keyring "$TMP/key.gpg" "$d/repodata/repomd.xml.asc" "$d/repodata/repomd.xml" || bad "$r: repomd.xml.asc"
+  # Files in packages/ that primary.xml does not list.
+  (cd "$d" && find packages -type f | sort) > "$TMP/$r.files"
+  awk '{print $3}' "$TMP/$r.primary" | sort > "$TMP/$r.listed"
+  comm -23 "$TMP/$r.files" "$TMP/$r.listed" > "$OUT/$r.unlisted"
+  log "$r: $(wc -l < "$OUT/$r.unlisted") files in packages/ not listed: $(tr '\n' ' ' < "$OUT/$r.unlisted")"
+  # Data for the agent.
+  mkdir -p "$OUT/$r"
+  cp -a "$d/repodata" "$OUT/$r/"
+  cp "$TMP/$r.primary" "$OUT/$r.primary"
+done
+
+# RPM signatures with a separate rpm database.
+log "--- rpm signatures"
+run rpmkeys --dbpath "$TMP/rpmdb" --import "$TMP/key.asc" || bad "rpmkeys --import"
+files=()
+for r in $REPOS; do while read -r _ _ href; do files+=("$IMPORT/$r/$href"); done < "$TMP/$r.primary"; done
+rpmkeys --dbpath "$TMP/rpmdb" --checksig "${files[@]}" > "$TMP/checksig" 2>&1
+cat "$TMP/checksig" >> "$LOG"; cp "$TMP/checksig" "$OUT/checksig.txt"
+nok=$(grep -c 'digests signatures OK$' "$TMP/checksig")
+log "checksig: $nok of ${#files[@]} OK"
+grep -v 'digests signatures OK$' "$TMP/checksig" | while read -r l; do bad "checksig: $l"; done
+[[ $nok -eq ${#files[@]} ]] || fail=1
+
+# RPM headers for the agent (map and manifest).
+log "--- headers"
+qf='%{NAME}\t%{EPOCH}\t%{VERSION}\t%{RELEASE}\t%{ARCH}\t%{SOURCERPM}\t%{BUILDTIME}\t%{RSAHEADER:pgpsig}\n'
+for r in $REPOS; do
+  mkdir -p "$OUT/hdr/$r"
+  while read -r _ _ href; do
+    f=$IMPORT/$r/$href b=$(basename "$href")
+    printf '%s\t%s\t' "$r" "$href" >> "$OUT/headers.tsv"
+    rpm -qp --nosignature --qf "$qf" "$f" >> "$OUT/headers.tsv" 2>>"$LOG"
+    rpm -qp --nosignature --provides "$f" > "$OUT/hdr/$r/$b.provides" 2>>"$LOG"
+    rpm -qp --nosignature --requires "$f" > "$OUT/hdr/$r/$b.requires" 2>>"$LOG"
+  done < "$TMP/$r.primary"
+done
+
+# The tree: every file, its size, checksum and link target.
+(cd "$IMPORT" && find . -printf '%y %s %p %l\n' | sort -k3) > "$OUT/tree.txt"
+(cd "$IMPORT" && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$OUT/sha256.txt"
+cp "$LOG" "$OUT/import.log"
+
+log "=== result: $([[ $fail -eq 0 ]] && echo 'all checks pass' || echo 'STOP: a check fails, see FAIL lines')"
+log "copy: $IMPORT"
+log "data for the agent: $OUT"
+exit $fail
