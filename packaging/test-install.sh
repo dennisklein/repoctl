@@ -28,6 +28,10 @@ for pkg; do
 	case $pkg in
 	repoctl)
 		repoctl version
+		test -s /usr/share/bash-completion/completions/repoctl
+		test -s /usr/share/zsh/site-functions/_repoctl
+		test -s /usr/share/fish/vendor_completions.d/repoctl.fish
+		bash -n /usr/share/bash-completion/completions/repoctl
 		dnf -y -q install jq
 		# Other host checks fail in a container (no mock group); only
 		# tool.repo-key counts here.
