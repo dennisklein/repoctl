@@ -32,6 +32,17 @@ release before you upgrade.
 - The hint of the doctor check `sign.key` names the user config file and the
   values that you can set
   ([Signing key](https://dennisklein.github.io/repoctl/manual/install.html#signing-key)).
+- Import of a bash-era repo
+  ([runbook](https://dennisklein.github.io/repoctl/manual/runbooks/import.html)):
+  - `repoctl sign deployed --path` finds the release package in the signed
+    tree. Before, it stopped with `sign.not-deployed`, because the tree has
+    no RepoManifest.
+  - `repoctl repo push --from` takes only the RPMs that the RepoManifest
+    lists. Before, it also took old RPMs and the link `slurm-release.rpm`,
+    and the push stopped.
+  - The RepoManifest of an import can have `commit: null`
+    (`adopted-unmapped`), `package: null` (a retired name) and null build
+    facts, as the design tells. Before, the schema refused them.
 
 ## [0.1.1] - 2026-11-09
 
