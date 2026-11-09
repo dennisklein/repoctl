@@ -12,6 +12,27 @@ release before you upgrade.
 
 ## [Unreleased]
 
+### Added
+
+- `sign.key` can be a user ID of gpg, for example your mail address, when
+  exactly one secret key in gpg matches it. Before, it had to be an ID of
+  `sign.keys` or a full fingerprint.
+
+### Changed
+
+- `repoctl doctor --only registry` checks the login and the token of ghcr.io
+  also outside a set directory. Before, it gave no check there.
+- The hints of the registry login show
+  `podman login ghcr.io --authfile ~/.config/containers/auth.json`. podman
+  comes with repoctl; oras is not necessary
+  ([Registry login](https://dennisklein.github.io/repoctl/manual/install.html#registry-login)).
+
+### Fixed
+
+- The hint of the doctor check `sign.key` names the user config file and the
+  values that you can set
+  ([Signing key](https://dennisklein.github.io/repoctl/manual/install.html#signing-key)).
+
 ## [0.1.1] - 2026-11-09
 
 ### Changed

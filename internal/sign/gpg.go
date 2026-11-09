@@ -157,6 +157,37 @@ func cardField(s string) (available bool, card string) {
 	return true, s
 }
 
+// FindSecret gives the fingerprints of the primary keys with a secret key
+// whose user ID matches query, as gpg --list-secret-keys QUERY matches it
+// (a mail address, a name, a part of the user ID).
+func (g *GPG) FindSecret(ctx context.Context, query string) ([]string, error) {
+	out, err := g.cmd("--with-colons", "--fixed-list-mode", "--list-secret-keys", "--", query).Output(ctx)
+	if err != nil {
+		// gpg exits 2 when no key matches.
+		if run.ExitCode(err) == 2 {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var fprs []string
+	primary := false
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Split(line, ":")
+		switch f[0] {
+		case "sec":
+			primary = true
+		case "ssb":
+			primary = false
+		case "fpr":
+			if primary {
+				fprs = append(fprs, field(f, 9))
+				primary = false
+			}
+		}
+	}
+	return fprs, nil
+}
+
 // HasSecret reports whether the secret key of the fingerprint (or one of
 // its subkeys) is in the keyring or on a card.
 func (g *GPG) HasSecret(ctx context.Context, fpr string) (bool, error) {

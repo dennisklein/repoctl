@@ -90,10 +90,14 @@ func CheckKey(ctx context.Context, in DoctorInput) api.DoctorReportCheck {
 	const name = "sign.key"
 	if in.Signer == nil {
 		msg := "sign.key is not set: this host can build, but not publish"
+		do, run := "set sign.key in ~/.config/repoctl/config.yaml to your id of sign.keys or the fingerprint of your key", "gpg --list-secret-keys"
 		if in.SignerErr != nil {
 			msg = in.SignerErr.Error()
+			if e, isAPI := api.AsError(in.SignerErr); isAPI && len(e.Hints) > 0 {
+				do, run = e.Hints[0].Do, e.Hints[0].Run
+			}
 		}
-		return check(name, api.CheckStatusWarning, msg, "set sign.key in the user config", "repoctl config show")
+		return check(name, api.CheckStatusWarning, msg, do, run)
 	}
 	has, err := in.Signer.GPG.HasSecret(ctx, in.Signer.FPR)
 	if err != nil {

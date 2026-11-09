@@ -75,9 +75,18 @@ $ repoctl doctor --only host</pre>
 <p>You sign each publish with your own key. Use a YubiKey for the key of a team member. <code>repoctl help key</code> gives the steps for the card. A file key is for a test set:</p>
 <pre><code class="language-sh">gpg --quick-gen-key "Your Name &lt;you@example.org&gt;" rsa4096 sign 3y
 gpg --list-keys --with-fingerprint       # the fingerprint of the new key</code></pre>
-<p>Then tell repoctl which key is yours. Put the key ID of the set, or the full fingerprint, in the user config <code>~/.config/repoctl/config.yaml</code>:</p>
+<p>Then tell repoctl which key is yours. Put one of these values in the user config <code>~/.config/repoctl/config.yaml</code>:</p>
+<table>
+<thead><tr><th>Value of <code>sign.key</code></th><th>Example</th><th>Where it works</th></tr></thead>
+<tbody>
+<tr><td>Full fingerprint (40 hex digits of <code>gpg --list-secret-keys</code>)</td><td><code>F4EB…6792</code></td><td>Everywhere. Use it on a new host.</td></tr>
+<tr><td>User ID of the key, for example the mail address</td><td><code>d.klein@gsi.de</code></td><td>Everywhere, when exactly one secret key in gpg matches it.</td></tr>
+<tr><td>ID of the key in <code>sign.keys</code> of the set</td><td><code>d.klein</code></td><td>Only inside a set directory.</td></tr>
+</tbody>
+</table>
 <pre><code class="language-yaml">sign:
-  key: d.klein</code></pre>
+  key: d.klein@gsi.de</code></pre>
+<p>Run <code>repoctl doctor --only sign</code>. The check <code>sign.key</code> shows the key that repoctl uses.</p>
 <p>A new key also needs <code>repoctl sign add</code> and a deployment record before it can publish. <a href="operate.html#keys">Keys and the team</a> gives these steps.</p>
 
 <h3 id="registry-login">Registry login</h3>
@@ -97,11 +106,11 @@ gpg --list-keys --with-fingerprint       # the fingerprint of the new key</code>
 Username: dklein
 Password:
 Login Succeeded!</pre></li>
-<li>Check the login inside a set directory: <code>repoctl doctor --only registry</code>.
+<li>Check the login: <code>repoctl doctor --only registry</code>. In any directory, it checks the login and the token of ghcr.io.
 <pre class="term">$ repoctl doctor --only registry
 ✓ registry.login: ghcr.io as dklein (container auth file)
-✓ registry.scope: write:packages, delete:packages, expires 2027-11-09
-✓ registry.write: write access to slurm-26.05-el9, slurm-26.05-el10</pre></li>
+✓ registry.scope: write:packages, delete:packages, expires 2027-11-09</pre>
+In a set directory, it also checks the packages of the set (<code>registry.write</code>, <code>registry.public</code>).</li>
 </ol>
 <aside class="callout warn">
 <p class="callout-title">Use a token for the registry only</p>

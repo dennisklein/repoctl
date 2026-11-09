@@ -145,3 +145,35 @@ packages:
 		t.Fatalf("private: %+v", c)
 	}
 }
+
+// Outside a set, the group registry checks the login and the token of
+// ghcr.io, and nothing of a package.
+func TestRegistryAccessNoSet(t *testing.T) {
+	gh := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "token ghp_test" {
+			http.Error(w, "bad credentials", http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("X-OAuth-Scopes", "write:packages, delete:packages")
+		w.Header().Set("GitHub-Authentication-Token-Expiration", "2027-10-01 12:00:00 UTC")
+		_, _ = io.WriteString(w, `{"login":"dklein"}`)
+	}))
+	defer gh.Close()
+	dir := t.TempDir()
+	vars := map[string]string{"HOME": dir, "REGISTRY_AUTH_FILE": filepath.Join(dir, "auth.json"), "REPOCTL_TEST_GITHUB_API": gh.URL}
+	getenv := func(k string) string { return vars[k] }
+	env := &Env{Paths: config.NewPaths(getenv), Getenv: getenv, Now: time.Now}
+
+	cs := checkRegistryAccess(context.Background(), env)
+	if len(cs) != 1 || cs[0].Name != "registry.login" || cs[0].Status != api.CheckStatusWarning || !strings.Contains(cs[0].Fix, "podman login ghcr.io") {
+		t.Fatalf("no login: %+v", cs)
+	}
+	auth := base64.StdEncoding.EncodeToString([]byte("dklein:ghp_test"))
+	if err := os.WriteFile(vars["REGISTRY_AUTH_FILE"], []byte(fmt.Sprintf(`{"auths":{"ghcr.io":{"auth":%q}}}`, auth)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cs = checkRegistryAccess(context.Background(), env)
+	if len(cs) != 2 || cs[0].Status != api.CheckStatusOk || cs[1].Name != "registry.scope" || cs[1].Status != api.CheckStatusOk {
+		t.Fatalf("login: %+v", cs)
+	}
+}

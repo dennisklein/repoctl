@@ -269,7 +269,7 @@ packages:
 <pre><code class="language-yaml"># ~/.config/repoctl/config.yaml of dklein on hpc-a1
 jobs: 3                        # parallel mock builds
 sign:
-  key: d.klein                 # an id from sign.keys of the set, or a full fingerprint
+  key: d.klein                 # an id from sign.keys of the set, a full fingerprint, or a user ID of one secret key
   backend: gpg                 # default; a YubiKey or a key file
 agent:
   command: claude              # turns on the agent buttons of the web UI
@@ -283,7 +283,7 @@ sets:
 <tr><td><code>jobs</code></td><td>2</td><td>The maximum number of nodes in mock at the same time. Each mock build uses all CPUs, so a high value gives little.</td></tr>
 <tr><td><code>lock_wait</code></td><td>0</td><td>How long a command waits for a busy set lock.</td></tr>
 <tr><td><code>progress</code></td><td>auto</td><td>The progress display: auto, tree, counter, plain, none.</td></tr>
-<tr><td><code>sign.key</code></td><td><code>rpm --eval %{_gpg_name}</code></td><td>The signing key of this human: an id from <code>sign.keys</code> or a full fingerprint. <code>sign.gpg_name</code> is an alias.</td></tr>
+<tr><td><code>sign.key</code></td><td><code>rpm --eval %{_gpg_name}</code></td><td>The signing key of this human: an id from <code>sign.keys</code>, a full fingerprint, or a user ID (for example the mail address) that matches exactly one secret key in gpg. <code>sign.gpg_name</code> is an alias.</td></tr>
 <tr><td><code>sign.backend</code></td><td>gpg</td><td>gpg works with a YubiKey and with a key file. Other backends are for later (<a href="#scope">scope</a>).</td></tr>
 <tr><td><code>sign.gpg.homedir</code></td><td><code>GNUPGHOME</code>, else <code>~/.gnupg</code></td><td>The GnuPG home directory.</td></tr>
 <tr><td><code>ui.listen</code>, <code>ui.open</code></td><td>127.0.0.1:0, true</td><td>The loopback address of the web UI, and whether <code>repoctl ui</code> opens a browser.</td></tr>
