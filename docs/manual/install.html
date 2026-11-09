@@ -108,7 +108,17 @@ Login Succeeded!</pre></li>
 <h3 id="registry-keyring">Keep the token in the system keyring</h3>
 <p>The login above writes the token in plain text into <code>auth.json</code>. To keep it in the system keyring (Secret Service over D-Bus, the store of <code>secret-tool</code>), use a credential helper. podman writes the token through the helper, and repoctl reads it through the same helper.</p>
 <ol class="steps">
-<li>Install <code>docker-credential-secretservice</code> from <a href="https://github.com/docker/docker-credential-helpers/releases">docker/docker-credential-helpers</a> into a directory of your <code>PATH</code>.</li>
+<li>Install <code>docker-credential-secretservice</code>. Fedora and podman do not supply it. With <a href="https://mise.jdx.dev/">mise</a>:
+<pre><code class="language-sh">mise use -g "github:docker/docker-credential-helpers[asset_pattern=docker-credential-secretservice-*.linux-amd64,bin=docker-credential-secretservice]"
+docker-credential-secretservice version</code></pre>
+Without mise, get the release binary of <a href="https://github.com/docker/docker-credential-helpers/releases">docker/docker-credential-helpers</a>. Check its sha256 with <code>checksums.txt</code>:
+<pre><code class="language-sh">v=v0.9.12
+f=docker-credential-secretservice-$v.linux-amd64
+curl -fLO https://github.com/docker/docker-credential-helpers/releases/download/$v/$f
+curl -fLO https://github.com/docker/docker-credential-helpers/releases/download/$v/checksums.txt
+grep " \*$f\$" checksums.txt | sed 's/ \*/  /' | sha256sum -c
+install -D -m 0755 $f ~/.local/bin/docker-credential-secretservice</code></pre>
+The directory <code>~/.local/bin</code> must be in your <code>PATH</code>.</li>
 <li>Tell the auth file to use the helper for GHCR. If the file exists already, add the key <code>credHelpers</code> by hand.
 <pre><code class="language-sh">mkdir -p ~/.config/containers
 echo '{"credHelpers": {"ghcr.io": "secretservice"}}' &gt;~/.config/containers/auth.json</code></pre></li>
