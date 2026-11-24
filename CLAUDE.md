@@ -34,7 +34,7 @@ RPM package builder for Slurm and HPC components at GSI. Builds signed RPM packa
 
 ## Repository Structure
 
-- **packages/**: Git submodules with package sources and spec files
+- **packages/**: Git submodules with package sources and spec files; each one tracks an `old-<project>/slurm-26.05[-<variant>]` branch of github.com/dennisklein/repoctl (see `.gitmodules`)
   - `ucx`, `pmix`, `pmix_v4`, `prrte`, `munge`, `rocm-smi`, `slurm`, `slurm-singularity-exec`, `openmpi`
 - **packages/slurm-release/**: Package sources and spec files for the repo pkg that can be used to configure yum/dnf on a target system pointing to the rpm repo
 - **scripts/**: Build tooling
